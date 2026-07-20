@@ -30,6 +30,7 @@ export default function SuperAdminAnalyticsDashboard({ onSelectSchool }: SuperAd
   const { toast } = useToast();
   const [analytics, setAnalytics] = useState(null);
   const [dashboardStats, setDashboardStats] = useState<any>(null);
+  const [platformAnalytics, setPlatformAnalytics] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -50,7 +51,7 @@ export default function SuperAdminAnalyticsDashboard({ onSelectSchool }: SuperAd
   const fetchAnalytics = async () => {
     try {
       const token = localStorage.getItem('authToken');
-      const [adminsResponse, statsResponse] = await Promise.all([
+      const [adminsResponse, statsResponse, analyticsResponse] = await Promise.all([
         fetch(`${API_BASE_URL}/api/super-admin/admins`, {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -62,7 +63,13 @@ export default function SuperAdminAnalyticsDashboard({ onSelectSchool }: SuperAd
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
           }
-        })
+        }),
+        fetch(`${API_BASE_URL}/api/super-admin/analytics`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }),
       ]);
 
       if (adminsResponse.ok) {
@@ -74,8 +81,18 @@ export default function SuperAdminAnalyticsDashboard({ onSelectSchool }: SuperAd
         const statsData = await statsResponse.json();
         setDashboardStats(statsData?.data || null);
       }
+
+      if (analyticsResponse.ok) {
+        const aData = await analyticsResponse.json();
+        setPlatformAnalytics(aData?.data || null);
+      }
     } catch (error) {
       console.error('Failed to fetch analytics:', error);
+      toast({
+        title: 'Analytics',
+        description: 'Some analytics data could not be loaded',
+        variant: 'destructive',
+      });
     } finally {
       setIsLoading(false);
     }
@@ -113,12 +130,70 @@ export default function SuperAdminAnalyticsDashboard({ onSelectSchool }: SuperAd
             <BarChart3Icon className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 mr-3 text-blue-600" />
             Analytics Dashboard
           </h1>
-          <p className="text-gray-600 mt-2">Comprehensive platform analytics and insights</p>
+          <p className="text-gray-600 mt-2">
+            School platform overview plus individual (B2C) trial conversion — live counts only.
+          </p>
         </div>
       </div>
 
+      {/* Individual / B2C trials & conversions */}
+      <Card className="border-emerald-100 shadow-sm">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base sm:text-lg flex items-center gap-2">
+            <TargetIcon className="h-5 w-5 text-emerald-600" />
+            Individual trials &amp; subscriptions (B2C)
+          </CardTitle>
+          <p className="text-sm text-slate-600">
+            Converted = trial members unlocked as paid. Manage in Trial Members; list under
+            Subscriptions → Individual.
+          </p>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+            {[
+              { label: 'Total individuals', value: platformAnalytics?.individual?.total ?? '—' },
+              { label: 'On trial', value: platformAnalytics?.individual?.trialActive ?? '—' },
+              { label: 'Exceeded', value: platformAnalytics?.individual?.exceeded ?? '—' },
+              { label: 'Converted', value: platformAnalytics?.individual?.converted ?? '—' },
+              {
+                label: 'Conversion rate',
+                value:
+                  platformAnalytics?.individual?.conversionRate != null
+                    ? `${platformAnalytics.individual.conversionRate}%`
+                    : '—',
+              },
+              {
+                label: 'B2C revenue recorded',
+                value:
+                  platformAnalytics?.individual?.revenueInr != null
+                    ? `₹${Number(platformAnalytics.individual.revenueInr).toLocaleString('en-IN')}`
+                    : '—',
+              },
+            ].map((item) => (
+              <div
+                key={item.label}
+                className="rounded-xl border border-slate-200 bg-slate-50/80 px-3 py-3"
+              >
+                <p className="text-xs text-slate-500">{item.label}</p>
+                <p className="mt-1 text-xl font-bold text-slate-900">{item.value}</p>
+              </div>
+            ))}
+          </div>
+          {(platformAnalytics?.weeklyActiveStudents != null ||
+            platformAnalytics?.monthlyActiveStudents != null) && (
+            <p className="mt-3 text-xs text-slate-500">
+              Students with login in last 7 days: {platformAnalytics?.weeklyActiveStudents ?? '—'} ·
+              last 30 days: {platformAnalytics?.monthlyActiveStudents ?? '—'}
+              {platformAnalytics?.schoolStudents != null
+                ? ` · school students (excl. B2C): ${platformAnalytics.schoolStudents}`
+                : ''}
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Analytics Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:p-4 lg:p-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
         {/* Total Admins - Orange (matching admin dashboard) */}
         <Card className="bg-gradient-to-r from-orange-300 to-orange-400 text-white border-0 shadow-lg">
           <CardContent className="p-3 sm:p-4 lg:p-6">

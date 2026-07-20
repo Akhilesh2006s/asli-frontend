@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 import { useLocation, useRoute } from "wouter";
-import { ArrowLeft, Loader2, School } from "lucide-react";
+import { ArrowLeft, Loader2, School, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { API_BASE_URL } from "@/lib/api-config";
 import { useToast } from "@/hooks/use-toast";
 import { queueSuperAdminViewRestore } from "@/lib/super-admin-nav";
@@ -94,8 +96,20 @@ export default function SuperAdminSchoolDetail() {
     setLocation(SUPER_ADMIN_DASHBOARD_HREF);
   };
   const [loading, setLoading] = useState(true);
+  const [savingSeats, setSavingSeats] = useState(false);
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [stats, setStats] = useState({ students: 0, teachers: 0 });
+  const [stats, setStats] = useState({
+    students: 0,
+    teachers: 0,
+    licensedStudents: 0,
+    licensedTeachers: 0,
+    accountSeatsNotes: "",
+  });
+  const [seatDraft, setSeatDraft] = useState({
+    licensedStudents: "0",
+    licensedTeachers: "0",
+    accountSeatsNotes: "",
+  });
   const [billing, setBilling] = useState<{
     razorpayConfigured: boolean;
     razorpayError: string | null;
@@ -121,7 +135,19 @@ export default function SuperAdminSchoolDetail() {
           throw new Error(json?.message || "Failed to load school");
         }
         setProfile(json.data.profile);
-        setStats(json.data.stats || { students: 0, teachers: 0 });
+        const nextStats = {
+          students: json.data.stats?.students || 0,
+          teachers: json.data.stats?.teachers || 0,
+          licensedStudents: json.data.stats?.licensedStudents || 0,
+          licensedTeachers: json.data.stats?.licensedTeachers || 0,
+          accountSeatsNotes: json.data.stats?.accountSeatsNotes || "",
+        };
+        setStats(nextStats);
+        setSeatDraft({
+          licensedStudents: String(nextStats.licensedStudents),
+          licensedTeachers: String(nextStats.licensedTeachers),
+          accountSeatsNotes: nextStats.accountSeatsNotes,
+        });
         setBilling(json.data.billing);
       } catch (e) {
         toast({
@@ -137,6 +163,52 @@ export default function SuperAdminSchoolDetail() {
 
     load();
   }, [id, toast]);
+
+  const saveAccountSeats = async () => {
+    if (!id) return;
+    setSavingSeats(true);
+    try {
+      const token = localStorage.getItem("authToken");
+      const res = await fetch(`${API_BASE_URL}/api/super-admin/admins/${id}/account-seats`, {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          licensedStudents: Math.max(0, Math.floor(Number(seatDraft.licensedStudents) || 0)),
+          licensedTeachers: Math.max(0, Math.floor(Number(seatDraft.licensedTeachers) || 0)),
+          accountSeatsNotes: seatDraft.accountSeatsNotes,
+        }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok || !json?.success) {
+        throw new Error(json?.message || "Failed to save account seats");
+      }
+      setStats((prev) => ({
+        ...prev,
+        students: json.data.usedStudents ?? prev.students,
+        teachers: json.data.usedTeachers ?? prev.teachers,
+        licensedStudents: json.data.licensedStudents ?? 0,
+        licensedTeachers: json.data.licensedTeachers ?? 0,
+        accountSeatsNotes: json.data.accountSeatsNotes ?? "",
+      }));
+      setSeatDraft({
+        licensedStudents: String(json.data.licensedStudents ?? 0),
+        licensedTeachers: String(json.data.licensedTeachers ?? 0),
+        accountSeatsNotes: String(json.data.accountSeatsNotes ?? ""),
+      });
+      toast({ title: "Saved", description: "Licensed teacher and student seats updated." });
+    } catch (e) {
+      toast({
+        title: "Error",
+        description: e instanceof Error ? e.message : "Could not save seats",
+        variant: "destructive",
+      });
+    } finally {
+      setSavingSeats(false);
+    }
+  };
 
   if (!id) {
     return null;
@@ -202,20 +274,85 @@ export default function SuperAdminSchoolDetail() {
               </div>
             </div>
           </div>
-          <Card className="sm:w-64 border-orange-100 bg-white shadow-sm">
+          <Card className="sm:w-72 border-orange-100 bg-white shadow-sm">
             <CardContent className="p-4">
-              <p className="text-xs font-medium uppercase tracking-wide text-slate-500">On platform</p>
+              <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                Account usage
+              </p>
               <div className="mt-2 flex justify-between text-xs sm:text-sm">
-                <span className="text-slate-600">Students</span>
-                <span className="font-semibold text-slate-900">{stats.students}</span>
+                <span className="text-slate-600">Students used / licensed</span>
+                <span className="font-semibold text-slate-900">
+                  {stats.students} / {stats.licensedStudents}
+                </span>
               </div>
               <div className="mt-1 flex justify-between text-xs sm:text-sm">
-                <span className="text-slate-600">Teachers</span>
-                <span className="font-semibold text-slate-900">{stats.teachers}</span>
+                <span className="text-slate-600">Teachers used / licensed</span>
+                <span className="font-semibold text-slate-900">
+                  {stats.teachers} / {stats.licensedTeachers}
+                </span>
               </div>
             </CardContent>
           </Card>
         </div>
+
+        <Card className="mb-6 border-slate-200 shadow-sm">
+          <CardHeader>
+            <CardTitle className="text-base sm:text-lg">Licensed account seats</CardTitle>
+            <p className="text-xs sm:text-sm text-slate-500">
+              Enter subscribed teacher and student seat counts separately. Used counts update
+              automatically from registered accounts.
+            </p>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="licensed-students">Student seats (licensed)</Label>
+                <Input
+                  id="licensed-students"
+                  type="number"
+                  min={0}
+                  value={seatDraft.licensedStudents}
+                  onChange={(e) =>
+                    setSeatDraft((prev) => ({ ...prev, licensedStudents: e.target.value }))
+                  }
+                />
+                <p className="text-xs text-slate-500">Currently using {stats.students}</p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="licensed-teachers">Teacher seats (licensed)</Label>
+                <Input
+                  id="licensed-teachers"
+                  type="number"
+                  min={0}
+                  value={seatDraft.licensedTeachers}
+                  onChange={(e) =>
+                    setSeatDraft((prev) => ({ ...prev, licensedTeachers: e.target.value }))
+                  }
+                />
+                <p className="text-xs text-slate-500">Currently using {stats.teachers}</p>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="seat-notes">Notes (optional)</Label>
+              <Input
+                id="seat-notes"
+                placeholder="e.g. Annual plan 2026 — 200 students, 15 teachers"
+                value={seatDraft.accountSeatsNotes}
+                onChange={(e) =>
+                  setSeatDraft((prev) => ({ ...prev, accountSeatsNotes: e.target.value }))
+                }
+              />
+            </div>
+            <Button onClick={saveAccountSeats} disabled={savingSeats} className="gap-2">
+              {savingSeats ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4" />
+              )}
+              Save seat limits
+            </Button>
+          </CardContent>
+        </Card>
 
         <div className="grid gap-3 sm:p-4 lg:p-6 md:grid-cols-2">
           <Card className="border-slate-200 shadow-sm">

@@ -154,15 +154,17 @@ export function AdminChatUI({ model, className }: AdminChatUIProps) {
                 </div>
                 <div className={msg.role === "user" ? "text-right" : ""}>
                   <div
-                    className={`inline-block rounded-2xl px-4 py-3 text-xs sm:text-sm shadow-sm ${
+                    className={`inline-block max-w-full rounded-2xl px-4 py-3 text-xs sm:text-sm shadow-sm ${
                       msg.role === "user"
                         ? "bg-gradient-to-r from-sky-600 to-teal-600 text-white"
                         : "bg-white text-slate-800"
                     }`}
                   >
-                    <p className="whitespace-pre-wrap break-words text-left">
-                      {model.formatMessage(msg.content)}
-                    </p>
+                    {msg.role === "assistant" ? (
+                      model.formatMessage(msg.content)
+                    ) : (
+                      <p className="whitespace-pre-wrap break-words text-left">{msg.content}</p>
+                    )}
                   </div>
                 </div>
               </div>

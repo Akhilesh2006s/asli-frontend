@@ -2097,9 +2097,9 @@ export default function StudentToolPage() {
             }
             actions={
               generatedContent ? (
-                <div className="flex flex-wrap gap-2">
-                  <Button variant="outline" size="sm" onClick={handleCopy} className="bg-white">
-                    {copied ? <Check className="h-5 w-5" /> : <Copy className="h-5 w-5" />}
+                <div className="flex w-full flex-wrap gap-2">
+                  <Button variant="outline" size="sm" onClick={handleCopy} className="shrink-0 bg-white">
+                    {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                     {copied ? 'Copied' : 'Copy'}
                   </Button>
                   <Button
@@ -2107,17 +2107,17 @@ export default function StudentToolPage() {
                     size="sm"
                     onClick={handleDownloadWord}
                     disabled={isDownloading}
-                    className="bg-white"
+                    className="shrink-0 bg-white"
                   >
-                    {isDownloading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Download className="h-5 w-5" />}
+                    {isDownloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
                     Download
                   </Button>
-                  <Button variant="outline" size="sm" onClick={handleShare} className="bg-white">
-                    <Share2 className="h-5 w-5" />
+                  <Button variant="outline" size="sm" onClick={handleShare} className="shrink-0 bg-white">
+                    <Share2 className="h-4 w-4" />
                     Share
                   </Button>
-                  <Button size="sm" onClick={handleGenerate} disabled={isGenerating}>
-                    <RotateCcw className="h-5 w-5" />
+                  <Button size="sm" onClick={handleGenerate} disabled={isGenerating} className="shrink-0">
+                    <RotateCcw className="h-4 w-4" />
                     Regenerate
                   </Button>
                 </div>

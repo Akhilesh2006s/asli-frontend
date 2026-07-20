@@ -202,13 +202,15 @@ export function TeacherChatUI({ model, className }: TeacherChatUIProps) {
                 </div>
                 <div className={msg.role === "user" ? "text-right" : ""}>
                   <div
-                    className={`inline-block rounded-2xl px-4 py-3 text-base leading-relaxed shadow-sm ${
+                    className={`inline-block max-w-full rounded-2xl px-4 py-3 text-base leading-relaxed shadow-sm ${
                       msg.role === "user" ? "bg-gradient-to-r from-teal-green-600 to-indigo-blue-600 text-white" : "bg-mist text-ink"
                     }`}
                   >
-                    <p className="whitespace-pre-wrap break-words text-left">
-                      {model.formatMessage(msg.content)}
-                    </p>
+                    {msg.role === "assistant" ? (
+                      model.formatMessage(msg.content)
+                    ) : (
+                      <p className="whitespace-pre-wrap break-words text-left">{msg.content}</p>
+                    )}
                   </div>
                 </div>
               </div>

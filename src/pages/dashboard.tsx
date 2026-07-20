@@ -32,7 +32,6 @@ import StudentTimetableView from "@/components/student/StudentTimetableView";
 import { 
   CheckCircle, 
   TrendingUp, 
-  BarChart3, 
   Play, 
   FileText, 
   Zap,
@@ -336,7 +335,7 @@ export default function Dashboard() {
   }, []);
 
   // Fetch real dashboard data
-  const [stats, setStats] = useState({ questionsAnswered: 0, accuracyRate: 0, rank: 0 });
+  // exam/quiz aggregates for learning progress live in subjectProgress / overallProgress
   const [exams, setExams] = useState<any[]>([]);
   const [examResults, setExamResults] = useState<any[]>([]);
   const [subjectProgress, setSubjectProgress] = useState<any[]>([]);
@@ -611,8 +610,8 @@ export default function Dashboard() {
           return;
         }
 
-        // Fetch exam results to calculate stats
-        const [examsRes, resultsRes, rankingsRes] = await Promise.all([
+        // Fetch exam results to calculate learning progress
+        const [examsRes, resultsRes] = await Promise.all([
           fetch(`${API_BASE_URL}/api/student/exams`, {
             headers: {
               'Authorization': `Bearer ${token}`,
@@ -625,12 +624,6 @@ export default function Dashboard() {
               'Content-Type': 'application/json'
             }
           }),
-          fetch(`${API_BASE_URL}/api/student/rankings`, {
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            }
-          })
         ]);
 
         let examsData = [];
@@ -646,25 +639,6 @@ export default function Dashboard() {
           resultsData = resultsJson.data || [];
           setExamResults(resultsData);
         }
-
-        let rankingsData = [];
-        if (rankingsRes.ok) {
-          const rankingsJson = await rankingsRes.json();
-          rankingsData = rankingsJson.data || [];
-        }
-
-        // Calculate real stats from exam results
-        const totalQuestions = resultsData.reduce((sum: number, r: any) => sum + (r.totalQuestions || 0), 0);
-        const correctAnswers = resultsData.reduce((sum: number, r: any) => sum + (r.correctAnswers || 0), 0);
-        const totalMarks = resultsData.reduce((sum: number, r: any) => sum + (r.totalMarks || 0), 0);
-        const obtainedMarks = resultsData.reduce((sum: number, r: any) => sum + (r.obtainedMarks || 0), 0);
-        const avgAccuracy = totalQuestions > 0 ? (correctAnswers / totalQuestions) * 100 : 0;
-        const avgScore = totalMarks > 0 ? (obtainedMarks / totalMarks) * 100 : 0;
-        
-        // Get average rank
-        const avgRank = rankingsData.length > 0 
-          ? Math.round(rankingsData.reduce((sum: number, r: any) => sum + (r.rank || 0), 0) / rankingsData.length)
-          : 0;
 
         // Fetch actual subject names from API FIRST to map exam subject keys to real names
         let subjectNameMap = new Map<string, string>(); // Maps subject keys (maths, physics, etc.) to actual names
@@ -874,13 +848,6 @@ export default function Dashboard() {
           // Save overall progress to database
           saveOverallProgressToDB(calculatedOverallProgress);
         }
-
-        // Set calculated stats
-        setStats({
-          questionsAnswered: totalQuestions,
-          accuracyRate: Math.round(avgAccuracy),
-          rank: avgRank || 0
-        });
 
       } catch (error) {
         console.error('Failed to fetch dashboard data:', error);
@@ -1895,24 +1862,24 @@ export default function Dashboard() {
             </div>
           </div>
         )}
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-teal-700 via-sky-600 to-cyan-600 p-6 shadow-glow-lg sm:p-8 lg:p-10">
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-teal-700 via-sky-600 to-cyan-600 p-5 shadow-glow-lg sm:p-8 lg:p-10">
         <div className="pointer-events-none absolute -right-16 -top-28 h-72 w-72 rounded-full bg-white/15 blur-3xl"></div>
         <div className="pointer-events-none absolute -bottom-24 -left-16 h-64 w-64 rounded-full bg-amber-200/25 blur-3xl"></div>
-            <div className="relative z-10 flex flex-row items-center justify-between gap-3 sm:gap-4">
-              {/* Left side - Text content */}
-              <div className="flex-1 min-w-0">
-                <h1 className="mb-3 font-display text-3xl font-extrabold leading-tight !text-white sm:text-4xl lg:text-5xl">
+            <div className="relative z-10 flex items-start gap-3 sm:items-center sm:gap-6">
+              {/* Left — welcome copy */}
+              <div className="min-w-0 flex-1">
+                <h1 className="mb-2 font-display text-2xl font-extrabold leading-tight !text-white sm:mb-3 sm:text-4xl lg:text-5xl">
                   Welcome, {getStudentDisplayName(user)}!
                 </h1>
-                <p className="mb-6 max-w-3xl text-lg font-medium leading-relaxed text-white/80 sm:text-xl">
+                <p className="mb-4 max-w-xl text-sm font-medium leading-snug text-white/85 sm:mb-6 sm:text-lg sm:leading-relaxed">
                   {vidyaEnabled
-                    ? `Ready to continue your ${user?.educationStream || 'JEE'} preparation journey? Your Vidya AI has personalized recommendations waiting.`
-                    : `Ready to continue your ${user?.educationStream || 'JEE'} preparation journey? Pick up where you left off.`}
+                    ? `Continue your ${user?.educationStream || 'JEE'} prep — Vidya AI has picks ready.`
+                    : `Continue your ${user?.educationStream || 'JEE'} prep. Pick up where you left off.`}
                 </p>
 
                 <div className="flex flex-row flex-wrap gap-2 sm:gap-3">
                   <Button
-                    className="h-12 whitespace-nowrap !bg-white px-6 text-base font-bold !text-teal-800 shadow-lg hover:!bg-white/90"
+                    className="h-11 whitespace-nowrap !bg-white px-5 text-sm font-bold !text-teal-800 shadow-lg hover:!bg-white/90 sm:h-12 sm:px-6 sm:text-base"
                     onClick={() => setLocation('/learning-paths')}
                   >
                     Continue Learning
@@ -1920,7 +1887,7 @@ export default function Dashboard() {
                   {vidyaEnabled ? (
                   <Button
                     variant="outline"
-                    className="h-12 whitespace-nowrap border-white/40 !bg-white/10 px-6 text-base font-bold !text-white backdrop-blur hover:!bg-white/20"
+                    className="h-11 whitespace-nowrap border-white/40 !bg-white/10 px-5 text-sm font-bold !text-white backdrop-blur hover:!bg-white/20 sm:h-12 sm:px-6 sm:text-base"
                     onClick={() => setLocation('/ai-tutor')}
                   >
                     Ask Vidya AI
@@ -1929,18 +1896,16 @@ export default function Dashboard() {
                 </div>
               </div>
               
-              {/* Right side - Vidya image (same row as desktop) */}
+              {/* Right — Vidya robot, aligned to top of the banner */}
               {vidyaEnabled ? (
-              <div className="flex-shrink-0">
-                <div className="relative h-[3.25rem] w-[4.5rem] sm:h-28 sm:w-40 lg:h-32 lg:w-44">
-                  <div className="absolute inset-0 rounded-xl border border-white bg-white/90 p-1 shadow-lg sm:rounded-2xl sm:p-1.5">
-                    <img 
-                      src="/ROBOT.gif" 
-                      alt="Vidya AI robot buddy" 
-                      draggable={false}
-                      className="h-full w-full rounded-lg object-contain sm:rounded-xl"
-                    />
-                  </div>
+              <div className="shrink-0 self-start sm:self-center">
+                <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-2xl bg-white/95 p-1 shadow-lg ring-1 ring-white/60 sm:h-28 sm:w-36 sm:rounded-3xl sm:p-2 lg:h-32 lg:w-40">
+                  <img 
+                    src="/ROBOT.gif" 
+                    alt="Vidya AI" 
+                    draggable={false}
+                    className="h-full w-full object-contain"
+                  />
                 </div>
               </div>
               ) : null}
@@ -2618,52 +2583,6 @@ export default function Dashboard() {
               )}
             </CardContent>
           </Card>
-        </div>
-
-        {/* Quick Stats */}
-        <div className="grid-responsive-3 gap-responsive mb-responsive relative z-10">
-          <div className="group relative overflow-hidden bg-gradient-to-r from-orange-300 to-orange-400 text-white border-0 shadow-lg rounded-responsive p-responsive hover:shadow-xl transition-all duration-300">
-            <div className="relative z-10">
-              <div className="flex items-center justify-between mb-4">
-                <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
-                  <CheckCircle className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-white" />
-                </div>
-                <div className="text-right">
-                  <p className="text-white/90 text-responsive-xs font-medium">Questions Solved</p>
-                  <p className="text-responsive-xl font-bold text-white">{stats.questionsAnswered.toLocaleString()}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="group relative overflow-hidden bg-gradient-to-br from-blue-500 to-blue-600 text-white border-0 shadow-lg rounded-responsive p-responsive hover:shadow-xl transition-all duration-300">
-            <div className="relative z-10">
-              <div className="flex items-center justify-between mb-4">
-                <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
-                  <TrendingUp className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-white" />
-                </div>
-                <div className="text-right">
-                  <p className="text-white/90 text-responsive-xs font-medium">Accuracy Rate</p>
-                  <p className="text-responsive-xl font-bold text-white">{stats.accuracyRate}%</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="group relative overflow-hidden bg-gradient-to-br from-teal-400 to-teal-500 text-white border-0 shadow-lg rounded-responsive p-responsive hover:shadow-xl transition-all duration-300">
-            <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
-            <div className="relative z-10">
-              <div className="flex items-center justify-between mb-4">
-                <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
-                  <BarChart3 className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-white" />
-                </div>
-                <div className="text-right">
-                  <p className="text-white/90 text-responsive-xs font-medium">Rank</p>
-                  <p className="text-responsive-xl font-bold text-white">#{stats.rank}</p>
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
 
 

@@ -66,6 +66,9 @@ interface Admin {
   permissions: string[];
   status: string;
   joinDate: string;
+  licensedStudents?: number;
+  licensedTeachers?: number;
+  accountSeatsNotes?: string;
   stats: {
     students: number;
     teachers: number;
@@ -2570,14 +2573,24 @@ export default function AdminManagement() {
                   {/* Students - Orange gradient */}
                   <div className="text-center p-3 bg-gradient-to-br from-orange-300 to-orange-400 rounded-lg text-white">
                     <UsersIcon className="h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6 text-white/80 mx-auto mb-2" />
-                    <p className="text-xl sm:text-2xl font-bold text-white">{admin?.stats?.students || 0}</p>
-                    <p className="text-xs sm:text-sm text-white/90">Students</p>
+                    <p className="text-xl sm:text-2xl font-bold text-white">
+                      {admin?.stats?.students || 0}
+                      <span className="text-sm font-semibold text-white/85">
+                        {" "}/ {admin?.licensedStudents ?? 0}
+                      </span>
+                    </p>
+                    <p className="text-xs sm:text-sm text-white/90">Students used / licensed</p>
                   </div>
                   {/* Teachers - Teal gradient */}
                   <div className="text-center p-3 bg-gradient-to-br from-teal-400 to-teal-500 rounded-lg text-white">
                     <GraduationCapIcon className="h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6 text-white/80 mx-auto mb-2" />
-                    <p className="text-xl sm:text-2xl font-bold text-white">{admin?.stats?.teachers || 0}</p>
-                    <p className="text-xs sm:text-sm text-white/90">Teachers</p>
+                    <p className="text-xl sm:text-2xl font-bold text-white">
+                      {admin?.stats?.teachers || 0}
+                      <span className="text-sm font-semibold text-white/85">
+                        {" "}/ {admin?.licensedTeachers ?? 0}
+                      </span>
+                    </p>
+                    <p className="text-xs sm:text-sm text-white/90">Teachers used / licensed</p>
                   </div>
                 </div>
                 

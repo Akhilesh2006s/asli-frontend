@@ -10,6 +10,7 @@ import {
   getAuthToken,
   getUser as getStoredUser,
   getStudentDisplayName,
+  setUser as persistUser,
 } from "@/lib/auth-utils";
 
 /**
@@ -36,6 +37,48 @@ export function StudentShell({
     const sync = () => setUser(getStoredUser());
     window.addEventListener("storage", sync);
     return () => window.removeEventListener("storage", sync);
+  }, []);
+
+  // Refresh school name/logo from /api/auth/me — login cache is often missing schoolLogo.
+  useEffect(() => {
+    const token = getAuthToken();
+    if (!token) return;
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/auth/me`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        });
+        if (!res.ok || cancelled) return;
+        const data = await res.json();
+        const me = data?.user;
+        if (!me || cancelled) return;
+
+        setUser((prev: any) => {
+          const next = {
+            ...(prev || {}),
+            ...me,
+            schoolName:
+              me.schoolName || me.assignedAdmin?.schoolName || prev?.schoolName || "",
+            schoolLogo:
+              me.schoolLogo || me.assignedAdmin?.schoolLogo || prev?.schoolLogo || "",
+            assignedAdmin: me.assignedAdmin || prev?.assignedAdmin,
+          };
+          persistUser(next);
+          return next;
+        });
+      } catch {
+        /* keep cached branding if refresh fails */
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const branding = getSchoolBranding(user);

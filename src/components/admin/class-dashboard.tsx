@@ -36,6 +36,7 @@ import {
 } from 'lucide-react';
 import { StudentRiskAnalysisModal } from './StudentRiskAnalysisModal';
 import { motion } from 'framer-motion';
+import { formatSeatUsage, useAccountSeats } from '@/hooks/use-account-seats';
 
 interface Student {
   id: string;
@@ -112,6 +113,7 @@ const subjectRowMatchesStoredId = (row: Subject, storedId: string) => {
 
 const ClassDashboard = () => {
   const { toast } = useToast();
+  const { seats } = useAccountSeats();
   const [classes, setClasses] = useState<Class[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -122,6 +124,7 @@ const ClassDashboard = () => {
   const [isDeletingAll, setIsDeletingAll] = useState(false);
   const [selectedClass, setSelectedClass] = useState<Class | null>(null);
   const [expandedClassId, setExpandedClassId] = useState<string | null>(null);
+  const [expandedTeachersClassId, setExpandedTeachersClassId] = useState<string | null>(null);
   const [newClass, setNewClass] = useState({
     classNumber: '',
     section: '',
@@ -690,6 +693,10 @@ const ClassDashboard = () => {
     }
   };
 
+  const handleTeachersDropdownToggle = (classId: string) => {
+    setExpandedTeachersClassId((prev) => (prev === classId ? null : classId));
+  };
+
   const toCanonicalSubjectIds = (ids: string[]) => {
     const canonical = new Set<string>();
     for (const raw of ids) {
@@ -837,7 +844,7 @@ const ClassDashboard = () => {
             </div>
             
             {/* Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-3 sm:p-4 lg:p-6">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
               <motion.div 
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -936,8 +943,8 @@ const ClassDashboard = () => {
         </div>
 
         {/* Tabs */}
-        <Tabs defaultValue="classes" className="space-y-3 sm:space-y-4 lg:space-y-6">
-          <TabsList className="h-auto min-h-[3.25rem] gap-1.5 bg-white/80 backdrop-blur-xl border border-white/20 rounded-3xl p-2 sm:p-2.5">
+        <Tabs defaultValue="classes" className="w-full space-y-3 sm:space-y-4 lg:space-y-6">
+          <TabsList className="flex h-auto min-h-[3.25rem] w-full flex-wrap justify-start gap-1.5 bg-white/80 backdrop-blur-xl border border-white/20 rounded-3xl p-3 sm:p-4 shadow-xl sm:w-full">
             <TabsTrigger
               value="classes"
               className="rounded-2xl px-4 py-2.5 text-sm font-semibold sm:px-6 sm:py-3 sm:text-base data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-pink-500 data-[state=active]:text-white"
@@ -961,23 +968,23 @@ const ClassDashboard = () => {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="classes" className="space-y-3 sm:space-y-4 lg:space-y-6">
+          <TabsContent value="classes" className="mt-0 space-y-3 sm:space-y-4 lg:space-y-6">
             {/* Action Bar */}
-            <div className="bg-white/80 backdrop-blur-xl rounded-3xl p-3 sm:p-4 lg:p-6 shadow-xl border border-white/20">
-              <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
-                <div className="flex flex-col md:flex-row gap-4 items-center">
-                  <div className="relative">
+            <div className="w-full bg-white/80 backdrop-blur-xl rounded-3xl p-3 sm:p-4 shadow-xl border border-white/20">
+              <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+                <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center sm:gap-4 sm:flex-1 min-w-0">
+                  <div className="relative w-full sm:w-64 sm:shrink-0">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-3 h-3 sm:w-4 sm:h-4" />
                     <Input
                       placeholder="Search classes..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
-                      className="px-0 pl-10 sm:pl-11 w-64 rounded-xl bg-white/70 border-gray-200 text-gray-900 backdrop-blur-sm"
+                      className="pl-10 sm:pl-11 w-full rounded-xl bg-white/70 border-gray-200 text-gray-900 backdrop-blur-sm"
                     />
                   </div>
                   
                   <Select value={selectedSubject} onValueChange={setSelectedSubject}>
-                    <SelectTrigger className="w-48 rounded-xl bg-white/70 border-gray-200 text-gray-900 backdrop-blur-sm">
+                    <SelectTrigger className="w-full sm:w-48 rounded-xl bg-white/70 border-gray-200 text-gray-900 backdrop-blur-sm">
                       <SelectValue placeholder="Filter by subject" />
                     </SelectTrigger>
                     <SelectContent>
@@ -988,13 +995,13 @@ const ClassDashboard = () => {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="flex gap-3">
+                <div className="flex w-full flex-wrap gap-3 sm:w-auto sm:shrink-0 sm:justify-end">
                   {classes.length > 0 && (
                     <AlertDialog open={isDeleteAllDialogOpen} onOpenChange={setIsDeleteAllDialogOpen}>
                       <AlertDialogTrigger asChild>
                         <Button 
                           variant="destructive"
-                          className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white rounded-xl"
+                          className="flex-1 sm:flex-none bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white rounded-xl"
                         >
                           <Trash2 className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                           Delete All
@@ -1027,7 +1034,7 @@ const ClassDashboard = () => {
                   )}
                   <Button 
                     onClick={() => setIsAddClassDialogOpen(true)}
-                    className="bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700 text-white rounded-xl"
+                    className="flex-1 sm:flex-none bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700 text-white rounded-xl"
                   >
                     <Plus className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                     Add Class
@@ -1037,10 +1044,11 @@ const ClassDashboard = () => {
             </div>
 
             {/* Classes Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 board:grid-cols-4 uhd:grid-cols-5 gap-3 sm:p-4 lg:p-6 [&>*]:min-w-0">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 board:grid-cols-4 uhd:grid-cols-5 gap-3 sm:gap-4 lg:gap-6 [&>*]:min-w-0">
           {filteredClasses.length > 0 ? (
             filteredClasses.map((classItem, index) => {
               const isExpanded = expandedClassId === classItem.id;
+              const teacherCount = classItem.teachers?.length || 0;
               return (
               <motion.div
                 key={classItem.id}
@@ -1085,7 +1093,10 @@ const ClassDashboard = () => {
                           <span className="shrink-0">Teachers:</span>
                         </div>
                         <span className="font-medium text-sky-900 shrink-0 whitespace-nowrap">
-                          {classItem.teachers.length} {classItem.teachers.length === 1 ? 'teacher' : 'teachers'}
+                          {teacherCount} on class
+                          {seats.licensedTeachers > 0
+                            ? ` · school ${formatSeatUsage(seats.usedTeachers, seats.licensedTeachers)}`
+                            : ""}
                         </span>
                       </div>
                     )}
@@ -1097,9 +1108,22 @@ const ClassDashboard = () => {
                         </div>
                         <span className="font-medium text-sky-500 text-xs shrink-0 whitespace-nowrap text-right">
                           No teachers assigned
+                          {seats.licensedTeachers > 0
+                            ? ` · school ${formatSeatUsage(seats.usedTeachers, seats.licensedTeachers)}`
+                            : ""}
                         </span>
                       </div>
                     )}
+                    <div className="flex items-center justify-between gap-2 text-xs sm:text-sm min-w-0">
+                      <div className="flex items-center text-sky-700 min-w-0">
+                        <Users className="w-3 h-3 sm:w-4 sm:h-4 mr-3 text-sky-600 shrink-0" />
+                        <span className="shrink-0">School students:</span>
+                      </div>
+                      <span className="font-medium text-sky-900 shrink-0 whitespace-nowrap">
+                        {formatSeatUsage(seats.usedStudents, seats.licensedStudents)}
+                        {seats.licensedStudents > 0 ? " seats" : ""}
+                      </span>
+                    </div>
                     {classItem.section && (
                       <div className="flex items-center justify-between gap-2 text-xs sm:text-sm min-w-0">
                         <div className="flex items-center text-sky-700 min-w-0">
@@ -1111,12 +1135,45 @@ const ClassDashboard = () => {
                     )}
                   </div>
                   
-                  {/* Teachers List */}
+                  {/* Teachers List (dropdown) */}
                   {classItem.teachers && classItem.teachers.length > 0 && (
                     <div className="space-y-2 mb-4">
-                      <h4 className="font-semibold text-sky-900 text-xs sm:text-sm">Assigned Teachers:</h4>
-                      <div className="space-y-2">
-                        {classItem.teachers.map(teacher => (
+                      <div className="flex items-center justify-between gap-2 mb-1">
+                        <h4 className="font-semibold text-sky-900 text-xs sm:text-sm">
+                          Assigned Teachers ({teacherCount})
+                          {seats.licensedTeachers > 0 && (
+                            <span className="ml-1 font-medium text-sky-600">
+                              · school {formatSeatUsage(seats.usedTeachers, seats.licensedTeachers)} max
+                            </span>
+                          )}
+                        </h4>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="border-sky-200 text-sky-700 hover:bg-sky-50 text-xs"
+                          onClick={() => handleTeachersDropdownToggle(classItem.id)}
+                        >
+                          {expandedTeachersClassId === classItem.id ? (
+                            <>
+                              <ChevronUp className="w-3 h-3 mr-1" />
+                              Hide
+                            </>
+                          ) : (
+                            <>
+                              <ChevronDown className="w-3 h-3 mr-1" />
+                              View
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                      <div
+                        className={`space-y-2 transition-all duration-300 ${
+                          expandedTeachersClassId === classItem.id
+                            ? 'max-h-64 overflow-y-auto'
+                            : 'max-h-0 overflow-hidden'
+                        }`}
+                      >
+                        {classItem.teachers.map((teacher) => (
                           <div
                             key={teacher.id}
                             className="flex items-center gap-2 min-w-0 bg-sky-50 rounded-lg p-2 hover:bg-sky-100 transition-colors border border-sky-200"
@@ -1146,7 +1203,14 @@ const ClassDashboard = () => {
                   
                   <div className="space-y-2">
                     <div className="flex items-center justify-between mb-2">
-                      <h4 className="font-semibold text-sky-900 text-xs sm:text-sm">Students List:</h4>
+                      <h4 className="font-semibold text-sky-900 text-xs sm:text-sm">
+                        Students List
+                        {seats.licensedStudents > 0 && (
+                          <span className="ml-1 font-medium text-sky-600">
+                            · school {formatSeatUsage(seats.usedStudents, seats.licensedStudents)} max
+                          </span>
+                        )}
+                      </h4>
                       <Button
                         size="sm"
                         variant="outline"
@@ -1249,7 +1313,7 @@ const ClassDashboard = () => {
           </div>
           </TabsContent>
 
-          <TabsContent value="assign-subjects" className="space-y-3 sm:space-y-4 lg:space-y-6">
+          <TabsContent value="assign-subjects" className="mt-0 space-y-3 sm:space-y-4 lg:space-y-6">
             <Card className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-xl border border-white/20">
               <CardHeader>
                 <CardTitle className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-purple-600 via-pink-600 to-red-500 bg-clip-text text-transparent">
@@ -1420,7 +1484,7 @@ const ClassDashboard = () => {
             </Card>
           </TabsContent>
 
-          <TabsContent value="promote-class" className="space-y-3 sm:space-y-4 lg:space-y-6">
+          <TabsContent value="promote-class" className="mt-0 space-y-3 sm:space-y-4 lg:space-y-6">
             <Card className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-xl border border-white/20">
               <CardHeader>
                 <CardTitle className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-green-600 via-emerald-600 to-teal-500 bg-clip-text text-transparent">

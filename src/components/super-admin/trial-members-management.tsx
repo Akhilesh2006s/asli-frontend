@@ -60,6 +60,8 @@ type TrialMember = {
   trialPaidAt?: string | null;
   trialPaymentMethod?: string;
   trialPaymentReference?: string;
+  converted?: boolean;
+  convertedAt?: string | null;
   isActive: boolean;
   createdAt?: string | null;
 };
@@ -69,6 +71,9 @@ type Summary = {
   trialActive: number;
   exceeded: number;
   paid: number;
+  converted?: number;
+  conversionRate?: number;
+  revenueInr?: number;
   students: number;
   teachers: number;
 };
@@ -97,8 +102,12 @@ function authHeaders(): HeadersInit {
 }
 
 function statusBadge(m: TrialMember) {
-  if (m.subscriptionStatus === 'active') {
-    return <Badge className="bg-emerald-100 text-emerald-900 hover:bg-emerald-100">Paid / Active</Badge>;
+  if (m.subscriptionStatus === 'active' || m.converted) {
+    return (
+      <Badge className="bg-emerald-100 text-emerald-900 hover:bg-emerald-100">
+        Converted · Paid
+      </Badge>
+    );
   }
   if (m.trialExceeded || m.subscriptionStatus === 'expired') {
     return (
@@ -329,8 +338,9 @@ export default function TrialMembersManagement() {
         <div>
           <h2 className="text-xl font-semibold text-slate-900 sm:text-2xl">Trial members</h2>
           <p className="mt-1 max-w-2xl text-sm text-slate-600">
-            Individual teacher and student signups. Manage trial length, record payments, mark trials
-            exceeded, and restrict which content / AI tools they can use.
+            Individual (B2C) teacher and student signups. Manage trials here; when you Unlock as paid
+            they become <strong>Converted</strong> and also appear under{' '}
+            <strong>Subscriptions → Individual</strong>.
           </p>
         </div>
         <Button variant="outline" onClick={() => void load()} disabled={loading}>
@@ -340,12 +350,16 @@ export default function TrialMembersManagement() {
       </div>
 
       {summary && (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
           {[
             { label: 'Total', value: summary.total },
             { label: 'Trial active', value: summary.trialActive },
             { label: 'Exceeded', value: summary.exceeded, warn: true },
-            { label: 'Paid', value: summary.paid },
+            { label: 'Converted', value: summary.paid },
+            {
+              label: 'Conversion %',
+              value: summary.conversionRate != null ? `${summary.conversionRate}%` : '—',
+            },
             { label: 'Students', value: summary.students },
             { label: 'Teachers', value: summary.teachers },
           ].map((s) => (
@@ -396,7 +410,7 @@ export default function TrialMembersManagement() {
                 <SelectItem value="all">All statuses</SelectItem>
                 <SelectItem value="trial">Trial active</SelectItem>
                 <SelectItem value="exceeded">Trial exceeded</SelectItem>
-                <SelectItem value="paid">Paid</SelectItem>
+                <SelectItem value="paid">Converted / Paid</SelectItem>
               </SelectContent>
             </Select>
             <Select value={roleFilter} onValueChange={setRoleFilter}>

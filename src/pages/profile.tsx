@@ -270,9 +270,12 @@ export default function Profile() {
 
   if (isLoading) {
     return (
-      <StudentShell>
-        <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8  pb-8">
-          <div className="space-y-4 sm:space-y-6 lg:space-y-8">
+      <StudentShell contentClassName="w-full p-0">
+        <div className="relative min-h-[calc(100dvh-4.5rem)] overflow-hidden bg-gradient-to-br from-sky-100 via-teal-50 to-indigo-blue-50 px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
+          <div className="pointer-events-none absolute -right-8 top-16 h-40 w-40 opacity-[0.12] sm:h-52 sm:w-52" aria-hidden="true">
+            <img src="/ROBOT.gif" alt="" className="h-full w-full object-contain" />
+          </div>
+          <div className="relative z-[1] mx-auto w-full max-w-7xl space-y-4 sm:space-y-6 lg:space-y-8">
             <Skeleton className="h-32 w-full" />
             <div className="space-y-3 sm:space-y-4 lg:space-y-6 sm:p-6 lg:p-8">
               <Skeleton className="h-64 w-full" />
@@ -280,13 +283,15 @@ export default function Profile() {
             </div>
           </div>
         </div>
-      </StudentShell>    );
+      </StudentShell>
+    );
   }
 
   if (!user) {
     return (
-      <StudentShell>
-        <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8  pb-8">
+      <StudentShell contentClassName="w-full p-0">
+        <div className="relative min-h-[calc(100dvh-4.5rem)] overflow-hidden bg-gradient-to-br from-sky-100 via-teal-50 to-indigo-blue-50 px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
+          <div className="relative z-[1] mx-auto w-full max-w-7xl">
           <Card>
             <CardContent className="p-12 text-center">
               <User className="w-16 h-16 mx-auto text-gray-400 mb-4" />
@@ -294,8 +299,10 @@ export default function Profile() {
               <p className="text-gray-600">Please check your login status.</p>
             </CardContent>
           </Card>
+          </div>
         </div>
-      </StudentShell>    );
+      </StudentShell>
+    );
   }
 
   const profileClassNumber =
@@ -322,7 +329,7 @@ export default function Profile() {
         : null;
 
   const profileSettingsSection = (
-    <Card>
+    <Card className="border-white/80 bg-white/90 shadow-sm backdrop-blur-sm">
       <CardHeader>
         <CardTitle className="flex items-center">
           <Settings className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
@@ -429,11 +436,19 @@ export default function Profile() {
   );
 
   return (
-    <StudentShell>
-      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8  pb-8">
+    <StudentShell contentClassName="w-full p-0">
+      <div className="relative min-h-[calc(100dvh-4.5rem)] overflow-hidden bg-gradient-to-br from-sky-100 via-teal-50 to-indigo-blue-50 px-4 py-6 pb-10 sm:px-6 sm:py-8 lg:px-8">
+        {/* Soft decorative atmosphere */}
+        <div className="pointer-events-none absolute -left-20 top-0 h-72 w-72 rounded-full bg-sky-300/25 blur-3xl" aria-hidden="true" />
+        <div className="pointer-events-none absolute -right-16 bottom-24 h-80 w-80 rounded-full bg-teal-200/30 blur-3xl" aria-hidden="true" />
+        <div className="pointer-events-none absolute right-2 top-20 h-36 w-36 opacity-[0.14] sm:right-6 sm:top-24 sm:h-48 sm:w-48 lg:h-56 lg:w-56" aria-hidden="true">
+          <img src="/ROBOT.gif" alt="" className="h-full w-full object-contain" />
+        </div>
+
+        <div className="relative z-[1] mx-auto w-full max-w-7xl">
         
         {/* Profile Header */}
-        <Card className="mb-8 overflow-visible min-w-0">
+        <Card className="mb-8 overflow-visible min-w-0 border-white/80 bg-white/90 shadow-sm backdrop-blur-sm">
           <CardContent className="p-3 sm:p-4 lg:p-6 overflow-visible min-w-0">
             <div className="flex flex-col gap-4">
               <div className="flex flex-wrap items-start sm:items-center justify-between gap-4">
@@ -541,7 +556,7 @@ export default function Profile() {
                 {profileSettingsSection}
 
                 {/* Performance Stats */}
-                <Card>
+                <Card className="border-white/80 bg-white/90 shadow-sm backdrop-blur-sm">
                   <CardHeader>
                     <CardTitle className="flex items-center">
                       <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
@@ -632,8 +647,10 @@ export default function Profile() {
                   </CardContent>
                 </Card>
         </div>
+        </div>
       </div>
-    </StudentShell>  );
+    </StudentShell>
+  );
 }
 
 

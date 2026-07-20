@@ -1796,46 +1796,46 @@ export default function TeacherToolPage() {
             }
             actions={
               generatedContent ? (
-                <div className="flex flex-wrap gap-2">
-                  <Button size="sm" variant="outline" onClick={handleCopy} className="bg-white">
-                    {copied ? <Check className="w-3 h-3 sm:w-4 sm:h-4" /> : <Copy className="w-3 h-3 sm:w-4 sm:h-4" />}
+                <div className="flex w-full flex-wrap gap-2">
+                  <Button size="sm" variant="outline" onClick={handleCopy} className="shrink-0 bg-white">
+                    {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                     {copied ? 'Copied' : 'Copy'}
                   </Button>
                   {showDownloadActions ? (
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button size="sm" variant="outline" disabled={isDownloading} className="bg-white">
+                        <Button size="sm" variant="outline" disabled={isDownloading} className="shrink-0 bg-white">
                           {isDownloading ? (
-                            <Loader2 className="w-3 h-3 sm:w-4 sm:h-4 animate-spin" />
+                            <Loader2 className="h-4 w-4 animate-spin" />
                           ) : (
-                            <Download className="w-3 h-3 sm:w-4 sm:h-4" />
+                            <Download className="h-4 w-4" />
                           )}
                           Download
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem onClick={handleDownloadWord} disabled={isDownloading}>
-                          <FileText className="w-4 h-4 mr-2" />
+                          <FileText className="mr-2 h-4 w-4" />
                           Download Word
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={handleDownloadCSV} disabled={isDownloading}>
-                          <FileSpreadsheet className="w-4 h-4 mr-2" />
+                          <FileSpreadsheet className="mr-2 h-4 w-4" />
                           Download CSV
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   ) : (
-                    <Button size="sm" variant="outline" onClick={handleDownloadText} className="bg-white">
-                      <Download className="h-5 w-5" />
+                    <Button size="sm" variant="outline" onClick={handleDownloadText} className="shrink-0 bg-white">
+                      <Download className="h-4 w-4" />
                       Download
                     </Button>
                   )}
-                  <Button size="sm" variant="outline" onClick={handleShare} className="bg-white">
-                    <Share2 className="h-5 w-5" />
+                  <Button size="sm" variant="outline" onClick={handleShare} className="shrink-0 bg-white">
+                    <Share2 className="h-4 w-4" />
                     Share
                   </Button>
-                  <Button size="sm" onClick={handleGenerate} disabled={isGenerating}>
-                    <RotateCcw className="h-5 w-5" />
+                  <Button size="sm" onClick={handleGenerate} disabled={isGenerating} className="shrink-0">
+                    <RotateCcw className="h-4 w-4" />
                     Regenerate
                   </Button>
                 </div>

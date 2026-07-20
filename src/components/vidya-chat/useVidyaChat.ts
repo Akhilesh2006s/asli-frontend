@@ -9,6 +9,7 @@ import type {
   Message,
 } from "./types";
 import { isLikelyMongoObjectId } from "@/lib/vidya-subjects";
+import { ChatMessageContent } from "./ChatMessageContent";
 
 const CONTROL_ASSISTANT_QUICK_QUESTIONS = [
   "How many students are there in the application?",
@@ -609,15 +610,8 @@ export function useVidyaChat({
   }, [displayMessages.length]);
 
   const formatMessage = (text: string) => {
-    if (!text) return "";
-    let cleaned = String(text);
-    cleaned = cleaned.replace(/\r\n/g, "\n");
-    cleaned = cleaned.replace(/^#{1,6}\s+/gm, "");
-    cleaned = cleaned.replace(/\*\*(.*?)\*\*/g, "$1");
-    cleaned = cleaned.replace(/__(.*?)__/g, "$1");
-    cleaned = cleaned.replace(/^\s*[-*]\s+/gm, "• ");
-    cleaned = cleaned.replace(/\n{3,}/g, "\n\n");
-    return cleaned.trim();
+    if (!text) return null;
+    return <ChatMessageContent text={text} />;
   };
 
   const quickQuestions = isDatabaseBackedAssistant

@@ -2203,6 +2203,8 @@ const TeacherDashboard = () => {
             dashboardSubTab === 'ai-classes' ||
             dashboardSubTab === 'classes' ||
             dashboardSubTab === 'students';
+          // Vidya AI has its own unified hero card — skip the separate page title.
+          if (dashboardSubTab === 'vidya-ai') return null;
           return (
             <div className="mb-6 flex flex-col gap-4 sm:mb-8 sm:flex-row sm:items-end sm:justify-between">
               <div className="min-w-0">
@@ -2430,41 +2432,45 @@ const TeacherDashboard = () => {
 
               {/* Learning Paths opens /learning-paths (same UI as student) */}
 
-              {/* Vidya AI Tab */}
+              {/* Vidya AI Tab — single unified hero + tools */}
               {dashboardSubTab === 'vidya-ai' && (
                 <>
               <motion.div
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="overflow-hidden rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6"
+                className="overflow-hidden rounded-3xl border border-sky-200/70 bg-gradient-to-br from-sky-50 via-white to-teal-50/80 p-5 shadow-sm sm:p-7 lg:p-8"
               >
-                <div className="mb-6 flex flex-col gap-4 border-b border-slate-100 pb-5 sm:flex-row sm:items-center">
-                  <div className="h-12 w-12 shrink-0 overflow-hidden rounded-xl ring-2 ring-indigo-blue-50">
-                    <img
-                      src="/Vidya-ai.jpg"
-                      alt=""
-                      className="h-full w-full object-cover"
-                    />
-                  </div>
-                  <div>
-                    <h3 className="font-display text-xl font-bold text-slate-900 sm:text-2xl">
-                      {isIndividualTeacher ? 'AI Studio tools' : 'Teaching tools'}
-                    </h3>
-                    <p className="mt-1 max-w-2xl text-sm leading-relaxed text-slate-600">
-                      Create curriculum-ready material and get practical classroom support.
+                <div className="flex items-center gap-3 sm:gap-5">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-sky-700">
+                      Teacher Portal
+                    </p>
+                    <h1 className="mt-2 font-display text-3xl font-extrabold tracking-tight text-slate-900 sm:text-4xl">
+                      {isIndividualTeacher ? 'AI Studio' : 'Vidya'}{' '}
+                      <span className="text-sky-600">AI</span>
+                    </h1>
+                    <p className="mt-2 max-w-xl text-sm leading-relaxed text-slate-600 sm:text-base">
+                      Generate lesson materials, worksheets, and teaching aids — curriculum-ready
+                      classroom support in one place.
                     </p>
                   </div>
+                  <img
+                    src="/ROBOT.gif"
+                    alt=""
+                    aria-hidden="true"
+                    className="h-20 w-20 shrink-0 object-contain drop-shadow-md sm:h-28 sm:w-28"
+                  />
                 </div>
 
                 {/* Tabs for Teacher Tools and Chat */}
-                <div className="mb-6">
-                  <div className="inline-flex min-h-12 w-full gap-1 overflow-x-auto rounded-xl border border-slate-200 bg-slate-50 p-1 sm:w-auto">
+                <div className="mt-5">
+                  <div className="inline-flex min-h-12 w-full gap-1 overflow-x-auto rounded-xl border border-sky-200/80 bg-white/80 p-1 backdrop-blur-sm sm:w-auto">
                     <button
                       onClick={() => setVidyaAiTab('teacher-tools')}
                       className={`min-h-10 flex-1 whitespace-nowrap rounded-lg px-4 py-2 text-sm font-semibold transition-all ${
                         vidyaAiTab === 'teacher-tools'
-                          ? 'bg-white text-indigo-blue-700 shadow-md'
-                          : 'text-slate-600 hover:bg-white/70 hover:text-indigo-blue-700'
+                          ? 'bg-sky-600 text-white shadow-md'
+                          : 'text-slate-600 hover:bg-sky-50 hover:text-sky-800'
                       }`}
                     >
                       <Wrench className="mr-2 inline h-5 w-5" />
@@ -2475,8 +2481,8 @@ const TeacherDashboard = () => {
                       onClick={() => setVidyaAiTab('chat')}
                       className={`min-h-10 flex-1 whitespace-nowrap rounded-lg px-4 py-2 text-sm font-semibold transition-all ${
                         vidyaAiTab === 'chat'
-                          ? 'bg-white text-indigo-blue-700 shadow-md'
-                          : 'text-slate-600 hover:bg-white/70 hover:text-indigo-blue-700'
+                          ? 'bg-sky-600 text-white shadow-md'
+                          : 'text-slate-600 hover:bg-sky-50 hover:text-sky-800'
                       }`}
                     >
                       <MessageCircle className="mr-2 inline h-5 w-5" />
@@ -2488,7 +2494,7 @@ const TeacherDashboard = () => {
 
                 {/* Teacher Tools Content */}
                 {vidyaAiTab === 'teacher-tools' && (
-                  <div className="space-y-8">
+                  <div className="mt-7 space-y-8 border-t border-sky-100/90 pt-7">
                     {isIndividualTeacher ? (
                       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                         {[
@@ -2501,9 +2507,9 @@ const TeacherDashboard = () => {
                             key={label}
                             type="button"
                             onClick={() => setLocation(route)}
-                            className="group flex min-h-28 items-center gap-4 rounded-2xl border border-indigo-blue-100 bg-gradient-to-br from-white to-indigo-blue-50/60 p-5 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-indigo-blue-200 hover:shadow-elevated"
+                            className="group flex min-h-28 items-center gap-4 rounded-2xl border border-sky-100 bg-white/90 p-5 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-sky-200 hover:shadow-elevated"
                           >
-                            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-indigo-blue-100 text-indigo-blue-700 transition group-hover:bg-indigo-blue-600 group-hover:text-white">
+                            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-sky-100 text-sky-700 transition group-hover:bg-sky-600 group-hover:text-white">
                               <Icon className="h-6 w-6" />
                             </span>
                             <span className="text-lg font-bold text-slate-800">{label}</span>
@@ -2513,8 +2519,8 @@ const TeacherDashboard = () => {
                     ) : null}
                     {/* Available Tools Section */}
                       <div>
-                      <h3 className="mb-2 font-display text-3xl font-bold text-slate-900">Create With AI</h3>
-                      <p className="mb-7 text-lg leading-relaxed text-slate-600">{TEACHER_AI_TOOLS_SUBTITLE}</p>
+                      <h3 className="mb-2 font-display text-2xl font-bold text-slate-900 sm:text-3xl">Create With AI</h3>
+                      <p className="mb-7 text-base leading-relaxed text-slate-600 sm:text-lg">{TEACHER_AI_TOOLS_SUBTITLE}</p>
 
                       <TeacherVidyaToolsGrid
                         subjectNames={teacherSubjectNames}
@@ -2526,7 +2532,7 @@ const TeacherDashboard = () => {
 
                 {/* Chat Content */}
                 {vidyaAiTab === 'chat' && vidyaChatEnabled && (
-                  <div className="space-y-4 max-w-4xl mx-auto">
+                  <div className="mx-auto mt-7 max-w-4xl space-y-4 border-t border-sky-100/90 pt-7">
                     <div className={`rounded-2xl p-5 shadow-md border border-white/40 ${
                       teacherChatFocusTab === 'lesson-planning'
                         ? 'bg-gradient-to-r from-sky-300 via-sky-400 to-blue-400'

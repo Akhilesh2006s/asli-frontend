@@ -43,34 +43,34 @@ export function AiToolGeneratePageChrome({
           className="asli-card-premium asli-ai-glow overflow-hidden p-0"
         >
           <div className="h-1.5 w-full bg-gradient-to-r from-indigo-blue-600 via-sky-500 to-orange-400" />
-          <div className="flex flex-col gap-5 p-6 sm:flex-row sm:items-center sm:p-8">
+          <div className="flex flex-col gap-5 p-5 sm:gap-6 sm:p-8">
             <Button
               type="button"
               variant="outline"
               onClick={onBack}
-              className="shrink-0"
+              className="w-fit shrink-0"
             >
               <ArrowLeft className="h-5 w-5" aria-hidden />
               {backLabel}
             </Button>
-            <div className="flex min-w-0 items-center gap-4">
-              <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-blue-600 to-sky-500 shadow-lg shadow-indigo-blue-500/20">
-                <Icon className="h-8 w-8 text-white" aria-hidden />
+            <div className="flex min-w-0 items-start gap-3 sm:items-center sm:gap-4">
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-blue-600 to-sky-500 shadow-lg shadow-indigo-blue-500/20 sm:h-16 sm:w-16">
+                <Icon className="h-7 w-7 text-white sm:h-8 sm:w-8" aria-hidden />
               </div>
-              <div className="min-w-0 space-y-1.5">
-                <div className="flex flex-wrap items-center gap-2.5">
-                  <h1 className="font-display text-3xl font-bold tracking-tight text-ink lg:text-4xl">
+              <div className="min-w-0 flex-1 space-y-1.5">
+                <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
+                  <h1 className="font-display text-2xl font-bold tracking-tight text-ink sm:text-3xl lg:text-4xl">
                     {displayTitle}
                   </h1>
                   {displayBadge ? (
-                    <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-[0.9375rem] font-semibold text-primary">
-                      <Sparkles className="h-4 w-4" />
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/10 px-2.5 py-0.5 text-sm font-semibold text-primary sm:px-3 sm:py-1 sm:text-[0.9375rem]">
+                      <Sparkles className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                       {displayBadge}
                     </span>
                   ) : null}
                 </div>
                 {displayDescription ? (
-                  <p className="max-w-2xl text-lg leading-relaxed text-muted-foreground">
+                  <p className="w-full max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-lg">
                     {displayDescription}
                   </p>
                 ) : null}

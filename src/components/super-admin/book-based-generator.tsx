@@ -137,6 +137,8 @@ function groupBooksBySubject(books: BookOption[]): BookListGroup[] {
     .sort((a, b) => a.label.localeCompare(b.label));
 }
 
+const WHOLE_CHAPTER_VALUE = "__WHOLE_CHAPTER__";
+
 type BookBasedGeneratorProps = {
   onOpenBookKnowledge?: () => void;
   onOpenAiToolData?: () => void;
@@ -150,7 +152,7 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
   const [classNumber, setClassNumber] = useState("");
   const [subject, setSubject] = useState("");
   const [topic, setTopic] = useState("");
-  const [subTopic, setSubTopic] = useState("");
+  const [subTopic, setSubTopic] = useState(WHOLE_CHAPTER_VALUE);
   const [bookId, setBookId] = useState("");
   const [useBookKnowledge, setUseBookKnowledge] = useState(true);
   const [qualityTier, setQualityTier] = useState<GenerationQualityTierId>(DEFAULT_GENERATION_QUALITY_TIER);
@@ -203,7 +205,9 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
   const selectedBook = useMemo(() => books.find((b) => b._id === bookId), [books, bookId]);
   const bookReady = Boolean(selectedBook?.embeddingsCreated && selectedBook?.processingStatus === "indexed");
   const step1Done = Boolean(bookId && bookReady);
-  const curriculumDone = Boolean(step1Done && classNumber && subject && topic && subTopic);
+  const curriculumDone = Boolean(
+    step1Done && classNumber && subject && topic && (subTopic === WHOLE_CHAPTER_VALUE || subTopic),
+  );
   const step2Done = Boolean(curriculumDone && selectedTool);
 
   const [bookGroupMode, setBookGroupMode] = useState<"class" | "subject">("class");
@@ -302,25 +306,25 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
     setClassNumber("");
     setSubject("");
     setTopic("");
-    setSubTopic("");
+    setSubTopic(WHOLE_CHAPTER_VALUE);
   };
 
   const handleClassChange = (value: string) => {
     setClassNumber(value);
     setSubject("");
     setTopic("");
-    setSubTopic("");
+    setSubTopic(WHOLE_CHAPTER_VALUE);
   };
 
   const handleSubjectChange = (value: string) => {
     setSubject(value);
     setTopic("");
-    setSubTopic("");
+    setSubTopic(WHOLE_CHAPTER_VALUE);
   };
 
   const handleTopicChange = (value: string) => {
     setTopic(value);
-    setSubTopic("");
+    setSubTopic(WHOLE_CHAPTER_VALUE);
   };
 
   const handleToolSelect = (toolId: BookBasedToolId) => {
@@ -328,12 +332,12 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
     if (isStoryLanguageTool(toolId) && subject && !isStoryPassageLanguageSubject(subject)) {
       setSubject("");
       setTopic("");
-      setSubTopic("");
+      setSubTopic(WHOLE_CHAPTER_VALUE);
     }
     if (isLanguageExcludedTool(toolId) && subject && isStoryPassageLanguageSubject(subject)) {
       setSubject("");
       setTopic("");
-      setSubTopic("");
+      setSubTopic(WHOLE_CHAPTER_VALUE);
     }
   };
 
@@ -342,7 +346,7 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
     if (!subject || isStoryPassageLanguageSubject(subject)) return;
     setSubject("");
     setTopic("");
-    setSubTopic("");
+    setSubTopic(WHOLE_CHAPTER_VALUE);
   }, [selectedTool, subject]);
 
   useEffect(() => {
@@ -350,7 +354,7 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
     if (!subject || !isStoryPassageLanguageSubject(subject)) return;
     setSubject("");
     setTopic("");
-    setSubTopic("");
+    setSubTopic(WHOLE_CHAPTER_VALUE);
   }, [selectedTool, subject]);
 
   const renderToolButton = (tool: BookBasedTool) => (
@@ -371,6 +375,7 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
 
   const parseBatchSize = () => parseGenerationRecordCount(generationRecordCount)!;
 
+  const isWholeChapter = subTopic === WHOLE_CHAPTER_VALUE || !subTopic;
   const buildGenerationPayload = (forceUnlock = false) => ({
     toolSlug: selectedTool,
     bookId,
@@ -378,7 +383,9 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
     className: classNumber,
     subjectName: subject,
     topicName: topic,
-    subtopicName: subTopic,
+    subtopicName: isWholeChapter ? "" : subTopic,
+    chapterScope: isWholeChapter,
+    ...(isWholeChapter && subtopics.length > 0 ? { subTopics: subtopics } : {}),
     batchSize: parseBatchSize(),
     useBookKnowledge,
     qualityTier,
@@ -533,10 +540,10 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
   };
 
   const handleGenerate = async (opts?: { forceUnlock?: boolean }) => {
-    if (!selectedTool || !bookId || !classNumber || !subject || !topic || !subTopic) {
+    if (!selectedTool || !bookId || !classNumber || !subject || !topic || (!isWholeChapter && !subTopic)) {
       toast({
         title: "Complete all steps",
-        description: "Select a textbook, pick curriculum (topic + sub-topic), then choose a tool.",
+        description: "Select a textbook, pick curriculum (topic + whole chapter or a sub-topic), then choose a tool.",
         variant: "destructive",
       });
       return;
@@ -799,7 +806,7 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
             Step 2 — Choose Tool, Then Inputs
           </CardTitle>
           <p className="text-sm text-slate-500 font-normal">
-            Pick a <strong>tool</strong> first, then fill <strong>board</strong>, <strong>class</strong>, <strong>subject</strong>, <strong>topic</strong>, <strong>sub-topic</strong>, and record count (1–{BOOK_GENERATOR_MAX_BATCH_SIZE}) to generate.
+            Pick a <strong>tool</strong> first, then fill <strong>board</strong>, <strong>class</strong>, <strong>subject</strong>, <strong>topic</strong>, <strong>whole chapter or sub-topic</strong>, and record count (1–{BOOK_GENERATOR_MAX_BATCH_SIZE}) to generate.
           </p>
         </CardHeader>
         <CardContent className="space-y-8">
@@ -882,12 +889,36 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
           </div>
           <div className="space-y-2">
             <Label>Sub Topic</Label>
-            <Select value={subTopic} onValueChange={setSubTopic} disabled={!topic || loadingSubtopics}>
-              <SelectTrigger><SelectValue placeholder={!topic ? "Select topic first" : loadingSubtopics ? "Loading sub topics…" : "Select sub topic"} /></SelectTrigger>
+            <Select
+              value={subTopic || WHOLE_CHAPTER_VALUE}
+              onValueChange={setSubTopic}
+              disabled={!topic || loadingSubtopics}
+            >
+              <SelectTrigger>
+                <SelectValue
+                  placeholder={
+                    !topic
+                      ? "Select topic first"
+                      : loadingSubtopics
+                        ? "Loading sub topics…"
+                        : "Whole chapter or a sub-topic"
+                  }
+                />
+              </SelectTrigger>
               <SelectContent>
-                {subtopics.map((st) => <SelectItem key={st} value={st}>{st}</SelectItem>)}
+                <SelectItem value={WHOLE_CHAPTER_VALUE}>Whole chapter</SelectItem>
+                {subtopics.map((st) => (
+                  <SelectItem key={st} value={st}>
+                    {st}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
+            <p className="text-xs text-slate-500">
+              {isWholeChapter
+                ? "Questions will cover the full chapter/topic (all major ideas), same as teacher tools."
+                : "Questions will focus on this sub-topic only."}
+            </p>
           </div>
           <div className="sm:col-span-2 lg:col-span-3 rounded-xl border border-violet-200 bg-violet-50/60 p-4">
             <GenerationRecordCountField

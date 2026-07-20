@@ -429,8 +429,8 @@ export default function AITutor() {
       <StudentShell>
         {/* Height is viewport minus the shell topbar + page padding, so the
             composer stays pinned without the page itself scrolling. */}
-        <div className="mx-auto flex h-[calc(100dvh-9.5rem)] w-full max-w-5xl flex-col">
-            <div className="mb-4 flex shrink-0 items-center gap-3">
+        <div className="mx-auto flex h-[calc(100dvh-8.25rem)] w-full max-w-5xl flex-col sm:h-[calc(100dvh-9.5rem)]">
+            <div className="mb-3 flex shrink-0 items-center gap-3 sm:mb-4">
               <button
                 type="button"
                 onClick={() => setSelectedTool(null)}
@@ -439,13 +439,13 @@ export default function AITutor() {
               >
                 <ArrowRight className="h-4 w-4 rotate-180" aria-hidden="true" />
               </button>
-              <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-blue-500 to-violet-600 shadow-sm">
-                <Sparkles className="h-[1.35rem] w-[1.35rem] text-white" aria-hidden="true" />
+              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-blue-500 to-violet-600 shadow-sm sm:h-11 sm:w-11">
+                <Sparkles className="h-[1.2rem] w-[1.2rem] text-white sm:h-[1.35rem] sm:w-[1.35rem]" aria-hidden="true" />
               </span>
               <div className="min-w-0">
-                <h1 className="truncate font-display text-xl font-bold text-ink">Ask Vidya AI</h1>
-                <p className="truncate text-sm text-muted-foreground">
-                  Your study assistant · ask anything, learn faster
+                <h1 className="truncate font-display text-lg font-bold text-ink sm:text-xl">Ask Vidya AI</h1>
+                <p className="truncate text-xs text-muted-foreground sm:text-sm">
+                  Structured answers · ask anything
                 </p>
               </div>
             </div>
@@ -477,53 +477,49 @@ export default function AITutor() {
             <div className="pointer-events-none absolute -right-24 -top-28 h-80 w-80 rounded-full bg-white/55 blur-3xl" />
             <div className="pointer-events-none absolute -bottom-24 left-1/3 h-64 w-64 rounded-full bg-violet-200/45 blur-3xl" />
 
-            <div className="relative z-[1] grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(200px,280px)]">
-              <div className="min-w-0 order-2 lg:order-1">
-                <p className="inline-flex items-center gap-2 rounded-full bg-white/75 px-3 py-1 text-sm font-bold text-indigo-blue-700">
-                  <Sparkles className="h-4 w-4" aria-hidden="true" />
-                  Hello {getStudentDisplayName(user) || 'there'}!
-                </p>
-                <h1 className="mt-4 font-display text-4xl font-extrabold leading-none tracking-tight text-ink sm:text-5xl lg:text-6xl">
-                  Vidya <span className="text-sky-600">AI</span>
-                </h1>
-                <p className="mt-3 max-w-xl text-lg leading-relaxed text-ink-soft">
-                  Smart revision, practice and study support — all in one place.
-                </p>
+            <div className="relative z-[1]">
+              <p className="inline-flex items-center gap-2 rounded-full bg-white/75 px-3 py-1 text-sm font-bold text-indigo-blue-700">
+                <Sparkles className="h-4 w-4" aria-hidden="true" />
+                Hello {getStudentDisplayName(user) || 'there'}!
+              </p>
 
-                <div className="mt-6 grid gap-3 sm:grid-cols-3">
-                  {[
-                    { Icon: Clock, title: 'Save Time', copy: 'Automate revision & notes' },
-                    { Icon: Brain, title: 'Practice Smarter', copy: 'Questions built for you' },
-                    { Icon: TrendingUp, title: 'Better Outcomes', copy: 'Track progress & improve' },
-                  ].map(({ Icon, title, copy }) => (
-                    <div
-                      key={title}
-                      className="flex items-start gap-3 rounded-2xl border border-white/80 bg-white/85 px-4 py-3 shadow-sm backdrop-blur"
-                    >
-                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-indigo-blue-50 text-indigo-blue-600">
-                        <Icon className="h-[1.15rem] w-[1.15rem]" aria-hidden="true" />
-                      </span>
-                      <span className="leading-tight">
-                        <span className="block text-sm font-bold text-ink">{title}</span>
-                        <span className="block text-sm text-muted-foreground">{copy}</span>
-                      </span>
-                    </div>
-                  ))}
+              {/* Title + robot embedded side-by-side */}
+              <div className="mt-4 flex items-center gap-3 sm:gap-5">
+                <div className="min-w-0 flex-1">
+                  <h1 className="font-display text-4xl font-extrabold leading-none tracking-tight text-ink sm:text-5xl lg:text-6xl">
+                    Vidya <span className="text-sky-600">AI</span>
+                  </h1>
+                  <p className="mt-2 max-w-xl text-base leading-relaxed text-ink-soft sm:mt-3 sm:text-lg">
+                    Smart revision, practice and study support — all in one place.
+                  </p>
                 </div>
+                <img
+                  src="/ROBOT.gif"
+                  alt=""
+                  aria-hidden="true"
+                  className="h-24 w-24 shrink-0 object-contain drop-shadow-md sm:h-32 sm:w-32 lg:h-40 lg:w-40"
+                />
               </div>
 
-              <div className="order-1 flex justify-center lg:order-2 lg:justify-end lg:pt-1">
-                <div className="relative">
+              <div className="mt-6 grid gap-3 sm:grid-cols-3">
+                {[
+                  { Icon: Clock, title: 'Save Time', copy: 'Automate revision & notes' },
+                  { Icon: Brain, title: 'Practice Smarter', copy: 'Questions built for you' },
+                  { Icon: TrendingUp, title: 'Better Outcomes', copy: 'Track progress & improve' },
+                ].map(({ Icon, title, copy }) => (
                   <div
-                    className="absolute inset-0 rounded-[2rem] bg-gradient-to-br from-sky-300/50 to-amber-200/40 blur-2xl"
-                    aria-hidden="true"
-                  />
-                  <img
-                    src="/ROBOT.gif"
-                    alt="Vidya AI robot buddy"
-                    className="relative h-40 w-40 rounded-[2rem] border-4 border-white bg-gradient-to-br from-sky-50 to-indigo-blue-50 object-contain p-2 shadow-lg sm:h-48 sm:w-48 lg:h-56 lg:w-56"
-                  />
-                </div>
+                    key={title}
+                    className="flex items-start gap-3 rounded-2xl border border-white/80 bg-white/85 px-4 py-3 shadow-sm backdrop-blur"
+                  >
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-indigo-blue-50 text-indigo-blue-600">
+                      <Icon className="h-[1.15rem] w-[1.15rem]" aria-hidden="true" />
+                    </span>
+                    <span className="leading-tight">
+                      <span className="block text-sm font-bold text-ink">{title}</span>
+                      <span className="block text-sm text-muted-foreground">{copy}</span>
+                    </span>
+                  </div>
+                ))}
               </div>
             </div>
           </div>

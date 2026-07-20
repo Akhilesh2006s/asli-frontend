@@ -31,7 +31,11 @@ import {
   AlertTriangle,
   ShoppingBag,
   Receipt,
+  Users,
+  UserRound,
 } from 'lucide-react';
+import AccountSeatsPanel from '@/components/super-admin/account-seats-panel';
+import IndividualSubscriptionsPanel from '@/components/super-admin/individual-subscriptions-panel';
 
 type PaymentRow = {
   id: string;
@@ -214,7 +218,8 @@ export default function SubscriptionManagement() {
               Payments &amp; Subscriptions
             </h2>
             <p className="text-slate-600 mt-1 max-w-xl text-sm">
-              Manage school orders, track Razorpay payments, and monitor subscriptions — all in one place.
+              School orders &amp; seats, individual (B2C) converted subscriptions, and Razorpay
+              billing — all in one place.
             </p>
           </div>
           <div className="flex flex-wrap gap-2 shrink-0 w-full sm:w-auto">
@@ -224,7 +229,7 @@ export default function SubscriptionManagement() {
                 <span className="ml-2">Create Order</span>
               </Button>
             )}
-            {mainTab !== 'school-orders' && (
+            {(mainTab === 'payments' || mainTab === 'subscriptions') && (
               <>
                 <Button variant="outline" size="sm" onClick={load} disabled={loading}>
                   {loading ? (
@@ -258,6 +263,20 @@ export default function SubscriptionManagement() {
             School Orders
           </TabsTrigger>
           <TabsTrigger
+            value="account-seats"
+            className="gap-2 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm"
+          >
+            <Users className="h-4 w-4" />
+            Account seats
+          </TabsTrigger>
+          <TabsTrigger
+            value="individual"
+            className="gap-2 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm"
+          >
+            <UserRound className="h-4 w-4" />
+            Individual
+          </TabsTrigger>
+          <TabsTrigger
             value="payments"
             className="gap-2 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm"
           >
@@ -279,6 +298,14 @@ export default function SubscriptionManagement() {
             onCreateOrder={openCreateOrder}
             onEditOrder={openEditOrder}
           />
+        </TabsContent>
+
+        <TabsContent value="account-seats" className="mt-5 focus-visible:outline-none">
+          <AccountSeatsPanel />
+        </TabsContent>
+
+        <TabsContent value="individual" className="mt-5 focus-visible:outline-none">
+          <IndividualSubscriptionsPanel />
         </TabsContent>
 
         <TabsContent value="payments" className="mt-5 space-y-4 focus-visible:outline-none">

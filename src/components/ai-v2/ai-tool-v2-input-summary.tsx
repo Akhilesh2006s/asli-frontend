@@ -40,11 +40,11 @@ export function AiToolV2InputSummary({
           return (
             <span
               key={row.label}
-              className="inline-flex items-center gap-1.5 rounded-full border border-white/80 bg-white/90 px-2.5 py-1 text-xs text-slate-700 shadow-sm"
+              className="inline-flex max-w-full items-center gap-1.5 rounded-full border border-white/80 bg-white/90 px-2.5 py-1 text-xs text-slate-700 shadow-sm"
             >
-              <Icon className="h-3.5 w-3.5 text-indigo-500" aria-hidden />
-              <span className="font-medium text-slate-500">{formatAiToolText(row.label)}:</span>
-              <span className="font-semibold text-slate-900">{formatAiToolText(row.value)}</span>
+              <Icon className="h-3.5 w-3.5 shrink-0 text-indigo-500" aria-hidden />
+              <span className="shrink-0 font-medium text-slate-500">{formatAiToolText(row.label)}:</span>
+              <span className="min-w-0 break-words font-semibold text-slate-900">{formatAiToolText(row.value)}</span>
             </span>
           );
         })}

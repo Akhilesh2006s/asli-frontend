@@ -50,7 +50,7 @@ export interface UseVidyaChatResult {
   onPromptClick: (question: string) => void;
   clearChat: () => void;
   isClearingChat?: boolean;
-  formatMessage: (text: string) => string;
+  formatMessage: (text: string) => React.ReactNode;
   /** Admin / Super-admin “Control Console”: answers grounded in MongoDB aggregates. */
   isDatabaseBackedAssistant?: boolean;
   /** Latency from last control query (Gemini classify + Mongo + Gemini format). */

@@ -104,13 +104,15 @@ export function SuperAdminChatUI({ model, className }: SuperAdminChatUIProps) {
                       </div>
                       <div className={msg.role === "user" ? "text-right" : ""}>
                         <div
-                          className={`inline-block rounded-2xl px-4 py-3 text-xs sm:text-sm shadow-sm ${
+                          className={`inline-block max-w-full rounded-2xl px-4 py-3 text-xs sm:text-sm shadow-sm ${
                             msg.role === "user" ? "bg-slate-700 text-white" : "bg-slate-50 text-slate-800"
                           }`}
                         >
-                          <p className="whitespace-pre-wrap break-words text-left">
-                            {model.formatMessage(msg.content)}
-                          </p>
+                          {msg.role === "assistant" ? (
+                            model.formatMessage(msg.content)
+                          ) : (
+                            <p className="whitespace-pre-wrap break-words text-left">{msg.content}</p>
+                          )}
                         </div>
                       </div>
                     </div>

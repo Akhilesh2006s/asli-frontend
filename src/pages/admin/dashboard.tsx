@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import AdminShell from '@/components/layout/AdminShell';
 import StatCard from '@/components/dashboard/StatCard';
 import { API_BASE_URL } from '@/lib/api-config';
+import { formatSeatUsage } from '@/hooks/use-account-seats';
 import { AtRiskStudentsPanel } from '@/components/admin/AtRiskStudentsPanel';
 import {
   BookOpen,
@@ -130,7 +131,9 @@ const AdminDashboard = () => {
     totalQuizzes: 0,
     totalAssessments: 0,
     activeUsers: 0,
-    totalContent: 0
+    totalContent: 0,
+    licensedStudents: 0,
+    licensedTeachers: 0,
   });
   const [studentAnalytics, setStudentAnalytics] = useState({
     classDistribution: [],
@@ -231,7 +234,9 @@ const AdminDashboard = () => {
           totalQuizzes: statsData.data.totalQuizzes || 0,
           totalAssessments: statsData.data.totalAssessments || 0,
           activeUsers: statsData.data.activeUsers || 0,
-          totalContent: statsData.data.totalContent || 0
+          totalContent: statsData.data.totalContent || 0,
+          licensedStudents: statsData.data.licensedStudents || 0,
+          licensedTeachers: statsData.data.licensedTeachers || 0,
         });
       }
     } catch (error) {
@@ -375,7 +380,11 @@ const AdminDashboard = () => {
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
               <StatCard
                 label="Total Students"
-                value={isLoadingStats ? '…' : String(stats.totalStudents)}
+                value={
+                  isLoadingStats
+                    ? '…'
+                    : formatSeatUsage(stats.totalStudents, stats.licensedStudents)
+                }
                 icon={Users}
                 tone="amber"
                 motif="wave"
@@ -396,7 +405,11 @@ const AdminDashboard = () => {
               />
               <StatCard
                 label="Teachers"
-                value={isLoadingStats ? '…' : String(stats.totalTeachers || 0)}
+                value={
+                  isLoadingStats
+                    ? '…'
+                    : formatSeatUsage(stats.totalTeachers || 0, stats.licensedTeachers)
+                }
                 icon={Users}
                 tone="violet"
                 motif="wave"

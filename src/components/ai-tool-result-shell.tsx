@@ -212,9 +212,9 @@ function MetaChip({
         className,
       )}
     >
-      <RealisticIcon name={icon} alt="" className="h-4 w-4 shrink-0" />
+      <RealisticIcon name={icon} alt="" float={false} className="h-4 w-4 shrink-0" />
       <span className="font-semibold opacity-70">{formatAiToolText(label)}</span>
-      <span className="truncate font-semibold max-w-[8rem] sm:max-w-[11rem]">{formatAiToolText(value)}</span>
+      <span className="min-w-0 break-words font-semibold sm:max-w-[16rem]">{formatAiToolText(value)}</span>
     </div>
   );
 }
@@ -272,38 +272,51 @@ export function AiToolResultShell({
     >
       <div className={cn('h-1.5 w-full bg-gradient-to-r', theme.accentBar)} />
       <div className="bg-white/95">
-        <div className="flex flex-col gap-4 border-b border-slate-100 p-6 sm:flex-row sm:items-start sm:justify-between sm:p-8">
-          <div className="flex min-w-0 items-start gap-4">
-            <div
-              className={cn(
-                'flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl border shadow-sm sm:h-20 sm:w-20',
-                theme.iconBg,
-              )}
-            >
-              <RealisticIcon name={heroIcon} alt="" className="h-12 w-12 sm:h-14 sm:w-14" />
-            </div>
-            <div className="min-w-0 space-y-2">
-              <div className="flex flex-wrap items-center gap-2.5">
-                <h2 className="font-display text-2xl font-bold leading-tight tracking-tight text-ink lg:text-3xl">
-                  {displayToolName}
-                </h2>
-                <span
-                  className={cn(
-                    'inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[0.9375rem] font-semibold',
-                    theme.badge,
-                  )}
-                >
-                  <Sparkles className="h-4 w-4" />
-                  {formatAiToolText('Interactive')}
-                </span>
+        <div className="space-y-4 border-b border-slate-100 p-5 sm:p-6 lg:p-8">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between lg:gap-4">
+            <div className="flex min-w-0 flex-1 items-start gap-3 sm:gap-4">
+              <div
+                className={cn(
+                  'flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border shadow-sm sm:h-16 sm:w-16 lg:h-20 lg:w-20',
+                  theme.iconBg,
+                )}
+              >
+                <RealisticIcon
+                  name={heroIcon}
+                  alt=""
+                  float={false}
+                  className="h-10 w-10 sm:h-12 sm:w-12 lg:h-14 lg:w-14"
+                />
               </div>
-              {displayToolDescription ? (
-                <p className="text-lg leading-relaxed text-muted-foreground">{displayToolDescription}</p>
-              ) : null}
-              {citations}
+              <div className="min-w-0 flex-1 space-y-2">
+                <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
+                  <h2 className="font-display text-xl font-bold leading-tight tracking-tight text-ink sm:text-2xl lg:text-3xl">
+                    {displayToolName}
+                  </h2>
+                  <span
+                    className={cn(
+                      'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-sm font-semibold sm:px-3 sm:py-1 sm:text-[0.9375rem]',
+                      theme.badge,
+                    )}
+                  >
+                    <Sparkles className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                    {formatAiToolText('Interactive')}
+                  </span>
+                </div>
+              </div>
             </div>
+            {actions ? (
+              <div className="flex w-full shrink-0 flex-wrap items-center gap-2 lg:w-auto lg:max-w-[50%] lg:justify-end">
+                {actions}
+              </div>
+            ) : null}
           </div>
-          {actions ? <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div> : null}
+          {displayToolDescription ? (
+            <p className="w-full text-base leading-relaxed text-muted-foreground sm:text-lg">
+              {displayToolDescription}
+            </p>
+          ) : null}
+          {citations}
         </div>
 
         {hasMeta && !inputSummary ? (
@@ -354,7 +367,12 @@ export function AiToolResultShell({
             </div>
           ) : children ? (
             <>
-              {toolType !== 'worksheet-mcq-generator' ? (
+              {toolType !== 'worksheet-mcq-generator' &&
+              toolType !== 'exam-question-paper-generator' &&
+              toolType !== 'mock-test-builder' &&
+              toolType !== 'homework-creator' &&
+              toolType !== 'quick-assignment-builder' &&
+              toolType !== 'smart-qa-practice-generator' ? (
                 <AiToolContentVisuals
                   meta={{
                     subject,

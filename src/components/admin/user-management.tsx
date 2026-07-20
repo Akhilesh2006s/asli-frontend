@@ -11,6 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { API_BASE_URL } from '@/lib/api-config';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { formatSeatUsage, seatUsageHint, useAccountSeats } from '@/hooks/use-account-seats';
 
 const STUDENT_FORM_FIELD_CLASS =
   'border border-sky-300 bg-sky-50 text-sky-950 shadow-sm placeholder:text-sky-500 focus-visible:border-sky-500 focus-visible:ring-2 focus-visible:ring-sky-400/35';
@@ -66,6 +67,7 @@ const normalizeClassNumberForDisplay = (value: unknown): string => {
 
 const UserManagement = () => {
   const { toast } = useToast();
+  const { seats, refresh: refreshSeats } = useAccountSeats();
   const [students, setStudents] = useState<Student[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -171,6 +173,7 @@ const UserManagement = () => {
       }));
       
       setStudents(mappedStudents);
+      void refreshSeats();
     } catch (error) {
       console.error('Failed to fetch students:', error);
       // Set mock data for development
@@ -692,14 +695,29 @@ const UserManagement = () => {
             <div className="w-11 h-11 bg-gradient-to-br from-sky-500 to-blue-600 rounded-xl flex items-center justify-center text-white font-bold text-xs sm:text-sm shadow-md">
               {(student.name || 'U').charAt(0).toUpperCase()}
             </div>
-            <div className={`absolute -bottom-1 -right-1 w-3 h-3 sm:w-4 sm:h-4 rounded-full border-2 border-white ${
-              (student.status || 'inactive') === 'active' ? 'bg-green-500' : 'bg-gray-400'
-            }`} />
+            <div
+              className={`absolute -bottom-1 -right-1 h-3 w-3 rounded-full border-2 border-white sm:h-4 sm:w-4 ${
+                student.lastLogin ? 'bg-green-500' : 'bg-gray-400'
+              }`}
+              title={student.lastLogin ? 'Has logged in' : 'Never logged in'}
+              aria-label={student.lastLogin ? 'Has logged in' : 'Never logged in'}
+            />
           </div>
           <div className="min-w-0">
-            <h4 className="font-semibold text-sky-900 text-xs sm:text-sm leading-tight truncate">
-              {student.name || 'Unknown Student'}
-            </h4>
+            <div className="flex flex-wrap items-center gap-1.5">
+              <h4 className="font-semibold text-sky-900 text-xs sm:text-sm leading-tight truncate">
+                {student.name || 'Unknown Student'}
+              </h4>
+              {seats.licensedStudents > 0 && (
+                <Badge
+                  variant="outline"
+                  className="shrink-0 border-sky-200 bg-sky-50 text-[10px] font-semibold text-sky-800"
+                  title={seatUsageHint(students.length, seats.licensedStudents)}
+                >
+                  {formatSeatUsage(students.length, seats.licensedStudents)} seats
+                </Badge>
+              )}
+            </div>
             <p className="text-sky-700 text-xs truncate">{student.email || 'No email'}</p>
           </div>
         </div>
@@ -809,12 +827,18 @@ const UserManagement = () => {
                     </div>
                     <div className="text-right">
                       <p className="text-white/90 text-xs sm:text-sm font-medium">Total Students</p>
-                      <p className="text-2xl sm:text-3xl font-bold text-white">{students.length}</p>
+                      <p className="text-2xl sm:text-3xl font-bold text-white">
+                        {formatSeatUsage(students.length, seats.licensedStudents)}
+                      </p>
                     </div>
                   </div>
                   <div className="flex items-center text-white/80 text-xs sm:text-sm">
                     <TrendingUp className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
-                    <span>+12% this month</span>
+                    <span>
+                      {seats.licensedStudents > 0
+                        ? seatUsageHint(students.length, seats.licensedStudents)
+                        : 'Enrolled students'}
+                    </span>
                   </div>
                 </div>
               </motion.div>

@@ -36,6 +36,7 @@ import {
 } from 'lucide-react';
 import { AdminTeacherDailyDialog } from '@/components/admin/AdminTeacherDailyDialog';
 import { Checkbox } from '@/components/ui/checkbox';
+import { formatSeatUsage, seatUsageHint, useAccountSeats } from '@/hooks/use-account-seats';
 
 interface AssignedClassSummary {
   id: string;
@@ -332,6 +333,7 @@ function getTeacherInitials(fullName?: string): string {
 }
 
 const TeacherManagement = () => {
+  const { seats, refresh: refreshSeats } = useAccountSeats();
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [classes, setClasses] = useState<Class[]>([]);
@@ -409,6 +411,7 @@ const TeacherManagement = () => {
         );
       setTeachers(mappedTeachers);
       setSelectedTeacherIds((prev) => prev.filter((id) => mappedTeachers.some((t) => t.id === id)));
+      void refreshSeats();
     } catch (error) {
       console.error('Failed to fetch teachers:', error);
       // Set mock data for development
@@ -1165,12 +1168,18 @@ Jane Smith,jane.smith@school.edu,TeacherPass2,1234567891,Science,MSc in Chemistr
                     </div>
                     <div className="text-right">
                       <p className="text-white/90 text-xs sm:text-sm font-medium">Total Teachers</p>
-                      <p className="text-2xl sm:text-3xl sm:text-4xl font-bold text-white">{totalTeachers}</p>
+                      <p className="text-2xl sm:text-3xl sm:text-4xl font-bold text-white">
+                        {formatSeatUsage(totalTeachers, seats.licensedTeachers)}
+                      </p>
                     </div>
                   </div>
                   <div className="flex items-center text-white/80 text-xs sm:text-sm">
                     <GraduationCap className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
-                    <span>Faculty members</span>
+                    <span>
+                      {seats.licensedTeachers > 0
+                        ? seatUsageHint(totalTeachers, seats.licensedTeachers)
+                        : 'Faculty members'}
+                    </span>
                   </div>
                 </div>
               </motion.div>
@@ -1632,7 +1641,20 @@ Jane Smith,jane.smith@school.edu,TeacherPass2,1234567891,Science,MSc in Chemistr
                         {getTeacherInitials(teacher.fullName)}
                       </div>
                       <div className="min-w-0 flex-1">
-                        <h3 className="font-bold text-gray-900 text-sm sm:text-base leading-tight line-clamp-2">{teacher.fullName}</h3>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h3 className="font-bold text-gray-900 text-sm sm:text-base leading-tight line-clamp-2">
+                            {teacher.fullName}
+                          </h3>
+                          {seats.licensedTeachers > 0 && (
+                            <Badge
+                              variant="outline"
+                              className="shrink-0 border-orange-200 bg-orange-50 text-[10px] font-semibold text-orange-800"
+                              title={seatUsageHint(totalTeachers, seats.licensedTeachers)}
+                            >
+                              {formatSeatUsage(totalTeachers, seats.licensedTeachers)} seats
+                            </Badge>
+                          )}
+                        </div>
                         <p className="text-gray-600 text-xs sm:text-sm mt-1 line-clamp-2 min-h-[2.5rem] leading-snug" title={teacher.email}>
                           {teacher.email}
                         </p>

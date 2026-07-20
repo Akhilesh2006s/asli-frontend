@@ -43,6 +43,12 @@ interface Subject {
     fullName: string;
     email: string;
   };
+  /** All teachers assigned this subject (Teacher Mgmt + primary). */
+  teachers?: {
+    id: string;
+    fullName: string;
+    email: string;
+  }[];
   classes: ClassOption[];
   classIds?: string[];
   isActive: boolean;
@@ -53,6 +59,13 @@ interface Teacher {
   id: string;
   fullName: string;
   email: string;
+}
+
+function subjectTeachersList(subject: Subject): { id: string; fullName: string; email: string }[] {
+  if (Array.isArray(subject.teachers) && subject.teachers.length > 0) {
+    return subject.teachers;
+  }
+  return subject.teacher ? [subject.teacher] : [];
 }
 
 const SubjectManagement = () => {
@@ -103,33 +116,51 @@ const SubjectManagement = () => {
       const normalized = Array.isArray(subjectsData)
         ? subjectsData
             .filter((s: any) => s.isActive !== false)
-            .map((s: any) => ({
-              id: String(s.id || s._id || ''),
-              name: String(s.name || '').split('__deleted__')[0].trim(),
-              description: s.description || '',
-              teacher: s.teacher
+            .map((s: any) => {
+              const teachersList: { id: string; fullName: string; email: string }[] = Array.isArray(
+                s.teachers
+              )
+                ? s.teachers
+                    .map((t: any) => ({
+                      id: String(t.id || t._id || ''),
+                      fullName: t.fullName || t.name || '',
+                      email: t.email || '',
+                    }))
+                    .filter((t: { id: string }) => t.id)
+                : [];
+              const primary = s.teacher
                 ? {
                     id: String(s.teacher.id || s.teacher._id || ''),
                     fullName: s.teacher.fullName || s.teacher.name || '',
                     email: s.teacher.email || '',
                   }
-                : undefined,
-              classes: Array.isArray(s.classes)
-                ? s.classes.map((c: any) => ({
-                    id: String(c.id || c._id || ''),
-                    classNumber: c.classNumber || '',
-                    className: c.className || c.name || `Class ${c.classNumber || ''}`,
-                    section: c.section,
-                  }))
-                : [],
-              classIds: Array.isArray(s.classIds)
-                ? s.classIds.map(String)
-                : Array.isArray(s.classes)
-                  ? s.classes.map((c: any) => String(c.id || c._id || ''))
+                : teachersList[0];
+              if (primary?.id && !teachersList.some((t) => t.id === primary.id)) {
+                teachersList.unshift(primary);
+              }
+              return {
+                id: String(s.id || s._id || ''),
+                name: String(s.name || '').split('__deleted__')[0].trim(),
+                description: s.description || '',
+                teacher: primary?.id ? primary : undefined,
+                teachers: teachersList,
+                classes: Array.isArray(s.classes)
+                  ? s.classes.map((c: any) => ({
+                      id: String(c.id || c._id || ''),
+                      classNumber: c.classNumber || '',
+                      className: c.className || c.name || `Class ${c.classNumber || ''}`,
+                      section: c.section,
+                    }))
                   : [],
-              isActive: s.isActive !== false,
-              createdAt: s.createdAt || new Date().toISOString(),
-            }))
+                classIds: Array.isArray(s.classIds)
+                  ? s.classIds.map(String)
+                  : Array.isArray(s.classes)
+                    ? s.classes.map((c: any) => String(c.id || c._id || ''))
+                    : [],
+                isActive: s.isActive !== false,
+                createdAt: s.createdAt || new Date().toISOString(),
+              };
+            })
         : [];
       setSubjects(normalized);
     } catch (error) {
@@ -318,7 +349,7 @@ const SubjectManagement = () => {
       filtered = filtered.filter(subject =>
         subject.name?.toLowerCase().includes(query) ||
         subject.description?.toLowerCase().includes(query) ||
-        subject.teacher?.fullName?.toLowerCase().includes(query) ||
+        subjectTeachersList(subject).some((t) => t.fullName?.toLowerCase().includes(query)) ||
         formatClassLabels(subject).toLowerCase().includes(query)
       );
     }
@@ -326,11 +357,13 @@ const SubjectManagement = () => {
     // Teacher filter
     if (filterByTeacher !== 'all') {
       if (filterByTeacher === 'assigned') {
-        filtered = filtered.filter(s => s.teacher);
+        filtered = filtered.filter((s) => subjectTeachersList(s).length > 0);
       } else if (filterByTeacher === 'unassigned') {
-        filtered = filtered.filter(s => !s.teacher);
+        filtered = filtered.filter((s) => subjectTeachersList(s).length === 0);
       } else {
-        filtered = filtered.filter(s => s.teacher?.id === filterByTeacher);
+        filtered = filtered.filter((s) =>
+          subjectTeachersList(s).some((t) => t.id === filterByTeacher)
+        );
       }
     }
 
@@ -345,7 +378,9 @@ const SubjectManagement = () => {
 
   const totalSubjects = Array.isArray(subjects) ? subjects.length : 0;
   const activeSubjects = Array.isArray(subjects) ? subjects.filter(s => s.isActive).length : 0;
-  const assignedSubjects = Array.isArray(subjects) ? subjects.filter(s => s.teacher).length : 0;
+  const assignedSubjects = Array.isArray(subjects)
+    ? subjects.filter((s) => subjectTeachersList(s).length > 0).length
+    : 0;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-orange-100 to-teal-50 overflow-x-hidden">
@@ -616,7 +651,7 @@ const SubjectManagement = () => {
               <TableRow className="bg-sky-50/50">
                 <TableHead className="text-sky-900 font-semibold">Subject</TableHead>
                 <TableHead className="text-sky-900 font-semibold">Assigned Classes</TableHead>
-                <TableHead className="text-sky-900 font-semibold">Teacher</TableHead>
+                <TableHead className="text-sky-900 font-semibold">Teachers</TableHead>
                 <TableHead className="text-sky-900 font-semibold">Status</TableHead>
                 <TableHead className="text-sky-900 font-semibold">Actions</TableHead>
               </TableRow>
@@ -636,14 +671,33 @@ const SubjectManagement = () => {
                     <span className="text-sm text-sky-800">{formatClassLabels(subject)}</span>
                   </TableCell>
                   <TableCell>
-                    {subject.teacher ? (
-                      <div>
-                        <div className="font-medium text-sky-900">{subject.teacher.fullName}</div>
-                        <div className="text-xs sm:text-sm text-sky-600">{subject.teacher.email}</div>
-                      </div>
-                    ) : (
-                      <span className="text-sky-500 text-xs sm:text-sm">Unassigned</span>
-                    )}
+                    {(() => {
+                      const list = subjectTeachersList(subject);
+                      if (list.length === 0) {
+                        return <span className="text-sky-500 text-xs sm:text-sm">Unassigned</span>;
+                      }
+                      return (
+                        <div className="space-y-1.5 max-w-[16rem]">
+                          {list.map((t) => (
+                            <div key={t.id} className="min-w-0">
+                              <div className="font-medium text-sky-900 truncate" title={t.fullName}>
+                                {t.fullName}
+                              </div>
+                              {t.email ? (
+                                <div className="text-xs text-sky-600 truncate" title={t.email}>
+                                  {t.email}
+                                </div>
+                              ) : null}
+                            </div>
+                          ))}
+                          {list.length > 1 && (
+                            <p className="text-[10px] font-medium text-sky-500">
+                              {list.length} teachers assigned
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })()}
                   </TableCell>
                   <TableCell>
                     <Badge className={`${subject.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
@@ -812,7 +866,14 @@ const SubjectManagement = () => {
             <div className="space-y-2 text-xs sm:text-sm">
               <p><span className="font-semibold">Name:</span> {viewingSubject.name || '-'}</p>
               <p><span className="font-semibold">Classes:</span> {formatClassLabels(viewingSubject)}</p>
-              <p><span className="font-semibold">Teacher:</span> {viewingSubject.teacher?.fullName || 'Unassigned'}</p>
+              <p>
+                <span className="font-semibold">Teachers:</span>{' '}
+                {subjectTeachersList(viewingSubject).length > 0
+                  ? subjectTeachersList(viewingSubject)
+                      .map((t) => t.fullName)
+                      .join(', ')
+                  : 'Unassigned'}
+              </p>
               <p><span className="font-semibold">Description:</span> {viewingSubject.description || '-'}</p>
             </div>
           )}
