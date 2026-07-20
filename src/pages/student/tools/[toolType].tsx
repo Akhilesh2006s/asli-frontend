@@ -474,7 +474,7 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
   // Teacher AI Tools - Now available for students
   'worksheet-mcq-generator': {
     name: 'Worksheet & MCQ Generator',
-    description: 'Generate worksheets with MCQs, Fill in the Blanks, and Match the Following',
+    description: 'Generate worksheets with MCQs, Fill in the Blanks, and short-answer questions',
     icon: Sparkles,
     fields: [
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },

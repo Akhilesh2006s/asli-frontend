@@ -59,7 +59,7 @@ const SECTION_VISUAL: Record<
     iconWrap: 'bg-teal-100 text-teal-800',
     badge: 'bg-teal-100 text-teal-800',
   },
-  'Section C: Match the Following': {
+  'Section C: True or False': {
     icon: Target,
     stripe: 'border-cyan-500',
     iconWrap: 'bg-cyan-100 text-cyan-800',
@@ -354,7 +354,7 @@ function PracticeQaBody({
         bloomRows={parseBloomLevelsFromQuestionTags(allQuestions)}
         bloomFromObjectives={practice.learningObjectives}
         competencyItems={practice.learningObjectives}
-        bestPracticesText="Use Section A–G as a progressive drill: MCQs for recall, blanks for precision, match-the-following for connections, and HOTS for exam readiness. Reveal the answer key only after students attempt each block."
+        bestPracticesText="Use Section A–G as a progressive drill: MCQs for recall, blanks for precision, true/false for quick checks, and HOTS for exam readiness. Reveal the answer key only after students attempt each block."
       />
     </div>
   );
