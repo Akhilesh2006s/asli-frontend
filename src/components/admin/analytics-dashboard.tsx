@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { API_BASE_URL } from '@/lib/api-config';
+import { SchoolImpactReportCard } from '@/components/admin/school-impact-report-card';
 import { 
   TrendingUp, 
   Users, 
@@ -161,6 +162,8 @@ const AnalyticsDashboard = () => {
 
   return (
     <div className="space-y-3 sm:space-y-4 lg:space-y-6">
+      <SchoolImpactReportCard />
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

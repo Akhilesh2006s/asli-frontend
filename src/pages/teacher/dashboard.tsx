@@ -3,6 +3,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { API_BASE_URL } from '@/lib/api-config';
 import TeacherShell from '@/components/layout/TeacherShell';
 import StatCard from '@/components/dashboard/StatCard';
+import { WeeklyDigestCard } from '@/components/weekly-digest-card';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -2241,6 +2242,7 @@ const TeacherDashboard = () => {
               {/* Overview — stats + shortcuts only */}
               {dashboardSubTab === 'ai-classes' && (
                 <>
+              <WeeklyDigestCard apiBase="/api/teacher" />
               <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
                 <StatCard
                   label="Total Students"

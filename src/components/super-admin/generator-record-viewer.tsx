@@ -4,12 +4,14 @@ import { SixSectionViewer } from '@/components/ai-v2/six-section-viewer';
 import { mapRecordToSixSectionViewer } from '@/lib/six-section-map';
 import { normalizeAiToolSlug } from '@/lib/normalize-ai-tool-slug';
 import { resolveInteractiveAiToolViewer } from '@/components/ai-tools/resolve-interactive-ai-tool-viewer';
+import { displaySubtopicLabel } from '@/lib/curriculum-subtopic-display';
 
 /** teacher/student = interactive-first; admin = SixSection-first (Super Admin browse). */
 export type AiToolViewerAudience = 'teacher' | 'student' | 'admin';
 
 function recordMeta(record: Record<string, unknown>, slug: string) {
   const val = (k: string) => String(record[k] || '').trim();
+  const subtopic = displaySubtopicLabel(val('subtopic'));
   return {
     name: String(record.toolDisplayName || record.toolName || slug).trim(),
     curriculum: {
@@ -17,9 +19,9 @@ function recordMeta(record: Record<string, unknown>, slug: string) {
       class: val('classLabel') || val('className'),
       subject: val('subject'),
       chapter: val('topic'),
-      subtopic: val('subtopic'),
+      subtopic,
     },
-    chapter: { title: val('topic'), subtopic: val('subtopic') },
+    chapter: { title: val('topic'), subtopic },
   };
 }
 

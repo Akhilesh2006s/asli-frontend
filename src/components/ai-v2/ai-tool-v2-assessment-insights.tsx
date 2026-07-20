@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { Brain, CheckCircle2, Clock, GraduationCap, Target } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatAiToolText } from '@/lib/title-case';
+import { displaySubtopicLabel } from '@/lib/curriculum-subtopic-display';
 import { AI_V2, BLOOM_LEVEL_STYLES } from '@/lib/ai-tool-design-tokens';
 import { extractAiToolV2Context } from '@/lib/extract-ai-tool-v2-context';
 import type { BloomDistributionRow } from '@/lib/parse-exam-question-paper';
@@ -76,7 +77,7 @@ export function AiToolV2OverviewSnapshot({
     { label: 'Class', value: ctx.className },
     { label: 'Subject', value: ctx.subject },
     { label: 'Topic', value: ctx.topic },
-    { label: 'Subtopic', value: ctx.subtopic },
+    { label: 'Subtopic', value: displaySubtopicLabel(ctx.subtopic) },
     { label: 'Board', value: ctx.board },
     { label: 'Duration', value: ctx.duration ? `${ctx.duration} min` : '' },
     ...stats,

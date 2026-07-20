@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { BookOpen, GraduationCap, Layers, Target } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatAiToolText } from '@/lib/title-case';
+import { displaySubtopicLabel } from '@/lib/curriculum-subtopic-display';
 import { AI_V2 } from '@/lib/ai-tool-design-tokens';
 import { extractAiToolV2Context } from '@/lib/extract-ai-tool-v2-context';
 
@@ -13,12 +14,13 @@ export function AiToolV2InputSummary({
   className?: string;
 }) {
   const ctx = useMemo(() => extractAiToolV2Context(rawContent), [rawContent]);
+  const subtopicDisplay = displaySubtopicLabel(ctx.subtopic);
 
   const rows = [
     { icon: GraduationCap, label: 'Class', value: ctx.className },
     { icon: BookOpen, label: 'Subject', value: ctx.subject },
     { icon: Target, label: 'Topic', value: ctx.topic },
-    { icon: Layers, label: 'Subtopic', value: ctx.subtopic },
+    { icon: Layers, label: 'Subtopic', value: subtopicDisplay },
     { icon: Target, label: 'Board', value: ctx.board },
   ].filter((r) => r.value.trim());
 

@@ -12,6 +12,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { AiToolStackedSection } from '@/components/ai-tool-stacked-section';
 import { cn } from '@/lib/utils';
+import { displaySubtopicLabel } from '@/lib/curriculum-subtopic-display';
 import { displayQuestionSerial } from '@/lib/renumber-questions';
 import { renderMarkdown } from '@/lib/render-teacher-markdown';
 import { stripStructuredAiToolMetadata } from '@/lib/strip-ai-tool-metadata';
@@ -567,7 +568,7 @@ export function ExamQuestionPaperViewer({
                     <OverviewStat label="Class" value={context.className} />
                     <OverviewStat label="Subject" value={context.subject} />
                     <OverviewStat label="Chapter / Topic" value={context.topic} />
-                    <OverviewStat label="Subtopic" value={context.subtopic} />
+                    <OverviewStat label="Subtopic" value={displaySubtopicLabel(context.subtopic)} />
                     <OverviewStat label="Board" value={context.board} />
                     <OverviewStat
                       label="Duration"

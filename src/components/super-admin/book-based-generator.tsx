@@ -139,6 +139,16 @@ function groupBooksBySubject(books: BookOption[]): BookListGroup[] {
 
 const WHOLE_CHAPTER_VALUE = "__WHOLE_CHAPTER__";
 
+/** Tools that support a combined paper across multiple selected subtopics. */
+const MULTI_SUBTOPIC_TOOLS = new Set([
+  "worksheet-mcq-generator",
+  "homework-creator",
+  "mock-test-builder",
+  "exam-question-paper-generator",
+  "smart-qa-practice-generator",
+  "quick-assignment-builder",
+]);
+
 type BookBasedGeneratorProps = {
   onOpenBookKnowledge?: () => void;
   onOpenAiToolData?: () => void;
@@ -153,6 +163,7 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
   const [subject, setSubject] = useState("");
   const [topic, setTopic] = useState("");
   const [subTopic, setSubTopic] = useState(WHOLE_CHAPTER_VALUE);
+  const [extraSubTopics, setExtraSubTopics] = useState<string[]>([]);
   const [bookId, setBookId] = useState("");
   const [useBookKnowledge, setUseBookKnowledge] = useState(true);
   const [qualityTier, setQualityTier] = useState<GenerationQualityTierId>(DEFAULT_GENERATION_QUALITY_TIER);
@@ -307,6 +318,7 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
     setSubject("");
     setTopic("");
     setSubTopic(WHOLE_CHAPTER_VALUE);
+    setExtraSubTopics([]);
   };
 
   const handleClassChange = (value: string) => {
@@ -314,21 +326,25 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
     setSubject("");
     setTopic("");
     setSubTopic(WHOLE_CHAPTER_VALUE);
+    setExtraSubTopics([]);
   };
 
   const handleSubjectChange = (value: string) => {
     setSubject(value);
     setTopic("");
     setSubTopic(WHOLE_CHAPTER_VALUE);
+    setExtraSubTopics([]);
   };
 
   const handleTopicChange = (value: string) => {
     setTopic(value);
     setSubTopic(WHOLE_CHAPTER_VALUE);
+    setExtraSubTopics([]);
   };
 
   const handleToolSelect = (toolId: BookBasedToolId) => {
     setSelectedTool(toolId);
+    setExtraSubTopics([]);
     if (isStoryLanguageTool(toolId) && subject && !isStoryPassageLanguageSubject(subject)) {
       setSubject("");
       setTopic("");
@@ -348,6 +364,10 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
     setTopic("");
     setSubTopic(WHOLE_CHAPTER_VALUE);
   }, [selectedTool, subject]);
+
+  useEffect(() => {
+    setExtraSubTopics([]);
+  }, [selectedTool, topic, subTopic]);
 
   useEffect(() => {
     if (!isLanguageExcludedTool(selectedTool)) return;
@@ -376,6 +396,15 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
   const parseBatchSize = () => parseGenerationRecordCount(generationRecordCount)!;
 
   const isWholeChapter = subTopic === WHOLE_CHAPTER_VALUE || !subTopic;
+  const supportsMultiSubtopic =
+    Boolean(selectedTool) && MULTI_SUBTOPIC_TOOLS.has(selectedTool) && !isWholeChapter;
+  const selectedSubTopicsForPayload = (() => {
+    if (isWholeChapter) return subtopics;
+    if (!supportsMultiSubtopic || extraSubTopics.length === 0) return [];
+    return [subTopic, ...extraSubTopics.filter((s) => s && s !== subTopic)];
+  })();
+  const isCombinedPaper = selectedSubTopicsForPayload.length > 1;
+
   const buildGenerationPayload = (forceUnlock = false) => ({
     toolSlug: selectedTool,
     bookId,
@@ -385,7 +414,9 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
     topicName: topic,
     subtopicName: isWholeChapter ? "" : subTopic,
     chapterScope: isWholeChapter,
-    ...(isWholeChapter && subtopics.length > 0 ? { subTopics: subtopics } : {}),
+    ...(isWholeChapter || isCombinedPaper
+      ? { subTopics: selectedSubTopicsForPayload }
+      : {}),
     batchSize: parseBatchSize(),
     useBookKnowledge,
     qualityTier,
@@ -891,7 +922,10 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
             <Label>Sub Topic</Label>
             <Select
               value={subTopic || WHOLE_CHAPTER_VALUE}
-              onValueChange={setSubTopic}
+              onValueChange={(value) => {
+                setSubTopic(value);
+                setExtraSubTopics([]);
+              }}
               disabled={!topic || loadingSubtopics}
             >
               <SelectTrigger>
@@ -916,10 +950,51 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
             </Select>
             <p className="text-xs text-slate-500">
               {isWholeChapter
-                ? "Questions will cover the full chapter/topic (all major ideas), same as teacher tools."
-                : "Questions will focus on this sub-topic only."}
+                ? "Questions will cover the full chapter/topic (all major ideas)."
+                : isCombinedPaper
+                  ? `Combined paper covering ${selectedSubTopicsForPayload.length} subtopics.`
+                  : "Questions will focus on this sub-topic — or add more below for a combined paper."}
             </p>
           </div>
+          {supportsMultiSubtopic && subtopics.length > 1 ? (
+            <div className="sm:col-span-2 lg:col-span-3 space-y-1.5">
+              <Label className="text-xs text-slate-500">
+                Combined paper — add more subtopics ({extraSubTopics.length + 1} selected)
+              </Label>
+              <div className="flex flex-wrap gap-1.5">
+                {subtopics
+                  .filter((st) => st !== subTopic)
+                  .map((st) => {
+                    const on = extraSubTopics.includes(st);
+                    return (
+                      <button
+                        key={st}
+                        type="button"
+                        onClick={() =>
+                          setExtraSubTopics((prev) =>
+                            prev.includes(st) ? prev.filter((x) => x !== st) : [...prev, st],
+                          )
+                        }
+                        className={cn(
+                          "rounded-full border px-3 py-1 text-xs font-medium transition",
+                          on
+                            ? "border-violet-500 bg-violet-50 text-violet-800"
+                            : "border-slate-200 bg-white text-slate-600 hover:border-slate-300",
+                        )}
+                      >
+                        {on ? "✓ " : "+ "}
+                        {st}
+                      </button>
+                    );
+                  })}
+              </div>
+              {extraSubTopics.length > 0 ? (
+                <p className="text-xs text-slate-400">
+                  One combined paper covering {extraSubTopics.length + 1} subtopics from the textbook.
+                </p>
+              ) : null}
+            </div>
+          ) : null}
           <div className="sm:col-span-2 lg:col-span-3 rounded-xl border border-violet-200 bg-violet-50/60 p-4">
             <GenerationRecordCountField
               id="book-generation-count"

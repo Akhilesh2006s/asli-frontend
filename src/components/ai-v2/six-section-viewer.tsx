@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatAiToolText } from '@/lib/title-case';
+import { displaySubtopicLabel } from '@/lib/curriculum-subtopic-display';
 
 /**
  * SixSectionViewer — one reusable, premium card shell for all 21 AsliLearn tools.
@@ -593,12 +594,14 @@ export function SixSectionViewer({ tool, curriculum, chapter, summary, sections,
   const [activeTab, setActiveTab] = useState('all');
   const visibleSections = activeTab === 'all' ? sections : sections.filter((s) => s.id === activeTab);
   const soloView = activeTab !== 'all';
+  const subtopicShown = displaySubtopicLabel(curriculum?.subtopic);
+  const chapterSubtopicShown = displaySubtopicLabel(chapter?.subtopic);
   const chips = [
     { k: 'Board', v: curriculum?.board },
     { k: 'Class', v: curriculum?.class },
     { k: 'Subject', v: curriculum?.subject },
     { k: 'Chapter', v: curriculum?.chapter },
-    { k: 'Subtopic', v: curriculum?.subtopic },
+    { k: 'Subtopic', v: subtopicShown },
   ].filter((c) => c.v);
 
   return (
@@ -642,7 +645,7 @@ export function SixSectionViewer({ tool, curriculum, chapter, summary, sections,
       )}
 
       {/* chapter hero */}
-      {(chapter?.title || chapter?.subtopic) && (
+      {(chapter?.title || chapterSubtopicShown) && (
         <div className="flex items-center gap-4 overflow-hidden rounded-[1.75rem] border border-blue-100 bg-gradient-to-r from-blue-50 via-indigo-50/40 to-white p-5 shadow-sm dark:border-slate-800 dark:from-slate-800/60 dark:via-slate-900 dark:to-slate-900">
           <div className="min-w-0">
             {chapter.title && (
@@ -651,9 +654,9 @@ export function SixSectionViewer({ tool, curriculum, chapter, summary, sections,
                 <span className="truncate">{chapter.title}</span>
               </h3>
             )}
-            {chapter.subtopic && (
-              <p className="mt-1 font-bold text-blue-600 dark:text-blue-300">{chapter.subtopic}</p>
-            )}
+            {chapterSubtopicShown ? (
+              <p className="mt-1 font-bold text-blue-600 dark:text-blue-300">{chapterSubtopicShown}</p>
+            ) : null}
           </div>
           {chapter.emoji && <div className="ml-auto shrink-0 text-4xl drop-shadow-sm">{chapter.emoji}</div>}
         </div>

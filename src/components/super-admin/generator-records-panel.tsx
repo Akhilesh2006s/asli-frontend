@@ -23,6 +23,14 @@ import { API_BASE_URL } from "@/lib/api-config";
 import { useToast } from "@/hooks/use-toast";
 import { GeneratorRecordViewer } from "@/components/super-admin/generator-record-viewer";
 import { AiToolRecordPreviewBody } from "@/components/super-admin/ai-tool-record-preview-body";
+import { displaySubtopicLabel, isSingleSubtopicLabel } from "@/lib/curriculum-subtopic-display";
+
+function formatSubtopicGroupLabel(name: string) {
+  const raw = String(name || "").trim();
+  if (!raw) return "Whole chapter";
+  if (isSingleSubtopicLabel(raw)) return displaySubtopicLabel(raw) || raw;
+  return "Whole chapter";
+}
 import {
   recordGenerationVariant,
   recordVariantAngle,
@@ -515,7 +523,7 @@ export function GeneratorRecordsPanel({
                                                     <AccordionTrigger className="hover:no-underline">
                                                       <div className="text-left">
                                                         <p className="text-xs text-slate-500">SUBTOPIC</p>
-                                                        <p className="font-medium">{subtopicNode.subtopicName}</p>
+                                                        <p className="font-medium">{formatSubtopicGroupLabel(subtopicNode.subtopicName)}</p>
                                                       </div>
                                                     </AccordionTrigger>
                                                     <AccordionContent>

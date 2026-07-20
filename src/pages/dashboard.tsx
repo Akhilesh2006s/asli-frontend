@@ -29,6 +29,7 @@ import {
 } from "@/lib/video-chapter-schedule";
 import { StudentTeacherDiaryFeed } from "@/components/student/StudentTeacherDiaryFeed";
 import StudentTimetableView from "@/components/student/StudentTimetableView";
+import { WeeklyDigestCard } from "@/components/weekly-digest-card";
 import { 
   CheckCircle, 
   TrendingUp, 
@@ -1862,6 +1863,9 @@ export default function Dashboard() {
             </div>
           </div>
         )}
+        <div className="mb-4">
+          <WeeklyDigestCard apiBase="/api/student" />
+        </div>
         <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-teal-700 via-sky-600 to-cyan-600 p-5 shadow-glow-lg sm:p-8 lg:p-10">
         <div className="pointer-events-none absolute -right-16 -top-28 h-72 w-72 rounded-full bg-white/15 blur-3xl"></div>
         <div className="pointer-events-none absolute -bottom-24 -left-16 h-64 w-64 rounded-full bg-amber-200/25 blur-3xl"></div>

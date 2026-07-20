@@ -45,6 +45,14 @@ import {
   mockTestViewerPayloadFromRecord,
 } from "@/components/mock-test-viewer";
 import { GeneratorRecordViewer } from "@/components/super-admin/generator-record-viewer";
+import { displaySubtopicLabel, isSingleSubtopicLabel } from "@/lib/curriculum-subtopic-display";
+
+function formatSubtopicGroupLabel(name: string) {
+  const raw = String(name || "").trim();
+  if (!raw) return "Whole chapter";
+  if (isSingleSubtopicLabel(raw)) return displaySubtopicLabel(raw) || raw;
+  return "Whole chapter";
+}
 import {
   SmartStudyGuideViewer,
   studyGuideViewerPayloadFromRecord,
@@ -1585,7 +1593,7 @@ export default function SuperAdminAiGenerator() {
                                                   <AccordionTrigger className="hover:no-underline">
                                                     <div className="text-left">
                                                       <p className="text-xs text-slate-500">SUBTOPIC</p>
-                                                      <p className="font-medium">{subtopicNode.subtopicName}</p>
+                                                      <p className="font-medium">{formatSubtopicGroupLabel(subtopicNode.subtopicName)}</p>
                                                     </div>
                                                   </AccordionTrigger>
                                                   <AccordionContent>
