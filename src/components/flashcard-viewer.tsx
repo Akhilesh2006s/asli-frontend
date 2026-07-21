@@ -16,12 +16,12 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { stripAiGeneratorLeakage, isScaffoldFlashcardPair, isScaffoldDeckMetaText, stripLessonPlanLeakFromLabel, sanitizeFlashcardTopicLink, normalizeFlashcardClassLevel } from '@/lib/strip-ai-tool-metadata';
+import { stripAiGeneratorLeakage, isScaffoldFlashcardPair, isScaffoldDeckMetaText, stripLessonPlanLeakFromLabel, sanitizeFlashcardTopicLink, normalizeFlashcardClassLevel, sanitizeFlashcardFieldText } from '@/lib/strip-ai-tool-metadata';
 import { formatClassroomScienceText } from '@/lib/exam-text-normalize';
 
 function cleanFlashcardText(text: string): string {
   return formatClassroomScienceText(
-    stripAiGeneratorLeakage(String(text || '').replace(/\*\*/g, '').trim()),
+    sanitizeFlashcardFieldText(stripAiGeneratorLeakage(String(text || ''))),
   );
 }
 
@@ -789,7 +789,7 @@ export function FlashcardViewer({
         ) : null}
 
         {hasCards && currentCard ? (
-        <section className="overflow-hidden rounded-2xl border border-violet-200/70 bg-gradient-to-br from-white via-violet-50/20 to-indigo-50/30 shadow-lg">
+        <section className="rounded-2xl border border-violet-200/70 bg-gradient-to-br from-white via-violet-50/20 to-indigo-50/30 shadow-lg">
           <div className="border-b border-violet-100 bg-white/80 px-4 py-3 sm:px-5 flex flex-wrap items-center justify-between gap-2">
             <div>
               <p className={blockTitle}>
@@ -805,19 +805,19 @@ export function FlashcardViewer({
           </div>
           <div className="p-4 sm:p-5 space-y-4">
             <div className="grid gap-3 sm:grid-cols-2">
-              <div className="rounded-xl border-2 border-violet-200 bg-gradient-to-br from-violet-50 to-white p-4 min-h-[140px] flex flex-col">
+              <div className="min-w-0 rounded-xl border-2 border-violet-200 bg-gradient-to-br from-violet-50 to-white p-4 sm:p-5 min-h-[140px] flex flex-col overflow-visible">
                 <p className="text-micro font-bold uppercase tracking-wider text-violet-700 mb-2">
                   Task
                 </p>
-                <p className="text-sm sm:text-base font-medium text-slate-900 leading-relaxed flex-1">
+                <p className="text-sm sm:text-base font-medium text-slate-900 leading-relaxed flex-1 break-words [overflow-wrap:anywhere]">
                   {currentCard.front}
                 </p>
               </div>
-              <div className="rounded-xl border-2 border-indigo-200 bg-gradient-to-br from-indigo-50 to-white p-4 min-h-[140px] flex flex-col">
+              <div className="min-w-0 rounded-xl border-2 border-indigo-200 bg-gradient-to-br from-indigo-50 to-white p-4 sm:p-5 min-h-[140px] flex flex-col overflow-visible">
                 <p className="text-micro font-bold uppercase tracking-wider text-indigo-700 mb-2">
                   Solution
                 </p>
-                <p className="text-sm sm:text-base text-slate-800 leading-relaxed flex-1">
+                <p className="text-sm sm:text-base text-slate-800 leading-relaxed flex-1 break-words [overflow-wrap:anywhere]">
                   {currentCard.back}
                 </p>
               </div>
@@ -1257,7 +1257,7 @@ export function FlashcardViewer({
 }
 
 function stripMdBold(s: string): string {
-  return s.replace(/\*\*/g, '').trim();
+  return sanitizeFlashcardFieldText(s.replace(/\*\*/g, '').trim());
 }
 
 const TEMPLATE_FIELD_LABELS = [
@@ -1306,7 +1306,7 @@ function parseSevenFieldTemplateBlock(block: string): Flashcard | null {
 
   const taskBold = block.match(/\*\*Task:\*\*\s*([\s\S]*?)(?=\n\s*\*\*Solution:\*\*)/i);
   const solutionBold = block.match(
-    /\*\*Solution:\*\*\s*([\s\S]*?)(?=\n\s*\*\*(?:Difficulty|Memory Hook|Memory Cue|Self-Check|Front|Back|Task)[^*]*:\*|\n+---|\n+##\s*(?:Card|Flashcard)|$)/i,
+    /\*\*Solution:\*\*\s*([\s\S]*?)(?=\n\s*\*\*(?:Difficulty|Memory Hook|Memory Cue|Self-Check|Front|Back|Task)[^*]*:\*|\n+---|\n+#{1,6}\s*(?:\d+[.)]?\s*)?(?:Study Aids|Card|Flashcard|Wrap)|$)/i,
   );
   if (taskBold && solutionBold) {
     front = stripMdBold(taskBold[1].trim());
@@ -1863,7 +1863,7 @@ function parseTaskSolutionPairs(content: string): Flashcard[] {
   if (cards.length) return cards;
 
   const re =
-    /\*\*Task:\*\*\s*([\s\S]*?)\n+\*\*Solution:\*\*\s*([\s\S]*?)(?=\n+\*\*Task:|\n+---|\n###\s*[45]\.|$)/gi;
+    /\*\*Task:\*\*\s*([\s\S]*?)\n+\*\*Solution:\*\*\s*([\s\S]*?)(?=\n+\*\*Task:|\n+---|\n#{1,6}\s*[345]\.|\n#{1,6}\s*Study Aids|\n+\*\*Card\s*\d+|\n+##\s*(?:Card|Flashcard|Study)|$)/gi;
   let m: RegExpExecArray | null;
   while ((m = re.exec(content)) !== null) {
     const front = stripMdBold(m[1].trim());
