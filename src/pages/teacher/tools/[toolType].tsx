@@ -37,6 +37,7 @@ import { motion } from 'framer-motion';
 import { renderMarkdown } from '@/lib/render-teacher-markdown';
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, ImageRun, ExternalHyperlink, InternalHyperlink } from 'docx';
 import { saveAs } from 'file-saver';
+import { formatClassroomScienceText } from '@/lib/exam-text-normalize';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -1160,13 +1161,13 @@ export default function TeacherToolPage() {
     // Clean up any double spaces or extra whitespace
     cleaned = cleaned.replace(/\s+/g, ' ').trim();
     
-    return cleaned;
+    return formatClassroomScienceText(cleaned);
   };
 
   // Helper function to process text with inline math and formatting
   const processTextWithMath = (text: string): TextRun[] => {
     // First, remove all LaTeX math delimiters and clean the expressions
-    let processed = text;
+    let processed = formatClassroomScienceText(text);
     
     // Process block math first ($$...$$) - should already be handled, but just in case
     processed = processed.replace(/\$\$([\s\S]*?)\$\$/g, (match, mathContent) => {

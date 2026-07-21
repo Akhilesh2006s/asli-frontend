@@ -5,6 +5,7 @@ import { resolveWorksheetFromPayload } from '@/lib/parse-worksheet-mcq';
 import { resolveHomeworkFromPayload } from '@/lib/parse-homework-creator';
 import { resolveExamPaperFromPayload } from '@/lib/parse-exam-question-paper';
 import { getFlashcardsFromContent } from '@/components/flashcard-viewer';
+import { formatClassroomScienceText } from '@/lib/exam-text-normalize';
 
 export const TEACHER_DOWNLOAD_TOOL_IDS = [
   'worksheet-mcq-generator',
@@ -25,6 +26,10 @@ export type AiToolPdfMeta = {
 };
 
 const PDF_MARGIN: [number, number, number, number] = [12, 12, 12, 12];
+
+function fmt(value: unknown, subject?: string): string {
+  return formatClassroomScienceText(value, subject);
+}
 
 export function isTeacherDownloadTool(toolType: string): toolType is TeacherDownloadToolId {
   return (TEACHER_DOWNLOAD_TOOL_IDS as readonly string[]).includes(toolType);
@@ -124,12 +129,12 @@ export function buildTeacherToolCsv(
             section.label,
             q.questionNumber ?? index + 1,
             q.type || '',
-            q.question,
-            q.options[0]?.replace(/^[A-D]\)\s*/i, '') || '',
-            q.options[1]?.replace(/^[A-D]\)\s*/i, '') || '',
-            q.options[2]?.replace(/^[A-D]\)\s*/i, '') || '',
-            q.options[3]?.replace(/^[A-D]\)\s*/i, '') || '',
-            q.answer,
+            fmt(q.question),
+            fmt(q.options[0]?.replace(/^[A-D]\)\s*/i, '') || ''),
+            fmt(q.options[1]?.replace(/^[A-D]\)\s*/i, '') || ''),
+            fmt(q.options[2]?.replace(/^[A-D]\)\s*/i, '') || ''),
+            fmt(q.options[3]?.replace(/^[A-D]\)\s*/i, '') || ''),
+            fmt(q.answer),
             q.marks ?? '',
           ]),
         );
@@ -146,17 +151,17 @@ export function buildTeacherToolCsv(
       rows.push(
         csvRow([
           q.type || 'Practice',
-          q.question || `Question ${index + 1}`,
-          q.options[0] || '',
-          q.options[1] || '',
-          q.options[2] || '',
-          q.options[3] || '',
-          q.answer,
+          fmt(q.question || `Question ${index + 1}`),
+          fmt(q.options[0] || ''),
+          fmt(q.options[1] || ''),
+          fmt(q.options[2] || ''),
+          fmt(q.options[3] || ''),
+          fmt(q.answer),
         ]),
       );
     });
     homework.applicationTasks.forEach((task, index) => {
-      rows.push(csvRow(['Application', task || `Task ${index + 1}`, '', '', '', '', '']));
+      rows.push(csvRow(['Application', fmt(task || `Task ${index + 1}`), '', '', '', '', '']));
     });
     return rows.join('\n');
   }
@@ -184,13 +189,13 @@ export function buildTeacherToolCsv(
           csvRow([
             q.questionNumber || index + 1,
             section.title,
-            q.question,
-            q.options[0]?.replace(/^[A-D]\)\s*/i, '') || '',
-            q.options[1]?.replace(/^[A-D]\)\s*/i, '') || '',
-            q.options[2]?.replace(/^[A-D]\)\s*/i, '') || '',
-            q.options[3]?.replace(/^[A-D]\)\s*/i, '') || '',
-            q.answer,
-            q.explanation || '',
+            fmt(q.question),
+            fmt(q.options[0]?.replace(/^[A-D]\)\s*/i, '') || ''),
+            fmt(q.options[1]?.replace(/^[A-D]\)\s*/i, '') || ''),
+            fmt(q.options[2]?.replace(/^[A-D]\)\s*/i, '') || ''),
+            fmt(q.options[3]?.replace(/^[A-D]\)\s*/i, '') || ''),
+            fmt(q.answer),
+            fmt(q.explanation || ''),
             q.marks ?? '',
           ]),
         );
@@ -206,11 +211,11 @@ export function buildTeacherToolCsv(
     for (const card of cards) {
       rows.push(
         csvRow([
-          card.front,
-          card.back,
+          fmt(card.front),
+          fmt(card.back),
           card.type || '',
           card.cardCategory || '',
-          card.memoryHookQuickTip || card.memoryCue || '',
+          fmt(card.memoryHookQuickTip || card.memoryCue || ''),
         ]),
       );
     }

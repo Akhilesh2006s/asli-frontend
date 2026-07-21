@@ -4,6 +4,7 @@ import DOMPurify from 'dompurify';
 
 import { stripMarkdownSyntax } from '@/lib/strip-markdown-syntax';
 import { sanitizeAiHtml } from '@/lib/sanitize-ai-html';
+import { formatClassroomScienceText } from '@/lib/exam-text-normalize';
 
 /** Inline Markdown for table cells and line renderer (math only — no bold/italic markers). */
 export function formatInlineMarkdown(t: string): string {
@@ -11,7 +12,7 @@ export function formatInlineMarkdown(t: string): string {
     return t;
   }
 
-  let formatted = stripMarkdownSyntax(t)
+  let formatted = stripMarkdownSyntax(formatClassroomScienceText(t))
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;');

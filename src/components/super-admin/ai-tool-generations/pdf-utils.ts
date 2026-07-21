@@ -1,6 +1,7 @@
 import html2canvas from "html2canvas";
 import { jsPDF } from "jspdf";
 import { renderMarkdown } from "@/lib/render-teacher-markdown";
+import { formatClassroomScienceText } from "@/lib/exam-text-normalize";
 import "katex/dist/katex.min.css";
 
 export type PdfRecord = {
@@ -144,7 +145,7 @@ export async function downloadGenerationsPdf(title: string, records: PdfRecord[]
 
     const body = document.createElement("div");
     body.className = PROSE_CLASSES;
-    body.innerHTML = renderMarkdown(rec.content || "(no content)");
+    body.innerHTML = renderMarkdown(formatClassroomScienceText(rec.content || "(no content)", rec.subject));
     section.appendChild(body);
 
     wrapper.appendChild(section);

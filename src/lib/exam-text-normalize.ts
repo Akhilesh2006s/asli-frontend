@@ -95,24 +95,130 @@ const SUBSCRIPT_DIGITS: Record<string, string> = {
   '9': '₉',
 };
 
+const SUPERSCRIPT_DIGITS: Record<string, string> = {
+  '0': '⁰',
+  '1': '¹',
+  '2': '²',
+  '3': '³',
+  '4': '⁴',
+  '5': '⁵',
+  '6': '⁶',
+  '7': '⁷',
+  '8': '⁸',
+  '9': '⁹',
+  '+': '⁺',
+  '-': '⁻',
+  '−': '⁻',
+  '(': '⁽',
+  ')': '⁾',
+};
+
+const GREEK_WORD_MAP: Array<[RegExp, string]> = [
+  [/\btheta\b/gi, 'θ'],
+  [/\balpha\b/gi, 'α'],
+  [/\bbeta\b/gi, 'β'],
+  [/\bgamma\b/gi, 'γ'],
+  [/\bdelta\b/gi, 'δ'],
+  [/\bpi\b/gi, 'π'],
+  [/\bomega\b/gi, 'ω'],
+  [/\bphi\b/gi, 'φ'],
+  [/\blambda\b/gi, 'λ'],
+  [/\bmu\b/gi, 'μ'],
+  [/\bsigma\b/gi, 'σ'],
+];
+
+function toSuperscriptRun(raw: string): string {
+  return String(raw || '')
+    .split('')
+    .map((ch) => SUPERSCRIPT_DIGITS[ch] ?? ch)
+    .join('');
+}
+
+function toSubscriptRun(raw: string): string {
+  return String(raw || '')
+    .split('')
+    .map((ch) => SUBSCRIPT_DIGITS[ch] ?? ch)
+    .join('');
+}
+
+function isChemOrScienceSubject(subject?: string): boolean {
+  const s = String(subject || '')
+    .trim()
+    .toLowerCase();
+  return /chem|science|biology|bio|physics/.test(s);
+}
+
 /**
- * Render ASCII digit runs after letters as subscripts (e.g. XH5 → XH₅, H2O → H₂O).
- * Only runs for chemistry so maths expressions like x2 are unchanged.
- * Idempotent if subscripts are already Unicode (\\d+ only matches ASCII digits).
+ * Convert ASCII caret powers (sin^2, (...)^2, 25^2) and greek words (theta)
+ * into classroom Unicode so students never see computer-style math.
+ */
+export function formatAsciiMathToUnicode(text: string): string {
+  let s = text === null || text === undefined ? '' : String(text);
+  if (!s) return '';
+
+  // Preserve $...$ / $$...$$ math for KaTeX — format only plain segments.
+  const parts = s.split(/(\$\$[\s\S]*?\$\$|\$[^$\n]+?\$)/g);
+  return parts
+    .map((part) => {
+      if (!part) return part;
+      if (part.startsWith('$')) return part;
+      let out = part;
+      for (const [re, sym] of GREEK_WORD_MAP) out = out.replace(re, sym);
+
+      out = out.replace(/\^\{([^{}]+)\}/g, (_m, body: string) => toSuperscriptRun(body));
+      out = out.replace(/\^(-?\d+)/g, (_m, digits: string) => toSuperscriptRun(digits));
+      out = out.replace(/\^([A-Za-z])/g, (_m, letter: string) => {
+        const mapped = SUPERSCRIPT_DIGITS[letter];
+        return mapped || `^${letter}`;
+      });
+
+      out = out.replace(/_\{([^{}]+)\}/g, (_m, body: string) => toSubscriptRun(body));
+      out = out.replace(/_(\d+)/g, (_m, digits: string) => toSubscriptRun(digits));
+
+      return out;
+    })
+    .join('');
+}
+
+/**
+ * Render chemical formulas with Unicode subscripts (H2O → H₂O, CO2 → CO₂).
+ * Safe for maths: only matches Element-like tokens that contain digits.
+ */
+export function formatChemicalFormulasInText(text: string): string {
+  const s = text === null || text === undefined ? '' : String(text);
+  if (!s) return '';
+  return s.replace(/\b([A-Z][a-z]?(?:\d+[A-Z]?[a-z]?)*\d*[A-Za-z0-9]*)\b/g, (token) => {
+    if (!/\d/.test(token)) return token;
+    // Avoid rewriting short codes like IIT6 / NEET2
+    if (/^[A-Z]{3,}\d+$/.test(token) && token.length <= 6) return token;
+    return token.replace(/([A-Za-z\)])(\d+)/g, (_m, prefix: string, digits: string) => {
+      return `${prefix}${toSubscriptRun(digits)}`;
+    });
+  });
+}
+
+/**
+ * Chemistry / science subscripts. Always runs formula-pattern pass;
+ * subject-gated aggressive digit pass for chemistry/science boards.
  */
 export function formatChemistryDisplayText(text: string, subject?: string): string {
   const s = text === null || text === undefined ? '' : String(text);
-  if (String(subject || '').trim().toLowerCase() !== 'chemistry') return s;
-  return s.replace(/([A-Za-z\)])(\d+)/g, (_match, prefix: string, digits: string) => {
-    const subscript = digits
-      .split('')
-      .map((digit) => SUBSCRIPT_DIGITS[digit] ?? digit)
-      .join('');
-    return `${prefix}${subscript}`;
-  });
+  let out = formatChemicalFormulasInText(s);
+  if (isChemOrScienceSubject(subject)) {
+    out = out.replace(/([A-Za-z\)])(\d+)/g, (_match, prefix: string, digits: string) => {
+      return `${prefix}${toSubscriptRun(digits)}`;
+    });
+  }
+  return out;
+}
+
+/** Classroom display: mojibake repair + Unicode math powers + chemistry subscripts. */
+export function formatClassroomScienceText(value: unknown, subject?: string): string {
+  const base = normalizeExamDisplayText(value);
+  return formatChemistryDisplayText(formatAsciiMathToUnicode(base), subject);
 }
 
 /** Full student-facing pipeline: mojibake/math repair + chemistry subscripts when applicable. */
 export function normalizeAndFormatExamDisplayText(value: unknown, subject?: string): string {
-  return formatChemistryDisplayText(normalizeExamDisplayText(value), subject);
+  return formatClassroomScienceText(value, subject);
 }

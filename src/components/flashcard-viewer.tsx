@@ -17,9 +17,12 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { stripAiGeneratorLeakage, isScaffoldFlashcardPair, isScaffoldDeckMetaText, stripLessonPlanLeakFromLabel, sanitizeFlashcardTopicLink, normalizeFlashcardClassLevel } from '@/lib/strip-ai-tool-metadata';
+import { formatClassroomScienceText } from '@/lib/exam-text-normalize';
 
 function cleanFlashcardText(text: string): string {
-  return stripAiGeneratorLeakage(String(text || '').replace(/\*\*/g, '').trim());
+  return formatClassroomScienceText(
+    stripAiGeneratorLeakage(String(text || '').replace(/\*\*/g, '').trim()),
+  );
 }
 
 function cleanFlashcardLabel(text: string): string {
@@ -27,7 +30,16 @@ function cleanFlashcardLabel(text: string): string {
 }
 
 function filterDisplayFlashcards(cards: Flashcard[]): Flashcard[] {
-  return cards.filter((card) => card.front && card.back && !isScaffoldFlashcardPair(card.front, card.back));
+  const seen = new Set<string>();
+  const out: Flashcard[] = [];
+  for (const card of cards) {
+    if (!card.front || !card.back || isScaffoldFlashcardPair(card.front, card.back)) continue;
+    const key = card.front.toLowerCase().replace(/\s+/g, ' ').trim().slice(0, 240);
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    out.push(card);
+  }
+  return out;
 }
 
 // Add CSS for 3D flip effect

@@ -49,6 +49,7 @@ import { motion } from 'framer-motion';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } from 'docx';
+import { formatClassroomScienceText } from '@/lib/exam-text-normalize';
 import { saveAs } from 'file-saver';
 import { AiToolResultShell } from '@/components/ai-tool-result-shell';
 import { AiToolV2InputSummary } from '@/components/ai-v2';
@@ -1386,13 +1387,13 @@ export default function StudentToolPage() {
     // Clean up any double spaces or extra whitespace
     cleaned = cleaned.replace(/\s+/g, ' ').trim();
     
-    return cleaned;
+    return formatClassroomScienceText(cleaned);
   };
 
   // Helper function to process text with inline math and formatting
   const processTextWithMath = (text: string): TextRun[] => {
     // First, remove all LaTeX math delimiters and clean the expressions
-    let processed = text;
+    let processed = formatClassroomScienceText(text);
     
     // Process block math first ($$...$$) - should already be handled, but just in case
     processed = processed.replace(/\$\$([\s\S]*?)\$\$/g, (match, mathContent) => {
