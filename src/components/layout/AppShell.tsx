@@ -256,10 +256,10 @@ export function AppShell({
 
   return (
     <div
-      className="min-h-screen bg-shell-backdrop"
+      className="h-dvh overflow-hidden bg-shell-backdrop"
       style={{ ["--rail" as string]: collapsed ? "5rem" : "16rem" }}
     >
-      <div>
+      <div className="h-full min-h-0">
         {/* Desktop rail — fixed so navigation never scrolls out of reach */}
         <aside
           className={cn(
@@ -298,9 +298,9 @@ export function AppShell({
           </SheetContent>
         </Sheet>
 
-        {/* Content window */}
-        <div className="flex min-h-screen min-w-0 flex-col bg-shell-surface transition-[margin] duration-300 ease-out lg:ml-[var(--rail)]">
-          <header className="sticky top-0 z-20 flex items-center gap-3 border-b border-border bg-shell-topbar px-4 py-3 backdrop-blur-xl sm:px-6">
+        {/* Content window — header stays pinned; only <main> scrolls */}
+        <div className="flex h-dvh min-h-0 min-w-0 flex-col bg-shell-surface transition-[margin] duration-300 ease-out lg:ml-[var(--rail)]">
+          <header className="sticky top-0 z-20 flex shrink-0 items-center gap-3 border-b border-border bg-shell-topbar/95 px-4 py-3 backdrop-blur-xl sm:px-6">
             <button
               type="button"
               onClick={() => setMobileOpen(true)}
@@ -404,7 +404,7 @@ export function AppShell({
             </div>
           </header>
 
-          <main className="min-w-0 flex-1 overflow-x-hidden">{children}</main>
+          <main className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto">{children}</main>
         </div>
       </div>
     </div>

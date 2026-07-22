@@ -869,6 +869,8 @@ export default function SubjectContentManagement() {
   }, [subjects, contents]);
 
   const [selectedClassLabel, setSelectedClassLabel] = useState<string | null>(null);
+  /** Board filter (CBSE / IIT / …) — pick before category → class → subject → content. */
+  const [selectedFilterBoard, setSelectedFilterBoard] = useState<SyllabusBoard>('CBSE');
   /** Product category track (General / Alpha / Beta / …) — subjects live inside a category. */
   const [selectedProductCategory, setSelectedProductCategory] = useState('');
   /** Classes added manually before any subject exists (unblocks first subject). */
@@ -878,22 +880,42 @@ export default function SubjectContentManagement() {
     setManualClassLabels(getCurriculumClassLabels());
   }, []);
 
+  useEffect(() => {
+    if (
+      SYLLABUS_OPTIONS.length > 0 &&
+      !SYLLABUS_OPTIONS.some((o) => boardsMatch(o.value, selectedFilterBoard))
+    ) {
+      setSelectedFilterBoard(SYLLABUS_OPTIONS[0].value);
+    }
+  }, [SYLLABUS_OPTIONS, selectedFilterBoard]);
+
   const displayClassOptions = useMemo(() => {
     const merged = new Set([...classOptions, ...manualClassLabels]);
-    return Array.from(merged).sort((a, b) => {
-      const pa = parseClassBoardLabel(a);
-      const pb = parseClassBoardLabel(b);
-      const na = parseInt(pa.classNum, 10);
-      const nb = parseInt(pb.classNum, 10);
-      if (!Number.isNaN(na) && !Number.isNaN(nb) && na !== nb) return na - nb;
-      return a.localeCompare(b);
-    });
-  }, [classOptions, manualClassLabels]);
+    return Array.from(merged)
+      .filter((label) => {
+        const { board } = parseClassBoardLabel(label);
+        if (!board) return true;
+        return boardsMatch(board, selectedFilterBoard);
+      })
+      .sort((a, b) => {
+        const pa = parseClassBoardLabel(a);
+        const pb = parseClassBoardLabel(b);
+        const na = parseInt(pa.classNum, 10);
+        const nb = parseInt(pb.classNum, 10);
+        if (!Number.isNaN(na) && !Number.isNaN(nb) && na !== nb) return na - nb;
+        return a.localeCompare(b);
+      });
+  }, [classOptions, manualClassLabels, selectedFilterBoard]);
 
-  // When subjects load, auto-select first class (for auto page load UX)
+  // Keep class selection valid when board filter / class list changes
   useEffect(() => {
-    if (!selectedClassLabel && displayClassOptions.length > 0) {
+    if (displayClassOptions.length === 0) {
+      if (selectedClassLabel) setSelectedClassLabel(null);
+      return;
+    }
+    if (!selectedClassLabel || !displayClassOptions.includes(selectedClassLabel)) {
       setSelectedClassLabel(displayClassOptions[0]);
+      setSelectedSubjectId(null);
     }
   }, [displayClassOptions, selectedClassLabel]);
 
@@ -904,7 +926,8 @@ export default function SubjectContentManagement() {
   const selectedClassNumber = selectedClassParsed.classNum
     ? normalizeClassNumber(selectedClassParsed.classNum)
     : '';
-  const selectedBoard = selectedClassParsed.board;
+  const selectedBoard =
+    selectedClassParsed.board || normalizeBoardKey(selectedFilterBoard);
 
   /** Subjects from catalog + groups inferred from content (orphan / deleted subject refs). */
   const subjectsForClass = useMemo(() => {
@@ -1273,7 +1296,7 @@ export default function SubjectContentManagement() {
       });
       return;
     }
-    const label = `Class ${num}`;
+    const label = formatClassBoardLabel(num, selectedFilterBoard);
     const alreadyListed =
       classOptions.includes(label) || manualClassLabels.includes(label);
     if (!alreadyListed) {
@@ -1433,7 +1456,7 @@ export default function SubjectContentManagement() {
       return;
     }
     setNewSubjectName('');
-    setNewSubjectSyllabus('CBSE');
+    setNewSubjectSyllabus((selectedFilterBoard || selectedBoard || 'CBSE') as SyllabusBoard);
     setNewSubjectStateName('');
     setNewSubjectProductCategory(selectedProductCategory || '');
     setIsAddSubjectOpen(true);
@@ -2143,10 +2166,43 @@ export default function SubjectContentManagement() {
             Subject &amp; Content Management
           </h2>
           <p className="text-gray-600 mt-1">
-            Product categories (Alpha / Beta / …) hold subjects. Pick a category, then class →
-            subject → content. Same tracks apply to AI tools.
+            Pick a board, then product category → class → subject → content. Create boards under{' '}
+            <strong>Board Management</strong>.
           </p>
         </div>
+      </div>
+
+      <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+        <p className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">
+          Board
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {SYLLABUS_OPTIONS.map((opt) => {
+            const isActive = boardsMatch(opt.value, selectedFilterBoard);
+            return (
+              <Button
+                key={opt.value}
+                type="button"
+                variant="outline"
+                className={`rounded-full border px-4 py-1.5 text-xs sm:text-sm font-medium transition-all ${
+                  isActive
+                    ? 'border-sky-500 bg-sky-50 text-sky-900 shadow-sm'
+                    : 'border-slate-200 bg-white text-slate-700 hover:border-sky-300 hover:bg-sky-50/40'
+                }`}
+                onClick={() => {
+                  setSelectedFilterBoard(opt.value);
+                  setSelectedSubjectId(null);
+                }}
+              >
+                {opt.label}
+              </Button>
+            );
+          })}
+        </div>
+        <p className="mt-2 text-xs text-slate-500">
+          Board scopes the classes and subjects below (e.g. CBSE Class 6 vs IIT Class 6). Add
+          more under <strong>Board Management</strong>.
+        </p>
       </div>
 
       <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -2686,7 +2742,10 @@ export default function SubjectContentManagement() {
           <DialogHeader>
             <DialogTitle>Add Class</DialogTitle>
             <DialogDescription>
-              Add a grade level (e.g. Class 6) so you can attach subjects and content.
+              Add a grade level for the selected board (
+              {SYLLABUS_OPTIONS.find((o) => boardsMatch(o.value, selectedFilterBoard))?.label ||
+                selectedFilterBoard}
+              ), e.g. Class 6.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
