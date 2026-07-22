@@ -1377,33 +1377,91 @@ export default function AdminManagement() {
                       </div>
                     </div>
                     {newAdmin.isAsliPrepExclusive && (
-                      <div className="mt-4 border-t border-slate-200 pt-4">
-                        <p className="text-xs sm:text-sm font-medium text-gray-800">IIT product tracks</p>
-                        <p className="mt-1 text-xs text-gray-600">
-                          Assign which IIT categories this school can access. Leave none for curriculum-only Asli Prep content.
-                        </p>
-                        <div className="mt-3 flex flex-wrap gap-4">
-                          {iitCategoryCodes.map((cat) => {
-                            const checked = newAdmin.iitCategories.includes(cat);
-                            return (
-                              <label key={cat} className="flex items-center gap-2 text-sm text-slate-800">
-                                <Checkbox
-                                  checked={checked}
-                                  onCheckedChange={(v) => {
-                                    const on = v === true;
-                                    setNewAdmin((prev) => ({
-                                      ...prev,
-                                      iitCategories: on
-                                        ? normalizeIitCategories([...prev.iitCategories, cat])
-                                        : prev.iitCategories.filter((c) => c !== cat),
-                                    }));
-                                  }}
-                                />
-                                {formatIitCategoryLabel(cat, iitLabelMap)}
-                              </label>
-                            );
-                          })}
+                      <div className="mt-4 space-y-4 border-t border-slate-200 pt-4">
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                          <div className="space-y-1">
+                            <p className="text-xs sm:text-sm font-medium text-gray-800">IIT EduOTT</p>
+                            <p className="text-xs text-gray-600">
+                              Same idea as Asli Prep: turn on to give this school IIT videos in EduOTT and
+                              IIT materials on Learning Paths. Off = curriculum Asli Prep only (no IIT).
+                            </p>
+                          </div>
+                          <div className="flex shrink-0 items-center gap-3">
+                            <span
+                              className={cn(
+                                "text-xs sm:text-sm",
+                                newAdmin.iitCategories.length === 0
+                                  ? "font-semibold text-gray-900"
+                                  : "text-gray-500"
+                              )}
+                            >
+                              Off
+                            </span>
+                            <Switch
+                              checked={newAdmin.iitCategories.length > 0}
+                              onCheckedChange={(checked) =>
+                                setNewAdmin((prev) => ({
+                                  ...prev,
+                                  iitCategories: checked
+                                    ? normalizeIitCategories(
+                                        prev.iitCategories.length > 0
+                                          ? prev.iitCategories
+                                          : iitCategoryCodes.length > 0
+                                            ? iitCategoryCodes
+                                            : ["ALPHA", "BETA", "GAMMA"]
+                                      )
+                                    : [],
+                                }))
+                              }
+                              aria-label="Toggle IIT EduOTT for this school"
+                            />
+                            <span
+                              className={cn(
+                                "text-xs sm:text-sm",
+                                newAdmin.iitCategories.length > 0
+                                  ? "font-semibold text-violet-800"
+                                  : "text-gray-500"
+                              )}
+                            >
+                              IIT EduOTT
+                            </span>
+                          </div>
                         </div>
+                        {newAdmin.iitCategories.length > 0 && (
+                          <div>
+                            <p className="text-xs sm:text-sm font-medium text-gray-800">
+                              IIT product tracks
+                            </p>
+                            <p className="mt-1 text-xs text-gray-600">
+                              Choose which tracks (Alpha / Beta / Gamma) this school can access.
+                            </p>
+                            <div className="mt-3 flex flex-wrap gap-4">
+                              {iitCategoryCodes.map((cat) => {
+                                const checked = newAdmin.iitCategories.includes(cat);
+                                return (
+                                  <label
+                                    key={cat}
+                                    className="flex items-center gap-2 text-sm text-slate-800"
+                                  >
+                                    <Checkbox
+                                      checked={checked}
+                                      onCheckedChange={(v) => {
+                                        const on = v === true;
+                                        setNewAdmin((prev) => {
+                                          const next = on
+                                            ? normalizeIitCategories([...prev.iitCategories, cat])
+                                            : prev.iitCategories.filter((c) => c !== cat);
+                                          return { ...prev, iitCategories: next };
+                                        });
+                                      }}
+                                    />
+                                    {formatIitCategoryLabel(cat, iitLabelMap)}
+                                  </label>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
@@ -2066,33 +2124,91 @@ export default function AdminManagement() {
                       </div>
                     </div>
                     {editAdmin.isAsliPrepExclusive && (
-                      <div className="mt-4 border-t border-slate-200 pt-4">
-                        <p className="text-xs sm:text-sm font-medium text-gray-800">IIT product tracks</p>
-                        <p className="mt-1 text-xs text-gray-600">
-                          Assign which IIT categories this school can access.
-                        </p>
-                        <div className="mt-3 flex flex-wrap gap-4">
-                          {iitCategoryCodes.map((cat) => {
-                            const checked = editAdmin.iitCategories.includes(cat);
-                            return (
-                              <label key={cat} className="flex items-center gap-2 text-sm text-slate-800">
-                                <Checkbox
-                                  checked={checked}
-                                  onCheckedChange={(v) => {
-                                    const on = v === true;
-                                    setEditAdmin((prev) => ({
-                                      ...prev,
-                                      iitCategories: on
-                                        ? normalizeIitCategories([...prev.iitCategories, cat])
-                                        : prev.iitCategories.filter((c) => c !== cat),
-                                    }));
-                                  }}
-                                />
-                                {formatIitCategoryLabel(cat, iitLabelMap)}
-                              </label>
-                            );
-                          })}
+                      <div className="mt-4 space-y-4 border-t border-slate-200 pt-4">
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                          <div className="space-y-1">
+                            <p className="text-xs sm:text-sm font-medium text-gray-800">IIT EduOTT</p>
+                            <p className="text-xs text-gray-600">
+                              Same idea as Asli Prep: turn on to give this school IIT videos in EduOTT and
+                              IIT materials on Learning Paths. Off = curriculum Asli Prep only (no IIT).
+                            </p>
+                          </div>
+                          <div className="flex shrink-0 items-center gap-3">
+                            <span
+                              className={cn(
+                                "text-xs sm:text-sm",
+                                editAdmin.iitCategories.length === 0
+                                  ? "font-semibold text-gray-900"
+                                  : "text-gray-500"
+                              )}
+                            >
+                              Off
+                            </span>
+                            <Switch
+                              checked={editAdmin.iitCategories.length > 0}
+                              onCheckedChange={(checked) =>
+                                setEditAdmin((prev) => ({
+                                  ...prev,
+                                  iitCategories: checked
+                                    ? normalizeIitCategories(
+                                        prev.iitCategories.length > 0
+                                          ? prev.iitCategories
+                                          : iitCategoryCodes.length > 0
+                                            ? iitCategoryCodes
+                                            : ["ALPHA", "BETA", "GAMMA"]
+                                      )
+                                    : [],
+                                }))
+                              }
+                              aria-label="Toggle IIT EduOTT for this school"
+                            />
+                            <span
+                              className={cn(
+                                "text-xs sm:text-sm",
+                                editAdmin.iitCategories.length > 0
+                                  ? "font-semibold text-violet-800"
+                                  : "text-gray-500"
+                              )}
+                            >
+                              IIT EduOTT
+                            </span>
+                          </div>
                         </div>
+                        {editAdmin.iitCategories.length > 0 && (
+                          <div>
+                            <p className="text-xs sm:text-sm font-medium text-gray-800">
+                              IIT product tracks
+                            </p>
+                            <p className="mt-1 text-xs text-gray-600">
+                              Choose which tracks (Alpha / Beta / Gamma) this school can access.
+                            </p>
+                            <div className="mt-3 flex flex-wrap gap-4">
+                              {iitCategoryCodes.map((cat) => {
+                                const checked = editAdmin.iitCategories.includes(cat);
+                                return (
+                                  <label
+                                    key={cat}
+                                    className="flex items-center gap-2 text-sm text-slate-800"
+                                  >
+                                    <Checkbox
+                                      checked={checked}
+                                      onCheckedChange={(v) => {
+                                        const on = v === true;
+                                        setEditAdmin((prev) => {
+                                          const next = on
+                                            ? normalizeIitCategories([...prev.iitCategories, cat])
+                                            : prev.iitCategories.filter((c) => c !== cat);
+                                          return { ...prev, iitCategories: next };
+                                        });
+                                      }}
+                                    />
+                                    {formatIitCategoryLabel(cat, iitLabelMap)}
+                                  </label>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
@@ -2569,13 +2685,21 @@ export default function AdminManagement() {
                           Asli Prep
                         </Badge>
                       )}
+                      {normalizeIitCategories(admin.iitCategories).length > 0 && (
+                        <Badge
+                          variant="outline"
+                          className="border-violet-200 bg-violet-50 text-xs text-violet-950 break-all max-w-full"
+                        >
+                          IIT EduOTT
+                        </Badge>
+                      )}
                       {normalizeIitCategories(admin.iitCategories).map((cat) => (
                         <Badge
                           key={cat}
                           variant="outline"
                           className="border-sky-200 bg-sky-50 text-xs text-sky-950"
                         >
-                          IIT {formatIitCategoryLabel(cat, iitLabelMap)}
+                          {formatIitCategoryLabel(cat, iitLabelMap)}
                         </Badge>
                       ))}
                       {admin?.state && (
