@@ -232,6 +232,22 @@ function canUseInlinePdfIframe(): boolean {
   return true;
 }
 
+/**
+ * api.aslilearn.ai (and most external PDF hosts) send X-Frame-Options: SAMEORIGIN,
+ * so embedding them from aslilearn.ai shows "refused to connect". Prefer pdf.js.
+ */
+function shouldAvoidCrossOriginPdfIframe(fileUrl: string): boolean {
+  if (typeof window === 'undefined') return true;
+  const absolute = normalizeContentFileUrl(fileUrl);
+  if (!absolute) return true;
+  if (shouldFetchDirectly(absolute)) return true;
+  try {
+    return new URL(absolute).origin !== window.location.origin;
+  } catch {
+    return true;
+  }
+}
+
 /** Mobile/tablet browsers often show only filename + "Open" inside PDF iframes. */
 function shouldUseCanvasPdfPreview(): boolean {
   if (typeof window === 'undefined') return false;
@@ -339,8 +355,10 @@ export default function PdfPreviewPanel({
 }: PdfPreviewPanelProps) {
   const prefersCanvasPreview = useCanvasPdfPreview();
   const inlineIframeSupported = canUseInlinePdfIframe();
-  /** Canvas when touch/tablet, or whenever embedded PDF iframes cannot render inline. */
-  const useCanvasRendering = prefersCanvasPreview || !inlineIframeSupported;
+  const avoidCrossOriginIframe = shouldAvoidCrossOriginPdfIframe(fileUrl);
+  /** Canvas when touch/tablet, cross-origin API PDFs, or whenever iframes cannot render. */
+  const useCanvasRendering =
+    prefersCanvasPreview || !inlineIframeSupported || avoidCrossOriginIframe;
   /** Mobile/tablet: vertical scroll stack (no bottom pager bar). */
   const useMobileScrollLayout =
     useCanvasRendering && typeof window !== 'undefined' && !detectDigitalBoard();
@@ -453,7 +471,7 @@ export default function PdfPreviewPanel({
         }
       }
 
-      if (!canUseInlinePdfIframe()) {
+      if (!canUseInlinePdfIframe() || shouldAvoidCrossOriginPdfIframe(fileUrl)) {
         if (!cancelled) {
           const isExternalHost =
             shouldFetchDirectly(absoluteUrl) ||

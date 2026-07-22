@@ -135,14 +135,14 @@ function resolvePdfPreviewBaseUrl(fileUrl: string, title?: string): string {
   const absolute = normalizeContentFileUrl(fileUrl);
   if (!absolute) return "";
 
+  // NCERT and similar hosts block datacenter IPs — let the browser hit them directly.
   if (shouldFetchDirectly(absolute)) {
     return absolute;
   }
 
-  if (isOurBackendPdfUrl(absolute)) {
-    return absolute;
-  }
-
+  // Always use the authenticated content-preview proxy for iframe embeds.
+  // Direct api.aslilearn.ai /uploads URLs send X-Frame-Options: SAMEORIGIN, so
+  // aslilearn.ai cannot iframe them (Chrome: "refused to connect").
   return getPdfContentPreviewProxyUrl(fileUrl, title);
 }
 
