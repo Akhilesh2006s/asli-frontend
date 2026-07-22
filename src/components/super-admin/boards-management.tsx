@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, type Dispatch, type SetStateAction } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -221,8 +221,9 @@ export default function BoardsManagement() {
         <div>
           <h2 className="text-xl sm:text-2xl font-bold text-slate-900">Board Management</h2>
           <p className="mt-1 text-sm text-slate-600 max-w-2xl">
-            Create boards for curriculum (CBSE, ICSE), state boards (e.g. Telangana State Board),
-            and IIT. Then assign schools and add subjects/content under those boards.
+            Create each board yourself (CBSE, ICSE, IB, Telangana State Board, …). Every board is
+            separate — add subjects and content under that board only. Board type only helps school
+            assign (curriculum vs state vs IIT); it does not merge content.
           </p>
         </div>
         <Button type="button" onClick={openAdd} className="shrink-0 gap-2">
@@ -280,8 +281,8 @@ export default function BoardsManagement() {
           <DialogHeader>
             <DialogTitle>Create board</DialogTitle>
             <DialogDescription>
-              Example: code <code className="text-xs">TELANGANA</code>, name{' '}
-              <strong>Telangana State Board</strong>, kind State.
+              Each board is separate. Example: code <code className="text-xs">TELANGANA</code>, name{' '}
+              <strong>Telangana State Board</strong>. Then add subjects and content under that board only.
             </DialogDescription>
           </DialogHeader>
           <BoardFormFields form={form} setForm={setForm} codeEditable />
@@ -327,8 +328,8 @@ function BoardFormFields({
   codeEditable,
 }: {
   form: { code: string; name: string; description: string; kind: BoardKind };
-  setForm: React.Dispatch<
-    React.SetStateAction<{ code: string; name: string; description: string; kind: BoardKind }>
+  setForm: Dispatch<
+    SetStateAction<{ code: string; name: string; description: string; kind: BoardKind }>
   >;
   codeEditable: boolean;
 }) {
@@ -360,7 +361,7 @@ function BoardFormFields({
         />
       </div>
       <div className="space-y-1.5">
-        <Label>Kind</Label>
+        <Label>Board type</Label>
         <Select
           value={form.kind}
           onValueChange={(v) => setForm((f) => ({ ...f, kind: v as BoardKind }))}
@@ -369,11 +370,17 @@ function BoardFormFields({
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="curriculum">Curriculum (CBSE, ICSE, …)</SelectItem>
-            <SelectItem value="state">State board</SelectItem>
-            <SelectItem value="iit">IIT</SelectItem>
+            <SelectItem value="curriculum">
+              Curriculum board (one board you create, e.g. CBSE or ICSE — not combined)
+            </SelectItem>
+            <SelectItem value="state">State board (one board per state, e.g. Telangana)</SelectItem>
+            <SelectItem value="iit">IIT board (IIT materials / EduOTT videos)</SelectItem>
           </SelectContent>
         </Select>
+        <p className="text-xs text-slate-500">
+          Type only groups the board for school assign filters. Content is always per board code —
+          create CBSE, ICSE, IB as separate boards if you want them separate.
+        </p>
       </div>
       <div className="space-y-1.5">
         <Label htmlFor="board-desc">Description (optional)</Label>

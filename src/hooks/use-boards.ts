@@ -46,13 +46,28 @@ export function useBoards(options?: { includeInactive?: boolean }) {
           .trim(),
         name: String(b.name || b.code || '').trim(),
         description: b.description || '',
-        kind: (b.kind || 'curriculum') as BoardKind,
+        kind: ((b.kind || 'curriculum') as BoardKind),
         isActive: b.isActive !== false,
       }));
       setBoards(rows.filter((b: BoardOption) => b.code));
     } catch (e) {
+      // Keep page usable if boards API is down (e.g. backend not redeployed yet).
       setError(e instanceof Error ? e.message : 'Failed to load boards');
-      setBoards([]);
+      setBoards([
+        { code: 'CBSE', name: 'CBSE', kind: 'curriculum', isActive: true },
+        { code: 'STATE', name: 'State Board (generic)', kind: 'state', isActive: true },
+        { code: 'SSC', name: 'SSC', kind: 'curriculum', isActive: true },
+        { code: 'ICSE', name: 'ICSE', kind: 'curriculum', isActive: true },
+        { code: 'IB', name: 'IB', kind: 'curriculum', isActive: true },
+        { code: 'CAMBRIDGE', name: 'Cambridge', kind: 'curriculum', isActive: true },
+        { code: 'IIT', name: 'IIT', kind: 'iit', isActive: true },
+        {
+          code: 'ASLI_EXCLUSIVE_SCHOOLS',
+          name: 'Asli Exclusive Schools',
+          kind: 'curriculum',
+          isActive: true,
+        },
+      ]);
     } finally {
       setLoading(false);
     }

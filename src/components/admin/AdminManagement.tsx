@@ -217,6 +217,10 @@ function isAsliExclusiveBoardCode(b?: string): boolean {
   return String(b || "").toUpperCase().trim() === "ASLI_EXCLUSIVE_SCHOOLS";
 }
 
+function isIitBoardCode(b?: string): boolean {
+  return String(b || "").toUpperCase().trim() === "IIT";
+}
+
 function isAssignableCurriculumCode(b?: string): boolean {
   const u = String(b || "").toUpperCase().trim();
   if (!u || isAsliExclusiveBoardCode(u) || isIitBoardCode(u)) return false;

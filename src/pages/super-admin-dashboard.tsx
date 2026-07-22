@@ -745,18 +745,12 @@ export default function SuperAdminDashboard() {
     );
   };
 
-  // Auto-load board data when entering Board Management
+  // Board Management now shows CRUD UI; do not auto-fetch the old hub dashboard.
   useEffect(() => {
-    if (currentView !== 'board') return;
-    if (isLoadingBoard) return;
-    if (boardData) return;
-    if (boardError) return;
-
-    const boardCode = selectedBoard || 'ASLI_EXCLUSIVE_SCHOOLS';
-    console.log('🔄 Auto-loading board dashboard for:', boardCode);
-    fetchBoardDashboard(boardCode, false); // Don't show toast on auto-load
-    // Intentionally include dependencies so it runs on mount/view change and doesn't rely on manual refresh.
-  }, [currentView, selectedBoard, isLoadingBoard, boardData, boardError]);
+    if (currentView === 'board') {
+      setBoardError(null);
+    }
+  }, [currentView]);
 
   const renderBoardDashboard = () => {
     if (boardError) {
