@@ -74,15 +74,16 @@ async function fetchSubjects(role: LearningPathRole): Promise<any[]> {
 }
 
 async function fetchAllPrepContent(role: LearningPathRole): Promise<any[]> {
+  const q = 'surface=learning-path';
   if (role === 'admin') {
-    const data = await authFetch('/api/admin/asli-prep-content');
+    const data = await authFetch(`/api/admin/asli-prep-content?${q}`);
     return parseContentPayload(data);
   }
   if (role === 'teacher') {
-    const data = await authFetch('/api/teacher/asli-prep-content');
+    const data = await authFetch(`/api/teacher/asli-prep-content?${q}`);
     return parseContentPayload(data);
   }
-  const data = await authFetch('/api/student/asli-prep-content');
+  const data = await authFetch(`/api/student/asli-prep-content?${q}`);
   return parseContentPayload(data);
 }
 

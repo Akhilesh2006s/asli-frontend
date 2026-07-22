@@ -20,6 +20,7 @@ const BookBasedGenerator = lazy(() => import("@/components/super-admin/book-base
 const LiveSessions = lazy(() => import("@/components/super-admin/live-sessions"));
 const SubscriptionManagement = lazy(() => import("@/components/super-admin/subscription-management"));
 const ProductsManagement = lazy(() => import("@/components/super-admin/products-management"));
+const BoardsManagement = lazy(() => import("@/components/super-admin/boards-management"));
 const TrialMembersManagement = lazy(() => import("@/components/super-admin/trial-members-management"));
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -1022,7 +1023,11 @@ export default function SuperAdminDashboard() {
       case 'dashboard':
         return renderDashboardContent();
       case 'board':
-        return renderBoardDashboard();
+        return (
+          <Suspense fallback={lazySectionFallback}>
+            <BoardsManagement />
+          </Suspense>
+        );
       case 'admins':
         return renderAdminsContent();
       case 'products':

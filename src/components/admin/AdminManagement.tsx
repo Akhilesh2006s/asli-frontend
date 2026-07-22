@@ -15,6 +15,7 @@ import { API_BASE_URL } from "@/lib/api-config";
 import { cn } from "@/lib/utils";
 import { formatIitCategoryLabel, normalizeIitCategories } from "@/lib/products";
 import { useProductCategories } from "@/hooks/use-product-categories";
+import { useBoards } from "@/hooks/use-boards";
 
 /** Visible borders/background on white dialogs (muted/40 was nearly invisible). */
 const SCHOOL_FORM_FIELD_CLASS =
@@ -209,31 +210,40 @@ function portalCheckboxId(prefix: string, moduleId: string) {
   return `${prefix}-${moduleId.replace(/[^a-zA-Z0-9]+/g, "-").replace(/^-|-$/g, "")}`;
 }
 
-/** Values stored as `curriculumBoard` / non–Asli Prep `board` (must match backend CURRICULUM_BOARDS). */
-const CURRICULUM_BOARD_CODES = ["CBSE", "STATE", "SSC", "ICSE", "IB", "CAMBRIDGE"] as const;
-
-function isCurriculumBoardCode(b?: string): boolean {
-  const u = String(b || "").toUpperCase().trim();
-  return (CURRICULUM_BOARD_CODES as readonly string[]).includes(u);
-}
+/** Values stored as `curriculumBoard` / non–Asli Prep `board`. */
+const FALLBACK_CURRICULUM_BOARD_CODES = ["CBSE", "STATE", "SSC", "ICSE", "IB", "CAMBRIDGE"] as const;
 
 function isAsliExclusiveBoardCode(b?: string): boolean {
   return String(b || "").toUpperCase().trim() === "ASLI_EXCLUSIVE_SCHOOLS";
 }
 
-/** Curriculum dropdown value only — never the Asli Exclusive hub code. */
-function normalizeCurriculumSelection(b?: string): string {
-  if (isAsliExclusiveBoardCode(b) || !isCurriculumBoardCode(b)) {
-    return "CBSE";
-  }
-  return String(b).toUpperCase().trim();
+function isAssignableCurriculumCode(b?: string): boolean {
+  const u = String(b || "").toUpperCase().trim();
+  if (!u || isAsliExclusiveBoardCode(u) || isIitBoardCode(u)) return false;
+  return true;
 }
 
-function curriculumDisplayLabel(code?: string): string {
+/** Curriculum dropdown value only — never the Asli Exclusive / IIT hub codes. */
+function normalizeCurriculumSelection(b?: string, allowedCodes?: string[]): string {
+  const u = String(b || "").toUpperCase().trim();
+  if (isAsliExclusiveBoardCode(u) || isIitBoardCode(u) || !u) {
+    return "CBSE";
+  }
+  if (allowedCodes?.length) {
+    return allowedCodes.includes(u) ? u : "CBSE";
+  }
+  if ((FALLBACK_CURRICULUM_BOARD_CODES as readonly string[]).includes(u)) {
+    return u;
+  }
+  return u || "CBSE";
+}
+
+function curriculumDisplayLabel(code?: string, nameMap?: Map<string, string>): string {
   const u = (code || "").toUpperCase();
+  if (nameMap?.has(u)) return nameMap.get(u) || u;
   const labels: Record<string, string> = {
     CBSE: "CBSE",
-    STATE: "State Board",
+    STATE: "State Board (generic)",
     SSC: "SSC / State Board",
     ICSE: "ICSE",
     IB: "IB",
@@ -245,6 +255,8 @@ function curriculumDisplayLabel(code?: string): string {
 export default function AdminManagement() {
   const [, setLocation] = useLocation();
   const { codes: iitCategoryCodes, labelMap: iitLabelMap } = useProductCategories();
+  const { curriculumOptions, boards: allBoards } = useBoards();
+  const boardNameMap = new Map(allBoards.map((b) => [b.code, b.name]));
   const [admins, setAdmins] = useState<Admin[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isAddingAdmin, setIsAddingAdmin] = useState(false);
@@ -352,23 +364,30 @@ export default function AdminManagement() {
   /**
    * Curriculum the school aligns to. Asli Prep vs normal usage is the toggle below (not a board value).
    */
-  const boardOptions = [
-    { value: "CBSE", label: "CBSE — Central Board of Secondary Education" },
-    { value: "SSC", label: "SSC — State Board / Secondary School Certificate" },
-    { value: "STATE", label: "State Board (generic)" },
-    { value: "ICSE", label: "ICSE — Indian Certificate of Secondary Education" },
-    { value: "IB", label: "IB — International Baccalaureate" },
-    { value: "CAMBRIDGE", label: "Cambridge — CAIE / Cambridge International" },
-  ];
+  const boardOptions =
+    curriculumOptions.length > 0
+      ? curriculumOptions.map((b) => ({
+          value: b.code,
+          label: b.name,
+        }))
+      : [
+          { value: "CBSE", label: "CBSE — Central Board of Secondary Education" },
+          { value: "SSC", label: "SSC — State Board / Secondary School Certificate" },
+          { value: "STATE", label: "State Board (generic)" },
+          { value: "ICSE", label: "ICSE — Indian Certificate of Secondary Education" },
+          { value: "IB", label: "IB — International Baccalaureate" },
+          { value: "CAMBRIDGE", label: "Cambridge — CAIE / Cambridge International" },
+        ];
+
+  const allowedCurriculumCodes = boardOptions.map((o) => o.value);
 
   const normalizeCurriculumBoard = (b?: string): string => {
-    const code = normalizeCurriculumSelection(b);
-    return boardOptions.some((o) => o.value === code) ? code : DEFAULT_CURRICULUM_BOARD;
+    return normalizeCurriculumSelection(b, allowedCurriculumCodes);
   };
 
   /** Curriculum boards for the dropdown (Asli Exclusive Schools is not a curriculum option). */
   const curriculumBoardOptions = boardOptions.filter(
-    (o) => !isAsliExclusiveBoardCode(o.value)
+    (o) => !isAsliExclusiveBoardCode(o.value) && !isIitBoardCode(o.value)
   );
 
   const mediumOptions = [
@@ -759,7 +778,7 @@ export default function AdminManagement() {
     const unlimited = isUnlimitedPortalAccess(perms);
     const rawCurriculum =
       admin.curriculumBoard ||
-      (isCurriculumBoardCode(admin.board) ? String(admin.board).toUpperCase().trim() : "");
+      (isAssignableCurriculumCode(admin.board) ? String(admin.board).toUpperCase().trim() : "");
     const exclusive =
       admin.isAsliPrepExclusive === true ||
       String(admin.board || "").toUpperCase() === "ASLI_EXCLUSIVE_SCHOOLS";
@@ -1337,7 +1356,7 @@ export default function AdminManagement() {
                             setNewAdmin((prev) => ({
                               ...prev,
                               isAsliPrepExclusive: checked,
-                              board: normalizeCurriculumSelection(prev.board),
+                              board: normalizeCurriculumSelection(prev.board, allowedCurriculumCodes),
                               iitCategories: checked ? prev.iitCategories : [],
                             }))
                           }
@@ -2026,7 +2045,7 @@ export default function AdminManagement() {
                             setEditAdmin((prev) => ({
                               ...prev,
                               isAsliPrepExclusive: checked,
-                              board: normalizeCurriculumSelection(prev.board),
+                              board: normalizeCurriculumSelection(prev.board, allowedCurriculumCodes),
                               iitCategories: checked ? prev.iitCategories : [],
                             }))
                           }
@@ -2469,7 +2488,7 @@ export default function AdminManagement() {
             admin.state,
             admin.board,
             admin.curriculumBoard,
-            curriculumDisplayLabel(admin.curriculumBoard),
+            curriculumDisplayLabel(admin.curriculumBoard, boardNameMap),
             admin.isAsliPrepExclusive ? "asli prep exclusive" : "",
           ]
             .filter(Boolean)
@@ -2533,8 +2552,9 @@ export default function AdminManagement() {
                         {curriculumDisplayLabel(
                           normalizeCurriculumBoard(
                             admin.curriculumBoard ||
-                              (isCurriculumBoardCode(admin.board) ? String(admin.board) : "")
-                          )
+                              (isAssignableCurriculumCode(admin.board) ? String(admin.board) : "")
+                          ),
+                          boardNameMap
                         )}
                       </Badge>
                       {admin.isAsliPrepExclusive && (

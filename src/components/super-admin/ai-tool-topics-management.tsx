@@ -173,7 +173,20 @@ export default function AiToolTopicsManagement() {
       if (!response.ok) return;
       const json = await response.json();
       const data = Array.isArray(json?.data) ? json.data : [];
-      setBoards(data.map((b: any) => ({ code: String(b.code || b.id || b.name), name: String(b.name || b.code || b.id) })));
+      const mapped = data.map((b: any) => ({
+        code: String(b.code || b.id || b.name),
+        name: String(b.name || b.code || b.id),
+      }));
+      setBoards(mapped);
+      if (mapped.length > 0) {
+        setAvailableBoards((prev) => {
+          const merged = new Set([
+            ...prev,
+            ...mapped.map((b: { code: string }) => b.code.toUpperCase()),
+          ]);
+          return Array.from(merged).sort();
+        });
+      }
     } catch {
       // ignore and fallback to manual board entry from table values
     }
@@ -937,9 +950,14 @@ export default function AiToolTopicsManagement() {
               >
                 <SelectTrigger><SelectValue placeholder="Select board" /></SelectTrigger>
                 <SelectContent>
-                  {availableBoards.map((board) => (
-                    <SelectItem key={board} value={board}>{board}</SelectItem>
-                  ))}
+                  {availableBoards.map((board) => {
+                    const meta = boards.find((b) => String(b.code).toUpperCase() === String(board).toUpperCase());
+                    return (
+                      <SelectItem key={board} value={board}>
+                        {meta?.name || board}
+                      </SelectItem>
+                    );
+                  })}
                   <SelectItem value="__custom__">+ New Board</SelectItem>
                 </SelectContent>
               </Select>

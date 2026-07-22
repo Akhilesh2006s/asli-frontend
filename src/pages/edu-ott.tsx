@@ -177,7 +177,7 @@ function buildVideosUrl(
   selectedClass: string | null,
   selectedSubject: string | null
 ): string {
-  const params = new URLSearchParams({ type: 'Video' });
+  const params = new URLSearchParams({ type: 'Video', surface: 'eduott' });
   if (selectedClass) params.set('class', selectedClass);
   if (selectedSubject) params.set('subject', selectedSubject);
   return `${API_BASE_URL}${apiRoot()}/asli-prep-content?${params.toString()}`;
@@ -230,7 +230,7 @@ export default function EduOTT() {
 
       try {
         const [vRes, sRes] = await Promise.all([
-          fetch(`${API_BASE_URL}${apiRoot()}/asli-prep-content?type=Video`, {
+          fetch(`${API_BASE_URL}${apiRoot()}/asli-prep-content?type=Video&surface=eduott`, {
             headers: authHeaders(),
           }),
           fetch(`${API_BASE_URL}${apiRoot()}/streams`, { headers: authHeaders() }),

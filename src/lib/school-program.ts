@@ -63,8 +63,15 @@ export function filterContentsBySchoolProgram<T extends { type?: string }>(
 
 const CURRICULUM_BOARDS = ['CBSE', 'STATE', 'SSC', 'ICSE', 'IB', 'CAMBRIDGE'] as const;
 
+function isHubBoardCode(code: string): boolean {
+  return code === 'ASLI_EXCLUSIVE_SCHOOLS' || code === 'IIT';
+}
+
 function isCurriculumBoardCode(code: string): boolean {
-  return (CURRICULUM_BOARDS as readonly string[]).includes(code);
+  if (!code || isHubBoardCode(code)) return false;
+  if ((CURRICULUM_BOARDS as readonly string[]).includes(code)) return true;
+  // Dynamic state boards (TELANGANA, etc.) are valid curriculum codes.
+  return /^[A-Z][A-Z0-9_/.-]{1,47}$/.test(code);
 }
 
 /** School curriculum board for AI tools (never IIT / ASLI_EXCLUSIVE_SCHOOLS). */
@@ -192,4 +199,39 @@ export function filterByProductCategory<T extends {
       row.productCategory || row.subject?.productCategory || '',
     ),
   );
+}
+
+/** Video tied to IIT board or an IIT product track. */
+export function isIitTrackVideo(row: {
+  type?: string;
+  board?: string;
+  productCategory?: string | null;
+  subject?: { board?: string; productCategory?: string | null } | null;
+}): boolean {
+  if (String(row?.type || '').trim() !== 'Video') return false;
+  const board = String(row?.board || row?.subject?.board || '')
+    .toUpperCase()
+    .trim();
+  if (board === 'IIT') return true;
+  const cat = String(row?.productCategory || row?.subject?.productCategory || '')
+    .toUpperCase()
+    .trim();
+  return Boolean(cat);
+}
+
+export function filterVideosForEduOtt<T extends Parameters<typeof isIitTrackVideo>[0]>(
+  rows: T[],
+): T[] {
+  if (!Array.isArray(rows)) return [];
+  return rows.filter((row) => isIitTrackVideo(row));
+}
+
+export function filterVideosForLearningPath<T extends Parameters<typeof isIitTrackVideo>[0]>(
+  rows: T[],
+): T[] {
+  if (!Array.isArray(rows)) return [];
+  return rows.filter((row) => {
+    if (String(row?.type || '').trim() !== 'Video') return true;
+    return !isIitTrackVideo(row);
+  });
 }

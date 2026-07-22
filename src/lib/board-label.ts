@@ -19,8 +19,19 @@ export function normalizeBoardKey(raw?: string | null): string {
 export function displayBoardShort(board?: string | null): string {
   const key = normalizeBoardKey(board);
   if (!key) return '';
-  if (key === 'IIT/NEET') return 'IIT';
+  if (key === 'IIT/NEET' || key === 'IIT') return 'IIT';
   if (key === 'ASLI_EXCLUSIVE_SCHOOLS') return 'Asli Exclusive';
+  if (key === 'STATE') return 'State Board';
+  // Title-case multi-word codes like TELANGANA → Telangana (callers may pass full DB name separately)
+  if (key.includes('_')) {
+    return key
+      .split('_')
+      .map((w) => w.charAt(0) + w.slice(1).toLowerCase())
+      .join(' ');
+  }
+  if (key.length > 4 && key === key.toUpperCase()) {
+    return key.charAt(0) + key.slice(1).toLowerCase();
+  }
   return key;
 }
 

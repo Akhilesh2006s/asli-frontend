@@ -30,6 +30,7 @@ import {
   normalizeIitCategory,
 } from '@/lib/products';
 import { useProductCategories } from '@/hooks/use-product-categories';
+import { useBoards } from '@/hooks/use-boards';
 import {
   boardsMatch,
   formatClassBoardLabel,
@@ -137,15 +138,10 @@ const pdfUnavailableUrls = new Set<string>();
 
 const BOARD_CODE = 'ASLI_EXCLUSIVE_SCHOOLS';
 
-type SyllabusBoard = 'ASLI_EXCLUSIVE_SCHOOLS' | 'CBSE' | 'STATE';
+type SyllabusBoard = string;
 
-/** Boards used when merging content lists (deduped by _id) if board-agnostic fetch is unavailable. */
-const CONTENT_FETCH_BOARDS: SyllabusBoard[] = ['ASLI_EXCLUSIVE_SCHOOLS', 'CBSE', 'STATE'];
-
-const SYLLABUS_OPTIONS: { value: SyllabusBoard; label: string }[] = [
-  { value: 'CBSE', label: 'CBSE' },
-  { value: 'STATE', label: 'State' },
-];
+/** Fallback when boards API is empty. */
+const CONTENT_FETCH_BOARDS_FALLBACK = ['ASLI_EXCLUSIVE_SCHOOLS', 'CBSE', 'STATE', 'IIT'];
 
 const INDIAN_STATE_OPTIONS = [
   'Andhra Pradesh',
@@ -186,10 +182,24 @@ const INDIAN_STATE_OPTIONS = [
   'Puducherry',
 ] as const;
 
-function syllabusLabel(board: string): string {
+function syllabusLabel(
+  board: string,
+  options?: { value: string; label: string }[]
+): string {
   const normalized = board.toUpperCase();
   if (normalized === 'ASLI_EXCLUSIVE_SCHOOLS') return '';
-  const o = SYLLABUS_OPTIONS.find((x) => x.value === normalized || x.value === board);
+  const list = options?.length
+    ? options
+    : [
+        { value: 'CBSE', label: 'CBSE' },
+        { value: 'STATE', label: 'State Board (generic)' },
+        { value: 'IIT', label: 'IIT' },
+        { value: 'ICSE', label: 'ICSE' },
+        { value: 'IB', label: 'IB' },
+        { value: 'SSC', label: 'SSC' },
+        { value: 'CAMBRIDGE', label: 'Cambridge' },
+      ];
+  const o = list.find((x) => x.value === normalized || x.value === board);
   return o?.label ?? board;
 }
 
@@ -742,6 +752,20 @@ function getStreamingEmbedSrc(url: string): string | null {
 export default function SubjectContentManagement() {
   const { toast } = useToast();
   const { codes: iitCategoryCodes, labelMap: iitLabelMap } = useProductCategories();
+  const { catalogOptions } = useBoards();
+
+  const SYLLABUS_OPTIONS = useMemo(
+    () =>
+      catalogOptions
+        .filter((b) => b.code !== 'ASLI_EXCLUSIVE_SCHOOLS')
+        .map((b) => ({ value: b.code as SyllabusBoard, label: b.name })),
+    [catalogOptions]
+  );
+
+  const CONTENT_FETCH_BOARDS = useMemo(() => {
+    const codes = catalogOptions.map((b) => b.code);
+    return codes.length > 0 ? codes : CONTENT_FETCH_BOARDS_FALLBACK;
+  }, [catalogOptions]);
 
   const [subjects, setSubjects] = useState<SubjectItem[]>([]);
   const [isLoadingSubjects, setIsLoadingSubjects] = useState(false);
@@ -1494,8 +1518,9 @@ export default function SubjectContentManagement() {
     setEditingSubject(subject);
     setEditSubjectName(extractPlainSubjectName(subject.name));
     const b = (subject.board || BOARD_CODE).toUpperCase() as SyllabusBoard;
+    const allowedSyllabus = new Set(SYLLABUS_OPTIONS.map((o) => o.value));
     setEditSubjectSyllabus(
-      b === 'CBSE' || b === 'STATE' || b === 'ASLI_EXCLUSIVE_SCHOOLS' ? b : 'CBSE'
+      allowedSyllabus.has(b) || b === 'ASLI_EXCLUSIVE_SCHOOLS' ? b : (SYLLABUS_OPTIONS[0]?.value || 'CBSE')
     );
     setEditSubjectStateName(subject.stateName?.trim() || '');
     setIsEditSubjectOpen(true);
@@ -1837,10 +1862,14 @@ export default function SubjectContentManagement() {
     }
 
     const subBoard = (subj.board || editingItem?.board || BOARD_CODE).toUpperCase() as SyllabusBoard;
-    const normalizedSubBoard: SyllabusBoard =
-      subBoard === 'CBSE' || subBoard === 'STATE' || subBoard === 'ASLI_EXCLUSIVE_SCHOOLS'
-        ? subBoard
-        : 'CBSE';
+    const knownCodes = new Set([
+      ...CONTENT_FETCH_BOARDS.map((c) => String(c).toUpperCase()),
+      'ASLI_EXCLUSIVE_SCHOOLS',
+      'CBSE',
+      'STATE',
+      'IIT',
+    ]);
+    const normalizedSubBoard: SyllabusBoard = knownCodes.has(subBoard) ? subBoard : subBoard || 'CBSE';
     if (normalizedSubBoard === 'STATE' && !(subj.stateName || '').trim()) {
       toast({
         title: 'Subject incomplete',
