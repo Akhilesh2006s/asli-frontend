@@ -391,7 +391,7 @@ const UserManagement = () => {
   const handleDeleteStudent = async (studentId: string, studentName: string) => {
     if (window.confirm(`Are you sure you want to delete ${studentName}? This action cannot be undone.`)) {
       try {
-        const response = await fetch(`${API_BASE_URL}/api/admin/users/${studentId}`, {
+        const response = await fetch(`${API_BASE_URL}/api/admin/students/${studentId}`, {
           method: 'DELETE',
           headers: { 
             'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
