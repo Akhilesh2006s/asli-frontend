@@ -209,10 +209,19 @@ export function isIitTrackVideo(row: {
   subject?: { board?: string; productCategory?: string | null } | null;
 }): boolean {
   if (String(row?.type || '').trim() !== 'Video') return false;
-  const board = String(row?.board || row?.subject?.board || '')
+  const boardRaw = String(row?.board || row?.subject?.board || '')
     .toUpperCase()
     .trim();
-  if (board === 'IIT') return true;
+  const boardCompact = boardRaw.replace(/[\s/\\-]+/g, '');
+  if (
+    boardRaw === 'IIT' ||
+    boardRaw === 'IIT/NEET' ||
+    boardCompact.includes('IIT') ||
+    boardCompact.includes('NEET') ||
+    boardCompact.includes('JEE')
+  ) {
+    return true;
+  }
   const cat = String(row?.productCategory || row?.subject?.productCategory || '')
     .toUpperCase()
     .trim();

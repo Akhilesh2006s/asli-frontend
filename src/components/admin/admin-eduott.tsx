@@ -116,12 +116,15 @@ export default function AdminEduOTT() {
           return;
         }
 
-        const response = await fetch(`${API_BASE_URL}/api/admin/asli-prep-content?type=Video`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
+        const response = await fetch(
+          `${API_BASE_URL}/api/admin/asli-prep-content?type=Video&surface=eduott`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
           }
-        });
+        );
 
         if (response.ok) {
           const data = await response.json();

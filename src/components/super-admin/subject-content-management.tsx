@@ -1456,7 +1456,16 @@ export default function SubjectContentManagement() {
       return;
     }
     setNewSubjectName('');
-    setNewSubjectSyllabus((selectedFilterBoard || selectedBoard || 'CBSE') as SyllabusBoard);
+    const preferIit =
+      Boolean(normalizeIitCategory(selectedProductCategory)) ||
+      boardsMatch(selectedFilterBoard, 'IIT');
+    const iitCode =
+      SYLLABUS_OPTIONS.find((o) => boardsMatch(o.value, 'IIT'))?.value || 'IIT';
+    setNewSubjectSyllabus(
+      (preferIit
+        ? iitCode
+        : selectedFilterBoard || selectedBoard || 'CBSE') as SyllabusBoard
+    );
     setNewSubjectStateName('');
     setNewSubjectProductCategory(selectedProductCategory || '');
     setIsAddSubjectOpen(true);
@@ -2240,6 +2249,11 @@ export default function SubjectContentManagement() {
                 onClick={() => {
                   setSelectedProductCategory(code);
                   setSelectedSubjectId(null);
+                  // IIT tracks (Alpha/Beta/Gamma) live on the IIT board — switch board filter so content appears
+                  const iitOpt = SYLLABUS_OPTIONS.find((o) =>
+                    boardsMatch(o.value, 'IIT')
+                  );
+                  if (iitOpt) setSelectedFilterBoard(iitOpt.value);
                 }}
               >
                 {formatIitCategoryLabel(code, iitLabelMap)}
@@ -2248,8 +2262,9 @@ export default function SubjectContentManagement() {
           })}
         </div>
         <p className="mt-2 text-xs text-slate-500">
-          Categories are not subjects — they group subjects (e.g. Maths under Beta). Add more
-          under <strong>Products</strong>.
+          <strong>General</strong> = board curriculum (CBSE, etc.).{' '}
+          <strong>Alpha / Beta / Gamma</strong> = IIT tracks — videos go to EduOTT; materials stay on
+          Learning Paths. Pick Board <strong>IIT</strong> above when managing those tracks.
         </p>
       </div>
 
@@ -2276,9 +2291,24 @@ export default function SubjectContentManagement() {
           </CardHeader>
           <CardContent className="space-y-3">
             {displayClassOptions.length === 0 && !isLoadingSubjects ? (
-              <p className="text-xs sm:text-sm text-gray-500 py-4 text-center">
-                No classes yet. Click <strong>Add Class</strong> above to create a grade
-                level, then use <strong>Add Subject</strong> on the right.
+              <p className="text-xs sm:text-sm text-gray-500 py-4 text-center space-y-2">
+                {selectedProductCategory ? (
+                  <>
+                    No IIT classes for{' '}
+                    <strong>
+                      {formatIitCategoryLabel(selectedProductCategory, iitLabelMap)}
+                    </strong>{' '}
+                    yet. Confirm Board is <strong>IIT</strong>, then click <strong>Add Class</strong>.
+                    IIT videos belong here (EduOTT); board videos belong under General + curriculum
+                    board.
+                  </>
+                ) : (
+                  <>
+                    No classes yet for this board under <strong>General</strong>. Click{' '}
+                    <strong>Add Class</strong>, or switch to <strong>Alpha / Beta / Gamma</strong> for
+                    IIT-track content.
+                  </>
+                )}
               </p>
             ) : (
               <div className="space-y-2 max-h-[480px] overflow-auto pr-1">

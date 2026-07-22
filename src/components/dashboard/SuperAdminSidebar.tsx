@@ -102,10 +102,10 @@ export function SuperAdminSidebar({ currentView, onViewChange, user, onLogout }:
   };
 
   const sidebarContent = (
-    <div className="h-full flex flex-col">
-      <div className="p-3 sm:p-4 lg:p-6">
+    <div className="flex h-full min-h-0 flex-col">
+      <div className="shrink-0 p-3 sm:p-4 lg:p-6 pb-2">
         <div className={cn(
-          "flex items-center mb-6 lg:mb-8",
+          "flex items-center mb-4 lg:mb-6",
           useDrawerNav ? "space-x-3" : "justify-center lg:justify-start lg:space-x-3"
         )}>
           <GraduationCapIcon className="h-5 w-5 lg:h-8 lg:w-8 text-white shrink-0" />
@@ -114,13 +114,13 @@ export function SuperAdminSidebar({ currentView, onViewChange, user, onLogout }:
             <p className="text-xs text-orange-100/90">Super Admin</p>
           </div>
         </div>
-
-        <nav className="space-y-1">
-          {menuItems.map((item) => renderNavButton(item, !useDrawerNav))}
-        </nav>
       </div>
 
-      <div className="mt-auto p-3 sm:p-4 lg:p-6 border-t border-orange-300/50 space-y-3">
+      <nav className="min-h-0 flex-1 space-y-1 overflow-y-auto px-0 pb-2">
+        {menuItems.map((item) => renderNavButton(item, !useDrawerNav))}
+      </nav>
+
+      <div className="shrink-0 mt-auto p-3 sm:p-4 lg:p-6 border-t border-orange-300/50 space-y-3 bg-orange-500/40">
         <div className={cn(
           "flex items-center space-x-3",
           !useDrawerNav && "justify-center lg:justify-start"
@@ -156,7 +156,7 @@ export function SuperAdminSidebar({ currentView, onViewChange, user, onLogout }:
     return (
       <>
         <div className="fixed top-0 left-0 right-0 z-30 bg-gradient-to-r from-orange-400 to-orange-500 border-b border-orange-300 shadow-md pt-[env(safe-area-inset-top,0px)]">
-          <div className="h-14 px-4 flex items-center justify-between min-h-[3.5rem]">
+          <div className="h-14 px-4 flex items-center justify-between min-h-[3.5rem] gap-2">
             <div className="flex items-center space-x-2 min-w-0">
               <GraduationCapIcon className="h-5 w-5 text-white shrink-0" />
               <div className="min-w-0">
@@ -164,24 +164,36 @@ export function SuperAdminSidebar({ currentView, onViewChange, user, onLogout }:
                 <p className="text-micro text-orange-100/90">Super Admin</p>
               </div>
             </div>
-            <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-              <SheetTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="text-white hover:bg-orange-600/50 shrink-0"
-                  aria-label="Open menu"
-                >
-                  <Menu className="h-5 w-5" />
-                </Button>
-              </SheetTrigger>
-              <SheetContent
-                side="left"
-                className="w-[min(20rem,92vw)] sm:w-80 p-0 bg-gradient-to-b from-orange-400 to-orange-500 border-r border-orange-300 overflow-y-auto"
+            <div className="flex items-center gap-1 shrink-0">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onLogout}
+                className="text-white hover:bg-orange-600/50 gap-1.5 px-2"
+                aria-label="Log out"
               >
-                {sidebarContent}
-              </SheetContent>
-            </Sheet>
+                <LogOut className="h-4 w-4" />
+                <span className="text-xs font-medium">Logout</span>
+              </Button>
+              <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
+                <SheetTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="text-white hover:bg-orange-600/50 shrink-0"
+                    aria-label="Open menu"
+                  >
+                    <Menu className="h-5 w-5" />
+                  </Button>
+                </SheetTrigger>
+                <SheetContent
+                  side="left"
+                  className="w-[min(20rem,92vw)] sm:w-80 p-0 bg-gradient-to-b from-orange-400 to-orange-500 border-r border-orange-300 overflow-hidden"
+                >
+                  {sidebarContent}
+                </SheetContent>
+              </Sheet>
+            </div>
           </div>
         </div>
 
@@ -215,7 +227,7 @@ export function SuperAdminSidebar({ currentView, onViewChange, user, onLogout }:
         "super-admin-sidebar hidden sm:flex flex-col transition-all duration-300",
         "sm:w-[60px] lg:w-64 sm:min-w-[60px] lg:min-w-[16rem] lg:max-w-[16rem]",
         "bg-gradient-to-b from-orange-400 to-orange-500 shadow-sm border-r border-orange-300",
-        "h-screen fixed top-0 left-0 overflow-y-auto z-20"
+        "h-screen fixed top-0 left-0 overflow-hidden z-20"
       )}
     >
       {sidebarContent}

@@ -24,6 +24,7 @@ import { useLocation } from 'wouter';
 import { API_BASE_URL } from '@/lib/api-config';
 import {
   filterContentsBySchoolProgram,
+  filterVideosForLearningPath,
   resolveIsAsliPrepExclusive,
 } from '@/lib/school-program';
 import {
@@ -190,7 +191,7 @@ export default function AdminLearningPaths() {
       let allContent: any[] = [];
       try {
         const contentResponse = await fetch(
-          `${API_BASE_URL}/api/admin/asli-prep-content`,
+          `${API_BASE_URL}/api/admin/asli-prep-content?surface=learning-path`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -202,7 +203,9 @@ export default function AdminLearningPaths() {
           const contentData = await contentResponse.json();
           allContent = contentData.data || contentData || [];
           if (!Array.isArray(allContent)) allContent = [];
-          allContent = filterContentsBySchoolProgram(allContent, isAsliPrepExclusive);
+          allContent = filterVideosForLearningPath(
+            filterContentsBySchoolProgram(allContent, isAsliPrepExclusive)
+          );
         }
       } catch (e) {
         console.error('Failed to fetch all asli-prep content:', e);

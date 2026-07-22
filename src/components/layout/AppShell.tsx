@@ -254,158 +254,184 @@ export function AppShell({
     .join("")
     .toUpperCase();
 
+  // Lock document scroll while the shell is mounted so the topbar (and Log out)
+  // cannot scroll away with long admin/teacher/student pages.
+  useEffect(() => {
+    const html = document.documentElement;
+    const body = document.body;
+    const prevHtmlOverflow = html.style.overflow;
+    const prevBodyOverflow = body.style.overflow;
+    html.style.overflow = "hidden";
+    body.style.overflow = "hidden";
+    return () => {
+      html.style.overflow = prevHtmlOverflow;
+      body.style.overflow = prevBodyOverflow;
+    };
+  }, []);
+
   return (
     <div
-      className="h-dvh overflow-hidden bg-shell-backdrop"
+      className="fixed inset-0 z-10 flex overflow-hidden bg-shell-backdrop"
       style={{ ["--rail" as string]: collapsed ? "5rem" : "16rem" }}
     >
-      <div className="h-full min-h-0">
-        {/* Desktop rail — fixed so navigation never scrolls out of reach */}
-        <aside
-          className={cn(
-            "fixed inset-y-0 left-0 z-30 hidden w-[var(--rail)] overflow-hidden",
-            "transition-[width] duration-300 ease-out lg:block",
-          )}
-        >
+      {/* Desktop rail — fixed so navigation never scrolls out of reach */}
+      <aside
+        className={cn(
+          "fixed inset-y-0 left-0 z-30 hidden w-[var(--rail)] overflow-hidden",
+          "transition-[width] duration-300 ease-out lg:block",
+        )}
+      >
+        <SidebarBody
+          nav={nav}
+          activeId={activeId}
+          collapsed={collapsed}
+          orgName={orgName}
+          orgSubtitle={orgSubtitle}
+          orgLogoUrl={orgLogoUrl}
+          showUpgrade={showUpgrade}
+          onUpgrade={onUpgrade}
+          onToggleCollapse={toggleCollapse}
+        />
+      </aside>
+
+      {/* Mobile drawer */}
+      <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
+        <SheetContent side="left" className="w-[min(18rem,88vw)] border-none bg-sidebar p-0">
+          <SheetTitle className="sr-only">Navigation menu</SheetTitle>
           <SidebarBody
             nav={nav}
             activeId={activeId}
-            collapsed={collapsed}
+            collapsed={false}
             orgName={orgName}
             orgSubtitle={orgSubtitle}
             orgLogoUrl={orgLogoUrl}
             showUpgrade={showUpgrade}
             onUpgrade={onUpgrade}
-            onToggleCollapse={toggleCollapse}
+            onNavigate={() => setMobileOpen(false)}
           />
-        </aside>
+        </SheetContent>
+      </Sheet>
 
-        {/* Mobile drawer */}
-        <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-          <SheetContent side="left" className="w-[min(18rem,88vw)] border-none bg-sidebar p-0">
-            <SheetTitle className="sr-only">Navigation menu</SheetTitle>
-            <SidebarBody
-              nav={nav}
-              activeId={activeId}
-              collapsed={false}
-              orgName={orgName}
-              orgSubtitle={orgSubtitle}
-              orgLogoUrl={orgLogoUrl}
-              showUpgrade={showUpgrade}
-              onUpgrade={onUpgrade}
-              onNavigate={() => setMobileOpen(false)}
+      {/* Content window — header pinned; only <main> scrolls */}
+      <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-shell-surface transition-[margin] duration-300 ease-out lg:ml-[var(--rail)]">
+        <header className="relative z-20 flex shrink-0 items-center gap-3 border-b border-border bg-shell-topbar px-4 py-3 sm:px-6">
+          <button
+            type="button"
+            onClick={() => setMobileOpen(true)}
+            aria-label="Open navigation menu"
+            className="rounded-xl border border-border p-2 text-ink-soft transition-colors hover:bg-muted lg:hidden"
+          >
+            <Menu className="h-5 w-5" aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            onClick={toggleCollapse}
+            aria-label="Toggle sidebar"
+            aria-expanded={!collapsed}
+            className="hidden rounded-xl border border-border p-2 text-ink-soft transition-colors hover:bg-muted lg:block"
+          >
+            <PanelLeft className="h-5 w-5" aria-hidden="true" />
+          </button>
+
+          {/* School identity — left of the topbar, matching the design */}
+          <div className="flex min-w-0 flex-1 items-center gap-3 overflow-hidden pr-2">
+            <span className="relative isolate z-0 flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-border bg-indigo-blue-50 sm:h-11 sm:w-11">
+              {orgLogoUrl && !logoFailed ? (
+                <img
+                  src={orgLogoUrl}
+                  alt={`${orgName} logo`}
+                  onError={() => setLogoFailed(true)}
+                  className="absolute inset-0 h-full w-full object-contain p-0.5"
+                />
+              ) : (
+                <School className="h-5 w-5 text-primary" aria-hidden="true" />
+              )}
+            </span>
+            <div className="relative z-10 min-w-0 flex-1 overflow-hidden">
+              <p className="truncate font-display text-base font-bold leading-tight text-ink sm:text-lg">
+                {orgName}
+              </p>
+              {orgSubtitle && (
+                <p className="truncate text-xs text-muted-foreground sm:text-sm">{orgSubtitle}</p>
+              )}
+            </div>
+          </div>
+
+          {/* Search — only when a handler is provided */}
+          {onSearch ? (
+          <div className="relative ml-4 hidden min-w-0 max-w-md flex-1 xl:block">
+            <Search
+              className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+              aria-hidden="true"
             />
-          </SheetContent>
-        </Sheet>
+            <label htmlFor="shell-search" className="sr-only">
+              Search
+            </label>
+            <input
+              id="shell-search"
+              ref={searchRef}
+              type="search"
+              placeholder="Search anything..."
+              onChange={(e) => onSearch(e.target.value)}
+              className="w-full rounded-xl border border-border bg-card py-2 pl-9 pr-14 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring/30"
+            />
+            <kbd className="pointer-events-none absolute right-2 top-1/2 hidden -translate-y-1/2 rounded-md border border-border bg-muted px-1.5 py-0.5 text-mini font-medium text-muted-foreground sm:block">
+              ⌘K
+            </kbd>
+          </div>
+          ) : null}
 
-        {/* Content window — header stays pinned; only <main> scrolls */}
-        <div className="flex h-dvh min-h-0 min-w-0 flex-col bg-shell-surface transition-[margin] duration-300 ease-out lg:ml-[var(--rail)]">
-          <header className="sticky top-0 z-20 flex shrink-0 items-center gap-3 border-b border-border bg-shell-topbar/95 px-4 py-3 backdrop-blur-xl sm:px-6">
-            <button
-              type="button"
-              onClick={() => setMobileOpen(true)}
-              aria-label="Open navigation menu"
-              className="rounded-xl border border-border p-2 text-ink-soft transition-colors hover:bg-muted lg:hidden"
-            >
-              <Menu className="h-5 w-5" aria-hidden="true" />
-            </button>
-            <button
-              type="button"
-              onClick={toggleCollapse}
-              aria-label="Toggle sidebar"
-              aria-expanded={!collapsed}
-              className="hidden rounded-xl border border-border p-2 text-ink-soft transition-colors hover:bg-muted lg:block"
-            >
-              <PanelLeft className="h-5 w-5" aria-hidden="true" />
-            </button>
-
-            {/* School identity — left of the topbar, matching the design */}
-            <div className="flex min-w-0 flex-1 items-center gap-3 overflow-hidden pr-2">
-              <span className="relative isolate z-0 flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-border bg-indigo-blue-50 sm:h-11 sm:w-11">
-                {orgLogoUrl && !logoFailed ? (
-                  <img
-                    src={orgLogoUrl}
-                    alt={`${orgName} logo`}
-                    onError={() => setLogoFailed(true)}
-                    className="absolute inset-0 h-full w-full object-contain p-0.5"
-                  />
-                ) : (
-                  <School className="h-5 w-5 text-primary" aria-hidden="true" />
-                )}
-              </span>
-              <div className="relative z-10 min-w-0 flex-1 overflow-hidden">
-                <p className="truncate font-display text-base font-bold leading-tight text-ink sm:text-lg">
-                  {orgName}
-                </p>
-                {orgSubtitle && (
-                  <p className="truncate text-xs text-muted-foreground sm:text-sm">{orgSubtitle}</p>
-                )}
-              </div>
-            </div>
-
-            {/* Search — only when a handler is provided */}
-            {onSearch ? (
-            <div className="relative ml-4 hidden min-w-0 max-w-md flex-1 xl:block">
-              <Search
-                className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
-                aria-hidden="true"
-              />
-              <label htmlFor="shell-search" className="sr-only">
-                Search
-              </label>
-              <input
-                id="shell-search"
-                ref={searchRef}
-                type="search"
-                placeholder="Search anything..."
-                onChange={(e) => onSearch(e.target.value)}
-                className="w-full rounded-xl border border-border bg-card py-2 pl-9 pr-14 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring/30"
-              />
-              <kbd className="pointer-events-none absolute right-2 top-1/2 hidden -translate-y-1/2 rounded-md border border-border bg-muted px-1.5 py-0.5 text-mini font-medium text-muted-foreground sm:block">
-                ⌘K
-              </kbd>
-            </div>
+          <div className="ml-auto flex shrink-0 items-center gap-1 sm:gap-2">
+            {onLogout ? (
+              <button
+                type="button"
+                onClick={() => onLogout()}
+                aria-label="Log out"
+                className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-card px-2.5 py-2 text-xs font-semibold text-ink-soft transition-colors hover:bg-muted hover:text-foreground sm:px-3 sm:text-sm"
+              >
+                <LogOut className="h-4 w-4 shrink-0" aria-hidden="true" />
+                <span className="hidden sm:inline">Log out</span>
+              </button>
             ) : null}
-
-            <div className="ml-auto flex items-center gap-1 sm:gap-2">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button
-                    type="button"
-                    aria-label={`Account menu for ${user.name}`}
-                    className="flex items-center gap-2 rounded-xl p-1 pr-2 transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  >
-                    {user.avatarUrl ? (
-                      <img src={user.avatarUrl} alt="" className="h-9 w-9 rounded-full object-cover" />
-                    ) : (
-                      <span className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground">
-                        {initials}
-                      </span>
-                    )}
-                    <span className="hidden text-left leading-tight sm:block">
-                      <span className="block text-sm font-semibold text-foreground">{user.name}</span>
-                      <span className="block text-xs text-muted-foreground">{user.role}</span>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  aria-label={`Account menu for ${user.name}`}
+                  className="flex items-center gap-2 rounded-xl p-1 pr-2 transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  {user.avatarUrl ? (
+                    <img src={user.avatarUrl} alt="" className="h-9 w-9 rounded-full object-cover" />
+                  ) : (
+                    <span className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground">
+                      {initials}
                     </span>
-                    <ChevronDown className="hidden h-4 w-4 text-muted-foreground sm:block" aria-hidden="true" />
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  <DropdownMenuLabel>
-                    <span className="block text-sm font-semibold">{user.name}</span>
-                    <span className="block text-xs font-normal text-muted-foreground">{user.role}</span>
-                  </DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onSelect={() => onLogout?.()}>
-                    <LogOut className="mr-2 h-4 w-4" aria-hidden="true" />
-                    Log out
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          </header>
+                  )}
+                  <span className="hidden text-left leading-tight sm:block">
+                    <span className="block text-sm font-semibold text-foreground">{user.name}</span>
+                    <span className="block text-xs text-muted-foreground">{user.role}</span>
+                  </span>
+                  <ChevronDown className="hidden h-4 w-4 text-muted-foreground sm:block" aria-hidden="true" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel>
+                  <span className="block text-sm font-semibold">{user.name}</span>
+                  <span className="block text-xs font-normal text-muted-foreground">{user.role}</span>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onSelect={() => onLogout?.()}>
+                  <LogOut className="mr-2 h-4 w-4" aria-hidden="true" />
+                  Log out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </header>
 
-          <main className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto">{children}</main>
-        </div>
+        <main className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain">
+          {children}
+        </main>
       </div>
     </div>
   );
