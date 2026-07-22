@@ -695,12 +695,12 @@ export default function PdfPreviewPanel({
   /** Desktop mouse/trackpad — embedded PDF iframe (never on touch tablets). */
   if (!useCanvasRendering && inlineIframeSupported) {
     return (
-      <div className={`flex flex-col gap-2 ${className}`}>
+      <div className={`flex h-full min-h-0 flex-1 flex-col ${className}`}>
         <iframe
           key={iframeSrc}
           title={title || 'PDF Preview'}
           src={iframeSrc}
-          className="h-[min(78vh,900px)] w-full border-0 bg-white rounded-lg"
+          className="h-full min-h-[min(70dvh,800px)] w-full flex-1 border-0 bg-white rounded-lg"
         />
       </div>
     );
@@ -712,7 +712,7 @@ export default function PdfPreviewPanel({
   return (
     <div className={`flex h-full min-h-0 flex-1 flex-col ${className}`}>
       {showOpenInNewTab ? (
-        <div className="flex flex-wrap items-center justify-end gap-2 shrink-0">
+        <div className="flex flex-wrap items-center justify-end gap-2 shrink-0 pb-1">
           <Button type="button" variant="outline" size="sm" onClick={openInNewTab}>
             <ExternalLink className="mr-2 h-4 w-4" />
             Open in new tab
@@ -720,8 +720,8 @@ export default function PdfPreviewPanel({
         </div>
       ) : null}
 
-      <div className="flex min-h-[min(48dvh,520px)] flex-1 flex-col overflow-hidden rounded-lg border bg-slate-100 touch-manipulation">
-        <div ref={containerRef} className="relative h-full min-h-[min(48dvh,520px)] flex-1 overflow-hidden touch-manipulation">
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border bg-slate-100 touch-manipulation">
+        <div ref={containerRef} className="relative h-full min-h-0 flex-1 overflow-hidden touch-manipulation">
           {useIframeFallback ? (
             <iframe
               key={mobileIframeSrc}

@@ -3271,14 +3271,14 @@ export default function SubjectContentManagement() {
           if (!open) setContentPreviewItem(null);
         }}
       >
-        <DialogContent className="flex h-[min(92dvh,900px)] max-h-[92dvh] w-full max-w-[min(100vw-1.5rem,1280px)] flex-col gap-4 overflow-hidden p-3 sm:p-4 lg:p-6">
-          <DialogHeader className="shrink-0">
-            <DialogTitle className="pr-8">
+        <DialogContent className="flex h-[min(98dvh,1200px)] max-h-[98dvh] w-[min(98vw,1680px)] max-w-[min(98vw,1680px)] lg:max-w-[min(98vw,1680px)] flex-col gap-2 overflow-hidden rounded-2xl p-3 sm:gap-3 sm:p-4 lg:p-5">
+          <DialogHeader className="shrink-0 space-y-1 pr-10">
+            <DialogTitle className="pr-2 text-base sm:text-lg lg:text-xl font-semibold leading-snug">
               {contentPreviewItem
                 ? getVideoContentDisplayTitle(contentPreviewItem)
                 : 'Content preview'}
             </DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="text-xs sm:text-sm">
               {contentPreviewItem
                 ? [
                     contentPreviewItem.type,
@@ -3311,7 +3311,7 @@ export default function SubjectContentManagement() {
                     if (embed) {
                       return (
                         <div className="w-full overflow-hidden bg-black p-2 sm:p-3">
-                          <div className="relative mx-auto aspect-video w-full max-w-full max-h-[min(68vh,78dvh)] overflow-hidden rounded-sm bg-black shadow-inner">
+                          <div className="relative mx-auto aspect-video w-full max-w-full max-h-[min(78vh,88dvh)] overflow-hidden rounded-sm bg-black shadow-inner">
                             <iframe
                               title={contentPreviewItem.title}
                               src={embed}
@@ -3335,7 +3335,7 @@ export default function SubjectContentManagement() {
                           style={{
                             aspectRatio: '16 / 9',
                             minHeight: 220,
-                            maxHeight: 'min(72vh, 80dvh)',
+                            maxHeight: 'min(80vh, 88dvh)',
                           }}
                           onError={() => {
                             toast({
@@ -3362,7 +3362,7 @@ export default function SubjectContentManagement() {
                   <PdfPreviewPanel
                     fileUrl={contentPreviewUrl}
                     title={contentPreviewItem.title}
-                    className="h-full min-h-[min(48dvh,520px)] w-full flex-1"
+                    className="h-full min-h-0 w-full flex-1"
                     showOpenInNewTab
                   />
                 ) : (
@@ -3372,7 +3372,7 @@ export default function SubjectContentManagement() {
                   </div>
                 )}
               </div>
-              <DialogFooter className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+              <DialogFooter className="flex flex-col gap-2 sm:flex-row sm:justify-end shrink-0">
                 <Button type="button" onClick={() => setContentPreviewItem(null)}>
                   Close
                 </Button>

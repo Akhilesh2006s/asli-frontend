@@ -504,12 +504,14 @@ export default function CalendarView({
         </div>
       )}
 
-      {/* Preview Dialog */}
+      {/* Preview Dialog — near-fullscreen so textbook pages are readable, not clipped */}
       <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
-        <DialogContent className="flex h-[min(92dvh,900px)] max-h-[92dvh] w-full max-w-4xl flex-col overflow-hidden p-4 sm:p-6 board:max-h-[92dvh] board:max-w-[min(92vw,1400px)] uhd:max-w-[min(90vw,1600px)]">
-          <DialogHeader className="shrink-0">
-            <DialogTitle className="text-lg sm:text-xl font-semibold">{selectedContent?.title}</DialogTitle>
-            <DialogDescription>
+        <DialogContent className="flex h-[min(98dvh,1200px)] max-h-[98dvh] w-[min(98vw,1680px)] max-w-[min(98vw,1680px)] lg:max-w-[min(98vw,1680px)] flex-col gap-2 overflow-hidden rounded-2xl p-3 sm:gap-3 sm:p-4 lg:p-5">
+          <DialogHeader className="shrink-0 space-y-1 pr-10">
+            <DialogTitle className="text-base sm:text-lg lg:text-xl font-semibold leading-snug">
+              {selectedContent?.title}
+            </DialogTitle>
+            <DialogDescription className="text-xs sm:text-sm">
               {selectedContent?.description || 'Content preview'}
             </DialogDescription>
           </DialogHeader>
@@ -522,7 +524,7 @@ export default function CalendarView({
               </div>
 
               {/* Content Info */}
-              <div className="flex shrink-0 items-center justify-between border-t pt-3 mt-3">
+              <div className="flex shrink-0 items-center justify-between border-t pt-2 mt-2">
                 <div className="flex items-center space-x-4 text-xs sm:text-sm text-gray-600">
                   <span className="flex items-center space-x-1">
                     <FileText className="w-3 h-3 sm:w-4 sm:h-4" />
