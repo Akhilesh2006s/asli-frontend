@@ -437,7 +437,7 @@ export default function EduOTT() {
         {!isMobile && !isTeacher && <VidyaAIFloatingAssistant />}
 
         <EduOTTStage
-          subtitle="Access high-quality educational videos and join live classes to make learning interactive and impactful."
+          subtitle="IIT Exclusive library — Alpha / Beta / Gamma track videos for schools with IIT EduOTT enabled. Board textbooks and board videos stay in Learning Paths."
           stats={[
             {
               value: globalSubjectOptions.length,
@@ -446,7 +446,7 @@ export default function EduOTT() {
             },
             {
               value: videos.length,
-              label: videos.length === 1 ? 'Video' : 'Videos',
+              label: videos.length === 1 ? 'IIT video' : 'IIT videos',
               icon: <VideoIcon className="h-[1.15rem] w-[1.15rem]" aria-hidden="true" />,
             },
           ]}

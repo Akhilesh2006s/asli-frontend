@@ -334,8 +334,9 @@ const AdminDashboard = () => {
               subtitle: 'Curriculum paths available to your students.',
             },
             eduott: {
-              title: 'EduOTT',
-              subtitle: 'Videos and live sessions for your school.',
+              title: 'EduOTT · IIT Exclusive',
+              subtitle:
+                'IIT track videos and live sessions for schools with IIT EduOTT enabled. Board content stays in Learning Paths.',
             },
             timetable: {
               title: 'Timetable',

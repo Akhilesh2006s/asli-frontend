@@ -2179,8 +2179,9 @@ const TeacherDashboard = () => {
               subtitle: 'Roster, progress, homework submissions, and daily diary.',
             },
             eduott: {
-              title: 'EduOTT',
-              subtitle: 'Subject videos and live sessions for your assigned classes.',
+              title: 'EduOTT · IIT Exclusive',
+              subtitle:
+                'IIT track videos and live sessions for your classes. Board curriculum videos stay in Learning Paths.',
             },
             'learning-paths': {
               title: 'Learning Paths',

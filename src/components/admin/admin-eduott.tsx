@@ -345,23 +345,35 @@ export default function AdminEduOTT() {
 
   return (
     <div className="space-y-3 sm:space-y-4 lg:space-y-6">
-      {/* Header */}
-      <div className="bg-white/80 backdrop-blur-xl rounded-3xl p-3 sm:p-4 lg:p-6 shadow-xl border border-white/20">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="w-12 h-12 bg-gradient-to-br from-sky-400 to-teal-500 rounded-lg flex items-center justify-center">
-            <VideoIcon className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-white" />
-          </div>
-          <div>
-            <h2 className="text-xl sm:text-2xl font-bold text-gray-900">EduOTT</h2>
-            <p className="text-gray-600">Educational content and live sessions</p>
+      {/* Header — IIT Exclusive branding */}
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-teal-950 p-4 sm:p-6 shadow-xl text-white">
+        <div className="pointer-events-none absolute -right-12 -top-16 h-48 w-48 rounded-full bg-amber-400/15 blur-3xl" />
+        <div className="relative z-[1] flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-amber-400/15 ring-1 ring-amber-400/30">
+              <VideoIcon className="h-6 w-6 text-amber-200" />
+            </div>
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <h2 className="text-xl sm:text-2xl font-bold text-white">EduOTT</h2>
+                <span className="inline-flex items-center rounded-full border border-amber-400/40 bg-amber-400/15 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-200">
+                  IIT Exclusive
+                </span>
+              </div>
+              <p className="mt-0.5 text-sm text-slate-300">
+                IIT track videos only — not board curriculum content. Live sessions for your school.
+              </p>
+            </div>
           </div>
         </div>
+      </div>
 
+      <div className="bg-white/80 backdrop-blur-xl rounded-3xl p-3 sm:p-4 lg:p-6 shadow-xl border border-white/20">
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <EduOTTTabsList>
             <TabsTrigger value="videos" className="w-full py-2 text-xs sm:text-sm">
-              Videos
+              IIT Videos
             </TabsTrigger>
             <TabsTrigger value="live-sessions" className="w-full py-2 text-xs sm:text-sm">
               Live Sessions
@@ -427,8 +439,10 @@ export default function AdminEduOTT() {
               <Card>
                 <CardContent className="py-16 text-center">
                   <VideoIcon className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                  <h3 className="text-base sm:text-lg font-semibold text-gray-600 mb-2">No Videos Found</h3>
-                  <p className="text-gray-500">No videos match your search criteria.</p>
+                  <h3 className="text-base sm:text-lg font-semibold text-gray-600 mb-2">No IIT videos yet</h3>
+                  <p className="text-gray-500">
+                    EduOTT shows IIT Exclusive track videos only. Enable IIT EduOTT on the school and upload IIT videos under the IIT board / Alpha–Beta–Gamma tracks.
+                  </p>
                 </CardContent>
               </Card>
             ) : (
