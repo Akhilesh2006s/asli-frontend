@@ -239,16 +239,16 @@ function getContentSubjectId(item: ContentItem): string | null {
 function inferSubjectLabelFromContent(item: ContentItem): string {
   const text = `${item.title || ''} ${item.description || ''} ${item.topic || ''}`.toLowerCase();
   if (/ganita|mathematics|maths|\bmath\b/.test(text)) return 'Mathematics';
-  if (/science|curiosity|physics|chemistry|biology/.test(text)) return 'Science';
+  if (/\bphysics\b/.test(text)) return 'Physics';
+  if (/\bchemistry\b/.test(text)) return 'Chemistry';
+  if (/\bbiolog/.test(text)) return 'Biology';
+  if (/science|curiosity/.test(text)) return 'Science';
   if (/english/.test(text)) return 'English';
   if (/social|history|geography/.test(text)) return 'Social Studies';
   if (/hindi/.test(text)) return 'Hindi';
   if (/telugu/.test(text)) return 'Telugu';
-  const fromTitle = String(item.title || '')
-    .replace(/\s+(vol\s*\d+\s*)?class\s*\d+.*$/i, '')
-    .replace(/\s+/g, ' ')
-    .trim();
-  return fromTitle || 'General';
+  // Never promote video/chapter titles into the subject sidebar.
+  return 'Unassigned';
 }
 
 function isInferredSubjectId(id: string | null | undefined): boolean {
@@ -304,41 +304,6 @@ function contentMatchesClassBoard(
   if (normalizeClassNumber(effClass || '') !== normalizeClassNumber(classNum)) return false;
   if (!board) return true;
   return boardsMatch(normalizeBoardKey(item.board || ''), board);
-}
-
-/** All active catalog subjects that share a sidebar row (e.g. Mat + Maths duplicates). */
-function catalogSubjectsForSidebarRow(
-  catalog: SubjectItem[],
-  classNum: string,
-  board: string,
-  row: SubjectItem
-): SubjectItem[] {
-  const normClass = normalizeClassNumber(classNum);
-  const normBoard = normalizeBoardKey(board);
-  const key = subjectSidebarKey(
-    row.name,
-    normClass,
-    normBoard,
-    resolveSubjectProductCategory(row),
-  );
-  return catalog.filter((subj) => {
-    if (!isActiveCatalogSubject(subj)) return false;
-    const subjClass = subj.classNumber
-      ? normalizeClassNumber(subj.classNumber)
-      : normalizeClassNumber(extractClassNumberFromSubjectName(subj.name) || '');
-    if (subjClass !== normClass) return false;
-    if (normBoard && normalizeBoardKey(subj.board || '') && !boardsMatch(subj.board, normBoard)) {
-      return false;
-    }
-    return (
-      subjectSidebarKey(
-        subj.name,
-        normClass,
-        normBoard,
-        resolveSubjectProductCategory(subj),
-      ) === key
-    );
-  });
 }
 
 function displaySubjectName(name: string): string {
@@ -981,13 +946,43 @@ export default function SubjectContentManagement() {
       if (!contentMatchesClassBoard(item, subjects, normClass, normBoard)) return;
       if ((resolveContentProductCategory(item, subjects) || '') !== selectedCat) return;
       const sid = getContentSubjectId(item);
-      if (sid) {
-        const linked = subjects.find((s) => String(s._id) === String(sid));
-        if (linked && !isActiveCatalogSubject(linked)) return;
+      const linked =
+        sid && isMongoObjectId(sid)
+          ? subjects.find((s) => String(s._id) === String(sid))
+          : undefined;
+
+      // Active catalog subject wins — never invent a sidebar row from a video title.
+      if (linked && isActiveCatalogSubject(linked)) {
+        const subjClass = linked.classNumber
+          ? normalizeClassNumber(linked.classNumber)
+          : normalizeClassNumber(extractClassNumberFromSubjectName(linked.name) || '') ||
+            normClass;
+        const groupKey = subjectSidebarKey(
+          linked.name,
+          subjClass || normClass,
+          normBoard || normalizeBoardKey(linked.board || ''),
+          resolveSubjectProductCategory(linked),
+        );
+        if (!map.has(groupKey)) {
+          map.set(groupKey, {
+            ...linked,
+            name: displaySubjectName(linked.name),
+            classNumber: subjClass || normClass,
+            board: normBoard || linked.board,
+            productCategory: resolveSubjectProductCategory(linked),
+          });
+        }
+        return;
       }
+
+      if (linked && !isActiveCatalogSubject(linked)) return;
+
       const label = item.subject?.name
         ? displaySubjectName(item.subject.name)
         : inferSubjectLabelFromContent(item);
+      // Skip title-like ghosts that somehow still look like catalog names already shown.
+      if (!label || label === 'Unassigned') return;
+
       const board = item.board || BOARD_CODE;
       const itemCat = resolveContentProductCategory(item, subjects);
       const groupKey = subjectSidebarKey(label, normClass, normBoard || board, itemCat);
@@ -997,10 +992,8 @@ export default function SubjectContentManagement() {
 
       const existing = map.get(groupKey);
       if (!existing) {
-        const fromCatalog =
-          sid && subjects.find((s) => String(s._id) === String(sid));
         map.set(groupKey, {
-          _id: fromCatalog ? String(fromCatalog._id) : idKey,
+          _id: idKey,
           name: label,
           board: normBoard || board,
           classNumber: normClass,
@@ -1662,14 +1655,21 @@ export default function SubjectContentManagement() {
     const row =
       subjectsForClass.find((s) => String(s._id) === String(subjectId)) ??
       subjects.find((s) => String(s._id) === String(subjectId));
-    const targets =
-      row && selectedClassNumber
-        ? catalogSubjectsForSidebarRow(subjects, selectedClassNumber, selectedBoard, row)
-        : subjects.filter(
-            (s) => String(s._id) === String(subjectId) && isActiveCatalogSubject(s)
-          );
 
-    if (targets.length === 0) {
+    if (!isMongoObjectId(subjectId) || isInferredSubjectId(subjectId)) {
+      toast({
+        title: 'Cannot delete',
+        description:
+          'This row is only a content group, not a catalog subject. Delete the videos/files under it instead.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    const catalogRow = subjects.find(
+      (s) => String(s._id) === String(subjectId) && isActiveCatalogSubject(s)
+    );
+    if (!catalogRow) {
       toast({
         title: 'Cannot delete',
         description: 'This subject is not in the active catalog.',
@@ -1678,56 +1678,49 @@ export default function SubjectContentManagement() {
       return;
     }
 
-    const label = row ? extractPlainSubjectName(row.name) : 'this subject';
-    const confirmMsg =
-      targets.length > 1
-        ? `Delete "${label}" and ${targets.length - 1} duplicate catalog entr${targets.length === 2 ? 'y' : 'ies'} (e.g. Mat/Maths variants)? All linked content will be removed.`
-        : `Delete "${label}" and all its content for this class?`;
-
-    if (!window.confirm(confirmMsg)) return;
+    const label = extractPlainSubjectName(row?.name || catalogRow.name);
+    if (
+      !window.confirm(
+        `Delete "${label}" and all its content for this class? This only removes this one subject.`
+      )
+    ) {
+      return;
+    }
 
     setDeletingSubjectId(subjectId);
     try {
       const token = localStorage.getItem('authToken');
-      let deleted = 0;
-      let lastError = '';
-
-      for (const target of targets) {
-        const response = await fetch(
-          `${API_BASE_URL}/api/super-admin/subjects/${target._id}`,
-          {
-            method: 'DELETE',
-            headers: {
-              Authorization: `Bearer ${token}`,
-              'Content-Type': 'application/json',
-            },
-          }
-        );
-        const data = await response.json().catch(() => ({}));
-        if (response.ok && data.success !== false) {
-          deleted += 1;
-        } else {
-          lastError = data.message || 'Failed to delete subject';
+      const response = await fetch(
+        `${API_BASE_URL}/api/super-admin/subjects/${subjectId}`,
+        {
+          method: 'DELETE',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
         }
-      }
+      );
+      const data = await response.json().catch(() => ({}));
 
-      if (deleted > 0) {
-        toast({
-          title: 'Subject deleted',
-          description:
-            deleted > 1
-              ? `Removed ${deleted} catalog entries and related content.`
-              : 'Subject and related content deleted successfully.',
-        });
-        if (targets.some((t) => String(t._id) === String(selectedSubjectId))) {
+      if (response.ok && data.success !== false) {
+        // Optimistic UI — don't wait for refetch to clear the row.
+        setSubjects((prev) => prev.filter((s) => String(s._id) !== String(subjectId)));
+        setContents((prev) =>
+          prev.filter((c) => String(getContentSubjectId(c) || '') !== String(subjectId))
+        );
+        if (String(selectedSubjectId) === String(subjectId)) {
           setSelectedSubjectId(null);
         }
+        toast({
+          title: 'Subject deleted',
+          description: 'Subject and related content deleted successfully.',
+        });
         await fetchSubjects();
         await fetchContents();
       } else {
         toast({
           title: 'Error',
-          description: lastError || 'Failed to delete subject',
+          description: data.message || data.error || 'Failed to delete subject',
           variant: 'destructive',
         });
       }
@@ -2030,11 +2023,39 @@ export default function SubjectContentManagement() {
         const savedRow = data.data as ContentItem | undefined;
         if (savedRow?._id) {
           const normalized = normalizeContentRows([savedRow])[0];
-          setContents((prev) =>
-            prev.map((c) =>
-              String(c._id) === String(normalized._id) ? { ...c, ...normalized } : c
-            )
-          );
+          setContents((prev) => {
+            const existing = prev.find((c) => String(c._id) === String(normalized._id));
+            const savedSubject = normalized.subject;
+            const preserveSubject =
+              savedSubject &&
+              typeof savedSubject === 'object' &&
+              (savedSubject as { name?: string }).name
+                ? savedSubject
+                : existing?.subject && typeof existing.subject === 'object'
+                  ? existing.subject
+                  : subj
+                    ? {
+                        _id: String(subj._id),
+                        name: subj.name,
+                        board: subj.board,
+                        classNumber: subj.classNumber,
+                        productCategory: subj.productCategory,
+                      }
+                    : savedSubject;
+
+            const mergedRow = {
+              ...existing,
+              ...normalized,
+              subject: preserveSubject,
+            } as ContentItem;
+
+            if (existing) {
+              return prev.map((c) =>
+                String(c._id) === String(normalized._id) ? mergedRow : c
+              );
+            }
+            return [...prev, mergedRow];
+          });
         }
         toast({
           title: editingContentId ? 'Content updated' : 'Content added',
@@ -2456,7 +2477,13 @@ export default function SubjectContentManagement() {
             ) : (
               <div className="space-y-2 max-h-[480px] overflow-auto pr-1">
                 {subjectsForClass.map((subj) => {
-                  const isActive = selectedSubjectId === subj._id;
+                  const rowKey = subjectSidebarKey(
+                    subj.name,
+                    subj.classNumber || selectedClassNumber || '',
+                    selectedBoard || subj.board || '',
+                    resolveSubjectProductCategory(subj),
+                  );
+                  const isActive = String(selectedSubjectId) === String(subj._id);
                   const Icon = BookOpen;
                   const inCatalog = isCatalogSubjectId(subj._id, subjects);
                   const isInferredRow = isInferredSubjectId(subj._id);
@@ -2464,7 +2491,7 @@ export default function SubjectContentManagement() {
                     !isInferredRow && isMongoObjectId(subj._id);
                   return (
                     <div
-                      key={subj._id}
+                      key={rowKey}
                       className={`flex items-center justify-between rounded-md border px-3 py-2 text-xs sm:text-sm ${
                         isActive
                           ? 'border-sky-400 bg-sky-50'
@@ -2473,7 +2500,7 @@ export default function SubjectContentManagement() {
                     >
                       <button
                         className="flex items-center gap-3 flex-1 text-left"
-                        onClick={() => setSelectedSubjectId(subj._id)}
+                        onClick={() => setSelectedSubjectId(String(subj._id))}
                       >
                         <div className="p-2 rounded-md bg-sky-100 text-sky-700">
                           <Icon className="w-3 h-3 sm:w-4 sm:h-4" />
