@@ -7,6 +7,11 @@ import { viewerPayloadFromRecord } from '@/lib/resolve-ai-structured-content';
 import { sanitizeAiDisplayText } from '@/lib/sanitize-ai-display-text';
 import { renumberQuestionList, renumberSectionQuestionLists } from '@/lib/renumber-questions';
 import { isPracticeQaSectionHeaderLine, isValidQuestionLine } from '@/lib/ai-tool-section-header';
+import {
+  formatMatchAnswerKey,
+  isMatchStemText,
+  normalizeMatchPairs,
+} from '@/lib/match-following';
 
 export type PracticeQaQuestion = {
   questionNumber?: number;
@@ -19,6 +24,10 @@ export type PracticeQaQuestion = {
   section?: string;
   bloomLevel?: string;
   difficultyTag?: string;
+  imageUrl?: string;
+  imagePrompt?: string;
+  needsDiagram?: boolean;
+  matchPairs?: { left: string; right: string; leftKey?: string; rightKey?: string }[];
 };
 
 export type PracticeQaSection = {
@@ -127,10 +136,31 @@ export function toPracticeQaQuestions(value: unknown): PracticeQaQuestion[] {
     );
     if (!question || isPracticeQaSectionHeaderLine(question) || !isValidQuestionLine(question)) continue;
     const type = stripInlineMarkdown(String(entry.type || entry.question_type || '').trim()) || undefined;
-    if (isUnsupportedQuestionStem(question, type || '')) continue;
+    const imageUrl = String(entry.imageUrl || entry.image_url || entry.questionImage || '').trim();
+    const imagePrompt = String(entry.imagePrompt || entry.image_prompt || entry.figurePrompt || '').trim();
+    const needsDiagramRaw = entry.needsDiagram ?? entry.needs_diagram ?? entry.needsFigure;
+    const needsDiagram =
+      needsDiagramRaw === true ||
+      needsDiagramRaw === 1 ||
+      ['true', '1', 'yes'].includes(String(needsDiagramRaw || '').trim().toLowerCase());
+    const matchPairs = normalizeMatchPairs(entry);
+    const resolvedType =
+      type ||
+      (matchPairs.length >= 2 || isMatchStemText(question) ? 'MATCH' : undefined);
+    if (
+      isUnsupportedQuestionStem(question, resolvedType || '', {
+        hasImage: Boolean(imageUrl || imagePrompt || needsDiagram),
+        hasMatch: matchPairs.length >= 2,
+      })
+    ) {
+      continue;
+    }
     const marksRaw = entry.marks ?? entry.mark;
     const marks =
       marksRaw != null && !Number.isNaN(Number(marksRaw)) ? Number(marksRaw) : undefined;
+    const answer =
+      stripInlineMarkdown(String(entry.answer || entry.correctAnswer || '').trim()) ||
+      (matchPairs.length >= 2 ? formatMatchAnswerKey(matchPairs) : '');
     out.push({
       questionNumber:
         entry.question_number != null
@@ -139,12 +169,12 @@ export function toPracticeQaQuestions(value: unknown): PracticeQaQuestion[] {
             ? Number(entry.questionNumber)
             : undefined,
       question,
-      options: normalizeOptions(entry),
-      answer: stripInlineMarkdown(String(entry.answer || entry.correctAnswer || '').trim()),
+      options: matchPairs.length >= 2 ? [] : normalizeOptions(entry),
+      answer,
       explanation:
         stripInlineMarkdown(String(entry.explanation || entry.solution || '').trim()) || undefined,
       marks: Number.isFinite(marks) ? marks : undefined,
-      type,
+      type: resolvedType,
       section:
         stripInlineMarkdown(String(entry.section || entry.sectionName || '').trim()) || undefined,
       bloomLevel:
@@ -153,6 +183,10 @@ export function toPracticeQaQuestions(value: unknown): PracticeQaQuestion[] {
         stripInlineMarkdown(
           String(entry.difficulty_tag || entry.difficultyTag || entry.difficulty || '').trim(),
         ) || undefined,
+      ...(imageUrl ? { imageUrl } : {}),
+      ...(imagePrompt ? { imagePrompt } : {}),
+      ...(needsDiagram ? { needsDiagram: true } : {}),
+      ...(matchPairs.length >= 2 ? { matchPairs } : {}),
     });
   }
 

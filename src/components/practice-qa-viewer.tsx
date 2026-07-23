@@ -1,4 +1,6 @@
 import { AiToolStackedSection } from '@/components/ai-tool-stacked-section';
+import { QuestionFigure } from '@/components/ai-tools/QuestionFigure';
+import { MatchFollowingCard } from '@/components/ai-tools/MatchFollowingCard';
 import {
   AiToolV2InsightTail,
   parseBloomLevelsFromQuestionTags,
@@ -24,6 +26,7 @@ import { cn } from '@/lib/utils';
 import { displayQuestionSerial } from '@/lib/renumber-questions';
 import { renderMarkdown } from '@/lib/render-teacher-markdown';
 import { stripStructuredAiToolMetadata } from '@/lib/strip-ai-tool-metadata';
+import { isMatchQuestionType } from '@/lib/match-following';
 import {
   countPracticeQaQuestions,
   practiceQaViewerPayloadFromRecord,
@@ -139,6 +142,25 @@ function RichTextBlock({ text }: { text: string }) {
 
 function QuestionCard({ q, index }: { q: PracticeQaQuestion; index: number }) {
   const num = displayQuestionSerial(index);
+  const isMatch =
+    isMatchQuestionType(q.type) || (Array.isArray(q.matchPairs) && q.matchPairs.length >= 2);
+  if (isMatch && q.matchPairs && q.matchPairs.length >= 2) {
+    return (
+      <article className="space-y-2">
+        <div className="flex flex-wrap items-center gap-2 px-0.5">
+          <span className="inline-flex h-6 min-w-[1.5rem] items-center justify-center rounded-md bg-emerald-600 px-1.5 text-micro font-bold text-white">
+            Q{num}
+          </span>
+          {q.marks != null ? (
+            <Badge className="border-0 bg-amber-100 text-amber-900 text-micro hover:bg-amber-100">
+              {q.marks} mark{q.marks === 1 ? '' : 's'}
+            </Badge>
+          ) : null}
+        </div>
+        <MatchFollowingCard question={q.question} matchPairs={q.matchPairs} showAnswer />
+      </article>
+    );
+  }
   const isMcq = q.options.length >= 2;
   const visual = q.section ? SECTION_VISUAL[q.section] : null;
 
@@ -174,6 +196,7 @@ function QuestionCard({ q, index }: { q: PracticeQaQuestion; index: number }) {
         ) : null}
       </div>
       <p className="text-sm font-medium leading-snug text-slate-900">{q.question}</p>
+      <QuestionFigure imageUrl={q.imageUrl} alt="Practice question figure" />
       {isMcq ? (
         <ul className="mt-2 grid gap-2 md:grid-cols-2">
           {q.options.map((opt, i) => {

@@ -1,3 +1,5 @@
+import { QuestionFigure } from '@/components/ai-tools/QuestionFigure';
+import { MatchFollowingCard } from '@/components/ai-tools/MatchFollowingCard';
 import { AiToolStackedSection } from '@/components/ai-tool-stacked-section';
 import {
   AiToolV2InsightTail,
@@ -29,6 +31,7 @@ import {
 import { displayQuestionSerial } from '@/lib/renumber-questions';
 import { formatAiToolText } from '@/lib/title-case';
 import { StructuredContentRequired } from '@/components/structured-content-required';
+import { isMatchQuestionType } from '@/lib/match-following';
 
 export interface WorksheetMcqViewerProps {
   content: string;
@@ -71,6 +74,31 @@ function QuestionCard({
   showAnswer?: boolean;
 }) {
   const num = displayQuestionSerial(index);
+  const isMatch =
+    isMatchQuestionType(q.type) || (Array.isArray(q.matchPairs) && q.matchPairs.length >= 2);
+
+  if (isMatch && q.matchPairs && q.matchPairs.length >= 2) {
+    return (
+      <div className="space-y-2">
+        <div className="flex items-center gap-2 px-0.5">
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-teal-700 text-xs font-bold text-white">
+            {num}
+          </span>
+          {q.marks != null ? (
+            <Badge className="text-micro bg-amber-100 text-amber-900 border-0 hover:bg-amber-100">
+              {q.marks} mark{q.marks === 1 ? '' : 's'}
+            </Badge>
+          ) : null}
+        </div>
+        <MatchFollowingCard
+          question={q.question}
+          matchPairs={q.matchPairs}
+          showAnswer={showAnswer}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="rounded-xl border border-slate-200/90 bg-white p-3.5 sm:p-4 shadow-sm space-y-3">
       <div className="flex flex-wrap items-start justify-between gap-2">
@@ -93,6 +121,7 @@ function QuestionCard({
           ) : null}
         </div>
       </div>
+      <QuestionFigure imageUrl={q.imageUrl} alt={`Figure for question ${num}`} />
       {q.options.length > 0 ? (
         <ul className="grid gap-2 sm:grid-cols-2">
           {q.options.map((opt, i) => (

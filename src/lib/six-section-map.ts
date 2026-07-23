@@ -93,6 +93,10 @@ function questionsCore(core: Dict): ContentBlock[] {
         n: String(++n),
         stem: str(q.question),
         marks: marks(q.marks),
+        imageUrl: str(q.imageUrl || q.image_url || q.questionImage) || undefined,
+        matchPairs: Array.isArray(q.matchPairs)
+          ? (q.matchPairs as { left: string; right: string; leftKey?: string; rightKey?: string }[])
+          : undefined,
         options: (Array.isArray(q.options) ? q.options : []).map((o) => {
           const t = str(o);
           const label = t.match(/^([A-D])\)/)?.[1] ?? '';
@@ -112,7 +116,15 @@ function questionsCore(core: Dict): ContentBlock[] {
     const qs = arr(core[key]);
     if (!qs.length) continue;
     blocks.push({ kind: 'titleLine', text: title });
-    blocks.push({ kind: 'shortAnswer', questions: qs.map((q) => ({ n: String(++n), stem: str(q.question), marks: marks(q.marks) })) });
+    blocks.push({
+      kind: 'shortAnswer',
+      questions: qs.map((q) => ({
+        n: String(++n),
+        stem: str(q.question),
+        marks: marks(q.marks),
+        imageUrl: str(q.imageUrl || q.image_url || q.questionImage) || undefined,
+      })),
+    });
   }
   return blocks;
 }
@@ -216,6 +228,9 @@ function legacyQuestionsToV2(sc: Dict, content: string): Dict {
       answer: str(q.answer),
       marks: q.marks,
       options: Array.isArray(q.options) ? q.options.map(str) : undefined,
+      imageUrl: str(q.imageUrl || q.image_url || q.questionImage) || undefined,
+      imagePrompt: str(q.imagePrompt || q.image_prompt) || undefined,
+      needsDiagram: q.needsDiagram,
     };
     if (row.question) bucket.push(row);
   };
@@ -236,6 +251,9 @@ function legacyQuestionsToV2(sc: Dict, content: string): Dict {
           answer: q.answer,
           marks: q.marks,
           options: q.options,
+          imageUrl: q.imageUrl,
+          imagePrompt: q.imagePrompt,
+          needsDiagram: q.needsDiagram,
         };
         if (label.includes('mcq') || label.includes('multiple')) pushQ(row, sectionA_mcq);
         else if (label.includes('fill') || label.includes('blank') || label.includes('fib')) pushQ(row, sectionB_fib);

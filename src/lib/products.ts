@@ -20,7 +20,12 @@ export function normalizeCategoryCode(raw?: string | null): string {
 
 export function normalizeIitCategory(value?: string | null): string {
   if (!value) return PRODUCT_CATEGORY_NONE;
-  return normalizeCategoryCode(value);
+  let u = normalizeCategoryCode(value);
+  if (!u) return PRODUCT_CATEGORY_NONE;
+  // UI labels like "IIT Alpha" / "IIT_ALPHA" → ALPHA
+  if (u.startsWith('IIT_')) u = u.slice(4);
+  if (u === 'GENERAL' || u === 'NONE' || u === 'ALL') return PRODUCT_CATEGORY_NONE;
+  return u;
 }
 
 export function normalizeIitCategories(list?: unknown): string[] {

@@ -1,4 +1,6 @@
 import { AiToolStackedSection } from '@/components/ai-tool-stacked-section';
+import { QuestionFigure } from '@/components/ai-tools/QuestionFigure';
+import { MatchFollowingCard } from '@/components/ai-tools/MatchFollowingCard';
 import { ToolSectionIcon } from '@/components/ai-tool-3d-icons';
 import { useMemo, type ReactNode } from 'react';
 import { motion } from 'framer-motion';
@@ -18,6 +20,7 @@ import {
 import { cn } from '@/lib/utils';
 import { displayQuestionSerial } from '@/lib/renumber-questions';
 import { stripMarkdownSyntax } from '@/lib/strip-markdown-syntax';
+import { isMatchQuestionType } from '@/lib/match-following';
 import { renderMarkdown } from '@/lib/render-teacher-markdown';
 import { GeneratedRecordBody } from '@/components/super-admin/generated-record-body';
 import { stripStructuredAiToolMetadata, stripAiGeneratorLeakage } from '@/lib/strip-ai-tool-metadata';
@@ -153,6 +156,26 @@ function PracticeQuestionList({ questions }: { questions: HomeworkPracticeQuesti
     <div className="space-y-3">
       {questions.map((q, i) => {
         const num = displayQuestionSerial(i);
+        const isMatch =
+          isMatchQuestionType(q.type) ||
+          (Array.isArray(q.matchPairs) && q.matchPairs.length >= 2);
+        if (isMatch && q.matchPairs && q.matchPairs.length >= 2) {
+          return (
+            <div key={i} className="space-y-2">
+              <div className="flex items-center gap-2">
+                <span className="inline-flex h-6 w-6 items-center justify-center rounded-lg bg-orange-600 text-xs font-bold text-white">
+                  {num}
+                </span>
+                {q.marks != null ? (
+                  <span className="rounded-full bg-slate-100 px-2 py-0.5 text-mini font-medium text-slate-700">
+                    {q.marks} marks
+                  </span>
+                ) : null}
+              </div>
+              <MatchFollowingCard question={q.question} matchPairs={q.matchPairs} showAnswer />
+            </div>
+          );
+        }
         return (
           <div
             key={i}
@@ -164,6 +187,7 @@ function PracticeQuestionList({ questions }: { questions: HomeworkPracticeQuesti
               </span>
               {stripMarkdownSyntax(q.question)}
             </p>
+            <QuestionFigure imageUrl={q.imageUrl} alt={`Figure for question ${num}`} className="ml-8" />
             {(q.type || q.marks != null) ? (
               <div className="pl-8 flex flex-wrap gap-2">
                 {q.type ? (

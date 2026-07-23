@@ -13,6 +13,8 @@ import {
 import { cn } from '@/lib/utils';
 import { formatAiToolText } from '@/lib/title-case';
 import { displaySubtopicLabel } from '@/lib/curriculum-subtopic-display';
+import { QuestionFigure } from '@/components/ai-tools/QuestionFigure';
+import { MatchFollowingCard } from '@/components/ai-tools/MatchFollowingCard';
 
 /**
  * SixSectionViewer — one reusable, premium card shell for all 21 AsliLearn tools.
@@ -104,6 +106,8 @@ export type McqQuestion = {
   n: string;
   stem: string;
   marks?: string;
+  imageUrl?: string;
+  matchPairs?: { left: string; right: string; leftKey?: string; rightKey?: string }[];
   options: { label: string; text: string; correct?: boolean }[];
 };
 
@@ -114,7 +118,7 @@ export type ContentBlock =
   | { kind: 'steps'; items: string[] }
   | { kind: 'keyValue'; rows: { label: string; value: string }[] }
   | { kind: 'mcq'; questions: McqQuestion[] }
-  | { kind: 'shortAnswer'; questions: { n: string; stem: string; marks?: string }[] }
+  | { kind: 'shortAnswer'; questions: { n: string; stem: string; marks?: string; imageUrl?: string }[] }
   | { kind: 'answerKey'; items: { n: string; answer: string; work?: string }[] }
   | { kind: 'table'; head: string[]; rows: string[][] }
   | { kind: 'flashcards'; cards: { front: string; back: string }[] }
@@ -222,6 +226,21 @@ function InteractiveMcq({ questions, accent }: { questions: McqQuestion[]; accen
     <div className="space-y-4">
       {questions.map((q, j) => {
         const key = `${q.n}-${j}`;
+        if (Array.isArray(q.matchPairs) && q.matchPairs.length >= 2) {
+          return (
+            <div key={key} className="space-y-2">
+              <div className="flex gap-2.5 text-[0.92rem] font-semibold leading-snug text-slate-800">
+                <span className={cn('font-extrabold', accent.text)}>{q.n}.</span>
+                {q.marks && (
+                  <span className="ml-auto shrink-0 whitespace-nowrap rounded-full bg-white px-2 py-0.5 text-micro font-bold text-slate-400 ring-1 ring-slate-200">
+                    {q.marks}
+                  </span>
+                )}
+              </div>
+              <MatchFollowingCard question={q.stem} matchPairs={q.matchPairs} showAnswer />
+            </div>
+          );
+        }
         const selected = picked[key];
         const hasCorrect = q.options.some((o) => o.correct);
         return (
@@ -238,6 +257,7 @@ function InteractiveMcq({ questions, accent }: { questions: McqQuestion[]; accen
                 </span>
               )}
             </div>
+            <QuestionFigure imageUrl={q.imageUrl} alt={`Figure for question ${q.n}`} />
             <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
               {q.options.map((o, k) => {
                 const isSelected = selected === o.label;
@@ -451,15 +471,18 @@ function Blocks({ blocks, accent }: { blocks: ContentBlock[]; accent: Accent }) 
                 {b.questions.map((q, j) => (
                   <div
                     key={j}
-                    className="flex gap-3 py-3 text-[0.92rem] leading-snug text-slate-800 first:pt-0 last:pb-0 dark:text-slate-200"
+                    className="space-y-2 py-3 first:pt-0 last:pb-0"
                   >
-                    <span className={cn('font-extrabold', accent.text)}>{q.n}.</span>
-                    <span className="flex-1 font-medium">{q.stem}</span>
-                    {q.marks && (
-                      <span className="ml-auto shrink-0 whitespace-nowrap rounded-full bg-slate-50 px-2 py-0.5 text-micro font-bold text-slate-400 ring-1 ring-slate-200 dark:bg-slate-800 dark:ring-slate-700">
-                        {q.marks}
-                      </span>
-                    )}
+                    <div className="flex gap-3 text-[0.92rem] leading-snug text-slate-800 dark:text-slate-200">
+                      <span className={cn('font-extrabold', accent.text)}>{q.n}.</span>
+                      <span className="flex-1 font-medium">{q.stem}</span>
+                      {q.marks && (
+                        <span className="ml-auto shrink-0 whitespace-nowrap rounded-full bg-slate-50 px-2 py-0.5 text-micro font-bold text-slate-400 ring-1 ring-slate-200 dark:bg-slate-800 dark:ring-slate-700">
+                          {q.marks}
+                        </span>
+                      )}
+                    </div>
+                    <QuestionFigure imageUrl={q.imageUrl} alt={`Figure for question ${q.n}`} />
                   </div>
                 ))}
               </div>

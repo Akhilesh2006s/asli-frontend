@@ -789,6 +789,7 @@ export default function SubjectContentManagement() {
   const [editSubjectName, setEditSubjectName] = useState('');
   const [editSubjectSyllabus, setEditSubjectSyllabus] = useState<SyllabusBoard>('CBSE');
   const [editSubjectStateName, setEditSubjectStateName] = useState('');
+  const [editSubjectProductCategory, setEditSubjectProductCategory] = useState('');
 
   const [isAddContentOpen, setIsAddContentOpen] = useState(false);
   const [editingContentId, setEditingContentId] = useState<string | null>(null);
@@ -1490,6 +1491,18 @@ export default function SubjectContentManagement() {
       return;
     }
 
+    const preferIitBoard =
+      boardsMatch(newSubjectSyllabus, 'IIT') ||
+      /iit|neet|jee/i.test(String(newSubjectSyllabus || ''));
+    if (preferIitBoard && !normalizeIitCategory(newSubjectProductCategory)) {
+      toast({
+        title: 'Validation error',
+        description: 'Select a product category (Alpha / Beta / Gamma) for IIT subjects.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setIsSavingSubject(true);
     try {
       const token = localStorage.getItem('authToken');
@@ -1526,7 +1539,10 @@ export default function SubjectContentManagement() {
       } else {
         toast({
           title: 'Error',
-          description: data.message || 'Failed to create subject',
+          description:
+            data.message ||
+            data.error ||
+            'Failed to create subject',
           variant: 'destructive',
         });
       }
@@ -1545,7 +1561,9 @@ export default function SubjectContentManagement() {
   const handleOpenEditSubject = (subject: SubjectItem) => {
     const classNum = subject.classNumber || extractClassNumberFromSubjectName(subject.name);
     if (classNum) {
-      setSelectedClassLabel(`Class ${classNum}`);
+      setSelectedClassLabel(
+        formatClassBoardLabel(classNum, subject.board || selectedBoard || selectedFilterBoard)
+      );
     }
     setEditingSubject(subject);
     setEditSubjectName(extractPlainSubjectName(subject.name));
@@ -1555,6 +1573,7 @@ export default function SubjectContentManagement() {
       allowedSyllabus.has(b) || b === 'ASLI_EXCLUSIVE_SCHOOLS' ? b : (SYLLABUS_OPTIONS[0]?.value || 'CBSE')
     );
     setEditSubjectStateName(subject.stateName?.trim() || '');
+    setEditSubjectProductCategory(resolveSubjectProductCategory(subject));
     setIsEditSubjectOpen(true);
   };
 
@@ -1577,10 +1596,23 @@ export default function SubjectContentManagement() {
       return;
     }
 
+    const preferIitBoard =
+      boardsMatch(editSubjectSyllabus, 'IIT') ||
+      /iit|neet|jee/i.test(String(editSubjectSyllabus || ''));
+    if (preferIitBoard && !normalizeIitCategory(editSubjectProductCategory)) {
+      toast({
+        title: 'Validation error',
+        description: 'Select a product category (Alpha / Beta / Gamma) for IIT subjects.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setIsSavingSubject(true);
     try {
       const token = localStorage.getItem('authToken');
       const storedName = `${editSubjectName.trim()}_${selectedClassNumber}`;
+      const cat = normalizeIitCategory(editSubjectProductCategory) || '';
       const response = await fetch(
         `${API_BASE_URL}/api/super-admin/subjects/${editingSubject._id}`,
         {
@@ -1593,6 +1625,7 @@ export default function SubjectContentManagement() {
             name: storedName,
             classNumber: selectedClassNumber,
             board: editSubjectSyllabus,
+            productCategory: cat,
             ...(editSubjectSyllabus === 'STATE'
               ? { stateName: editSubjectStateName.trim() }
               : { stateName: '' }),
@@ -1825,7 +1858,12 @@ export default function SubjectContentManagement() {
     const saveContentType = editingItem?.type ?? contentForm.type;
     const chapterNum = videoNumberOnly(contentForm.chapter);
     const moduleNum = videoNumberOnly(contentForm.module);
-    if (saveContentType === 'Video' && (!isVideoNumber(chapterNum) || !isVideoNumber(moduleNum))) {
+    // New videos need chapter/module; renames of legacy videos without them must still work.
+    if (
+      saveContentType === 'Video' &&
+      !editingContentId &&
+      (!isVideoNumber(chapterNum) || !isVideoNumber(moduleNum))
+    ) {
       toast({
         title: 'Validation error',
         description: 'Chapter and module must be numbers only (e.g. 1).',
@@ -1951,8 +1989,11 @@ export default function SubjectContentManagement() {
         body.date = contentForm.date.trim();
       }
       if (saveContentType === 'Video') {
-        body.chapter = chapterNum;
-        body.module = moduleNum;
+        // Only send chapter/module when valid so title renames aren't blocked by empty legacy fields.
+        if (isVideoNumber(chapterNum) && isVideoNumber(moduleNum)) {
+          body.chapter = chapterNum;
+          body.module = moduleNum;
+        }
       }
 
       if (!editingContentId) {
@@ -2008,7 +2049,10 @@ export default function SubjectContentManagement() {
       } else {
         toast({
           title: 'Error',
-          description: data.message || `Failed to ${editingContentId ? 'update' : 'add'} content`,
+          description:
+            data.message ||
+            data.error ||
+            `Failed to ${editingContentId ? 'update' : 'add'} content`,
           variant: 'destructive',
         });
       }
@@ -2990,6 +3034,27 @@ export default function SubjectContentManagement() {
                 </Select>
               </div>
             )}
+            <div>
+              <Label>Product category</Label>
+              <Select
+                value={editSubjectProductCategory || 'NONE'}
+                onValueChange={(v) =>
+                  setEditSubjectProductCategory(v === 'NONE' ? '' : v)
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="General" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="NONE">General</SelectItem>
+                  {iitCategoryCodes.map((c) => (
+                    <SelectItem key={c} value={c}>
+                      IIT {formatIitCategoryLabel(c, iitLabelMap)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <div>
               <Label>Subject Name</Label>
               <Input

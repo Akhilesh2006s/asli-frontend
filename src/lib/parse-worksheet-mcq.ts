@@ -15,6 +15,12 @@ import {
 } from '@/lib/worksheet-question-sanitize';
 import { extractAiToolV2Context } from '@/lib/extract-ai-tool-v2-context';
 import { isUnsupportedQuestionStem } from '@/lib/unsupported-question-filter';
+import {
+  formatMatchAnswerKey,
+  isMatchQuestionType,
+  isMatchStemText,
+  normalizeMatchPairs,
+} from '@/lib/match-following';
 
 export type WorksheetQuestion = {
   questionNumber?: number;
@@ -25,6 +31,10 @@ export type WorksheetQuestion = {
   marks?: number;
   type?: string;
   section?: string;
+  imageUrl?: string;
+  imagePrompt?: string;
+  needsDiagram?: boolean;
+  matchPairs?: { left: string; right: string; leftKey?: string; rightKey?: string }[];
 };
 
 export type WorksheetSection = {
@@ -92,6 +102,15 @@ function coalesceLines(v: unknown): string[] {
 
 function polishWorksheetQuestion(q: WorksheetQuestion): WorksheetQuestion | null {
   const question = cleanWorksheetQuestionText(q.question);
+  if (Array.isArray(q.matchPairs) && q.matchPairs.length >= 2) {
+    return {
+      ...q,
+      question: question || q.question || 'Match Column A with Column B',
+      type: q.type || 'MATCH',
+      options: [],
+      matchPairs: q.matchPairs,
+    };
+  }
   const options = q.options
     .map((opt) => sanitizeWorksheetOptionLine(opt.replace(/^[A-D][\).]\s*/i, '')))
     .filter(Boolean)
@@ -251,12 +270,34 @@ function toWorksheetQuestions(value: unknown): WorksheetQuestion[] {
     );
     if (!question) continue;
     const options = normalizeOptions(entry);
-    if (!isValidWorksheetQuestionInput(question, options)) continue;
     const type = stripInlineMarkdown(String(entry.type || entry.question_type || '').trim()) || undefined;
-    if (isUnsupportedQuestionStem(question, type || '')) continue;
+    const imageUrl = String(entry.imageUrl || entry.image_url || entry.questionImage || '').trim();
+    const imagePrompt = String(entry.imagePrompt || entry.image_prompt || entry.figurePrompt || '').trim();
+    const needsDiagramRaw = entry.needsDiagram ?? entry.needs_diagram ?? entry.needsFigure;
+    const needsDiagram =
+      needsDiagramRaw === true ||
+      needsDiagramRaw === 1 ||
+      ['true', '1', 'yes'].includes(String(needsDiagramRaw || '').trim().toLowerCase());
+    const matchPairs = normalizeMatchPairs(entry);
+    const resolvedType =
+      type ||
+      (matchPairs.length >= 2 || isMatchStemText(question) ? 'MATCH' : undefined);
+    if (
+      isUnsupportedQuestionStem(question, resolvedType || '', {
+        hasImage: Boolean(imageUrl || imagePrompt || needsDiagram),
+        hasMatch: matchPairs.length >= 2,
+      })
+    ) {
+      continue;
+    }
+    // Match questions don't need MCQ-style option validation
+    if (matchPairs.length < 2 && !isValidWorksheetQuestionInput(question, options)) continue;
     const marksRaw = entry.marks ?? entry.mark;
     const marks =
       marksRaw != null && !Number.isNaN(Number(marksRaw)) ? Number(marksRaw) : undefined;
+    const answer =
+      stripInlineMarkdown(String(entry.answer || entry.correctAnswer || '').trim()) ||
+      (matchPairs.length >= 2 ? formatMatchAnswerKey(matchPairs) : '');
     out.push({
       questionNumber:
         entry.question_number != null
@@ -265,14 +306,18 @@ function toWorksheetQuestions(value: unknown): WorksheetQuestion[] {
             ? Number(entry.questionNumber)
             : undefined,
       question,
-      options: normalizeOptions(entry),
-      answer: stripInlineMarkdown(String(entry.answer || entry.correctAnswer || '').trim()),
+      options: matchPairs.length >= 2 ? [] : normalizeOptions(entry),
+      answer,
       explanation:
         stripInlineMarkdown(String(entry.explanation || entry.solution || '').trim()) || undefined,
       marks: Number.isFinite(marks) ? marks : undefined,
-      type,
+      type: resolvedType,
       section:
         stripInlineMarkdown(String(entry.section || entry.sectionName || '').trim()) || undefined,
+      ...(imageUrl ? { imageUrl } : {}),
+      ...(imagePrompt ? { imagePrompt } : {}),
+      ...(needsDiagram ? { needsDiagram: true } : {}),
+      ...(matchPairs.length >= 2 ? { matchPairs } : {}),
     });
   }
 

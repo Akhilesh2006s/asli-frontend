@@ -8,6 +8,11 @@ import {
   stripVariantScaffoldFromQuestionText,
 } from '@/lib/strip-ai-tool-metadata';
 import { isHomeworkSectionHeaderLine, isValidQuestionLine } from '@/lib/ai-tool-section-header';
+import {
+  formatMatchAnswerKey,
+  isMatchStemText,
+  normalizeMatchPairs,
+} from '@/lib/match-following';
 export type HomeworkPracticeQuestion = {
   questionNumber?: number;
   question: string;
@@ -16,6 +21,10 @@ export type HomeworkPracticeQuestion = {
   explanation?: string;
   marks?: number;
   type?: string;
+  imageUrl?: string;
+  imagePrompt?: string;
+  needsDiagram?: boolean;
+  matchPairs?: { left: string; right: string; leftKey?: string; rightKey?: string }[];
 };
 
 export type NormalizedHomework = {
@@ -113,6 +122,20 @@ function toPracticeQuestions(value: unknown): HomeworkPracticeQuestion[] {
     const marksRaw = entry.marks ?? entry.mark;
     const marks =
       marksRaw != null && !Number.isNaN(Number(marksRaw)) ? Number(marksRaw) : undefined;
+    const imageUrl = String(entry.imageUrl || entry.image_url || entry.questionImage || '').trim();
+    const imagePrompt = String(entry.imagePrompt || entry.image_prompt || entry.figurePrompt || '').trim();
+    const needsDiagramRaw = entry.needsDiagram ?? entry.needs_diagram ?? entry.needsFigure;
+    const needsDiagram =
+      needsDiagramRaw === true ||
+      needsDiagramRaw === 1 ||
+      ['true', '1', 'yes'].includes(String(needsDiagramRaw || '').trim().toLowerCase());
+    const matchPairs = normalizeMatchPairs(entry);
+    const type =
+      coerceHomeworkText(entry.type || entry.question_type) ||
+      (matchPairs.length >= 2 || isMatchStemText(question) ? 'MATCH' : undefined);
+    const answer =
+      coerceHomeworkText(entry.answer || entry.correctAnswer) ||
+      (matchPairs.length >= 2 ? formatMatchAnswerKey(matchPairs) : '');
     out.push({
       questionNumber:
         entry.question_number != null
@@ -121,11 +144,15 @@ function toPracticeQuestions(value: unknown): HomeworkPracticeQuestion[] {
             ? Number(entry.questionNumber)
             : undefined,
       question,
-      options: normalizeOptions(entry),
-      answer: coerceHomeworkText(entry.answer || entry.correctAnswer),
+      options: matchPairs.length >= 2 ? [] : normalizeOptions(entry),
+      answer,
       explanation: coerceHomeworkText(entry.explanation || entry.solution) || undefined,
       marks: Number.isFinite(marks) ? marks : undefined,
-      type: coerceHomeworkText(entry.type || entry.question_type) || undefined,
+      type,
+      ...(imageUrl ? { imageUrl } : {}),
+      ...(imagePrompt ? { imagePrompt } : {}),
+      ...(needsDiagram ? { needsDiagram: true } : {}),
+      ...(matchPairs.length >= 2 ? { matchPairs } : {}),
     });
   }
   return dedupePracticeQuestions(out);
