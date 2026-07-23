@@ -33,6 +33,8 @@ interface Question {
   negativeMarks: number;
   explanation?: string;
   subject: 'maths' | 'physics' | 'chemistry' | 'biology';
+  displayOrder?: number;
+  sectionHeading?: string;
 }
 
 interface Exam {
@@ -571,7 +573,36 @@ export default function StudentExam({ examId, onComplete, onExit }: StudentExamP
             <Card>
               <CardContent className="p-4 sm:p-6 lg:p-8">
                 {/* Question Header */}
-                <div className="flex items-center justify-between mb-6">
+                <div className="mb-6 space-y-3">
+                  {(() => {
+                    const SUBJECT_LABELS: Record<string, string> = {
+                      maths: 'Maths',
+                      physics: 'Physics',
+                      chemistry: 'Chemistry',
+                      biology: 'Biology',
+                    };
+                    const custom = String(currentQuestion.sectionHeading || '').trim();
+                    const subjectKey = String(currentQuestion.subject || '').toLowerCase();
+                    const heading =
+                      custom ||
+                      SUBJECT_LABELS[subjectKey] ||
+                      (subjectKey
+                        ? subjectKey.charAt(0).toUpperCase() + subjectKey.slice(1)
+                        : '');
+                    const prev = exam.questions[currentQuestionIndex - 1];
+                    const prevHeading = prev
+                      ? String(prev.sectionHeading || '').trim() ||
+                        SUBJECT_LABELS[String(prev.subject || '').toLowerCase()] ||
+                        String(prev.subject || '')
+                      : null;
+                    const showSection = Boolean(heading) && heading !== prevHeading;
+                    return showSection ? (
+                      <div className="rounded-md bg-slate-900 px-4 py-2 text-sm font-semibold text-white">
+                        {heading}
+                      </div>
+                    ) : null;
+                  })()}
+                  <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-4">
                     <Badge variant="outline" className="capitalize">
                       {currentQuestion.subject || 'Unknown'}
@@ -595,13 +626,16 @@ export default function StudentExam({ examId, onComplete, onExit }: StudentExamP
                     <Flag className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                     {flaggedQuestions.has(currentQuestionIndex) ? 'Flagged' : 'Flag'}
                   </Button>
+                  </div>
                 </div>
 
                 {/* Question Content */}
                 <div className="mb-8">
                   <div className="flex items-start space-x-3 mb-4">
                     <span className="text-base sm:text-lg font-semibold text-gray-900">
-                      Q{currentQuestionIndex + 1}.
+                      Q{Number(currentQuestion.displayOrder) > 0
+                        ? Number(currentQuestion.displayOrder)
+                        : currentQuestionIndex + 1}.
                     </span>
                     <div className="flex-1">
                       {currentQuestion.questionText && (

@@ -35,7 +35,7 @@ import { useToast } from '@/hooks/use-toast';
 import { API_BASE_URL } from '@/lib/api-config';
 import { getExamClassStrings } from '@/lib/exam-classes';
 import { normalizeAndFormatExamDisplayText } from '@/lib/exam-text-normalize';
-import { Plus, Trash2, Edit, Eye, Calendar, Clock, BookOpen, FileQuestion, X, Upload, Download, School, GraduationCap, Loader2 } from 'lucide-react';
+import { Plus, Trash2, Edit, Eye, Calendar, Clock, BookOpen, FileQuestion, X, Upload, Download, School, GraduationCap, Loader2, ChevronUp, ChevronDown, Save } from 'lucide-react';
 
 interface Exam {
   _id: string;
@@ -61,6 +61,23 @@ interface Exam {
   isSchoolSpecific?: boolean;
   createdAt: string;
   updatedAt?: string;
+}
+
+const SUBJECT_SECTION_LABELS: Record<string, string> = {
+  maths: 'Maths',
+  physics: 'Physics',
+  chemistry: 'Chemistry',
+  biology: 'Biology',
+};
+
+function subjectSectionLabel(subject?: string) {
+  const key = String(subject || '').trim().toLowerCase();
+  return SUBJECT_SECTION_LABELS[key] || (key ? key.charAt(0).toUpperCase() + key.slice(1) : 'General');
+}
+
+function resolveQuestionSectionHeading(q: { sectionHeading?: string; subject?: string }) {
+  const custom = String(q?.sectionHeading || '').trim();
+  return custom || subjectSectionLabel(q?.subject);
 }
 
 const BOARDS = [
@@ -220,6 +237,8 @@ export default function ExamManagement() {
   const [isQuestionDialogOpen, setIsQuestionDialogOpen] = useState(false);
   const [isAddingQuestion, setIsAddingQuestion] = useState(false);
   const [questions, setQuestions] = useState<any[]>([]);
+  const [savingQuestionId, setSavingQuestionId] = useState<string | null>(null);
+  const [isReorderingQuestions, setIsReorderingQuestions] = useState(false);
   const [isLoadingQuestions, setIsLoadingQuestions] = useState(false);
   const [questionCsvFile, setQuestionCsvFile] = useState<File | null>(null);
   const [questionPdfFile, setQuestionPdfFile] = useState<File | null>(null);
@@ -350,6 +369,106 @@ export default function ExamManagement() {
     }
   };
 
+  const patchLocalQuestion = (questionId: string, patch: Record<string, unknown>) => {
+    setQuestions((prev) =>
+      prev.map((q) => (String(q._id) === String(questionId) ? { ...q, ...patch } : q))
+    );
+  };
+
+  const handleSaveQuestionMeta = async (question: any) => {
+    if (!selectedExam?._id || !question?._id) return;
+    const questionId = String(question._id);
+    setSavingQuestionId(questionId);
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(
+        `${API_BASE_URL}/api/super-admin/exams/${selectedExam._id}/questions/${questionId}`,
+        {
+          method: 'PUT',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            displayOrder: Math.max(1, Number(question.displayOrder) || 1),
+            sectionHeading: String(question.sectionHeading || '').trim(),
+            subject: question.subject,
+          }),
+        }
+      );
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || data.success === false) {
+        throw new Error(data.message || 'Failed to update question');
+      }
+      if (data.data) {
+        patchLocalQuestion(questionId, data.data);
+      }
+      toast({
+        title: 'Saved',
+        description: `Q${data.data?.displayOrder || question.displayOrder} updated (order + section).`,
+      });
+      await fetchQuestions(selectedExam._id);
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to update question',
+        variant: 'destructive',
+      });
+    } finally {
+      setSavingQuestionId(null);
+    }
+  };
+
+  const handleReorderQuestions = async (orderedIds: string[]) => {
+    if (!selectedExam?._id || orderedIds.length === 0) return;
+    setIsReorderingQuestions(true);
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(
+        `${API_BASE_URL}/api/super-admin/exams/${selectedExam._id}/questions/reorder`,
+        {
+          method: 'PUT',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ orderedIds }),
+        }
+      );
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || data.success === false) {
+        throw new Error(data.message || 'Failed to reorder questions');
+      }
+      setQuestions(Array.isArray(data.data) ? data.data : questions);
+      toast({ title: 'Order updated', description: 'Question display order saved.' });
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to reorder',
+        variant: 'destructive',
+      });
+      if (selectedExam?._id) await fetchQuestions(selectedExam._id);
+    } finally {
+      setIsReorderingQuestions(false);
+    }
+  };
+
+  const handleMoveQuestion = async (index: number, direction: -1 | 1) => {
+    const next = index + direction;
+    if (next < 0 || next >= questions.length) return;
+    const reordered = [...questions];
+    const [item] = reordered.splice(index, 1);
+    reordered.splice(next, 0, item);
+    setQuestions(reordered.map((q, i) => ({ ...q, displayOrder: i + 1 })));
+    await handleReorderQuestions(reordered.map((q) => String(q._id)));
+  };
+
+  const handleApplySubjectAsSection = async (question: any) => {
+    const heading = subjectSectionLabel(question.subject);
+    patchLocalQuestion(String(question._id), { sectionHeading: heading });
+    await handleSaveQuestionMeta({ ...question, sectionHeading: heading });
+  };
+
   const handleDownloadQuestionTemplate = () => {
     // Create CSV template for questions (questionCategory + difficulty feed Advanced analytics tables)
     const headers = [
@@ -357,6 +476,8 @@ export default function ExamManagement() {
       'questionImage',
       'questionType',
       'subject',
+      'displayOrder',
+      'sectionHeading',
       'marks',
       'negativeMarks',
       'chapter',
@@ -378,6 +499,8 @@ export default function ExamManagement() {
       '',
       'mcq',
       'physics',
+      '1',
+      'Physics',
       '4',
       '1',
       'Current Electricity',
@@ -400,6 +523,8 @@ export default function ExamManagement() {
       'multiple',
       'maths',
       '2',
+      'Maths',
+      '2',
       '0.5',
       'Number Theory',
       'easy',
@@ -420,6 +545,8 @@ export default function ExamManagement() {
       '',
       'integer',
       'maths',
+      '3',
+      'Maths',
       '4',
       '1',
       'Algebra',
@@ -441,6 +568,8 @@ export default function ExamManagement() {
       '',
       'mcq',
       'physics',
+      '4',
+      'Physics',
       '4',
       '1',
       'Electromagnetic Induction',
@@ -1184,6 +1313,7 @@ export default function ExamManagement() {
       negativeMarks: Math.max(0, Math.abs(Number(questionFormData.negativeMarks) || 0)),
       explanation: questionFormData.explanation.trim() || undefined,
       subject: questionFormData.subject,
+      sectionHeading: subjectSectionLabel(questionFormData.subject),
       board: selectedExam.board,
       replaceDuplicate,
     });
@@ -2873,21 +3003,159 @@ export default function ExamManagement() {
                   <p className="text-xs sm:text-sm mt-1">Upload a CSV file or add questions manually below</p>
                 </div>
               ) : (
-                <div className="space-y-4 max-h-96 overflow-y-auto">
-                  {questions.map((q: any, idx: number) => (
-                    <Card key={q._id || idx} className="p-4 border-l-4 border-l-blue-500">
-                      <div className="space-y-3">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-2">
+                <div className="space-y-4 max-h-[32rem] overflow-y-auto">
+                  <p className="text-xs text-muted-foreground">
+                    Set <strong>Order</strong> (display number) and <strong>Section</strong> heading
+                    (e.g. Maths, Physics). Students see questions in this order with section titles.
+                  </p>
+                  {questions.map((q: any, idx: number) => {
+                    const prev = idx > 0 ? questions[idx - 1] : null;
+                    const heading = resolveQuestionSectionHeading(q);
+                    const prevHeading = prev ? resolveQuestionSectionHeading(prev) : null;
+                    const showSection = !prev || heading !== prevHeading;
+                    const orderValue = Number(q.displayOrder) > 0 ? Number(q.displayOrder) : idx + 1;
+                    return (
+                      <div key={q._id || idx} className="space-y-2">
+                        {showSection && (
+                          <div className="rounded-md bg-slate-900 px-3 py-2 text-sm font-semibold text-white">
+                            {heading}
+                          </div>
+                        )}
+                        <Card className="p-4 border-l-4 border-l-blue-500">
+                          <div className="space-y-3">
+                            <div className="flex flex-wrap items-end gap-2">
+                              <div className="w-20">
+                                <Label className="text-xs">Order</Label>
+                                <Input
+                                  type="number"
+                                  min={1}
+                                  value={orderValue}
+                                  disabled={Boolean(savingQuestionId) || isReorderingQuestions}
+                                  onChange={(e) =>
+                                    patchLocalQuestion(String(q._id), {
+                                      displayOrder: Math.max(1, parseInt(e.target.value, 10) || 1),
+                                    })
+                                  }
+                                />
+                              </div>
+                              <div className="min-w-[140px] flex-1">
+                                <Label className="text-xs">Section heading</Label>
+                                <Input
+                                  value={q.sectionHeading ?? ''}
+                                  placeholder={subjectSectionLabel(q.subject)}
+                                  disabled={Boolean(savingQuestionId) || isReorderingQuestions}
+                                  onChange={(e) =>
+                                    patchLocalQuestion(String(q._id), {
+                                      sectionHeading: e.target.value,
+                                    })
+                                  }
+                                />
+                              </div>
+                              <div className="w-36">
+                                <Label className="text-xs">Subject</Label>
+                                <Select
+                                  value={q.subject || 'maths'}
+                                  onValueChange={(value) =>
+                                    patchLocalQuestion(String(q._id), { subject: value })
+                                  }
+                                  disabled={Boolean(savingQuestionId) || isReorderingQuestions}
+                                >
+                                  <SelectTrigger>
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {(availableQuestionSubjects.length
+                                      ? availableQuestionSubjects
+                                      : ['maths', 'physics', 'chemistry', 'biology']
+                                    ).map((s) => (
+                                      <SelectItem key={s} value={s}>
+                                        {subjectSectionLabel(s)}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              <div className="flex items-center gap-1 pb-0.5">
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="outline"
+                                  disabled={
+                                    idx === 0 || Boolean(savingQuestionId) || isReorderingQuestions
+                                  }
+                                  onClick={() => handleMoveQuestion(idx, -1)}
+                                  title="Move up"
+                                >
+                                  <ChevronUp className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="outline"
+                                  disabled={
+                                    idx === questions.length - 1 ||
+                                    Boolean(savingQuestionId) ||
+                                    isReorderingQuestions
+                                  }
+                                  onClick={() => handleMoveQuestion(idx, 1)}
+                                  title="Move down"
+                                >
+                                  <ChevronDown className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="secondary"
+                                  disabled={Boolean(savingQuestionId) || isReorderingQuestions}
+                                  onClick={() => handleApplySubjectAsSection(q)}
+                                  title="Use subject name as section"
+                                >
+                                  Subject→Section
+                                </Button>
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  disabled={
+                                    savingQuestionId === String(q._id) || isReorderingQuestions
+                                  }
+                                  onClick={() => handleSaveQuestionMeta(q)}
+                                  className="bg-sky-600 text-white hover:bg-sky-700"
+                                >
+                                  {savingQuestionId === String(q._id) ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                  ) : (
+                                    <Save className="h-4 w-4" />
+                                  )}
+                                  <span className="ml-1">Save</span>
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  className="text-red-400 hover:text-red-600"
+                                  onClick={() =>
+                                    setPendingDeleteQuestion({ id: String(q._id), index: idx })
+                                  }
+                                  aria-label={`Delete question ${orderValue}`}
+                                >
+                                  <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
+                                </Button>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2 flex-wrap">
                               <Badge variant="outline" className="font-semibold">
-                                Q{idx + 1}
+                                Q{orderValue}
                               </Badge>
-                              <Badge variant="outline" className={
-                                q.questionType === 'mcq' ? 'bg-blue-100 text-blue-800' :
-                                q.questionType === 'multiple' ? 'bg-purple-100 text-purple-800' :
-                                'bg-green-100 text-green-800'
-                              }>
+                              <Badge
+                                variant="outline"
+                                className={
+                                  q.questionType === 'mcq'
+                                    ? 'bg-blue-100 text-blue-800'
+                                    : q.questionType === 'multiple'
+                                      ? 'bg-purple-100 text-purple-800'
+                                      : 'bg-green-100 text-green-800'
+                                }
+                              >
                                 {q.questionType?.toUpperCase() || 'MCQ'}
                               </Badge>
                               <Badge variant="outline" className="bg-orange-100 text-orange-800">
@@ -2905,9 +3173,9 @@ export default function ExamManagement() {
                             <div className="mt-2">
                               {q.questionImage ? (
                                 <div className="mb-2">
-                                  <img 
-                                    src={q.questionImage} 
-                                    alt="Question" 
+                                  <img
+                                    src={q.questionImage}
+                                    alt="Question"
                                     className="max-w-full h-auto rounded-md border"
                                     onError={(e) => {
                                       (e.target as HTMLImageElement).style.display = 'none';
@@ -2918,60 +3186,64 @@ export default function ExamManagement() {
                               <p className="text-xs sm:text-sm font-medium text-gray-900 mb-2">
                                 {formatChemistryText(q.questionText || 'Image question', q.subject)}
                               </p>
-                              {(q.questionType === 'mcq' || q.questionType === 'multiple') && q.options && q.options.length > 0 && (
-                                <div className="space-y-1 mt-3">
-                                  <p className="text-xs font-semibold text-gray-600 mb-1">Options:</p>
-                                  {q.options.map((option: any, optIdx: number) => {
-                                    const isCorrect = Array.isArray(q.correctAnswer) 
-                                      ? q.correctAnswer.includes(option.text)
-                                      : q.correctAnswer === option.text;
-                                    return (
-                                      <div 
-                                        key={optIdx} 
-                                        className={`p-2 rounded text-xs sm:text-sm ${
-                                          isCorrect 
-                                            ? 'bg-green-50 border border-green-300 text-green-900' 
-                                            : 'bg-gray-50 border border-gray-200 text-gray-700'
-                                        }`}
-                                      >
-                                        <span className="font-semibold mr-2">{String.fromCharCode(65 + optIdx)}.</span>
-                                        {formatChemistryText(option.text || option, q.subject)}
-                                        {isCorrect && (
-                                          <Badge className="ml-2 bg-green-600 text-white text-xs">Correct</Badge>
-                                        )}
-                                      </div>
-                                    );
-                                  })}
-                                </div>
-                              )}
+                              {(q.questionType === 'mcq' || q.questionType === 'multiple') &&
+                                q.options &&
+                                q.options.length > 0 && (
+                                  <div className="space-y-1 mt-3">
+                                    <p className="text-xs font-semibold text-gray-600 mb-1">
+                                      Options:
+                                    </p>
+                                    {q.options.map((option: any, optIdx: number) => {
+                                      const isCorrect = Array.isArray(q.correctAnswer)
+                                        ? q.correctAnswer.includes(option.text)
+                                        : q.correctAnswer === option.text;
+                                      return (
+                                        <div
+                                          key={optIdx}
+                                          className={`p-2 rounded text-xs sm:text-sm ${
+                                            isCorrect
+                                              ? 'bg-green-50 border border-green-300 text-green-900'
+                                              : 'bg-gray-50 border border-gray-200 text-gray-700'
+                                          }`}
+                                        >
+                                          <span className="font-semibold mr-2">
+                                            {String.fromCharCode(65 + optIdx)}.
+                                          </span>
+                                          {formatChemistryText(option.text || option, q.subject)}
+                                          {isCorrect && (
+                                            <Badge className="ml-2 bg-green-600 text-white text-xs">
+                                              Correct
+                                            </Badge>
+                                          )}
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                )}
                               {q.questionType === 'integer' && (
                                 <div className="mt-3 p-2 bg-green-50 border border-green-300 rounded">
-                                  <p className="text-xs font-semibold text-gray-600 mb-1">Correct Answer:</p>
-                                  <p className="text-xs sm:text-sm font-bold text-green-900">{formatChemistryText(q.correctAnswer, q.subject)}</p>
+                                  <p className="text-xs font-semibold text-gray-600 mb-1">
+                                    Correct Answer:
+                                  </p>
+                                  <p className="text-xs sm:text-sm font-bold text-green-900">
+                                    {formatChemistryText(q.correctAnswer, q.subject)}
+                                  </p>
                                 </div>
                               )}
                               {q.explanation && (
                                 <div className="mt-3 p-2 bg-blue-50 border border-blue-200 rounded">
-                                  <p className="text-xs font-semibold text-gray-600 mb-1">Explanation:</p>
+                                  <p className="text-xs font-semibold text-gray-600 mb-1">
+                                    Explanation:
+                                  </p>
                                   <p className="text-xs sm:text-sm text-gray-700">{q.explanation}</p>
                                 </div>
                               )}
                             </div>
                           </div>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="text-red-400 hover:text-red-600"
-                            onClick={() => setPendingDeleteQuestion({ id: String(q._id), index: idx })}
-                            aria-label={`Delete question ${idx + 1}`}
-                          >
-                            <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
-                          </Button>
-                        </div>
+                        </Card>
                       </div>
-                    </Card>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
