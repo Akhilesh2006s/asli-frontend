@@ -35,6 +35,26 @@ interface Question {
   negativeMarks: number;
   explanation?: string;
   subject: string;
+  displayOrder?: number;
+  sectionHeading?: string;
+}
+
+const SUBJECT_SECTION_LABELS: Record<string, string> = {
+  maths: 'Maths',
+  physics: 'Physics',
+  chemistry: 'Chemistry',
+  biology: 'Biology',
+};
+
+function resolveAttemptSectionHeading(q?: {
+  sectionHeading?: string;
+  subject?: string;
+} | null) {
+  if (!q) return '';
+  const custom = String(q.sectionHeading || '').trim();
+  if (custom) return custom;
+  const key = String(q.subject || '').trim().toLowerCase();
+  return SUBJECT_SECTION_LABELS[key] || (key ? key.charAt(0).toUpperCase() + key.slice(1) : '');
 }
 
 interface Exam {
@@ -1178,6 +1198,19 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
               showAnswerFeedback ? 'ring-2 ring-blue-400 ring-opacity-50' : ''
             }`}>
               <CardContent className="p-3 sm:p-4 lg:p-6">
+                {/* Section heading (Maths / Physics / custom) — same as Super Admin paper order */}
+                {(() => {
+                  const heading = resolveAttemptSectionHeading(currentQuestion);
+                  const prevHeading = resolveAttemptSectionHeading(
+                    exam.questions[currentQuestionIndex - 1]
+                  );
+                  if (!heading || heading === prevHeading) return null;
+                  return (
+                    <div className="mb-4 rounded-md bg-slate-900 px-3 py-2 text-sm font-semibold text-white">
+                      {heading}
+                    </div>
+                  );
+                })()}
                 {/* Question Header */}
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center space-x-2">
@@ -1210,7 +1243,9 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
                 <div className="mb-6">
                   <div className="flex items-start space-x-3">
                     <span className="text-base sm:text-lg font-bold text-gray-900 flex-shrink-0">
-                      Q{currentQuestionIndex + 1}.
+                      Q{Number(currentQuestion.displayOrder) > 0
+                        ? Number(currentQuestion.displayOrder)
+                        : currentQuestionIndex + 1}.
                     </span>
                     <div className="flex-1">
                       {currentQuestion.questionText && (
