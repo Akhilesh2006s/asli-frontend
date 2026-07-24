@@ -1362,7 +1362,10 @@ export default function ExamManagement() {
         handleQuestionSaved();
       } else if (response.status === 409 && String(data.message || '').toLowerCase().includes('duplicate')) {
         const shouldReplace = window.confirm(
-          'This question already exists for the same exam and subject.\n\nDo you want to replace the existing duplicate with this one?'
+          'A question with the same text AND image already exists for this exam/subject.\n\n' +
+            'OK = DELETE the existing question and save this one.\n' +
+            'Cancel = keep the existing question and do not save.\n\n' +
+            'Different image questions are not duplicates — cancel if you meant to add a new question.'
         );
 
         if (!shouldReplace) {
