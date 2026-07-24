@@ -28,7 +28,7 @@ import {
   Users,
   X,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 
 const HERO_PHOTO = "/file_000000009ae082079e1d3de4f3bd3a3e.png";
 const GROUP_PHOTO = "/file_00000000411c8206be42efa220120ba0.png";
@@ -54,7 +54,7 @@ const FEATURES = [
     n: "01",
     icon: Brain,
     title: "Adaptive Learning",
-    body: "AI adapts to each studentâ€™s pace with personalised practice and concept paths.",
+    body: "AI adapts to each student's pace with personalised practice and concept paths.",
     titleColor: "text-sky-600",
     iconBg: "bg-sky-500",
   },
@@ -250,6 +250,50 @@ const HERO_ICONS = [
   { Icon: Brain, className: "right-[48%] top-[28%] opacity-10 lg:right-auto lg:left-[55%]" },
 ];
 
+function Reveal({
+  children,
+  className = "",
+  delay = 0,
+}: {
+  children: ReactNode;
+  className?: string;
+  delay?: number;
+}) {
+  const ref = useRef<HTMLDivElement | null>(null);
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduced) {
+      setVisible(true);
+      return;
+    }
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setVisible(true);
+          io.disconnect();
+        }
+      },
+      { threshold: 0.14, rootMargin: "0px 0px -8% 0px" }
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+
+  return (
+    <div
+      ref={ref}
+      className={`homepage-reveal ${visible ? "is-visible" : ""} ${className}`}
+      style={{ transitionDelay: `${delay}ms` }}
+    >
+      {children}
+    </div>
+  );
+}
+
 function FaqItem({ q, a }: { q: string; a: string }) {
   const [open, setOpen] = useState(false);
   return (
@@ -388,45 +432,41 @@ export default function Homepage() {
     <div className="min-h-screen overflow-x-hidden bg-white text-slate-900">
       <Navbar scrolled={scrolled} />
 
-      {/* HERO — full-bleed photo fading into navy (matches mock) */}
-      <section className="relative overflow-hidden bg-[#0a1f44] pb-28 pt-10 sm:pt-14 lg:pb-36 lg:pt-16">
-        {/* Full-bleed photo layer (desktop) */}
-        <div className="pointer-events-none absolute inset-y-0 right-0 hidden w-[62%] lg:block" aria-hidden>
-          <img
-            src={HERO_PHOTO}
-            alt=""
-            className="h-full w-full object-cover object-[58%_center]"
-            loading="eager"
-            fetchPriority="high"
-            decoding="async"
-          />
-          <div className="absolute inset-0 bg-gradient-to-r from-[#0a1f44] via-[#0a1f44]/55 to-transparent" />
-          <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-[#0a1f44] to-transparent" />
-        </div>
-
-        {/* Decorative education icons */}
+      {/* HERO — headline top aligns with photo top (girl's head) */}
+      <section className="relative overflow-hidden bg-[#0a1f44] pb-24 pt-8 sm:pb-28 sm:pt-12 lg:pb-32 lg:pt-14">
+        {/* Soft decorative icons only — keep navy clean */}
         <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
           {HERO_ICONS.map(({ Icon, className }, i) => (
-            <Icon key={i} className={`absolute h-14 w-14 text-white sm:h-16 sm:w-16 ${className}`} strokeWidth={1.25} />
+            <Icon key={i} className={`absolute h-12 w-12 text-white sm:h-14 sm:w-14 ${className}`} strokeWidth={1.25} />
           ))}
         </div>
 
-        <div className="relative mx-auto grid max-w-7xl items-center gap-10 px-4 sm:px-6 lg:grid-cols-2 lg:gap-12 lg:px-8">
-          <div className="relative z-10">
-            <h1 className="animate-fade-rise font-display text-4xl font-extrabold leading-[1.1] tracking-tight text-white sm:text-5xl lg:text-[3.25rem]">
+        <div className="relative mx-auto grid max-w-7xl items-start gap-8 px-4 sm:px-6 lg:grid-cols-2 lg:gap-12 lg:px-8">
+          {/* Left copy — same top edge as image */}
+          <div className="relative z-10 flex flex-col justify-start lg:pt-1">
+            <h1
+              className="animate-fade-rise font-display text-4xl font-extrabold leading-[1.12] tracking-tight text-white sm:text-5xl lg:text-[3.15rem]"
+              style={{ animationDelay: "0ms" }}
+            >
               <span className="text-sky-400">AI</span>-First Learning.
               <br />
               Future-Ready Schools.
             </h1>
-            <p className="animate-fade-rise mt-5 max-w-xl text-base font-medium leading-relaxed text-white/80 sm:text-lg">
+            <p
+              className="animate-fade-rise mt-5 max-w-lg text-base font-medium leading-relaxed text-white/80 sm:text-lg"
+              style={{ animationDelay: "120ms" }}
+            >
               AsliLearn.ai empowers schools with intelligent tools to personalise learning, elevate teaching, and
               drive measurable outcomes.
             </p>
-            <div className="animate-fade-rise mt-8 flex w-full flex-col gap-3 sm:max-w-md sm:flex-row">
+            <div
+              className="animate-fade-rise mt-8 flex w-full flex-col gap-3 sm:max-w-md sm:flex-row"
+              style={{ animationDelay: "220ms" }}
+            >
               <Link href="/contact" className="w-full sm:w-auto">
                 <Button
                   size="lg"
-                  className="h-12 w-full bg-sky-500 px-6 text-base font-semibold text-white hover:bg-sky-600 sm:w-auto"
+                  className="h-12 w-full rounded-xl bg-sky-500 px-6 text-base font-semibold text-white hover:bg-sky-600 sm:w-auto"
                 >
                   Book a Demo
                   <ArrowRight className="h-5 w-5" />
@@ -436,13 +476,16 @@ export default function Homepage() {
                 <Button
                   size="lg"
                   variant="outline"
-                  className="h-12 w-full border-2 border-white/60 bg-transparent px-6 text-base font-semibold text-white hover:bg-white/10 hover:text-white sm:w-auto"
+                  className="h-12 w-full rounded-xl border-2 border-white/60 bg-transparent px-6 text-base font-semibold text-white hover:bg-white/10 hover:text-white sm:w-auto"
                 >
                   Explore the Platform
                 </Button>
               </a>
             </div>
-            <div className="animate-fade-rise mt-8 flex items-center gap-3">
+            <div
+              className="animate-fade-rise mt-8 flex items-center gap-3"
+              style={{ animationDelay: "320ms" }}
+            >
               <div className="flex -space-x-2">
                 {["/avatar-1.png", "/avatar-2.png", "/avatar-3.png", "/avatar-4.png"].map((src) => (
                   <img
@@ -454,56 +497,65 @@ export default function Homepage() {
                   />
                 ))}
               </div>
-              <p className="text-sm font-medium text-white/75 sm:text-base">Trusted by 500+ schools across India</p>
+              <p className="text-sm font-medium text-white/75 sm:text-base">
+                Trusted by <span className="font-semibold text-sky-300">500+</span> schools across India
+              </p>
             </div>
           </div>
 
-          {/* Mobile / tablet photo (desktop uses the full-bleed layer above) */}
-          <div className="relative z-10 w-full lg:hidden">
-            <div className="relative overflow-hidden rounded-2xl shadow-2xl shadow-black/40">
+          {/* Right photo — top of frame = top of headline */}
+          <div className="relative z-10 w-full">
+            <div
+              className="animate-fade-rise relative overflow-hidden rounded-[1.5rem] border-[3px] border-white/20 shadow-2xl shadow-black/40 sm:rounded-[1.75rem]"
+              style={{ animationDelay: "160ms" }}
+            >
               <img
                 src={HERO_PHOTO}
                 alt="Student learning with tablet and notes"
-                className="block h-auto w-full"
+                className="aspect-[5/4] w-full object-cover object-[70%_12%] sm:aspect-[4/3] lg:aspect-[5/4] lg:max-h-[28rem]"
                 loading="eager"
+                fetchPriority="high"
                 decoding="async"
               />
-              <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-[#0a1f44] to-transparent" />
             </div>
           </div>
         </div>
       </section>
 
       {/* Metrics card overlapping hero */}
-      <section className="relative z-20 -mt-16 px-4 sm:-mt-20 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-6xl rounded-2xl border border-slate-100 bg-white px-4 py-6 shadow-[0_24px_60px_-30px_rgba(10,31,68,0.55)] sm:px-8 sm:py-7">
-          <div className="grid grid-cols-2 gap-5 md:grid-cols-4 md:gap-4">
-            {METRICS.map((m) => {
-              const Icon = m.icon;
-              return (
-                <div key={m.label} className="flex items-center gap-3">
-                  <span className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full ${m.bg}`}>
-                    <Icon className={`h-5 w-5 ${m.color}`} />
-                  </span>
-                  <div>
-                    <p className={`font-display text-2xl font-extrabold leading-none ${m.color}`}>{m.value}</p>
-                    <p className="mt-1 text-xs font-medium text-slate-500 sm:text-sm">{m.label}</p>
+      <section className="relative z-20 -mt-14 px-4 sm:-mt-16 sm:px-6 lg:px-8">
+        <Reveal>
+          <div className="mx-auto max-w-6xl rounded-2xl border border-slate-100 bg-white px-4 py-6 shadow-[0_24px_60px_-30px_rgba(10,31,68,0.55)] sm:px-8 sm:py-7">
+            <div className="grid grid-cols-2 gap-5 md:grid-cols-4 md:gap-4">
+              {METRICS.map((m) => {
+                const Icon = m.icon;
+                return (
+                  <div key={m.label} className="flex items-center gap-3">
+                    <span className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full ${m.bg}`}>
+                      <Icon className={`h-5 w-5 ${m.color}`} />
+                    </span>
+                    <div>
+                      <p className={`font-display text-2xl font-extrabold leading-none ${m.color}`}>{m.value}</p>
+                      <p className="mt-1 text-xs font-medium text-slate-500 sm:text-sm">{m.label}</p>
+                    </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
-        </div>
+        </Reveal>
       </section>
 
       {/* Features with numbered path */}
       <section id="features" className="scroll-mt-24 py-16 sm:py-24">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="mx-auto max-w-3xl text-center">
-            <h2 className="font-display text-3xl font-extrabold tracking-tight text-[#0a1f44] sm:text-4xl lg:text-5xl">
-              Powerful Features. <span className="text-sky-600">Purposeful Impact.</span>
-            </h2>
-          </div>
+          <Reveal>
+            <div className="mx-auto max-w-3xl text-center">
+              <h2 className="font-display text-3xl font-extrabold tracking-tight text-[#0a1f44] sm:text-4xl lg:text-5xl">
+                Powerful Features. <span className="text-sky-600">Purposeful Impact.</span>
+              </h2>
+            </div>
+          </Reveal>
 
           <div className="relative mt-14">
             {/* Dotted connector path (desktop) */}
@@ -523,24 +575,23 @@ export default function Homepage() {
             </svg>
 
             <div className="relative grid gap-6 sm:grid-cols-2 lg:grid-cols-3 lg:gap-8">
-              {FEATURES.map((f) => {
+              {FEATURES.map((f, i) => {
                 const Icon = f.icon;
                 return (
-                  <article
-                    key={f.n}
-                    className="relative rounded-2xl border border-slate-100 bg-white p-6 shadow-[0_12px_40px_-24px_rgba(10,31,68,0.35)]"
-                  >
-                    <div className="mb-4 flex items-start justify-between">
-                      <span
-                        className={`flex h-12 w-12 items-center justify-center rounded-full text-white shadow-md ${f.iconBg}`}
-                      >
-                        <Icon className="h-5 w-5" />
-                      </span>
-                      <span className="font-display text-sm font-bold text-slate-300">{f.n}</span>
-                    </div>
-                    <h3 className={`font-display text-xl font-bold ${f.titleColor}`}>{f.title}</h3>
-                    <p className="mt-2 text-sm leading-relaxed text-slate-600 sm:text-[0.95rem]">{f.body}</p>
-                  </article>
+                  <Reveal key={f.n} delay={i * 80}>
+                    <article className="relative h-full rounded-2xl border border-slate-100 bg-white p-6 shadow-[0_12px_40px_-24px_rgba(10,31,68,0.35)]">
+                      <div className="mb-4 flex items-start justify-between">
+                        <span
+                          className={`flex h-12 w-12 items-center justify-center rounded-full text-white shadow-md ${f.iconBg}`}
+                        >
+                          <Icon className="h-5 w-5" />
+                        </span>
+                        <span className="font-display text-sm font-bold text-slate-300">{f.n}</span>
+                      </div>
+                      <h3 className={`font-display text-xl font-bold ${f.titleColor}`}>{f.title}</h3>
+                      <p className="mt-2 text-sm leading-relaxed text-slate-600 sm:text-[0.95rem]">{f.body}</p>
+                    </article>
+                  </Reveal>
                 );
               })}
             </div>
@@ -551,9 +602,11 @@ export default function Homepage() {
       {/* Stakeholders — portrait cards with connector path */}
       <section id="platform" className="scroll-mt-24 bg-[#f4f7fb] py-16 sm:py-24">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <h2 className="text-center font-display text-3xl font-extrabold tracking-tight text-[#0a1f44] sm:text-4xl">
-            Benefits for <span className="text-sky-600">Every Stakeholder</span>
-          </h2>
+          <Reveal>
+            <h2 className="text-center font-display text-3xl font-extrabold tracking-tight text-[#0a1f44] sm:text-4xl">
+              Benefits for <span className="text-sky-600">Every Stakeholder</span>
+            </h2>
+          </Reveal>
 
           <div className="relative mt-16">
             {/* Dashed connector across cards (desktop) */}
@@ -569,10 +622,11 @@ export default function Homepage() {
             </div>
 
             <div className="relative grid gap-12 sm:grid-cols-2 lg:grid-cols-3 lg:gap-8">
-              {STAKEHOLDERS.map((s) => {
+              {STAKEHOLDERS.map((s, i) => {
                 const BadgeIcon = s.badgeIcon;
                 return (
-                  <div key={s.title} className="relative flex flex-col items-center pt-2">
+                  <Reveal key={s.title} delay={i * 100}>
+                  <div className="relative flex flex-col items-center pt-2">
                     {/* Portrait + side badge */}
                     <div className="relative z-10 mb-[-2.75rem] flex items-center">
                       <div className="h-[7.5rem] w-[7.5rem] overflow-hidden rounded-full border-[5px] border-white bg-amber-300 shadow-xl sm:h-32 sm:w-32">
@@ -602,6 +656,7 @@ export default function Homepage() {
                       </ul>
                     </div>
                   </div>
+                  </Reveal>
                 );
               })}
             </div>
@@ -611,9 +666,11 @@ export default function Homepage() {
       {/* How it works */}
       <section id="about" className="scroll-mt-24 py-16 sm:py-24">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <h2 className="text-center font-display text-3xl font-extrabold text-[#0a1f44] sm:text-4xl">
-            How <span className="relative inline-block">it<span className="absolute -bottom-1 left-0 right-0 h-1 rounded-full bg-sky-500" /></span> Works
-          </h2>
+          <Reveal>
+            <h2 className="text-center font-display text-3xl font-extrabold text-[#0a1f44] sm:text-4xl">
+              How <span className="relative inline-block">it<span className="absolute -bottom-1 left-0 right-0 h-1 rounded-full bg-sky-500" /></span> Works
+            </h2>
+          </Reveal>
 
           <div className="relative mt-14">
             <svg
@@ -665,9 +722,11 @@ export default function Homepage() {
       <section id="resources" className="scroll-mt-24 bg-[#0a1f44] py-10 text-white sm:py-14">
         <div className="mx-auto grid max-w-7xl gap-8 px-4 sm:px-6 lg:grid-cols-[1.15fr_0.85fr] lg:gap-8 lg:px-8">
           <div className="min-w-0">
-            <h2 className="font-display text-2xl font-extrabold sm:text-3xl">
-              Loved by Educators. <span className="text-sky-300">Trusted by Schools.</span>
-            </h2>
+            <Reveal>
+              <h2 className="font-display text-2xl font-extrabold sm:text-3xl">
+                Loved by Educators. <span className="text-sky-300">Trusted by Schools.</span>
+              </h2>
+            </Reveal>
             <div className="mt-5 h-[22rem] overflow-hidden">
               <div className="homepage-marquee homepage-marquee-testimonials flex flex-col gap-3">
                 {[...TESTIMONIALS, ...TESTIMONIALS].map((t, index) => (
@@ -704,7 +763,9 @@ export default function Homepage() {
           </div>
 
           <div className="min-w-0">
-            <h2 className="font-display text-xl font-extrabold sm:text-2xl">Our Partner Schools</h2>
+            <Reveal>
+              <h2 className="font-display text-xl font-extrabold sm:text-2xl">Our Partner Schools</h2>
+            </Reveal>
             <div className="mt-5 h-[22rem] overflow-hidden">
               <div className="homepage-marquee homepage-marquee-partners flex flex-col gap-3">
                 {[...PARTNER_SCHOOLS, ...PARTNER_SCHOOLS].map((school, index) => (
@@ -728,9 +789,11 @@ export default function Homepage() {
       {/* Pricing */}
       <section id="pricing" className="scroll-mt-24 py-16 sm:py-24">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <h2 className="text-center font-display text-3xl font-extrabold text-[#0a1f44] sm:text-4xl">
-            Simple, <span className="text-sky-600">Transparent</span> Pricing
-          </h2>
+          <Reveal>
+            <h2 className="text-center font-display text-3xl font-extrabold text-[#0a1f44] sm:text-4xl">
+              Simple, <span className="text-sky-600">Transparent</span> Pricing
+            </h2>
+          </Reveal>
 
           <div className="mx-auto mt-12 grid max-w-4xl gap-6 md:grid-cols-2">
             <article className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_16px_40px_-24px_rgba(10,31,68,0.35)]">
@@ -805,7 +868,9 @@ export default function Homepage() {
       {/* FAQ */}
       <section id="faq" className="scroll-mt-24 bg-[#f4f7fb] py-16 sm:py-20">
         <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
-          <h2 className="text-center font-display text-3xl font-extrabold text-[#0a1f44] sm:text-4xl">FAQ</h2>
+          <Reveal>
+            <h2 className="text-center font-display text-3xl font-extrabold text-[#0a1f44] sm:text-4xl">FAQ</h2>
+          </Reveal>
           <div className="mt-8 space-y-3">
             {FAQS.map((item) => (
               <FaqItem key={item.q} q={item.q} a={item.a} />

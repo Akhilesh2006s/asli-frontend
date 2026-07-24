@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { API_BASE_URL } from '@/lib/constants';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -178,6 +178,13 @@ export default function StudentExam({ examId, onComplete, onExit }: StudentExamP
       setCurrentQuestionIndex(currentQuestionIndex - 1);
     }
   };
+
+  const questionScrollAnchorRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+    questionScrollAnchorRef.current?.scrollIntoView({ block: 'start', behavior: 'auto' });
+  }, [currentQuestionIndex]);
 
   const handleSubmit = async () => {
     if (!exam) return;
@@ -569,7 +576,7 @@ export default function StudentExam({ examId, onComplete, onExit }: StudentExamP
           </div>
 
           {/* Main Question Area */}
-          <div className="lg:col-span-3">
+          <div className="lg:col-span-3" ref={questionScrollAnchorRef}>
             <Card>
               <CardContent className="p-4 sm:p-6 lg:p-8">
                 {/* Question Header */}

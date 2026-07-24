@@ -349,12 +349,14 @@ function isUsableTopicLabel(raw: string): boolean {
   if (isSubjectOnlyLabel(s)) return false;
   const lower = s.toLowerCase();
   if (
-    /^(general|unknown|n\/a|na|misc|miscellaneous|chapter|unit|default|other|none)$/i.test(
+    /^(general|unknown|n\/a|na|misc|miscellaneous|chapter|unit|default|other|none|core concepts)$/i.test(
       lower
     )
   ) {
     return false;
   }
+  if (/^\d+(\s+\d+)*$/.test(lower)) return false;
+  if ((lower.match(/\d/g) || []).length >= (lower.match(/[a-z]/g) || []).length) return false;
   if (/\?/.test(s)) return false;
   // Exam paper instruction boilerplate (often mistaken for topics)
   if (
@@ -365,10 +367,13 @@ function isUsableTopicLabel(raw: string): boolean {
     return false;
   }
   if (
-    /\b(which of the following|what is the|how many|find the|calculate|for the given|select the correct)\b/i.test(
+    /\b(which of the following|what is the|how many|find the|calculate|for the given|select the correct|greatest among|least among)\b/i.test(
       lower
     )
   ) {
+    return false;
+  }
+  if (/^(following|among|greatest|least|given|below|above|correct|option|choose|select|which|what|find)\b/i.test(lower)) {
     return false;
   }
   if (s.split(/\s+/).length > 8) return false;
@@ -376,24 +381,26 @@ function isUsableTopicLabel(raw: string): boolean {
 }
 
 const TOPIC_INFER_PATTERNS: Array<{ topic: string; regex: RegExp }> = [
-  { topic: 'Rational Numbers', regex: /\brational number\b|\bterminating decimal\b|\badditive inverse\b/i },
+  { topic: 'Rational Numbers', regex: /\brational numbers?\b|\bterminating decimals?\b|\bnon[- ]terminating\b|\badditive inverse\b/i },
+  { topic: 'Comparing Numbers', regex: /\bgreatest among\b|\bleast among\b|\bwhich is (?:the )?(?:greatest|least|largest|smallest)\b/i },
+  { topic: 'Fractions and Decimals', regex: /\bfractions?\b|\bdecimals?\b|\bnumerator\b|\bdenominator\b/i },
   { topic: 'Arithmetic Progression', regex: /\barithmetic progression\b|\ba\.?p\.?\b/i },
   { topic: 'Quadrilateral Properties', regex: /\bquadrilateral\b|\bparallelogram\b|\brhombus\b|\btrapez/i },
   { topic: 'Polygon Angles', regex: /\bpolygon\b|\binterior angles?\b|\bexterior angles?\b/i },
-  { topic: 'Ratio and Proportion', regex: /\bratio\b|\bproportion\b/i },
-  { topic: 'Linear Equations', regex: /\blinear equation\b|\bsolve for\b/i },
-  { topic: 'Probability', regex: /\bprobability\b|\bchance\b|\boutcome\b/i },
+  { topic: 'Ratio and Proportion', regex: /\bratios?\b|\bproportions?\b/i },
+  { topic: 'Linear Equations', regex: /\blinear equations?\b|\bsolve for\b/i },
+  { topic: 'Probability', regex: /\bprobability\b|\bchance\b|\boutcomes?\b/i },
   { topic: 'Force and Laws of Motion', regex: /\bnet force\b|\bnewton\b|\baccelerat/i },
   { topic: 'Motion and Kinematics', regex: /\bmotion\b|\bvelocity\b|\bacceleration\b|\bdisplacement\b/i },
   { topic: 'Pressure and Hydraulics', regex: /\bhydraulic\b|\bpiston\b|\bpascal\b|\bpressure\b/i },
-  { topic: 'Atomic Structure', regex: /\batomic number\b|\bmass number\b|\bneutron\b|\bproton\b|\belectron\b/i },
-  { topic: 'Electricity and Circuits', regex: /\bohm\b|\bcurrent\b|\bvoltage\b|\bresistance\b|\bcircuit\b/i },
+  { topic: 'Atomic Structure', regex: /\batomic numbers?\b|\bmass numbers?\b|\bneutrons?\b|\bprotons?\b|\belectrons?\b/i },
+  { topic: 'Electricity and Circuits', regex: /\bohm\b|\bcurrent\b|\bvoltage\b|\bresistance\b|\bcircuits?\b/i },
   { topic: 'Hybridization', regex: /\bhybridization\b|\bhybrid orbital\b|\bsp\s*3\b|\bsp\s*2\b/i },
-  { topic: 'Oxidation States', regex: /\boxidation state\b|\boxidation number\b/i },
+  { topic: 'Oxidation States', regex: /\boxidation states?\b|\boxidation numbers?\b/i },
   { topic: 'Molar Mass and Stoichiometry', regex: /\bmolar mass\b|\bmolecular mass\b|\bmolarity\b|\bmoles?\b/i },
-  { topic: 'Acids, Bases and Salts', regex: /\bacid\b|\bbase\b|\bsalt\b|\bph\b/i },
-  { topic: 'Carbon Compounds', regex: /\bcarbon\b|\bhydrocarbon\b|\borganic\b/i },
-  { topic: 'Cell Structure', regex: /\bcell membrane\b|\bcytoplasm\b|\bnucleus\b|\borganelle\b/i },
+  { topic: 'Acids, Bases and Salts', regex: /\bacids?\b|\bbases?\b|\bsalts?\b|\bph\b/i },
+  { topic: 'Carbon Compounds', regex: /\bcarbon\b|\bhydrocarbons?\b|\borganic\b/i },
+  { topic: 'Cell Structure', regex: /\bcell membrane\b|\bcytoplasm\b|\bnucleus\b|\borganelles?\b/i },
   { topic: 'Life Processes', regex: /\bphotosynthesis\b|\brespiration\b|\bexcretion\b|\bnutrition\b/i },
   { topic: 'Heredity and Evolution', regex: /\bheredity\b|\bevolution\b|\bgenes?\b|\bdna\b/i },
 ];

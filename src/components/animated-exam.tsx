@@ -147,6 +147,7 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
   const submissionInProgressRef = useRef(false);
   const autoSubmitTriggeredRef = useRef(false);
   const autoSubmitTimeoutRef = useRef<number | null>(null);
+  const questionScrollAnchorRef = useRef<HTMLDivElement | null>(null);
   const questionEnterTimestampRef = useRef<number>(Date.now());
   const lastTrackedQuestionIdRef = useRef<string | null>(null);
   const initializedExamIdRef = useRef<string | null>(null);
@@ -395,6 +396,11 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
     questionEnterTimestampRef.current = Date.now();
   }, [exam, currentQuestionIndex]);
 
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+    questionScrollAnchorRef.current?.scrollIntoView({ block: 'start', behavior: 'auto' });
+  }, [currentQuestionIndex]);
+
   const recordCurrentQuestionDuration = (baseTimings: Record<string, number> = questionTimings) => {
     if (!exam?.questions?.length) return;
     const now = Date.now();
@@ -485,12 +491,14 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
     // Add a slight delay for smoother animation
     setTimeout(() => {
       setCurrentQuestionIndex(newIndex);
+      // Long questions leave the viewport mid-page — always reset to the top of the new stem.
+      requestAnimationFrame(() => {
+        window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+        questionScrollAnchorRef.current?.scrollIntoView({ block: 'start', behavior: 'auto' });
+      });
       setTimeout(() => {
         setIsAnimating(false);
-        // Add a subtle bounce effect after animation completes
-        setTimeout(() => {
-          // This will trigger a re-render with the new question
-        }, 100);
+        window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
       }, 300);
     }, 300);
   };
@@ -1182,7 +1190,7 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
           </div>
 
           {/* Main Question Area */}
-          <div className="lg:col-span-3 order-1 lg:order-2">
+          <div className="lg:col-span-3 order-1 lg:order-2" ref={questionScrollAnchorRef}>
         {/* Animated Question Container */}
         <div className="relative overflow-hidden">
           <div 

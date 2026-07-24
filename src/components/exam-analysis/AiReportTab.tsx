@@ -30,6 +30,7 @@ export type AiReportAnalysis = {
   questionInsights?: Array<{
     index?: number;
     subject?: string;
+    topic?: string;
     conceptGap?: string;
     insight?: string;
     fixStrategy?: string;
@@ -38,6 +39,7 @@ export type AiReportAnalysis = {
   }>;
   focusAreas?: Array<{
     subject: string;
+    topic?: string;
     issue: string;
     whatToDo: string;
   }>;
@@ -104,17 +106,46 @@ function getStudentMeta(): { classLabel: string; stream: string } {
 
 const QUOTED = String.raw`[“"'']([^”"']+)[”"']`;
 
-function extractConceptTitle(gap: string, questionIndex?: number): string {
-  const text = String(gap || '').trim();
-  if (!text) return questionIndex != null ? `Question ${questionIndex}` : 'Concept review';
-
-  const reject = (value: string) => {
-    const t = value.trim();
-    if (t.length < 2) return true;
-    if (/^but expected$/i.test(t)) return true;
-    if (/^selected$/i.test(t)) return true;
+function isUsablePressureTitle(raw: string): boolean {
+  const s = String(raw || '').replace(/\s+/g, ' ').trim();
+  if (!s || s.length < 2 || s.length > 56) return false;
+  const lower = s.toLowerCase();
+  if (/^\d+(\s+\d+)*$/.test(lower)) return false;
+  if ((lower.match(/\d/g) || []).length >= (lower.match(/[a-z]/g) || []).length) return false;
+  if (
+    /^(general|unknown|n\/a|na|misc|chapter|unit|default|other|none|core concepts)$/i.test(lower)
+  ) {
     return false;
-  };
+  }
+  if (
+    /\b(directions?|read the following|each of the following|which of the following|greatest among|least among|choose the correct|select the correct|find the|calculate)\b/i.test(
+      lower
+    )
+  ) {
+    return false;
+  }
+  if (/^(following|among|greatest|least|given|below|above|correct|option|choose|select|which|what|find)\b/i.test(lower)) {
+    return false;
+  }
+  if (s.split(/\s+/).length > 8) return false;
+  return true;
+}
+
+function extractConceptTitle(gap: string, questionIndex?: number, explicitTopic?: string): string {
+  const explicit = String(explicitTopic || '').trim();
+  if (
+    explicit &&
+    (isUsablePressureTitle(explicit) ||
+      /fundamentals$/i.test(explicit) ||
+      /^core concepts$/i.test(explicit))
+  ) {
+    return explicit;
+  }
+
+  const text = String(gap || '').trim();
+  if (!text) return questionIndex != null ? `Question ${questionIndex}` : 'Core concepts';
+
+  const reject = (value: string) => !isUsablePressureTitle(value);
 
   // Backend wrong-line format: Q5 (“Acids, Bases and Salts”, chemistry mcq)—…
   const topicFromQLine = text.match(new RegExp(`Q\\d+\\s*\\(\\s*${QUOTED}\\s*,`, 'i'));
@@ -134,12 +165,6 @@ function extractConceptTitle(gap: string, questionIndex?: number): string {
     return topicOnExecution[1].trim();
   }
 
-  const stemStart = text.match(new RegExp(`starts:\\s*${QUOTED}`, 'i'));
-  if (stemStart?.[1] && !reject(stemStart[1])) {
-    const stem = stemStart[1].trim();
-    return stem.length > 72 ? `${stem.slice(0, 69)}…` : stem;
-  }
-
   const beforeSelected = text.split(/\s+Selected\s+/i)[0]?.trim();
   if (beforeSelected) {
     const topicInBody = beforeSelected.match(new RegExp(`Q\\d+\\s*\\(\\s*${QUOTED}`, 'i'));
@@ -149,7 +174,7 @@ function extractConceptTitle(gap: string, questionIndex?: number): string {
   }
 
   if (questionIndex != null) return `Question ${questionIndex}`;
-  return 'Concept review';
+  return 'Core concepts';
 }
 
 function isWrongQuestionInsight(status: string | undefined): boolean {
@@ -263,25 +288,51 @@ export default function AiReportTab({
   }, [result.subjectWiseScore]);
 
   const conceptCards = useMemo(() => {
+    const formatSubject = (raw?: string) => {
+      const s = String(raw || 'General');
+      return s.charAt(0).toUpperCase() + s.slice(1);
+    };
+
+    // Prefer structured focus areas (grouped by real topic).
+    const fromFocus = (aiAnalysis?.focusAreas || [])
+      .map((f) => {
+        const candidate = String(f.topic || f.issue || '').trim();
+        const name =
+          (isUsablePressureTitle(candidate) && candidate) ||
+          (/fundamentals$/i.test(candidate) ? candidate : '') ||
+          (/^core concepts$/i.test(candidate) ? candidate : '') ||
+          '';
+        if (!name) return null;
+        return {
+          tag: formatSubject(f.subject),
+          name,
+          meta: f.whatToDo || 'Review this concept',
+        };
+      })
+      .filter(Boolean) as Array<{ tag: string; name: string; meta: string }>;
+
+    if (fromFocus.length > 0) return fromFocus.slice(0, 3);
+
+    // Fallback: build from wrong-question insights, deduped by topic.
     const wrongInsights =
       aiAnalysis?.questionInsights?.filter((q) => isWrongQuestionInsight(q.status)) || [];
-    if (wrongInsights.length > 0) {
-      return wrongInsights.slice(0, 3).map((q) => {
-        const qNum = Number(q.index) > 0 ? Number(q.index) : undefined;
-        const gapText = q.conceptGap || q.insight || '';
-        const title = extractConceptTitle(gapText, qNum);
-        return {
-          tag: (q.subject || 'General').charAt(0).toUpperCase() + (q.subject || 'general').slice(1),
-          name: title,
-          meta: qNum ? `Wrong · Q${qNum} · review working` : 'Review this concept',
-        };
+    const seen = new Set<string>();
+    const fromInsights: Array<{ tag: string; name: string; meta: string }> = [];
+    for (const q of wrongInsights) {
+      const qNum = Number(q.index) > 0 ? Number(q.index) : undefined;
+      const gapText = q.conceptGap || q.insight || '';
+      const title = extractConceptTitle(gapText, qNum, q.topic);
+      const key = `${String(q.subject || '').toLowerCase()}::${title.toLowerCase()}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      fromInsights.push({
+        tag: formatSubject(q.subject),
+        name: title,
+        meta: qNum ? `Wrong · Q${qNum} · review working` : 'Review this concept',
       });
+      if (fromInsights.length >= 3) break;
     }
-    return (aiAnalysis?.focusAreas || []).slice(0, 3).map((f) => ({
-      tag: f.subject,
-      name: f.issue,
-      meta: f.whatToDo,
-    }));
+    return fromInsights;
   }, [aiAnalysis]);
 
   const planSteps = useMemo(() => {
