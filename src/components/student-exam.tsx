@@ -491,7 +491,7 @@ export default function StudentExam({ examId, onComplete, onExit }: StudentExamP
               <CardContent className="pt-0">
                 {/* Question Numbers Grid - 5 columns, 5-6 rows */}
                 <div className="bg-gradient-to-br from-gray-50 to-purple-50/30 rounded-xl p-4 border border-gray-200">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5">
+                  <div className="grid grid-cols-5 sm:grid-cols-6 lg:grid-cols-5 gap-2">
                     {exam.questions.map((_: Question, index: number) => {
                       const questionId = exam.questions[index]._id;
                       const isAnswered = answers[questionId] !== undefined;
@@ -504,7 +504,7 @@ export default function StudentExam({ examId, onComplete, onExit }: StudentExamP
                           onClick={() => setCurrentQuestionIndex(index)}
                           className={`
                             group relative
-                            w-11 h-11 rounded-xl font-bold text-xs sm:text-sm
+                            aspect-square w-full max-h-11 rounded-xl font-bold text-xs sm:text-sm
                             transition-all duration-300 ease-out
                             flex items-center justify-center
                             border-2

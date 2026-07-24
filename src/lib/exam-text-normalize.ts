@@ -76,6 +76,8 @@ export function normalizeExamDisplayText(value: unknown): string {
     .replace(/(^|[\s,(=])\uFFFD(?=\d)/g, '$1-');
 
   text = text.replace(/[\uFFFD]/g, '?');
+  // Soft hyphens / zero-width chars from PDF/OCR cause mid-word gaps on mobile wrap
+  text = text.replace(/[\u00AD\u200B\u200C\u200D\uFEFF]/g, '');
   text = text.replace(/\s{2,}/g, ' ').trim();
 
   return text;

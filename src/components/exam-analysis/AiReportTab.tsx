@@ -76,6 +76,7 @@ export type AiReportTabProps = {
     net: number;
     marksNotEarnedOnWrong: number;
     costPerWrong: number;
+    examHasNegativeMarking?: boolean;
   };
 };
 
@@ -225,7 +226,11 @@ export default function AiReportTab({
     const net = Math.round(Number(result.obtainedMarks) || 0);
     const total = Math.max(1, Math.round(Number(result.totalMarks) || 0));
     const earned = Math.round(scoreReconciliationProp?.marksEarned ?? net);
-    const neg = Math.round(scoreReconciliationProp?.negativePenalty ?? 0);
+    const neg = Math.round(
+      scoreReconciliationProp?.examHasNegativeMarking
+        ? scoreReconciliationProp?.negativePenalty ?? 0
+        : 0
+    );
     const maxBar = Math.max(earned, total, 1);
     return {
       earned,
@@ -240,6 +245,7 @@ export default function AiReportTab({
       marksNotEarnedOnWrong: Math.round(
         scoreReconciliationProp?.marksNotEarnedOnWrong ?? 0
       ),
+      examHasNegativeMarking: Boolean(scoreReconciliationProp?.examHasNegativeMarking),
     };
   }, [result, marksPerWrong, scoreReconciliationProp]);
 
@@ -613,9 +619,15 @@ export default function AiReportTab({
         </ReportCard>
       )}
 
-      {/* Marks lost */}
+      {/* Marks lost — only show negative column when the exam actually uses negative marking */}
       <ReportCard title="Marks-Lost Analysis" icon="▼">
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div
+          className={`grid gap-3 ${
+            reconciliation.examHasNegativeMarking
+              ? 'grid-cols-2 sm:grid-cols-4'
+              : 'grid-cols-1 sm:grid-cols-3'
+          }`}
+        >
           <div className="rounded-[14px] py-4 px-2 text-center border border-emerald-200 bg-emerald-50">
             <div className="text-[28px] font-extrabold text-emerald-600 leading-none">{mistakeTaxonomy.careless}</div>
             <div className="text-[11.5px] text-slate-500 font-semibold mt-1.5">Silly slips</div>
@@ -628,12 +640,18 @@ export default function AiReportTab({
             <div className="text-[28px] font-extrabold text-orange-600 leading-none">{wrongQuickCount}</div>
             <div className="text-[11.5px] text-slate-500 font-semibold mt-1.5">Likely guesses</div>
           </div>
-          <div className="rounded-[14px] py-4 px-2 text-center border border-red-200 bg-red-50">
-            <div className="text-[28px] font-extrabold text-red-500 leading-none">
-              −{Math.round(result.wrongAnswers * (marksPerWrong > 0 ? marksPerWrong / 2 : 1))}
+          {reconciliation.examHasNegativeMarking ? (
+            <div className="rounded-[14px] py-4 px-2 text-center border border-red-200 bg-red-50">
+              <div className="text-[28px] font-extrabold text-red-500 leading-none">
+                −{Math.round(reconciliation.neg || 0)}
+              </div>
+              <div className="text-[11.5px] text-slate-500 font-semibold mt-1.5">Negative incurred</div>
             </div>
-            <div className="text-[11.5px] text-slate-500 font-semibold mt-1.5">Negative incurred</div>
-          </div>
+          ) : (
+            <div className="col-span-full rounded-[14px] border border-slate-200 bg-slate-50 px-3 py-2.5 text-center text-[12px] font-medium text-slate-600 sm:col-span-3">
+              This exam has no negative marking — wrong answers only miss the question marks (no penalty deducted).
+            </div>
+          )}
         </div>
       </ReportCard>
 

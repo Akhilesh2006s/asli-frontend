@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { motion } from 'framer-motion';
+import { useLocation } from 'wouter';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -44,6 +45,7 @@ import {
   RefreshCw,
   Timer,
   Gem,
+  ExternalLink,
 } from 'lucide-react';
 
 type QuestionOption = string | { text: string; isCorrect?: boolean; _id?: string };
@@ -59,6 +61,9 @@ interface Question {
   negativeMarks: number;
   explanation?: string;
   subject: string;
+  chapter?: string;
+  topic?: string;
+  sectionHeading?: string;
 }
 
 interface ExamResult {
@@ -159,6 +164,7 @@ interface AiExamAnalysis {
     index?: number;
     questionId?: string;
     subject?: string;
+    topic?: string;
     questionType?: string;
     status?: 'correct' | 'wrong' | 'unattempted' | string;
     conceptGap?: string;
@@ -178,6 +184,9 @@ type PlanTopic = {
   title: string;
   subtitle: string;
   duration: string;
+  subject?: string;
+  pct?: number;
+  wrongCount?: number;
 };
 
 function getAnswerTimeSeconds(raw: unknown): number | null {
@@ -245,6 +254,16 @@ function matchesQuestionFilter(
   return true;
 }
 
+function isReadingErrorInsight(insight?: string): boolean {
+  const s = String(insight || '');
+  if (!s.trim()) return false;
+  // Must be intentional reading/misread language — never bare "not" / "except"
+  // (those match almost every wrong-answer explanation and falsely tag READING).
+  return /\b(misread|mis-read|incorrectly read|reading error|did not read|didn't read|option trap|stem misread)\b/i.test(
+    s
+  );
+}
+
 function classifyErrorType(
   question: Question,
   userAnswer: unknown,
@@ -258,7 +277,7 @@ function classifyErrorType(
   }
 ): ErrorType {
   if (!opts.isAttempted || opts.isCorrect) return null;
-  if (opts.aiInsight && /not|except|incorrectly read/i.test(opts.aiInsight)) return 'reading';
+  if (isReadingErrorInsight(opts.aiInsight)) return 'reading';
   if (
     timeTaken != null &&
     opts.avgTime > 0 &&
@@ -273,52 +292,232 @@ function classifyErrorType(
   return 'careless';
 }
 
+/** Reject labels that are really question stems, not chapter/topic names. */
+const SUBJECT_NAME_ALIASES: Record<string, string> = {
+  maths: 'maths',
+  math: 'maths',
+  mathematics: 'maths',
+  physics: 'physics',
+  phy: 'physics',
+  chemistry: 'chemistry',
+  chem: 'chemistry',
+  biology: 'biology',
+  bio: 'biology',
+  science: 'science',
+  general: 'general',
+};
+
+function normalizeSubjectKey(raw: unknown): string {
+  const plain = String(raw || '')
+    .toLowerCase()
+    .trim()
+    .split('__deleted__')[0]
+    .replace(/_\d+$/, '')
+    .trim();
+  return SUBJECT_NAME_ALIASES[plain] || plain || 'general';
+}
+
+function subjectDisplayName(raw: unknown): string {
+  const key = normalizeSubjectKey(raw);
+  const labels: Record<string, string> = {
+    maths: 'Mathematics',
+    physics: 'Physics',
+    chemistry: 'Chemistry',
+    biology: 'Biology',
+    science: 'Science',
+    general: 'General',
+  };
+  return labels[key] || String(raw || 'Subject').replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+function isSubjectOnlyLabel(raw: string): boolean {
+  const lower = String(raw || '')
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (!lower) return true;
+  if (SUBJECT_NAME_ALIASES[lower]) return true;
+  if (/^(maths?|mathematics|physics|chemistry|biology|science)\s+fundamentals$/i.test(lower)) {
+    return true;
+  }
+  return false;
+}
+
+function isUsableTopicLabel(raw: string): boolean {
+  const s = String(raw || '').replace(/\s+/g, ' ').trim();
+  if (!s || s.length < 2 || s.length > 48) return false;
+  if (isSubjectOnlyLabel(s)) return false;
+  const lower = s.toLowerCase();
+  if (
+    /^(general|unknown|n\/a|na|misc|miscellaneous|chapter|unit|default|other|none)$/i.test(
+      lower
+    )
+  ) {
+    return false;
+  }
+  if (/\?/.test(s)) return false;
+  // Exam paper instruction boilerplate (often mistaken for topics)
+  if (
+    /\b(directions?|instruction|read the following|each of the following|four choices|choose the correct|select the correct option|fill in the blanks?|answer the following)\b/i.test(
+      lower
+    )
+  ) {
+    return false;
+  }
+  if (
+    /\b(which of the following|what is the|how many|find the|calculate|for the given|select the correct)\b/i.test(
+      lower
+    )
+  ) {
+    return false;
+  }
+  if (s.split(/\s+/).length > 8) return false;
+  return true;
+}
+
+const TOPIC_INFER_PATTERNS: Array<{ topic: string; regex: RegExp }> = [
+  { topic: 'Rational Numbers', regex: /\brational number\b|\bterminating decimal\b|\badditive inverse\b/i },
+  { topic: 'Arithmetic Progression', regex: /\barithmetic progression\b|\ba\.?p\.?\b/i },
+  { topic: 'Quadrilateral Properties', regex: /\bquadrilateral\b|\bparallelogram\b|\brhombus\b|\btrapez/i },
+  { topic: 'Polygon Angles', regex: /\bpolygon\b|\binterior angles?\b|\bexterior angles?\b/i },
+  { topic: 'Ratio and Proportion', regex: /\bratio\b|\bproportion\b/i },
+  { topic: 'Linear Equations', regex: /\blinear equation\b|\bsolve for\b/i },
+  { topic: 'Probability', regex: /\bprobability\b|\bchance\b|\boutcome\b/i },
+  { topic: 'Force and Laws of Motion', regex: /\bnet force\b|\bnewton\b|\baccelerat/i },
+  { topic: 'Motion and Kinematics', regex: /\bmotion\b|\bvelocity\b|\bacceleration\b|\bdisplacement\b/i },
+  { topic: 'Pressure and Hydraulics', regex: /\bhydraulic\b|\bpiston\b|\bpascal\b|\bpressure\b/i },
+  { topic: 'Atomic Structure', regex: /\batomic number\b|\bmass number\b|\bneutron\b|\bproton\b|\belectron\b/i },
+  { topic: 'Electricity and Circuits', regex: /\bohm\b|\bcurrent\b|\bvoltage\b|\bresistance\b|\bcircuit\b/i },
+  { topic: 'Hybridization', regex: /\bhybridization\b|\bhybrid orbital\b|\bsp\s*3\b|\bsp\s*2\b/i },
+  { topic: 'Oxidation States', regex: /\boxidation state\b|\boxidation number\b/i },
+  { topic: 'Molar Mass and Stoichiometry', regex: /\bmolar mass\b|\bmolecular mass\b|\bmolarity\b|\bmoles?\b/i },
+  { topic: 'Acids, Bases and Salts', regex: /\bacid\b|\bbase\b|\bsalt\b|\bph\b/i },
+  { topic: 'Carbon Compounds', regex: /\bcarbon\b|\bhydrocarbon\b|\borganic\b/i },
+  { topic: 'Cell Structure', regex: /\bcell membrane\b|\bcytoplasm\b|\bnucleus\b|\borganelle\b/i },
+  { topic: 'Life Processes', regex: /\bphotosynthesis\b|\brespiration\b|\bexcretion\b|\bnutrition\b/i },
+  { topic: 'Heredity and Evolution', regex: /\bheredity\b|\bevolution\b|\bgenes?\b|\bdna\b/i },
+];
+
+function inferTopicFromQuestionText(q: Question): string {
+  const text = String(q.questionText || '')
+    .replace(/^directions?\s*[:.\-–—]?\s*/i, '')
+    .replace(/^each of the following[^.!?]{0,120}[.!?]\s*/i, '')
+    .replace(/^read the following[^.!?]{0,120}[.!?]\s*/i, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (!text) return '';
+  const matched = TOPIC_INFER_PATTERNS.find((item) => item.regex.test(text));
+  return matched?.topic || '';
+}
+
+function resolveQuestionTopicLabel(
+  q: Question,
+  insight?: { conceptGap?: string; subject?: string; topic?: string } | null
+): string {
+  const candidates = [
+    q.chapter,
+    q.topic,
+    q.sectionHeading,
+    insight?.topic,
+  ];
+  for (const c of candidates) {
+    if (isUsableTopicLabel(String(c || ''))) return String(c).trim();
+  }
+
+  // Prefer explicit Topic: "…" from analysis text — not the stem quote.
+  const gap = String(insight?.conceptGap || '');
+  const topicTagged =
+    gap.match(/\bTopic:\s*[“"]([^”"]{2,48})[”"]/i) ||
+    gap.match(/\([“"]([^”"]{2,48})[”"]\s*,\s*(?:maths|physics|chemistry|biology)\b/i);
+  if (topicTagged?.[1] && isUsableTopicLabel(topicTagged[1])) {
+    return topicTagged[1].trim();
+  }
+
+  const inferred = inferTopicFromQuestionText(q);
+  if (inferred && isUsableTopicLabel(inferred)) return inferred;
+
+  return 'Core concepts';
+}
+
+/** Typical school-exam budget per MCQ (seconds). Never use the student's own average as the bar. */
+const IDEAL_SECONDS_PER_QUESTION = 60;
+
+/**
+ * Fast vs slow must be meaningful in exam terms:
+ * - Under ~30s / half of ideal → Fast (rushed or sharp)
+ * - Over ~1.25× ideal → Slow (stuck / effortful)
+ * When per-question times are missing, use overall paper pace (e.g. 3s/q ⇒ all Fast).
+ */
+function isFastQuestionPace(
+  timeSec: number | null,
+  overallAvgSec: number,
+  idealSec: number = IDEAL_SECONDS_PER_QUESTION
+): boolean {
+  const fastCut = Math.max(25, idealSec * 0.5);
+  if (timeSec != null && timeSec > 0) {
+    return timeSec < fastCut;
+  }
+  // No per-question clock — whole-paper pace decides
+  if (overallAvgSec <= 0) return false;
+  if (overallAvgSec <= fastCut) return true;
+  if (overallAvgSec >= idealSec * 1.25) return false;
+  return overallAvgSec < idealSec;
+}
+
+function isSlowQuestionPace(
+  timeSec: number | null,
+  overallAvgSec: number,
+  idealSec: number = IDEAL_SECONDS_PER_QUESTION
+): boolean {
+  const slowCut = idealSec * 1.25;
+  if (timeSec != null && timeSec > 0) {
+    return timeSec >= slowCut;
+  }
+  if (overallAvgSec <= 0) return false;
+  return overallAvgSec >= slowCut;
+}
+
 function getTimeXAccuracyQuadrant(
   questions: Question[],
   getUserAnswer: (q: Question, i: number) => unknown,
   compare: (q: Question, ua: unknown, ca: unknown) => boolean,
-  totalTime: number
+  totalTime: number,
+  getTimeSec?: (q: Question, i: number, ua: unknown) => number | null
 ): { fastWrong: number; fastRight: number; slowWrong: number; slowRight: number } {
   const out = { fastWrong: 0, fastRight: 0, slowWrong: 0, slowRight: 0 };
   if (!questions.length) return out;
-  const avgTime = totalTime / Math.max(questions.length, 1);
-  let hasPerQuestionTime = false;
-  const classified: Array<{ fast: boolean; right: boolean }> = [];
+  const overallAvg = totalTime / Math.max(questions.length, 1);
+  const ideal = IDEAL_SECONDS_PER_QUESTION;
 
+  let timedCount = 0;
   questions.forEach((q, i) => {
     const ua = getUserAnswer(q, i);
     const attempted = ua !== undefined && ua !== null && ua !== '';
     if (!attempted) return;
-    const t = getAnswerTimeSeconds(ua);
-    if (t != null) hasPerQuestionTime = true;
+    const t =
+      getTimeSec?.(q, i, ua) ??
+      getAnswerTimeSeconds(ua);
+    if (t != null && t > 0) timedCount += 1;
     const right = compare(q, ua, q.correctAnswer);
-    const fast = (t ?? avgTime) < avgTime;
-    classified.push({ fast, right });
-  });
 
-  if (!classified.length) {
-    const wrong = questions.filter((q, i) => {
-      const ua = getUserAnswer(q, i);
-      return ua != null && ua !== '' && !compare(q, ua, q.correctAnswer);
-    }).length;
-    const correct = questions.filter((q, i) => {
-      const ua = getUserAnswer(q, i);
-      return ua != null && ua !== '' && compare(q, ua, q.correctAnswer);
-    }).length;
-    out.fastWrong = Math.round(wrong * 0.4);
-    out.slowWrong = wrong - out.fastWrong;
-    out.fastRight = Math.round(correct * 0.35);
-    out.slowRight = correct - out.fastRight;
-    return out;
-  }
+    // Prefer explicit fast/slow; mid-pace uses overall paper bias so 3s/q never becomes "Slow"
+    let fast: boolean;
+    if (t != null && t > 0) {
+      if (isFastQuestionPace(t, overallAvg, ideal)) fast = true;
+      else if (isSlowQuestionPace(t, overallAvg, ideal)) fast = false;
+      else fast = overallAvg <= ideal; // mid band → follow paper pace
+    } else {
+      fast = isFastQuestionPace(null, overallAvg, ideal);
+    }
 
-  classified.forEach(({ fast, right }) => {
     if (fast && right) out.fastRight += 1;
     else if (fast && !right) out.fastWrong += 1;
     else if (!fast && right) out.slowRight += 1;
     else out.slowWrong += 1;
   });
-  void hasPerQuestionTime;
+
+  // If nothing was attempted, leave zeros
+  void timedCount;
   return out;
 }
 
@@ -349,6 +548,8 @@ function getDNAProfileLabel(
   accuracyPct: number,
   avgTimePerQ: number
 ): string {
+  // 3s/q with weak accuracy is rushed guessing — not "balanced"
+  if (avgTimePerQ > 0 && avgTimePerQ < 45 && accuracyPct < 55) return '⚡ Rushed Reader';
   if (accuracyPct < 30 && avgTimePerQ < 60) return '⚡ Rushed Reader';
   if (dna.accuracy >= 70) return '🎯 Precision Player';
   if (dna.speed < 40) return '🐢 Deep Thinker';
@@ -356,74 +557,116 @@ function getDNAProfileLabel(
   return '📊 Balanced Learner';
 }
 
-function generatePlanTopics(
-  _result: ExamResult,
-  aiAnalysis: AiExamAnalysis | null
-): PlanTopic[] {
-  const weekActions = aiAnalysis?.actionPlan?.thisWeek || [];
-  const focus = aiAnalysis?.focusAreas || [];
-  const topics = focus.map((f) => {
-    const m = String(f.issue || '').match(/in\s+(.+?)(?:\s*\(|$)/i);
-    return m?.[1]?.trim() || f.subject;
-  });
-  const defaults = [
-    'Rotation',
-    'Slow-Mode Read',
-    'Friction',
-    'Pacing Drill',
-    'Calorimetry',
-    'Calculus',
-    'Mock Retake',
-  ];
-  const subtitles = [
-    'Concept + 10 Qs',
-    'Read twice',
-    'Build on prior topic',
-    'Timed 15-Q drill',
-    'Concept + 10 Q',
-    'Core maths practice',
-    'Full mock retake',
-  ];
-  const durations = ['25 min', '15 min', '25 min', '20 min', '25 min', '30 min', '35 min'];
+function sanitizePlanTopicTitle(raw: string, fallbackSubject?: string): string {
+  const cleaned = String(raw || '')
+    .replace(/^low accuracy\/?confidence in\s+/i, '')
+    .replace(/\s*\(skips detected\)\s*/i, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (isUsableTopicLabel(cleaned)) return cleaned;
+  const subj = String(fallbackSubject || '').trim();
+  if (subj) return `Mixed ${subjectDisplayName(subj)} revision`;
+  return 'Mixed revision';
+}
 
-  return Array.from({ length: 7 }, (_, i) => ({
+function generatePlanTopics(
+  result: ExamResult,
+  aiAnalysis: AiExamAnalysis | null,
+  chapterHeatmap?: Record<string, Array<{ name: string; pct: number; wrong?: number; total?: number }>>
+): PlanTopic[] {
+  const collected: Array<{ title: string; subject: string; pct: number; wrong: number }> = [];
+
+  if (chapterHeatmap) {
+    Object.entries(chapterHeatmap).forEach(([subj, rows]) => {
+      rows.forEach((row) => {
+        if (row.pct < 70 && isUsableTopicLabel(row.name)) {
+          collected.push({
+            title: row.name,
+            subject: subj,
+            pct: row.pct,
+            wrong: row.wrong || 0,
+          });
+        }
+      });
+    });
+  }
+
+  (aiAnalysis?.focusAreas || []).forEach((f) => {
+    const fromTopicField = (f as { topic?: string }).topic;
+    const fromIssue = String(f.issue || '').match(/in\s+(.+?)(?:\s*\(|$)/i)?.[1];
+    const title = sanitizePlanTopicTitle(fromTopicField || fromIssue || '', f.subject);
+    if (!isUsableTopicLabel(title)) return;
+    if (collected.some((c) => c.title.toLowerCase() === title.toLowerCase())) return;
+    collected.push({
+      title,
+      subject: normalizeSubjectKey(f.subject),
+      pct: 40,
+      wrong: 0,
+    });
+  });
+
+  collected.sort((a, b) => a.pct - b.pct || b.wrong - a.wrong);
+
+  const unique = collected.filter(
+    (t, i, arr) => arr.findIndex((x) => x.title.toLowerCase() === t.title.toLowerCase()) === i
+  );
+
+  if (unique.length === 0) {
+    const weakSubs = Object.entries(result.subjectWiseScore || {})
+      .filter(([, score]) => score && score.total > 0 && score.correct / score.total < 0.7)
+      .sort((a, b) => a[1].correct / a[1].total - b[1].correct / b[1].total);
+    if (weakSubs.length > 0) {
+      return weakSubs.slice(0, 3).map(([subj, score], i) => {
+        const pct = score.total > 0 ? (score.correct / score.total) * 100 : 0;
+        const wrong = Math.max(0, score.total - score.correct);
+        return {
+          topicNum: i + 1,
+          title: `Mixed ${subjectDisplayName(subj)} revision`,
+          subtitle: `${wrong} to review · ${Math.round(pct)}% accuracy`,
+          duration: `${Math.min(35, 15 + wrong)} min`,
+          subject: normalizeSubjectKey(subj),
+          pct,
+          wrongCount: wrong,
+        };
+      });
+    }
+    return [
+      {
+        topicNum: 1,
+        title: 'Review wrong answers',
+        subtitle: 'Go through every incorrect question from this paper',
+        duration: '20 min',
+        pct: 0,
+        wrongCount: result.wrongAnswers || 0,
+      },
+    ];
+  }
+
+  return unique.slice(0, 5).map((t, i) => ({
     topicNum: i + 1,
-    title: topics[i] || weekActions[i]?.slice(0, 48) || defaults[i],
-    subtitle: subtitles[i],
-    duration: durations[i],
+    title: t.title,
+    subtitle:
+      t.wrong > 0
+        ? `${t.wrong} wrong on this paper · ${Math.round(t.pct)}% accuracy`
+        : `${Math.round(t.pct)}% accuracy · priority drill`,
+    duration: `${Math.min(40, 12 + Math.max(t.wrong, 2) * 3)} min`,
+    subject: t.subject,
+    pct: t.pct,
+    wrongCount: t.wrong,
   }));
 }
 
-type PlanQueueItem = { id: string; minutes: number; title: string; tier: 'warmup' | 'core' | 'stretch' };
-
-function generatePlanQueueItems(topicTitle: string, topicIndex: number): {
-  warmup: PlanQueueItem[];
-  core: PlanQueueItem[];
-  stretch: PlanQueueItem[];
-} {
-  const concept = topicTitle || 'Focus';
-  const warmup: PlanQueueItem[] = [
-    { id: 'w1', minutes: 1, title: `${concept}: quick recall`, tier: 'warmup' },
-    { id: 'w2', minutes: 1, title: `${concept}: formula check`, tier: 'warmup' },
-    { id: 'w3', minutes: 1, title: `${concept}: easy starter`, tier: 'warmup' },
-  ];
-  const core: PlanQueueItem[] = [
-    { id: 'c1', minutes: 2, title: `${concept}: standard problem`, tier: 'core' },
-    { id: 'c2', minutes: 2, title: `${concept}: mixed practice`, tier: 'core' },
-    { id: 'c3', minutes: 2, title: `${concept}: exam-style Q`, tier: 'core' },
-    { id: 'c4', minutes: 2, title: `${concept}: timed drill`, tier: 'core' },
-    { id: 'c5', minutes: 2, title: `${concept}: error review`, tier: 'core' },
-    { id: 'c6', minutes: 2, title: `${concept}: checkpoint`, tier: 'core' },
-    { id: 'c7', minutes: 2, title: `${concept}: consolidation`, tier: 'core' },
-  ];
-  const stretch: PlanQueueItem[] =
-    topicIndex >= 5
-      ? [
-          { id: 's1', minutes: 3, title: `${concept}: challenge set A`, tier: 'stretch' },
-          { id: 's2', minutes: 3, title: `${concept}: challenge set B`, tier: 'stretch' },
-        ]
-      : [{ id: 's1', minutes: 3, title: `${concept}: optional hard Q`, tier: 'stretch' }];
-  return { warmup, core, stretch };
+function topicLabelMatches(a: string, b: string): boolean {
+  const x = String(a || '')
+    .toLowerCase()
+    .trim();
+  const y = String(b || '')
+    .toLowerCase()
+    .trim();
+  if (!x || !y) return false;
+  if (x === y) return true;
+  if (x.includes(y) || y.includes(x)) return true;
+  return false;
 }
 
 function getGradeRingColor(gradeLetter: string): string {
@@ -532,6 +775,7 @@ function normalizeMongoId(value: unknown): string {
 }
 
 export default function DetailedAnalysis({ result, examTitle, onBack }: DetailedAnalysisProps) {
+  const [, setLocation] = useLocation();
   const [activeTab, setActiveTab] = useState('ai');
   const [questionFilter, setQuestionFilter] = useState<QuestionFilterId>('all');
   const [expandedQuestionIndex, setExpandedQuestionIndex] = useState<number | null>(null);
@@ -1162,13 +1406,14 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
 
   const getWeakAreas = () => {
     const weakAreas: WeakArea[] = [];
-    const subjects = Object.entries(result.subjectWiseScore);
+    const subjects = Object.entries(result.subjectWiseScore || {});
     
     subjects.forEach(([subject, score]) => {
+      if (!score || Number(score.total) <= 0) return;
       const percentage = score.total > 0 ? (score.correct / score.total) * 100 : 0;
-      if (percentage < 60) {
+      if (percentage < 70) {
         weakAreas.push({
-          subject: subject.charAt(0).toUpperCase() + subject.slice(1),
+          subject: subjectDisplayName(subject),
           percentage: percentage,
           correct: score.correct,
           total: score.total,
@@ -1293,13 +1538,23 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
   });
   const avgTimePerQuestion =
     totalQuestionCount > 0 ? Math.floor(result.timeTaken / totalQuestionCount) : 0;
+  const attemptedAccuracyPct =
+    attemptedCount > 0 ? (result.correctAnswers / attemptedCount) * 100 : displayPercentage;
   const speedRatingLabel =
-    result.timeTaken < totalQuestionCount * 60 ? 'Sharp' : avgTimePerQuestion < 90 ? 'Balanced' : 'Rushed';
+    avgTimePerQuestion > 0 && avgTimePerQuestion <= 25
+      ? attemptedAccuracyPct < 55
+        ? 'Rushed'
+        : 'Sharp'
+      : result.timeTaken < totalQuestionCount * 60
+        ? 'Sharp'
+        : avgTimePerQuestion < 90
+          ? 'Balanced'
+          : 'Slow';
 
   const dnaScores = useMemo(() => getDNAScores(result, aiAnalysis), [result, aiAnalysis]);
   const dnaProfileLabel = useMemo(
-    () => getDNAProfileLabel(dnaScores, displayPercentage, avgTimePerQuestion),
-    [dnaScores, displayPercentage, avgTimePerQuestion]
+    () => getDNAProfileLabel(dnaScores, attemptedAccuracyPct, avgTimePerQuestion),
+    [dnaScores, attemptedAccuracyPct, avgTimePerQuestion]
   );
   const timeQuadrant = useMemo(
     () =>
@@ -1307,32 +1562,42 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
         analysisQuestions,
         getUserAnswerForQuestion,
         compareAnswers,
-        result.timeTaken
+        result.timeTaken,
+        (q, i, ua) => getQuestionTimeForIndex(q, i, ua)
       ),
-    [analysisQuestions, result.timeTaken, displayResult.answers, result.answers]
+    [analysisQuestions, result.timeTaken, displayResult.answers, result.answers, getQuestionTimeForIndex]
   );
-  const planTopics = useMemo(() => generatePlanTopics(result, aiAnalysis), [result, aiAnalysis]);
-
-  const activePlanTopic = planTopics[selectedPlanDayIndex] ?? planTopics[0];
-  const planQueue = useMemo(
-    () => generatePlanQueueItems(activePlanTopic?.title || 'Focus', selectedPlanDayIndex),
-    [activePlanTopic?.title, selectedPlanDayIndex]
-  );
-
   const carelessMistakeCount = useMemo(() => {
     let n = 0;
+    let timedWrong = 0;
     analysisQuestions.forEach((q, i) => {
       const ua = getUserAnswerForQuestion(q, i);
       const attempted = ua !== undefined && ua !== null && ua !== '';
       if (!attempted || compareAnswers(q, ua, q.correctAnswer)) return;
-      const t = getAnswerTimeSeconds(ua);
-      if (t != null && t < 30) n += 1;
+      const t = getQuestionTimeForIndex(q, i, ua);
+      if (t != null && t > 0) {
+        timedWrong += 1;
+        if (t < 30) n += 1;
+      }
     });
-    if (n === 0 && result.wrongAnswers > 0) {
+    // No per-question clocks but paper averaged under 30s → treat wrongs as careless/rushed
+    if (timedWrong === 0 && result.wrongAnswers > 0 && avgTimePerQuestion > 0 && avgTimePerQuestion < 30) {
+      return result.wrongAnswers;
+    }
+    if (n === 0 && result.wrongAnswers > 0 && avgTimePerQuestion > 0 && avgTimePerQuestion < 45) {
+      n = Math.max(1, Math.round(result.wrongAnswers * 0.7));
+    } else if (n === 0 && result.wrongAnswers > 0) {
       n = Math.max(1, Math.round(result.wrongAnswers * 0.35));
     }
     return n;
-  }, [analysisQuestions, result.wrongAnswers, displayResult.answers, result.answers]);
+  }, [
+    analysisQuestions,
+    result.wrongAnswers,
+    avgTimePerQuestion,
+    displayResult.answers,
+    result.answers,
+    getQuestionTimeForIndex,
+  ]);
 
   const mistakeTaxonomy = useMemo(() => {
     const counts = { careless: 0, conceptual: 0, procedural: 0, time: 0, reading: 0 };
@@ -1341,17 +1606,22 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
       const attempted = ua !== undefined && ua !== null && ua !== '';
       const correct = compareAnswers(q, ua, q.correctAnswer);
       if (!attempted || correct) return;
-      const t = getAnswerTimeSeconds(ua);
+      const tRaw = getQuestionTimeForIndex(q, i, ua);
+      const t =
+        tRaw != null && tRaw > 0
+          ? tRaw
+          : avgTimePerQuestion > 0 && avgTimePerQuestion < 30
+            ? avgTimePerQuestion
+            : null;
       const qi = aiAnalysis?.questionInsights?.find(
         (x) => x.index === i + 1 || x.index === i
       );
-      const insight = qi?.insight || qi?.fixStrategy || qi?.conceptGap;
       const err = classifyErrorType(q, ua, t, {
         isCorrect: correct,
         isAttempted: attempted,
-        avgTime: avgTimePerQuestion || 60,
+        avgTime: IDEAL_SECONDS_PER_QUESTION,
         totalExamTime: result.timeTaken,
-        aiInsight: insight,
+        aiInsight: qi?.insight,
       });
       if (err === 'careless') counts.careless += 1;
       else if (err === 'conceptual') counts.conceptual += 1;
@@ -1360,14 +1630,16 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
       else counts.procedural += 1;
     });
     if (result.wrongAnswers > 0 && counts.careless + counts.conceptual + counts.procedural + counts.time + counts.reading === 0) {
-      counts.careless = Math.round(result.wrongAnswers * 0.35);
-      counts.conceptual = Math.round(result.wrongAnswers * 0.25);
-      counts.procedural = Math.round(result.wrongAnswers * 0.2);
-      counts.time = Math.round(result.wrongAnswers * 0.12);
-      counts.reading = result.wrongAnswers - counts.careless - counts.conceptual - counts.procedural - counts.time;
+      counts.careless = Math.round(result.wrongAnswers * 0.45);
+      counts.conceptual = Math.round(result.wrongAnswers * 0.3);
+      counts.procedural = Math.round(result.wrongAnswers * 0.15);
+      counts.time = Math.round(result.wrongAnswers * 0.1);
+      counts.reading = 0;
+      const assigned = counts.careless + counts.conceptual + counts.procedural + counts.time;
+      counts.careless += Math.max(0, result.wrongAnswers - assigned);
     }
     return counts;
-  }, [analysisQuestions, result.wrongAnswers, result.timeTaken, avgTimePerQuestion, aiAnalysis, displayResult.answers, result.answers]);
+  }, [analysisQuestions, result.wrongAnswers, result.timeTaken, avgTimePerQuestion, aiAnalysis, displayResult.answers, result.answers, getQuestionTimeForIndex]);
 
   const marksPerWrong = useMemo(() => {
     const wrong = result.wrongAnswers || 1;
@@ -1381,17 +1653,21 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
     let marksNotEarnedOnWrong = 0;
     const wrongN = result.wrongAnswers || 0;
     const net = Math.round(Number(result.obtainedMarks) || 0);
+    const examHasNegativeMarking = analysisQuestions.some(
+      (q) => Number(q.negativeMarks) > 0
+    );
 
     analysisQuestions.forEach((q, i) => {
       const ua = getUserAnswerForQuestion(q, i);
       const attempted = ua !== undefined && ua !== null && ua !== '';
-      const qMarks = Number(q.marks ?? 4) || 4;
-      const qNeg = Number(q.negativeMarks ?? 1) || 0;
+      const qMarks = Number(q.marks) > 0 ? Number(q.marks) : 1;
+      // Never invent negative marking — only use the question's configured value.
+      const qNeg = Math.max(0, Number(q.negativeMarks) || 0);
       if (!attempted) return;
       if (compareAnswers(q, ua, q.correctAnswer)) {
         marksEarned += qMarks;
       } else {
-        negativePenalty += qNeg;
+        if (examHasNegativeMarking && qNeg > 0) negativePenalty += qNeg;
         marksNotEarnedOnWrong += qMarks;
       }
     });
@@ -1399,11 +1675,13 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
     if (analysisQuestions.length === 0 && wrongN > 0) {
       const avgQMarks = (result.totalMarks || 0) / Math.max(totalQuestionCount, 1);
       marksNotEarnedOnWrong = Math.round(wrongN * avgQMarks);
-      negativePenalty = Math.max(0, Math.round(net + marksNotEarnedOnWrong - (result.totalMarks || 0) + wrongN * avgQMarks));
-      if (negativePenalty <= 0) {
-        negativePenalty = Math.round(wrongN * 1);
-      }
-      marksEarned = net + negativePenalty;
+      // Without per-question data, do not invent a negative penalty.
+      negativePenalty = 0;
+      marksEarned = net;
+    }
+
+    if (!examHasNegativeMarking) {
+      negativePenalty = 0;
     }
 
     marksEarned = Math.round(marksEarned);
@@ -1419,6 +1697,7 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
       net,
       marksNotEarnedOnWrong,
       costPerWrong,
+      examHasNegativeMarking,
     };
   }, [
     analysisQuestions,
@@ -1432,81 +1711,212 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
   ]);
 
   const chapterHeatmap = useMemo(() => {
-    const bySubject: Record<string, Array<{ name: string; pct: number }>> = {
+    const bySubject: Record<string, Array<{ name: string; pct: number; wrong: number; total: number }>> = {
       physics: [],
       maths: [],
       chemistry: [],
+      biology: [],
     };
-    const topicAcc = new Map<string, { correct: number; total: number; subject: string }>();
+    const topicAcc = new Map<
+      string,
+      { correct: number; total: number; wrong: number; subject: string; name: string }
+    >();
 
     analysisQuestions.forEach((q, i) => {
       const ua = getUserAnswerForQuestion(q, i);
       const attempted = ua !== undefined && ua !== null && ua !== '';
-      const subj = (q.subject || 'physics').toLowerCase();
+      const correct = attempted && compareAnswers(q, ua, q.correctAnswer);
+      const subj = normalizeSubjectKey(q.subject);
+      const heatmapSubj = subj in bySubject ? subj : 'maths';
       const qi = aiAnalysis?.questionInsights?.find((x) => x.index === i + 1 || x.index === i);
-      const gap = qi?.conceptGap || '';
-      const topicMatch =
-        gap.match(/[“"]([^”"]+)[”"]/) || gap.match(/\(\s*[“"]?([^"`)]+)/);
-      const topic = topicMatch?.[1]?.trim() || subj;
-      const key = `${subj}::${topic}`;
-      const cur = topicAcc.get(key) || { correct: 0, total: 0, subject: subj };
+      const topic = resolveQuestionTopicLabel(q, qi);
+      const key = `${heatmapSubj}::${topic.toLowerCase()}`;
+      const cur = topicAcc.get(key) || {
+        correct: 0,
+        total: 0,
+        wrong: 0,
+        subject: heatmapSubj,
+        name: topic,
+      };
       cur.total += 1;
-      if (attempted && compareAnswers(q, ua, q.correctAnswer)) cur.correct += 1;
+      if (correct) cur.correct += 1;
+      else if (attempted) cur.wrong += 1;
       topicAcc.set(key, cur);
     });
 
-    topicAcc.forEach((v, key) => {
-      const [, topic] = key.split('::');
+    topicAcc.forEach((v) => {
+      // Weak chapters = topics with mistakes / skips, not every question stem.
+      if (v.wrong === 0 && v.correct === v.total) return;
+      if (!isUsableTopicLabel(v.name)) return;
       const pct = v.total > 0 ? (v.correct / v.total) * 100 : 0;
-      const subj = v.subject in bySubject ? v.subject : 'physics';
-      bySubject[subj].push({ name: topic, pct });
+      const subj = v.subject in bySubject ? v.subject : 'maths';
+      bySubject[subj].push({ name: v.name, pct, wrong: v.wrong, total: v.total });
     });
 
     Object.keys(bySubject).forEach((subj) => {
-      if (bySubject[subj].length === 0) {
-        const score = result.subjectWiseScore[subj as keyof typeof result.subjectWiseScore];
-        if (score && score.total > 0) {
-          const pct = (score.correct / score.total) * 100;
-          bySubject[subj].push({
-            name: subj.charAt(0).toUpperCase() + subj.slice(1),
-            pct,
-          });
-        }
-      }
-      bySubject[subj].sort((a, b) => a.pct - b.pct);
+      bySubject[subj].sort((a, b) => a.pct - b.pct || b.wrong - a.wrong);
+      bySubject[subj] = bySubject[subj].slice(0, 5);
     });
 
     return bySubject;
   }, [analysisQuestions, aiAnalysis, result.subjectWiseScore, displayResult.answers, result.answers]);
 
-  const planVideoCards = useMemo(() => {
-    const fromChapters: Array<{ subj: string; bg: string; title: string; min: number; mastery: number }> = [];
-    (['physics', 'maths', 'chemistry'] as const).forEach((subj) => {
-      (chapterHeatmap[subj] || []).forEach((ch) => {
-        fromChapters.push({
-          subj: subj.toUpperCase(),
-          bg: subj === 'physics' ? 'bg-orange-50' : subj === 'maths' ? 'bg-purple-50' : 'bg-yellow-50',
-          title: ch.name,
-          min: 8 + Math.min(4, Math.floor(ch.pct / 25)),
-          mastery: ch.pct,
-        });
+  const planTopics = useMemo(
+    () => generatePlanTopics(result, aiAnalysis, chapterHeatmap),
+    [result, aiAnalysis, chapterHeatmap]
+  );
+  const activePlanTopic = planTopics[selectedPlanDayIndex] ?? planTopics[0];
+
+  useEffect(() => {
+    if (selectedPlanDayIndex >= planTopics.length) {
+      setSelectedPlanDayIndex(0);
+    }
+  }, [planTopics.length, selectedPlanDayIndex]);
+
+  const planTopicWrongQuestions = useMemo(() => {
+    const topicTitle = activePlanTopic?.title || '';
+    const topicSubj = normalizeSubjectKey(activePlanTopic?.subject || '');
+    const rows: Array<{ index: number; preview: string; subject: string }> = [];
+
+    analysisQuestions.forEach((q, i) => {
+      const ua = getUserAnswerForQuestion(q, i);
+      const attempted = ua !== undefined && ua !== null && ua !== '';
+      const correct = attempted && compareAnswers(q, ua, q.correctAnswer);
+      if (!attempted || correct) return;
+
+      const qi = aiAnalysis?.questionInsights?.find((x) => x.index === i + 1 || x.index === i);
+      const label = resolveQuestionTopicLabel(q, qi);
+      const qSubj = normalizeSubjectKey(q.subject);
+      const matchesTopic = topicLabelMatches(label, topicTitle);
+      const matchesSubjectOnly =
+        !matchesTopic &&
+        topicSubj &&
+        qSubj === topicSubj &&
+        /mixed .+ revision|review wrong answers/i.test(topicTitle);
+
+      if (!matchesTopic && !matchesSubjectOnly) return;
+
+      const preview = normalizeAndFormatExamDisplayText(q.questionText || '', q.subject)
+        .replace(/\s+/g, ' ')
+        .trim()
+        .slice(0, 90);
+      rows.push({
+        index: i,
+        preview: preview || `Question ${i + 1}`,
+        subject: subjectDisplayName(q.subject),
       });
     });
-    fromChapters.sort((a, b) => a.mastery - b.mastery);
-    if (fromChapters.length >= 3) return fromChapters.slice(0, 3);
-    const subjScore = result.subjectWiseScore;
-    return (['physics', 'maths', 'chemistry'] as const).map((subj) => {
-      const sc = subjScore[subj];
-      const pct = sc && sc.total > 0 ? (sc.correct / sc.total) * 100 : 0;
+
+    // If topic matching found nothing, fall back to all wrong answers for the subject
+    if (rows.length === 0 && topicSubj) {
+      analysisQuestions.forEach((q, i) => {
+        const ua = getUserAnswerForQuestion(q, i);
+        const attempted = ua !== undefined && ua !== null && ua !== '';
+        const correct = attempted && compareAnswers(q, ua, q.correctAnswer);
+        if (!attempted || correct) return;
+        if (normalizeSubjectKey(q.subject) !== topicSubj) return;
+        const preview = normalizeAndFormatExamDisplayText(q.questionText || '', q.subject)
+          .replace(/\s+/g, ' ')
+          .trim()
+          .slice(0, 90);
+        rows.push({
+          index: i,
+          preview: preview || `Question ${i + 1}`,
+          subject: subjectDisplayName(q.subject),
+        });
+      });
+    }
+
+    return rows.slice(0, 8);
+  }, [
+    activePlanTopic?.title,
+    activePlanTopic?.subject,
+    analysisQuestions,
+    aiAnalysis,
+    displayResult.answers,
+    result.answers,
+  ]);
+
+  const openQuestionInReview = useCallback((index: number) => {
+    setQuestionFilter('wrong');
+    setShowAllQuestionsList(true);
+    setMobileQuestionIndex(index);
+    setExpandedQuestionIndex(index);
+    setActiveTab('questions');
+  }, []);
+
+  const openAllWrongInReview = useCallback(() => {
+    setQuestionFilter('wrong');
+    setShowAllQuestionsList(true);
+    if (planTopicWrongQuestions[0]) {
+      setMobileQuestionIndex(planTopicWrongQuestions[0].index);
+      setExpandedQuestionIndex(planTopicWrongQuestions[0].index);
+    }
+    setActiveTab('questions');
+  }, [planTopicWrongQuestions]);
+
+  const planVideoCards = useMemo(() => {
+    const bgFor = (subj: string) => {
+      const k = normalizeSubjectKey(subj);
+      if (k === 'physics') return 'bg-orange-50';
+      if (k === 'maths') return 'bg-purple-50';
+      if (k === 'chemistry') return 'bg-yellow-50';
+      if (k === 'biology') return 'bg-emerald-50';
+      return 'bg-slate-50';
+    };
+
+    const fromAi = (aiAnalysis?.videoRecommendations || [])
+      .filter((v) => v?.url && v?.title)
+      .slice(0, 3)
+      .map((v) => ({
+        subj: subjectDisplayName(v.subject || activePlanTopic?.subject || 'Focus').toUpperCase(),
+        bg: bgFor(v.subject || activePlanTopic?.subject || ''),
+        title: v.title,
+        min: 8,
+        mastery: activePlanTopic?.pct ?? 0,
+        url: v.url,
+        why: v.why || v.topic || '',
+      }));
+    if (fromAi.length > 0) return fromAi;
+
+    const fromLibrary = (weakSubjectContent?.Video || []).slice(0, 3).map((v) => {
+      const href =
+        v.fileUrl && /^https?:\/\//i.test(v.fileUrl)
+          ? v.fileUrl
+          : v.fileUrl
+            ? `${API_BASE_URL}${v.fileUrl.startsWith('/') ? '' : '/'}${v.fileUrl}`
+            : '';
       return {
-        subj: subj.toUpperCase(),
-        bg: subj === 'physics' ? 'bg-orange-50' : subj === 'maths' ? 'bg-purple-50' : 'bg-yellow-50',
-        title: `${subj.charAt(0).toUpperCase() + subj.slice(1)} fundamentals`,
-        min: 10,
-        mastery: pct,
+        subj: subjectDisplayName(v.subject?.name || activePlanTopic?.subject || 'Focus').toUpperCase(),
+        bg: bgFor(v.subject?.name || ''),
+        title: v.title || 'Video lesson',
+        min: 8,
+        mastery: activePlanTopic?.pct ?? 0,
+        url: href,
+        why: v.topic || '',
       };
     });
-  }, [chapterHeatmap, result.subjectWiseScore]);
+    if (fromLibrary.length > 0) return fromLibrary;
+
+    return (chapterHeatmap
+      ? Object.entries(chapterHeatmap).flatMap(([subj, rows]) =>
+          rows
+            .filter((r) => r.pct < 70)
+            .map((r) => ({
+              subj: subjectDisplayName(subj).toUpperCase(),
+              bg: bgFor(subj),
+              title: r.name,
+              min: 8 + Math.min(4, Math.floor(r.pct / 25)),
+              mastery: r.pct,
+              url: '',
+              why: `${Math.round(r.pct)}% on this paper — open Asli Prep for lessons`,
+            }))
+        )
+      : []
+    )
+      .sort((a, b) => a.mastery - b.mastery)
+      .slice(0, 3);
+  }, [aiAnalysis, weakSubjectContent, chapterHeatmap, activePlanTopic]);
 
   const questionRowStatuses = useMemo(() => {
     const avgT = avgTimePerQuestion || 60;
@@ -1683,7 +2093,11 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
                   <PerformanceDNARadar scores={dnaScores} />
                   <Badge className="mt-4 bg-amber-100 text-amber-800 border-amber-200">{dnaProfileLabel}</Badge>
                   <p className="text-xs sm:text-sm text-gray-600 mt-3">
-                    Your DNA says: you knew more than your marks show — fix pacing and careless slips to unlock hidden potential.
+                    {avgTimePerQuestion > 0 && avgTimePerQuestion <= 25 && attemptedAccuracyPct < 55
+                      ? `Avg ${avgTimePerQuestion}s per question is rushed — most misses look careless. Slow down to ~45–60s, eliminate options, then lock.`
+                      : avgTimePerQuestion >= 90 && attemptedAccuracyPct < 55
+                        ? 'You spent time but accuracy stayed low — rebuild concepts on weak chapters before the next mock.'
+                        : 'Your DNA says: protect accuracy under time pressure — fewer careless slips unlock more marks.'}
                   </p>
                 </CardContent>
               </Card>
@@ -1710,6 +2124,9 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
                       <p className="text-xs text-gray-500">Speed Rating</p>
                     </div>
                   </div>
+                  <p className="text-[11px] text-gray-500 leading-snug">
+                    Fast = under ~30s (ideal exam pace is ~60s/Q). Slow = over ~75s. Your {avgTimePerQuestion}s average means this paper was paced as Fast overall.
+                  </p>
                   <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Time × Accuracy Quadrant</p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-center text-xs sm:text-sm">
                     <div className="p-3 rounded-lg bg-red-50 border border-red-100">
@@ -1737,9 +2154,12 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
   );
 
   const subjectWisePerformanceCards = (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6">
-      {Object.entries(result.subjectWiseScore).map(([subject, score]) => {
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 lg:gap-6 items-stretch">
+      {Object.entries(result.subjectWiseScore || {})
+        .filter(([, score]) => Number(score?.total || 0) > 0)
+        .map(([subject, score]) => {
         const percentage = score.total > 0 ? (score.correct / score.total) * 100 : 0;
+        const subjectKey = normalizeSubjectKey(subject);
         const subjectColors = {
           maths: { bg: 'from-blue-50 to-cyan-50', border: 'border-blue-200', text: 'text-blue-600', icon: 'text-blue-500' },
           physics: { bg: 'from-green-50 to-emerald-50', border: 'border-green-200', text: 'text-green-600', icon: 'text-green-500' },
@@ -1747,32 +2167,41 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
           biology: { bg: 'from-emerald-50 to-lime-50', border: 'border-emerald-200', text: 'text-emerald-600', icon: 'text-emerald-500' },
         };
 
-        const colors = subjectColors[subject as keyof typeof subjectColors] || {
+        const colors = subjectColors[subjectKey as keyof typeof subjectColors] || {
           bg: 'from-gray-50 to-slate-50',
           border: 'border-gray-200',
           text: 'text-gray-600',
           icon: 'text-gray-500',
         };
 
+        const weakChapters = (chapterHeatmap[subjectKey] || [])
+          .filter((c) => c.pct < 70 && isUsableTopicLabel(c.name))
+          .slice(0, 4);
+
         return (
-          <Card key={subject} className={`border-0 shadow-xl bg-gradient-to-br ${colors.bg} ${colors.border}`}>
-            <CardContent className="p-3 sm:p-4 lg:p-6">
+          <Card
+            key={subject}
+            className={`overflow-visible border shadow-xl bg-gradient-to-br ${colors.bg} ${colors.border}`}
+          >
+            <CardContent className="!p-4 sm:!p-5 lg:!p-6">
               <div className="text-center">
                 <div
-                  className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 bg-gradient-to-br ${colors.bg} ${colors.border} border-2`}
+                  className={`w-16 h-16 sm:w-20 sm:h-20 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4 bg-gradient-to-br ${colors.bg} ${colors.border} border-2`}
                 >
-                  {subject === 'maths' && <Calculator className={`w-10 h-10 ${colors.icon}`} />}
-                  {subject === 'physics' && <Atom className={`w-10 h-10 ${colors.icon}`} />}
-                  {subject === 'chemistry' && <FlaskConical className={`w-10 h-10 ${colors.icon}`} />}
-                  {subject !== 'maths' && subject !== 'physics' && subject !== 'chemistry' && (
-                    <BookOpen className={`w-10 h-10 ${colors.icon}`} />
+                  {subjectKey === 'maths' && <Calculator className={`w-8 h-8 sm:w-10 sm:h-10 ${colors.icon}`} />}
+                  {subjectKey === 'physics' && <Atom className={`w-8 h-8 sm:w-10 sm:h-10 ${colors.icon}`} />}
+                  {subjectKey === 'chemistry' && <FlaskConical className={`w-8 h-8 sm:w-10 sm:h-10 ${colors.icon}`} />}
+                  {subjectKey !== 'maths' && subjectKey !== 'physics' && subjectKey !== 'chemistry' && (
+                    <BookOpen className={`w-8 h-8 sm:w-10 sm:h-10 ${colors.icon}`} />
                   )}
-          </div>
-                <h3 className="text-xl sm:text-2xl font-bold text-gray-900 capitalize mb-2">{subject}</h3>
+                </div>
+                <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">
+                  {subjectDisplayName(subject)}
+                </h3>
                 <div className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-2 text-gray-900">
                   {percentage.toFixed(1)}%
                 </div>
-                <div className="text-base sm:text-lg text-gray-600 mb-4">
+                <div className="text-base sm:text-lg text-gray-600 mb-2">
                   {score.correct}/{score.total} correct
                 </div>
                 <div className="text-lg sm:text-xl font-semibold text-gray-700 mb-4">{score.marks} marks</div>
@@ -1789,13 +2218,26 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
                     <p className="font-semibold text-teal-700">✓ STRONGEST · ANCHOR</p>
                   ) : (
                     <>
-                      <p className="font-bold text-red-600 uppercase tracking-wide">Weak Chapters</p>
-                      <p className="text-red-600 mt-1">
-                        {(chapterHeatmap[subject] || [])
-                          .filter((c) => c.pct < 50)
-                          .map((c) => c.name)
-                          .join(', ') || 'Review chapter-wise mocks'}
-                      </p>
+                      <p className="font-bold text-red-600 uppercase tracking-wide">Needs improvement</p>
+                      {weakChapters.length > 0 ? (
+                        <ul className="mt-2 space-y-1.5">
+                          {weakChapters.map((c) => (
+                            <li
+                              key={c.name}
+                              className="flex items-start justify-between gap-2 rounded-lg bg-white/70 border border-red-100 px-2.5 py-1.5"
+                            >
+                              <span className="font-medium text-red-800 leading-snug">{c.name}</span>
+                              <span className="shrink-0 tabular-nums text-red-600 font-semibold">
+                                {Math.round(c.pct)}%
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="mt-1.5 text-red-700 leading-snug">
+                          Mixed chapter drills needed — chapter tags were missing on this paper, so review wrong answers by topic in the Questions tab.
+                        </p>
+                      )}
                     </>
                   )}
                 </div>
@@ -2069,7 +2511,7 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
                     isAttempted,
                     avgTime: avgTimePerQuestion || 60,
                     totalExamTime: result.timeTaken,
-                    aiInsight: qi?.insight || qi?.fixStrategy,
+                    aiInsight: qi?.insight,
                   });
                   const border = isCorrect ? 'border-l-emerald-500' : isAttempted ? 'border-l-red-500' : 'border-l-gray-400';
                   return (
@@ -2082,18 +2524,40 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
                       }}
                       className={`w-full text-left rounded-xl border border-gray-100 bg-white shadow-sm p-3 border-l-4 ${border}`}
                     >
-                      <div className="flex gap-2 items-start">
-                        <span className="font-bold text-xs sm:text-sm">Q{index + 1}</span>
-                        {isCorrect ? <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 text-emerald-500" /> : isAttempted ? <XCircle className="w-3 h-3 sm:w-4 sm:h-4 text-red-500" /> : <Minus className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400" />}
-                        <span className="text-xs sm:text-sm text-gray-800 line-clamp-2 flex-1">{normalizeExamText(question.questionText, question.subject)}</span>
+                      <div className="flex gap-2 items-start min-w-0">
+                        <span className="font-bold text-xs shrink-0">Q{index + 1}</span>
+                        {isCorrect ? (
+                          <CheckCircle className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                        ) : isAttempted ? (
+                          <XCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
+                        ) : (
+                          <Minus className="w-4 h-4 text-gray-400 shrink-0 mt-0.5" />
+                        )}
+                        <span className="min-w-0 flex-1 text-xs text-gray-800 break-words leading-snug line-clamp-3">
+                          {normalizeExamText(question.questionText, question.subject)}
+                        </span>
                       </div>
-                      <div className="flex flex-wrap gap-1 mt-2">
-                        <Badge variant="outline" className="text-micro capitalize">{question.subject}</Badge>
-                        <Badge variant="secondary" className="text-micro uppercase">{getQuestionDifficulty(question)}</Badge>
-                        {err === 'careless' && <Badge className="text-micro bg-amber-100 text-amber-800">⚡ CARELESS{t != null ? ` · ${t}s` : ''}</Badge>}
-                        {err === 'conceptual' && <Badge className="text-micro bg-purple-100 text-purple-800">💎 CONCEPTUAL</Badge>}
-                        {err === 'time-pressure' && <Badge className="text-micro bg-blue-100 text-blue-800">⏱ TIME-PRESSURE</Badge>}
-                        {err === 'reading' && <Badge className="text-micro bg-indigo-100 text-indigo-800">👁 READING</Badge>}
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        <Badge variant="outline" className="text-micro capitalize">
+                          {question.subject}
+                        </Badge>
+                        <Badge variant="secondary" className="text-micro uppercase">
+                          {getQuestionDifficulty(question)}
+                        </Badge>
+                        {err === 'careless' && (
+                          <Badge className="text-micro bg-amber-100 text-amber-800">
+                            ⚡ CARELESS{t != null ? ` · ${t}s` : ''}
+                          </Badge>
+                        )}
+                        {err === 'conceptual' && (
+                          <Badge className="text-micro bg-purple-100 text-purple-800">💎 CONCEPTUAL</Badge>
+                        )}
+                        {err === 'time-pressure' && (
+                          <Badge className="text-micro bg-blue-100 text-blue-800">⏱ TIME-PRESSURE</Badge>
+                        )}
+                        {err === 'reading' && (
+                          <Badge className="text-micro bg-indigo-100 text-indigo-800">👁 READING</Badge>
+                        )}
                       </div>
                     </button>
                   );
@@ -2130,7 +2594,7 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
                             No questions match this filter.
                           </p>
                         ) : (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5">
+                        <div className="grid grid-cols-5 sm:grid-cols-6 lg:grid-cols-5 gap-2">
                           {navigableIndices.map((index) => {
                             const question = analysisQuestions[index];
                             const userAnswer = getUserAnswerForQuestion(question, index);
@@ -2144,7 +2608,7 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
                                 onClick={() => setMobileQuestionIndex(index)}
                                 className={`
                                   group relative
-                                  w-11 h-11 rounded-xl font-bold text-xs sm:text-sm
+                                  aspect-square w-full max-h-11 rounded-xl font-bold text-xs sm:text-sm
                                   transition-all duration-300 ease-out
                                   flex items-center justify-center
                                   border-2
@@ -2457,7 +2921,9 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
         {activeTab === 'insights' && (
           <div className="space-y-3 sm:space-y-4 lg:space-y-6">
             <div>
-              <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-4">Subject-wise performance</h3>
+              <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-4 scroll-mt-24">
+                Subject-wise performance
+              </h3>
               {subjectWisePerformanceCards}
             </div>
             {performanceAnalyticsSection}
@@ -2506,18 +2972,37 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {weakAreas.length > 0 ? weakAreas.map((area, index) => (
+                    {weakAreas.length > 0 ? weakAreas.map((area, index) => {
+                      const subjKey = normalizeSubjectKey(area.subject);
+                      const chapters = (chapterHeatmap[subjKey] || [])
+                        .filter((c) => c.pct < 70 && isUsableTopicLabel(c.name))
+                        .slice(0, 3);
+                      return (
                       <div key={index} className={`p-4 rounded-xl border ${area.bgColor}`}>
                         <div className="flex items-center justify-between mb-2">
-                          <h4 className="font-semibold text-gray-900">{area.subject}</h4>
+                          <h4 className="font-semibold text-gray-900">{subjectDisplayName(area.subject)}</h4>
                           <span className={`font-bold ${area.color}`}>{area.percentage.toFixed(1)}%</span>
                         </div>
                         <div className="text-xs sm:text-sm text-gray-600 mb-2">
                           {area.correct}/{area.total} questions correct
                         </div>
                         <Progress value={area.percentage} className="h-2 bg-gray-200" />
+                        {chapters.length > 0 ? (
+                          <div className="mt-3 flex flex-wrap gap-1.5">
+                            {chapters.map((c) => (
+                              <span
+                                key={c.name}
+                                className="inline-flex items-center gap-1 rounded-full bg-white/80 border border-red-200 px-2 py-0.5 text-[11px] font-medium text-red-800"
+                              >
+                                {c.name}
+                                <span className="tabular-nums text-red-600">{Math.round(c.pct)}%</span>
+                              </span>
+                            ))}
+                          </div>
+                        ) : null}
                       </div>
-                    )) : (
+                      );
+                    }) : (
                       <div className="text-center py-4 sm:py-6 lg:py-8 text-gray-500">
                         <Trophy className="w-12 h-12 mx-auto mb-3 text-gray-400" />
                         <p>Excellent! No weak areas identified.</p>
@@ -2555,15 +3040,20 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
           <div className="space-y-3 sm:space-y-4 lg:space-y-6">
             <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="bg-gradient-to-r from-purple-600 to-pink-500 text-white p-3 sm:p-4 lg:p-6 sm:p-8 rounded-2xl">
               <h2 className="text-xl sm:text-2xl font-bold">YOUR TOPIC PLAN</h2>
-              <p className="text-white/80 text-xs sm:text-sm mt-1">Personalised from your weak areas</p>
-              <p className="text-white/70 text-xs mt-2">7 focus topics · 70 questions · 7 quizzes</p>
+              <p className="text-white/80 text-xs sm:text-sm mt-1">Built from wrong answers on this paper — tap a topic, then review or practice</p>
+              <p className="text-white/70 text-xs mt-2">
+                {planTopics.length} focus topic{planTopics.length === 1 ? '' : 's'} · not filler drills
+              </p>
             </motion.div>
             <div className="rounded-2xl border border-rose-200 bg-rose-50 p-5 flex gap-3">
               <div className="w-10 h-10 rounded-full bg-[#7C3AED] text-white font-bold flex items-center justify-center shrink-0">V</div>
               <div>
-                <p className="font-semibold text-gray-900">Why this plan, in one minute</p>
+                <p className="font-semibold text-gray-900">What to do next</p>
                 <p className="text-xs sm:text-sm text-gray-700 mt-2">
-                  {studentName}, this week targets your focus areas. {(aiAnalysis?.actionPlan?.thisWeek || [])[0] || 'Short daily drills on weak chapters.'}
+                  {studentName}, pick a weak topic below, open the wrong questions from this exam, then use Asli Prep or AI Tutor for extra practice.
+                  {(aiAnalysis?.actionPlan?.thisWeek || [])[0]
+                    ? ` ${(aiAnalysis?.actionPlan?.thisWeek || [])[0]}`
+                    : ''}
                 </p>
               </div>
             </div>
@@ -2589,7 +3079,7 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
                       <p className={`font-bold mt-1 line-clamp-2 ${isSelected ? 'text-gray-900' : 'text-gray-800'}`}>
                         {topic.title}
                       </p>
-                      <p className="text-xs mt-1 text-gray-600 line-clamp-1">{topic.subtitle}</p>
+                      <p className="text-xs mt-1 text-gray-600 line-clamp-2">{topic.subtitle}</p>
                       <p className="text-xs mt-2 font-medium">{topic.duration}</p>
                     </button>
                   );
@@ -2597,64 +3087,153 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
               </div>
             </div>
             <div ref={planQueueRef} className="scroll-mt-24">
-            <Card className="rounded-2xl shadow-sm border">
-              <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle className="line-clamp-2">{activePlanTopic?.title || 'Focus topic'}</CardTitle>
-                <Badge>Focus topic</Badge>
+            <Card className="rounded-2xl shadow-sm border overflow-visible">
+              <CardHeader className="flex flex-row items-start justify-between gap-3 !pb-2">
+                <div className="min-w-0">
+                  <CardTitle className="line-clamp-2 text-lg sm:text-xl">
+                    {activePlanTopic?.title || 'Focus topic'}
+                  </CardTitle>
+                  <p className="text-xs sm:text-sm text-gray-600 mt-1">
+                    {activePlanTopic?.subtitle || 'Practice'} · {activePlanTopic?.duration || '20 min'}
+                  </p>
+                </div>
+                <Badge className="shrink-0">Do this next</Badge>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <p className="text-xs sm:text-sm text-gray-600">{activePlanTopic?.subtitle || 'Practice'} · {activePlanTopic?.duration || '25 min'}</p>
-                <div>
-                  <p className="text-xs font-bold text-gray-500 mb-2">WARM-UP · {planQueue.warmup.length} EASY Qs</p>
-                  <div className="flex flex-wrap gap-2">
-                    {planQueue.warmup.map((item, i) => (
-                      <div key={item.id} className="rounded-lg border bg-white shadow-sm px-3 py-2 text-xs">
-                        <span className="text-[#7C3AED] font-semibold">Q{i + 1} · {item.minutes}m</span> {item.title}
-                      </div>
-                    ))}
-                  </div>
+              <CardContent className="space-y-4 !pt-2">
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <Button
+                    type="button"
+                    className="bg-[#7C3AED] hover:bg-[#6d28d9] text-white"
+                    onClick={openAllWrongInReview}
+                  >
+                    Review wrong questions
+                    <ChevronRight className="w-4 h-4 ml-1" />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      const topic = encodeURIComponent(activePlanTopic?.title || '');
+                      const subject = encodeURIComponent(activePlanTopic?.subject || '');
+                      setLocation(
+                        `/asli-prep-content?topic=${topic}${subject ? `&subject=${subject}` : ''}`
+                      );
+                    }}
+                  >
+                    Practice in Asli Prep
+                    <ExternalLink className="w-3.5 h-3.5 ml-1.5" />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setLocation('/ai-tutor')}
+                  >
+                    Ask AI Tutor
+                    <ExternalLink className="w-3.5 h-3.5 ml-1.5" />
+                  </Button>
                 </div>
+
                 <div>
-                  <p className="text-xs font-bold text-gray-500 mb-2">CORE · {planQueue.core.length} Qs</p>
-                  <div className="flex flex-wrap gap-2">
-                    {planQueue.core.map((item, i) => (
-                      <div key={item.id} className="rounded-lg border bg-purple-50/50 shadow-sm px-3 py-2 text-xs">
-                        <span className="text-[#7C3AED] font-semibold">Q{i + 1} · {item.minutes}m</span> {item.title}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                {planQueue.stretch.length > 0 && (
-                  <div>
-                    <p className="text-xs font-bold text-gray-500 mb-2">STRETCH · optional</p>
-                    <div className="flex flex-wrap gap-2">
-                      {planQueue.stretch.map((item, i) => (
-                        <div key={item.id} className="rounded-lg border border-dashed bg-gray-50 px-3 py-2 text-xs">
-                          <span className="text-gray-600 font-semibold">+{i + 1} · {item.minutes}m</span> {item.title}
-                        </div>
+                  <p className="text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">
+                    Your misses on this topic · tap to open
+                  </p>
+                  {planTopicWrongQuestions.length > 0 ? (
+                    <div className="space-y-2">
+                      {planTopicWrongQuestions.map((row) => (
+                        <button
+                          key={row.index}
+                          type="button"
+                          onClick={() => openQuestionInReview(row.index)}
+                          className="w-full text-left rounded-xl border border-red-100 bg-red-50/60 hover:bg-red-50 px-3 py-2.5 transition-colors"
+                        >
+                          <div className="flex items-start gap-2">
+                            <span className="shrink-0 font-bold text-red-700 text-xs">Q{row.index + 1}</span>
+                            <span className="min-w-0 flex-1 text-xs sm:text-sm text-gray-800 leading-snug line-clamp-2">
+                              {row.preview}
+                            </span>
+                            <ChevronRight className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+                          </div>
+                        </button>
                       ))}
                     </div>
-                  </div>
-                )}
+                  ) : (
+                    <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50 px-3 py-4 text-xs sm:text-sm text-gray-600">
+                      No tagged misses for this topic yet. Use <button type="button" className="text-[#7C3AED] font-semibold underline" onClick={() => { setQuestionFilter('wrong'); setActiveTab('questions'); }}>Questions → Wrong</button> to review every incorrect answer from this paper.
+                    </div>
+                  )}
+                </div>
+
+                <div className="rounded-xl bg-violet-50 border border-violet-100 p-3 text-xs sm:text-sm text-violet-900">
+                  <p className="font-semibold">Session checklist</p>
+                  <ol className="mt-2 list-decimal pl-4 space-y-1 text-violet-800">
+                    <li>Re-attempt each wrong question above without looking at the answer.</li>
+                    <li>Write a 1-line reason you missed it (concept / careless / time).</li>
+                    <li>Do 5–10 similar questions in Asli Prep on the same topic.</li>
+                  </ol>
+                </div>
               </CardContent>
             </Card>
             </div>
             <div>
-              <div className="flex justify-between items-center mb-3">
-                <h3 className="font-bold text-base sm:text-lg">Video Queue · 30 minutes total</h3>
-                <span className="text-xs text-gray-500">Auto-ordered by weakness</span>
+              <div className="flex justify-between items-center mb-3 gap-2">
+                <h3 className="font-bold text-base sm:text-lg">Video &amp; resources</h3>
+                <span className="text-xs text-gray-500 shrink-0">From your weak topics</span>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {planVideoCards.map((v, i) => (
-                  <div key={`${v.subj}-${v.title}-${i}`} className={`rounded-xl p-4 ${v.bg} border relative min-h-[140px]`}>
-                    <p className="text-micro font-bold text-gray-500">{v.subj} · {v.min} MIN</p>
-                    <Play className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-gray-400 mx-auto my-4" />
-                    <p className="text-xs sm:text-sm font-semibold text-center">{v.title}</p>
-                    <p className="text-xs text-center text-gray-600 mt-2">Your mastery: {Math.round(v.mastery)}%</p>
-                  </div>
-                ))}
-              </div>
+              {planVideoCards.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                  {planVideoCards.map((v, i) => {
+                    const open = () => {
+                      if (v.url) {
+                        window.open(v.url, '_blank', 'noopener,noreferrer');
+                        return;
+                      }
+                      setLocation(
+                        `/asli-prep-content?topic=${encodeURIComponent(v.title)}`
+                      );
+                    };
+                    return (
+                      <button
+                        key={`${v.subj}-${v.title}-${i}`}
+                        type="button"
+                        onClick={open}
+                        className={`rounded-xl p-4 ${v.bg} border relative min-h-[140px] text-left hover:shadow-md transition-shadow`}
+                      >
+                        <p className="text-micro font-bold text-gray-500">
+                          {v.subj}
+                          {v.min ? ` · ~${v.min} MIN` : ''}
+                        </p>
+                        <Play className="w-6 h-6 sm:w-7 sm:h-7 text-[#7C3AED] mx-auto my-4" />
+                        <p className="text-xs sm:text-sm font-semibold text-center">{v.title}</p>
+                        <p className="text-xs text-center text-gray-600 mt-2">
+                          {v.url
+                            ? 'Tap to open video'
+                            : v.why || `Mastery on paper: ${Math.round(v.mastery)}% · open Asli Prep`}
+                        </p>
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="rounded-xl border bg-white p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <p className="text-sm text-gray-600">
+                    No linked videos for this attempt yet. Open Asli Prep to find lessons on your weak chapters.
+                  </p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setLocation('/asli-prep-content')}
+                  >
+                    Open Asli Prep
+                  </Button>
+                </div>
+              )}
             </div>
+            {(weakSubjectContent || loadingWeakContent) && (
+              <WeakSubjectResourcesCard
+                weakSubjectContent={weakSubjectContent}
+                loadingContent={loadingWeakContent}
+              />
+            )}
           </div>
         )}
 

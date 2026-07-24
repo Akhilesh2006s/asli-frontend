@@ -971,8 +971,8 @@ export default function StudentExams() {
   }
 
   return (
-    <StudentShell>
-      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8  pb-8 relative">
+    <StudentShell contentClassName="w-full py-4 sm:py-6 lg:py-8">
+      <div className="relative mx-auto w-full max-w-7xl px-4 pb-8 sm:px-6 lg:px-8">
         
         {!isMobile && <VidyaAIFloatingAssistant />}
         
@@ -1086,8 +1086,8 @@ export default function StudentExams() {
           </TabsList>
 
           {/* Available Exams */}
-          <TabsContent value="available" className="space-y-3 sm:space-y-4 lg:space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:p-4 lg:p-6">
+          <TabsContent value="available" className="space-y-3 overflow-visible sm:space-y-4 lg:space-y-6">
+            <div className="grid grid-cols-1 items-stretch gap-4 overflow-visible p-1 sm:grid-cols-2 sm:gap-5 sm:p-2 md:grid-cols-2 lg:grid-cols-3 lg:gap-6">
               {availableActiveExams.map((exam: Exam, index: number) => {
                 const status = getExamStatus(exam);
                 const colorScheme = EXAM_CARD_SCHEMES[index % EXAM_CARD_SCHEMES.length];
@@ -1098,12 +1098,14 @@ export default function StudentExams() {
                   <Card
                     key={exam._id}
                     id={`adaptive-exam-${exam._id}`}
-                    className={`relative overflow-hidden ${colorScheme.bg} ${colorScheme.border} shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-elevated`}
+                    className={`relative flex h-full min-h-0 flex-col overflow-visible scroll-mt-6 ${colorScheme.bg} ${colorScheme.border} shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-elevated`}
                   >
-                    <CardHeader>
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <CardTitle className="text-base sm:text-lg mb-2 text-gray-900">{exam.title}</CardTitle>
+                    <CardHeader className="shrink-0 space-y-2 p-4 sm:p-5 lg:p-5">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0 flex-1">
+                          <CardTitle className="mb-2 break-words text-base font-bold leading-snug text-gray-900 sm:text-lg">
+                            {exam.title}
+                          </CardTitle>
                           {exam.description && (
                             <p className={`mb-3 line-clamp-2 text-base font-medium ${colorScheme.text}`}>{exam.description}</p>
                           )}
@@ -1130,7 +1132,7 @@ export default function StudentExams() {
                         </div>
                       </div>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="flex flex-1 flex-col p-4 pt-0 sm:p-5 sm:pt-0 lg:p-5 lg:pt-0">
                       <div className={`mb-5 space-y-2.5 text-base font-medium ${colorScheme.text}`}>
                         <div className="flex items-center">
                           <Clock className={`h-3.5 w-3.5 sm:h-4 sm:w-4 mr-2 shrink-0 ${colorScheme.iconClock}`} />
@@ -1158,7 +1160,7 @@ export default function StudentExams() {
                       {/* Action Button */}
                       <Button 
                         onClick={() => handleStartExam(exam)}
-                        className="h-12 w-full !bg-primary text-base font-bold !text-primary-foreground shadow-sm transition-colors hover:!bg-indigo-blue-700 disabled:!bg-muted disabled:!text-muted-foreground"
+                        className="mt-auto h-12 w-full !bg-primary text-base font-bold !text-primary-foreground shadow-sm transition-colors hover:!bg-indigo-blue-700 disabled:!bg-muted disabled:!text-muted-foreground"
                         disabled={status.status === 'ended' || startingExamId === exam._id}
                       >
                         <Play className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
@@ -1188,8 +1190,8 @@ export default function StudentExams() {
           </TabsContent>
 
           {/* Attempted Exams */}
-          <TabsContent value="attempted" className="space-y-3 sm:space-y-4 lg:space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:p-4 lg:p-6">
+          <TabsContent value="attempted" className="space-y-3 overflow-visible sm:space-y-4 lg:space-y-6">
+            <div className="grid grid-cols-1 items-stretch gap-4 overflow-visible p-1 sm:grid-cols-2 sm:gap-5 sm:p-2 md:grid-cols-2 lg:grid-cols-3 lg:gap-6">
               {attemptedResultRows.map((result: any, index: number) => {
                 const examIdStr = getExamIdFromResult(result);
                 if (!examIdStr) return null;
@@ -1226,18 +1228,20 @@ export default function StudentExams() {
                   <Card
                     key={examIdStr}
                     id={`calendar-exam-${examIdStr}`}
-                    className={`relative overflow-hidden ${colorScheme.bg} ${colorScheme.border} shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-elevated ${
+                    className={`relative flex h-full min-h-0 flex-col overflow-visible scroll-mt-6 ${colorScheme.bg} ${colorScheme.border} shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-elevated ${
                       calendarFocusExam?.examId === examIdStr && calendarFocusExam.mode === 'ended'
                         ? 'ring-4 ring-slate-300 ring-offset-2'
                         : ''
                     }`}
                   >
-                    <CardHeader>
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <CardTitle className="text-base sm:text-lg mb-2 text-gray-900">{exam.title}</CardTitle>
+                    <CardHeader className="shrink-0 space-y-2 p-4 sm:p-5 lg:p-5">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0 flex-1">
+                          <CardTitle className="mb-2 break-words text-base font-bold leading-snug text-gray-900 sm:text-lg">
+                            {exam.title}
+                          </CardTitle>
                           {exam.description && (
-                            <p className={`text-xs sm:text-sm ${colorScheme.text}/90 mb-3 line-clamp-2`}>{exam.description}</p>
+                            <p className={`mb-3 line-clamp-2 text-xs sm:text-sm ${colorScheme.text}/90`}>{exam.description}</p>
                           )}
                           <div className="flex flex-wrap gap-2 mt-2">
                             <Badge className={`${colorScheme.badge} border-0`}>
@@ -1255,8 +1259,8 @@ export default function StudentExams() {
                         </div>
                       </div>
                     </CardHeader>
-                    <CardContent>
-                      <div className="space-y-4">
+                    <CardContent className="flex flex-1 flex-col space-y-4 p-4 pt-0 sm:p-5 sm:pt-0 lg:p-5 lg:pt-0">
+                      <div className="flex flex-1 flex-col space-y-4">
                         {totalAttempts > 1 && (
                           <div className="space-y-1.5 rounded-xl border border-slate-200 bg-slate-50/80 p-3">
                             <Label className="text-xs font-semibold text-slate-600">
@@ -1331,7 +1335,7 @@ export default function StudentExams() {
                         {/* View Details Button */}
                         <Button 
                           variant="outline" 
-                          className="h-11 w-full border-slate-200 bg-slate-50 text-base font-semibold text-slate-700 shadow-none hover:bg-slate-100 hover:text-slate-900"
+                          className="mt-auto h-11 w-full border-slate-200 bg-slate-50 text-base font-semibold text-slate-700 shadow-none hover:bg-slate-100 hover:text-slate-900"
                           onClick={async () => {
                             console.log('📋 Viewing details for exam:', exam.title);
                             console.log('📋 Exam result:', displayResult);
@@ -1453,8 +1457,8 @@ export default function StudentExams() {
           </TabsContent>
 
           {/* Upcoming Exams */}
-          <TabsContent value="upcoming" className="space-y-3 sm:space-y-4 lg:space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:p-4 lg:p-6">
+          <TabsContent value="upcoming" className="space-y-3 overflow-visible sm:space-y-4 lg:space-y-6">
+            <div className="grid grid-cols-1 items-stretch gap-4 overflow-visible p-1 sm:grid-cols-2 sm:gap-5 sm:p-2 md:grid-cols-2 lg:grid-cols-3 lg:gap-6">
               {subjectFilteredExams.filter((exam: Exam) => getExamStatus(exam).status === 'upcoming').map((exam: Exam, index: number) => {
                 const colorScheme = EXAM_CARD_SCHEMES[index % EXAM_CARD_SCHEMES.length];
                 const classLabelsUpcoming = getExamClassLabelsForStudent(exam, user?.classNumber);
@@ -1465,54 +1469,56 @@ export default function StudentExams() {
                   <Card
                     key={exam._id}
                     id={`calendar-exam-${exam._id}`}
-                    className={`relative overflow-hidden ${colorScheme.bg} ${colorScheme.border} shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-elevated ${
+                    className={`relative flex h-full min-h-0 flex-col overflow-visible scroll-mt-6 ${colorScheme.bg} ${colorScheme.border} shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-elevated ${
                       isCalendarFocus ? 'ring-4 ring-amber-400 ring-offset-2' : ''
                     }`}
                   >
-                    <CardHeader>
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <CardTitle className="text-base sm:text-lg mb-2 text-gray-900">{exam.title}</CardTitle>
+                    <CardHeader className="shrink-0 space-y-2 p-4 sm:p-5 lg:p-5">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0 flex-1">
+                          <CardTitle className="mb-2 break-words text-base font-bold leading-snug text-gray-900 sm:text-lg">
+                            {exam.title}
+                          </CardTitle>
                           {exam.description && (
-                            <p className={`text-xs sm:text-sm ${colorScheme.text}/90 mb-3 line-clamp-2`}>{exam.description}</p>
+                            <p className={`mb-3 line-clamp-2 text-xs sm:text-sm ${colorScheme.text}/90`}>{exam.description}</p>
                           )}
-                          <div className="flex flex-wrap gap-2 mt-2">
+                          <div className="mt-2 flex flex-wrap gap-2">
                             <Badge className={`${colorScheme.badge} border-0`}>
                               {exam.examType.toUpperCase()}
                             </Badge>
                             {classLabelsUpcoming.map((cl) => (
                               <Badge
                                 key={cl}
-                                className="bg-white/90 text-gray-900 border-0 font-medium"
+                                className="border-0 bg-white/90 font-medium text-gray-900"
                               >
                                 Class {cl}
                               </Badge>
                             ))}
-                            <Badge className="bg-yellow-600 text-white border-2 border-white/50 shadow-lg font-semibold">
+                            <Badge className="border-2 border-white/50 bg-yellow-600 font-semibold text-white shadow-lg">
                               UPCOMING
                             </Badge>
                           </div>
                         </div>
                       </div>
                     </CardHeader>
-                    <CardContent>
-                      <div className={`space-y-2 text-xs sm:text-sm ${colorScheme.text} mb-4`}>
+                    <CardContent className="flex flex-1 flex-col p-4 pt-0 sm:p-5 sm:pt-0 lg:p-5 lg:pt-0">
+                      <div className={`mb-4 space-y-2 text-xs sm:text-sm ${colorScheme.text}`}>
                         <div className="flex items-center">
-                          <Clock className={`h-3.5 w-3.5 sm:h-4 sm:w-4 mr-2 shrink-0 ${colorScheme.iconClock}`} />
+                          <Clock className={`mr-2 h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4 ${colorScheme.iconClock}`} />
                           <span>{exam.duration} minutes</span>
                         </div>
                         <div className="flex items-center">
-                          <BookOpen className={`h-3.5 w-3.5 sm:h-4 sm:w-4 mr-2 shrink-0 ${colorScheme.iconBook}`} />
+                          <BookOpen className={`mr-2 h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4 ${colorScheme.iconBook}`} />
                           <span>{exam.totalQuestions} questions • {exam.totalMarks} marks</span>
                         </div>
                         <div className="flex items-center">
-                          <Calendar className={`h-3.5 w-3.5 sm:h-4 sm:w-4 mr-2 shrink-0 ${colorScheme.iconCalendar}`} />
+                          <Calendar className={`mr-2 h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4 ${colorScheme.iconCalendar}`} />
                           <span className="text-xs">
                             Starts: {new Date(exam.startDate).toLocaleDateString()}
                           </span>
                         </div>
                         <div className="flex items-center">
-                          <Calendar className={`h-3.5 w-3.5 sm:h-4 sm:w-4 mr-2 shrink-0 ${colorScheme.iconCalendar}`} />
+                          <Calendar className={`mr-2 h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4 ${colorScheme.iconCalendar}`} />
                           <span className="text-xs">
                             Ends: {new Date(exam.endDate).toLocaleDateString()}
                           </span>
@@ -1521,10 +1527,10 @@ export default function StudentExams() {
 
                       <Button 
                         variant="outline" 
-                        className="h-12 w-full !bg-primary text-base font-bold !text-primary-foreground shadow-sm transition-colors hover:!bg-indigo-blue-700 disabled:!bg-muted disabled:!text-muted-foreground"
+                        className="mt-auto h-12 w-full !bg-primary text-base font-bold !text-primary-foreground shadow-sm transition-colors hover:!bg-indigo-blue-700 disabled:!bg-muted disabled:!text-muted-foreground"
                         disabled
                       >
-                        <Calendar className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
+                        <Calendar className="mr-2 h-3 w-3 sm:h-4 sm:w-4" />
                         Not Yet Available
                       </Button>
                     </CardContent>
