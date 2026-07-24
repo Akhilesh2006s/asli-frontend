@@ -578,6 +578,32 @@ body.dashboard-no-scrollbar::-webkit-scrollbar {
   }
 }
 
+@keyframes homepage-marquee-y {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(calc(-50% - 0.375rem));
+  }
+}
+
+.homepage-marquee {
+  will-change: transform;
+  animation: homepage-marquee-y 22s linear infinite;
+}
+
+.homepage-marquee-testimonials {
+  animation-duration: 18s;
+}
+
+.homepage-marquee-partners {
+  animation-duration: 26s;
+}
+
+.homepage-marquee:hover {
+  animation-play-state: paused;
+}
+
 /* Teacher workspace: playful, tactile feedback without distracting motion. */
 .teacher-playful-dashboard button:not(:disabled),
 .teacher-playful-dashboard [role='button'] {
@@ -619,6 +645,10 @@ body.dashboard-no-scrollbar::-webkit-scrollbar {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .homepage-marquee {
+    animation-play-state: paused;
+  }
+
   .teacher-playful-dashboard button,
   .teacher-playful-dashboard [role='button'],
   .teacher-playful-dashboard button svg {

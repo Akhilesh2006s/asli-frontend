@@ -1,25 +1,30 @@
-import { Button } from "@/components/ui/button";
+﻿import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import {
   ArrowRight,
+  Atom,
   BarChart3,
   BookOpen,
   Brain,
+  CalendarClock,
   CheckCircle2,
   ChevronDown,
   ClipboardCheck,
-  FolderOpen,
+  Facebook,
   GraduationCap,
+  Instagram,
   Library,
+  Lightbulb,
   LineChart,
+  Linkedin,
   Menu,
   MessageSquare,
-  Phone,
+  Play,
   School,
-  Shield,
-  Sparkles,
+  SlidersHorizontal,
   Star,
   Trophy,
+  UserPlus,
   Users,
   X,
 } from "lucide-react";
@@ -38,10 +43,10 @@ const NAV_LINKS = [
 ];
 
 const METRICS = [
-  { value: "13,000+", label: "Active Students", icon: GraduationCap, tone: "text-sky-600 bg-sky-50" },
-  { value: "500+", label: "Expert Educators", icon: Users, tone: "text-emerald-600 bg-emerald-50" },
-  { value: "75+", label: "Partner Schools", icon: School, tone: "text-orange-600 bg-orange-50" },
-  { value: "95%", label: "Success Rate", icon: Trophy, tone: "text-teal-600 bg-teal-50" },
+  { value: "13,000+", label: "Active Students", icon: GraduationCap, color: "text-sky-600", bg: "bg-sky-100" },
+  { value: "500+", label: "Expert Educators", icon: Users, color: "text-emerald-600", bg: "bg-emerald-100" },
+  { value: "75+", label: "Partner Schools", icon: School, color: "text-orange-500", bg: "bg-orange-100" },
+  { value: "95%", label: "Success Rate", icon: Trophy, color: "text-teal-600", bg: "bg-teal-100" },
 ];
 
 const FEATURES = [
@@ -49,56 +54,72 @@ const FEATURES = [
     n: "01",
     icon: Brain,
     title: "Adaptive Learning",
-    body: "AI adapts to each student’s pace with personalised practice and concept paths.",
+    body: "AI adapts to each studentâ€™s pace with personalised practice and concept paths.",
+    titleColor: "text-sky-600",
+    iconBg: "bg-sky-500",
   },
   {
     n: "02",
     icon: ClipboardCheck,
     title: "Smart Assessments",
     body: "Auto-generate tests, instant grading, and actionable insights after every attempt.",
+    titleColor: "text-emerald-600",
+    iconBg: "bg-emerald-500",
   },
   {
     n: "03",
-    icon: BookOpen,
+    icon: Play,
     title: "Interactive Content",
     body: "Multimedia lessons, EduOTT videos, and notes aligned to board curriculum.",
+    titleColor: "text-orange-500",
+    iconBg: "bg-orange-500",
   },
   {
     n: "04",
     icon: LineChart,
     title: "Learning Analytics",
     body: "Real-time dashboards for students, teachers, and school leadership.",
+    titleColor: "text-teal-600",
+    iconBg: "bg-teal-500",
   },
   {
     n: "05",
     icon: MessageSquare,
     title: "Communication Hub",
     body: "Keep school, teachers, and families aligned with clear progress signals.",
+    titleColor: "text-sky-600",
+    iconBg: "bg-sky-500",
   },
   {
     n: "06",
     icon: Library,
     title: "Resource Library",
     body: "Curated digital resources across subjects, grades, and exam pathways.",
+    titleColor: "text-emerald-600",
+    iconBg: "bg-emerald-500",
   },
 ];
 
 const STAKEHOLDERS = [
   {
     title: "For Students",
-    photo: HERO_PHOTO,
-    object: "object-[72%_20%]",
+    photo: "/stakeholder-student.png",
+    object: "object-top",
+    badgeIcon: GraduationCap,
+    badgeBg: "bg-sky-500",
     points: [
       "Personalised learning paths",
-      "Concept clarity with AI Tutor",
-      "Track progress after every mock",
-      "Build confidence for board & entrance",
+      "AI-assisted concept clarity",
+      "Track progress & goals",
+      "Build confidence & skills",
     ],
   },
   {
     title: "For Teachers",
-    photo: GROUP_PHOTO,
-    object: "object-[62%_25%]",
+    photo: "/stakeholder-teacher.png",
+    object: "object-top",
+    badgeIcon: School,
+    badgeBg: "bg-emerald-500",
     points: [
       "AI lesson & worksheet studio",
       "Faster planning and grading",
@@ -108,13 +129,15 @@ const STAKEHOLDERS = [
   },
   {
     title: "For Management",
-    photo: GROUP_PHOTO,
-    object: "object-[28%_30%]",
+    photo: "/stakeholder-management.png",
+    object: "object-top",
+    badgeIcon: BarChart3,
+    badgeBg: "bg-orange-500",
     points: [
       "Monitor institutional growth",
-      "Performance dashboards",
-      "Measure excellence across classes",
-      "Continuous improvement loops",
+      "Real-time performance dashboard",
+      "Measure academic excellence",
+      "Drive continuous improvement",
     ],
   },
 ];
@@ -122,27 +145,39 @@ const STAKEHOLDERS = [
 const STEPS = [
   {
     n: "1",
-    icon: Sparkles,
+    icon: UserPlus,
     title: "Create Account",
-    body: "Sign up in minutes for school, teacher, or student access.",
+    body: "Sign up as a school, teacher or admin in just a few minutes.",
+    numColor: "text-sky-200",
+    titleColor: "text-sky-600",
+    iconBg: "bg-sky-500",
   },
   {
     n: "2",
-    icon: FolderOpen,
+    icon: SlidersHorizontal,
     title: "Choose Your Path",
-    body: "Select board, classes, and subjects — AI shapes the learning path.",
+    body: "Select your board, classes & subjects. AI creates your custom learning path.",
+    numColor: "text-emerald-200",
+    titleColor: "text-emerald-600",
+    iconBg: "bg-emerald-500",
   },
   {
     n: "3",
     icon: BookOpen,
     title: "Learn & Practice",
-    body: "Videos, notes, exams, and Vidya AI Tutor in one guided flow.",
+    body: "Access videos, notes, tests & AI Tutor. Practice & get smarter every day.",
+    numColor: "text-orange-200",
+    titleColor: "text-orange-500",
+    iconBg: "bg-orange-500",
   },
   {
     n: "4",
     icon: BarChart3,
     title: "Track Progress",
-    body: "Monitor performance with smart analytics and weak-chapter plans.",
+    body: "Monitor performance with smart analytics & achieve your goals faster.",
+    numColor: "text-teal-200",
+    titleColor: "text-teal-600",
+    iconBg: "bg-teal-500",
   },
 ];
 
@@ -152,30 +187,36 @@ const TESTIMONIALS = [
       "AsliLearn finally gives us a walkthrough that principals can follow on Zoom — AI tools look classroom-ready, not cluttered.",
     name: "Dr. Neha Sharma",
     role: "Principal",
+    photo: "/avatar-3.png",
+    pos: "center",
   },
   {
     quote:
       "Teachers generate worksheets that feel like premium reports. Students engage because the structure is clear.",
     name: "Mr. Amit Verma",
     role: "Vice Principal",
+    photo: "/avatar-4.png",
+    pos: "center",
   },
   {
     quote:
       "Analytics after mocks tell us where to intervene. Weak chapters and pacing issues are no longer guesswork.",
     name: "Ms. Kavitha Rao",
     role: "Academic Coordinator",
+    photo: "/stakeholder-teacher.png",
+    pos: "top",
   },
 ];
 
-const PARTNER_NAMES = [
-  "Delhi Public School",
-  "Narayana",
-  "Vibgyor",
-  "Podar",
-  "Oakridge",
-  "Chaitanya",
-  "FIITJEE Schools",
-  "Many more",
+const PARTNER_SCHOOLS = [
+  { name: "Delhi Public School – Amaravati", initial: "DPS", tone: "bg-emerald-50 text-emerald-800 border-emerald-200" },
+  { name: "Academic Heights Public School", initial: "AHPS", tone: "bg-sky-50 text-sky-800 border-sky-200" },
+  { name: "GMR Chinmaya Vidyalaya", initial: "GCV", tone: "bg-violet-50 text-violet-800 border-violet-200" },
+  { name: "IPS International Group of Schools", initial: "IPS", tone: "bg-amber-50 text-amber-900 border-amber-200" },
+  { name: "Pallavi Progressive High School", initial: "PPHS", tone: "bg-teal-50 text-teal-800 border-teal-200" },
+  { name: "Pearls Infinity International School", initial: "PIIS", tone: "bg-rose-50 text-rose-800 border-rose-200" },
+  { name: "MVR Montessori EM Digital School", initial: "MVR", tone: "bg-indigo-50 text-indigo-800 border-indigo-200" },
+  { name: "& Many More", initial: "+", tone: "bg-slate-50 text-[#0a1f44] border-slate-200" },
 ];
 
 const FAQS = [
@@ -193,12 +234,20 @@ const FAQS = [
   },
   {
     q: "Do you offer institutional plans?",
-    a: "Yes. Custom school plans cover admin console, EduOTT, exams, and rollout support. Book a demo and we’ll tailor access for your campus.",
+    a: "Yes. Custom school plans cover admin console, EduOTT, exams, and rollout support. Book a demo and weâ€™ll tailor access for your campus.",
   },
   {
     q: "Can it be demoed on Teams or Zoom?",
     a: "The UI is designed for screen share: large type, clear hierarchy, and high-contrast panels that stay readable on projectors and remote calls.",
   },
+];
+
+const HERO_ICONS = [
+  { Icon: GraduationCap, className: "left-[8%] top-[18%] opacity-20" },
+  { Icon: Atom, className: "left-[42%] top-[12%] opacity-15" },
+  { Icon: BookOpen, className: "left-[18%] top-[58%] opacity-15" },
+  { Icon: Lightbulb, className: "left-[48%] top-[48%] opacity-20" },
+  { Icon: Brain, className: "right-[48%] top-[28%] opacity-10 lg:right-auto lg:left-[55%]" },
 ];
 
 function FaqItem({ q, a }: { q: string; a: string }) {
@@ -227,7 +276,7 @@ function Navbar({ scrolled }: { scrolled: boolean }) {
       className={`sticky top-0 z-50 border-b transition-colors duration-300 ${
         scrolled
           ? "border-slate-200 bg-white/95 shadow-sm backdrop-blur-xl"
-          : "border-white/10 bg-[#061a33]/70 backdrop-blur-md"
+          : "border-transparent bg-[#0a1f44]"
       }`}
     >
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-3 px-4 sm:h-[4.25rem] sm:px-6 lg:px-8">
@@ -235,13 +284,11 @@ function Navbar({ scrolled }: { scrolled: boolean }) {
           <img
             src="/logo.jpg"
             alt="AsliLearn AI"
-            className={`h-9 w-9 rounded-lg object-contain sm:h-10 sm:w-10 ${
-              scrolled ? "ring-2 ring-sky-200" : "ring-2 ring-white/25"
-            }`}
+            className="h-9 w-9 rounded-lg object-contain ring-2 ring-white/20 sm:h-10 sm:w-10"
           />
           <span
             className={`font-display text-lg font-extrabold tracking-tight sm:text-xl ${
-              scrolled ? "text-slate-900" : "text-white"
+              scrolled ? "text-[#0a1f44]" : "text-white"
             }`}
           >
             ASLILEARN<span className={scrolled ? "text-sky-600" : "text-sky-300"}>.AI</span>
@@ -265,14 +312,18 @@ function Navbar({ scrolled }: { scrolled: boolean }) {
         <div className="flex shrink-0 items-center gap-2">
           <Link href="/auth/login" className="hidden sm:block">
             <Button
-              variant="ghost"
-              className={`h-10 ${scrolled ? "text-slate-700 hover:bg-slate-100" : "text-white hover:bg-white/10"}`}
+              variant="outline"
+              className={`h-10 border-2 ${
+                scrolled
+                  ? "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
+                  : "border-white/50 bg-transparent text-white hover:bg-white/10 hover:text-white"
+              }`}
             >
               Login
             </Button>
           </Link>
           <Link href="/contact" className="hidden sm:block">
-            <Button className="h-10 bg-sky-600 px-4 text-white hover:bg-sky-700">Book a Demo</Button>
+            <Button className="h-10 bg-sky-500 px-4 text-white hover:bg-sky-600">Book a Demo</Button>
           </Link>
           <Button
             type="button"
@@ -288,7 +339,11 @@ function Navbar({ scrolled }: { scrolled: boolean }) {
       </div>
 
       {mobileOpen ? (
-        <div className={`border-t px-4 py-4 xl:hidden ${scrolled ? "border-slate-200 bg-white" : "border-white/10 bg-[#061a33]"}`}>
+        <div
+          className={`border-t px-4 py-4 xl:hidden ${
+            scrolled ? "border-slate-200 bg-white" : "border-white/10 bg-[#0a1f44]"
+          }`}
+        >
           <div className="flex flex-col gap-1">
             {NAV_LINKS.map((link) => (
               <a
@@ -309,7 +364,7 @@ function Navbar({ scrolled }: { scrolled: boolean }) {
                 </Button>
               </Link>
               <Link href="/contact" onClick={() => setMobileOpen(false)}>
-                <Button className="h-11 w-full bg-sky-600 text-white hover:bg-sky-700">Book a Demo</Button>
+                <Button className="h-11 w-full bg-sky-500 text-white hover:bg-sky-600">Book a Demo</Button>
               </Link>
             </div>
           </div>
@@ -323,107 +378,116 @@ export default function Homepage() {
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 40);
+    const onScroll = () => setScrolled(window.scrollY > 24);
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-[#f5f8fc] text-slate-900">
+    <div className="min-h-screen overflow-x-hidden bg-white text-slate-900">
       <Navbar scrolled={scrolled} />
 
-      {/* HERO — full bleed photo, brand first */}
-      <section className="relative min-h-[88vh] overflow-hidden bg-[#061a33]">
-        <img
-          src={HERO_PHOTO}
-          alt="Student studying with tablet, notes, and sticky notes"
-          className="absolute inset-0 h-full w-full object-cover object-[78%_center] sm:object-[70%_center] lg:object-[68%_center]"
-          loading="eager"
-          fetchPriority="high"
-          decoding="async"
-        />
-        <div
-          className="absolute inset-0"
-          aria-hidden
-          style={{
-            background:
-              "linear-gradient(105deg, rgba(6,26,51,0.94) 0%, rgba(6,26,51,0.82) 36%, rgba(6,26,51,0.42) 58%, rgba(6,26,51,0.18) 100%)",
-          }}
-        />
-        <div
-          className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-[#061a33]/80 to-transparent sm:hidden"
-          aria-hidden
-        />
+      {/* HERO — full-bleed photo fading into navy (matches mock) */}
+      <section className="relative overflow-hidden bg-[#0a1f44] pb-28 pt-10 sm:pt-14 lg:pb-36 lg:pt-16">
+        {/* Full-bleed photo layer (desktop) */}
+        <div className="pointer-events-none absolute inset-y-0 right-0 hidden w-[62%] lg:block" aria-hidden>
+          <img
+            src={HERO_PHOTO}
+            alt=""
+            className="h-full w-full object-cover object-[58%_center]"
+            loading="eager"
+            fetchPriority="high"
+            decoding="async"
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-[#0a1f44] via-[#0a1f44]/55 to-transparent" />
+          <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-[#0a1f44] to-transparent" />
+        </div>
 
-        <div className="relative mx-auto flex min-h-[88vh] max-w-7xl flex-col justify-end px-4 pb-16 pt-28 sm:justify-center sm:px-6 sm:pb-20 lg:px-8 lg:py-24">
-          <p className="animate-fade-rise font-display text-2xl font-extrabold tracking-tight text-white sm:text-3xl lg:text-4xl">
-            ASLILEARN<span className="text-sky-300">.AI</span>
-          </p>
-          <h1 className="animate-fade-rise mt-4 max-w-2xl font-display text-4xl font-extrabold leading-[1.08] tracking-tight text-white sm:text-5xl lg:max-w-3xl lg:text-6xl">
-            AI-First Learning.
-            <br />
-            Future-Ready Schools.
-          </h1>
-          <p className="animate-fade-rise mt-5 max-w-xl text-base font-medium leading-relaxed text-white/85 sm:text-lg lg:max-w-2xl lg:text-xl">
-            AsliLearn.ai empowers schools with intelligent tools to personalise learning, elevate teaching, and
-            drive measurable outcomes.
-          </p>
-          <div className="animate-fade-rise mt-8 flex w-full flex-col gap-3 sm:max-w-lg sm:flex-row">
-            <Link href="/contact" className="w-full sm:w-auto">
-              <Button size="lg" className="h-12 w-full bg-sky-600 px-7 text-base text-white hover:bg-sky-700 sm:h-14 sm:w-auto sm:text-lg">
-                Book a Demo
-                <ArrowRight className="h-5 w-5" />
-              </Button>
-            </Link>
-            <a href="#platform" className="w-full sm:w-auto">
-              <Button
-                size="lg"
-                variant="outline"
-                className="h-12 w-full border-white/40 bg-white/10 px-7 text-base text-white backdrop-blur-sm hover:bg-white/20 hover:text-white sm:h-14 sm:w-auto sm:text-lg"
-              >
-                Explore the Platform
-              </Button>
-            </a>
-          </div>
-          <div className="animate-fade-rise mt-8 flex items-center gap-3">
-            <div className="flex -space-x-2">
-              {/* Faces from group study photo — distinct crops only */}
-              {[
-                { pos: "18% 28%" },
-                { pos: "38% 30%" },
-                { pos: "58% 28%" },
-                { pos: "78% 30%" },
-              ].map((face, i) => (
-                <img
-                  key={i}
-                  src={GROUP_PHOTO}
-                  alt=""
-                  className="h-9 w-9 rounded-full border-2 border-[#061a33] object-cover"
-                  style={{ objectPosition: face.pos }}
-                  aria-hidden
-                />
-              ))}
+        {/* Decorative education icons */}
+        <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
+          {HERO_ICONS.map(({ Icon, className }, i) => (
+            <Icon key={i} className={`absolute h-14 w-14 text-white sm:h-16 sm:w-16 ${className}`} strokeWidth={1.25} />
+          ))}
+        </div>
+
+        <div className="relative mx-auto grid max-w-7xl items-center gap-10 px-4 sm:px-6 lg:grid-cols-2 lg:gap-12 lg:px-8">
+          <div className="relative z-10">
+            <h1 className="animate-fade-rise font-display text-4xl font-extrabold leading-[1.1] tracking-tight text-white sm:text-5xl lg:text-[3.25rem]">
+              <span className="text-sky-400">AI</span>-First Learning.
+              <br />
+              Future-Ready Schools.
+            </h1>
+            <p className="animate-fade-rise mt-5 max-w-xl text-base font-medium leading-relaxed text-white/80 sm:text-lg">
+              AsliLearn.ai empowers schools with intelligent tools to personalise learning, elevate teaching, and
+              drive measurable outcomes.
+            </p>
+            <div className="animate-fade-rise mt-8 flex w-full flex-col gap-3 sm:max-w-md sm:flex-row">
+              <Link href="/contact" className="w-full sm:w-auto">
+                <Button
+                  size="lg"
+                  className="h-12 w-full bg-sky-500 px-6 text-base font-semibold text-white hover:bg-sky-600 sm:w-auto"
+                >
+                  Book a Demo
+                  <ArrowRight className="h-5 w-5" />
+                </Button>
+              </Link>
+              <a href="#platform" className="w-full sm:w-auto">
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="h-12 w-full border-2 border-white/60 bg-transparent px-6 text-base font-semibold text-white hover:bg-white/10 hover:text-white sm:w-auto"
+                >
+                  Explore the Platform
+                </Button>
+              </a>
             </div>
-            <p className="text-sm font-medium text-white/80 sm:text-base">Trusted by 500+ schools across India</p>
+            <div className="animate-fade-rise mt-8 flex items-center gap-3">
+              <div className="flex -space-x-2">
+                {["/avatar-1.png", "/avatar-2.png", "/avatar-3.png", "/avatar-4.png"].map((src) => (
+                  <img
+                    key={src}
+                    src={src}
+                    alt=""
+                    className="h-9 w-9 rounded-full border-2 border-[#0a1f44] object-cover"
+                    aria-hidden
+                  />
+                ))}
+              </div>
+              <p className="text-sm font-medium text-white/75 sm:text-base">Trusted by 500+ schools across India</p>
+            </div>
+          </div>
+
+          {/* Mobile / tablet photo (desktop uses the full-bleed layer above) */}
+          <div className="relative z-10 w-full lg:hidden">
+            <div className="relative overflow-hidden rounded-2xl shadow-2xl shadow-black/40">
+              <img
+                src={HERO_PHOTO}
+                alt="Student learning with tablet and notes"
+                className="block h-auto w-full"
+                loading="eager"
+                decoding="async"
+              />
+              <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-[#0a1f44] to-transparent" />
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Metrics */}
-      <section className="relative z-10 -mt-8 px-4 sm:-mt-10 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-7xl rounded-2xl border border-slate-200/90 bg-white px-4 py-5 shadow-lg sm:px-8 sm:py-6">
-          <div className="grid grid-cols-2 gap-4 md:grid-cols-4 md:gap-6">
+      {/* Metrics card overlapping hero */}
+      <section className="relative z-20 -mt-16 px-4 sm:-mt-20 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-6xl rounded-2xl border border-slate-100 bg-white px-4 py-6 shadow-[0_24px_60px_-30px_rgba(10,31,68,0.55)] sm:px-8 sm:py-7">
+          <div className="grid grid-cols-2 gap-5 md:grid-cols-4 md:gap-4">
             {METRICS.map((m) => {
               const Icon = m.icon;
               return (
                 <div key={m.label} className="flex items-center gap-3">
-                  <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${m.tone}`}>
-                    <Icon className="h-5 w-5" />
+                  <span className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full ${m.bg}`}>
+                    <Icon className={`h-5 w-5 ${m.color}`} />
                   </span>
                   <div>
-                    <p className="font-display text-xl font-extrabold text-[#061a33] sm:text-2xl">{m.value}</p>
-                    <p className="text-xs font-medium text-slate-500 sm:text-sm">{m.label}</p>
+                    <p className={`font-display text-2xl font-extrabold leading-none ${m.color}`}>{m.value}</p>
+                    <p className="mt-1 text-xs font-medium text-slate-500 sm:text-sm">{m.label}</p>
                   </div>
                 </div>
               );
@@ -432,154 +496,229 @@ export default function Homepage() {
         </div>
       </section>
 
-      {/* Features */}
+      {/* Features with numbered path */}
       <section id="features" className="scroll-mt-24 py-16 sm:py-24">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-3xl text-center">
-            <h2 className="font-display text-3xl font-extrabold tracking-tight text-[#061a33] sm:text-4xl lg:text-5xl">
-              Powerful Features. Purposeful Impact.
+            <h2 className="font-display text-3xl font-extrabold tracking-tight text-[#0a1f44] sm:text-4xl lg:text-5xl">
+              Powerful Features. <span className="text-sky-600">Purposeful Impact.</span>
             </h2>
-            <p className="mt-3 text-base text-slate-600 sm:text-lg">
-              Everything your school needs to teach, learn, assess, and improve — in one AI-first platform.
-            </p>
           </div>
-          <div className="relative mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3 lg:gap-6">
-            {FEATURES.map((f) => {
-              const Icon = f.icon;
-              return (
-                <article
-                  key={f.n}
-                  className="relative rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:border-sky-200 hover:shadow-md"
-                >
-                  <div className="mb-4 flex items-center justify-between">
-                    <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-sky-50 text-sky-700">
-                      <Icon className="h-5 w-5" />
-                    </span>
-                    <span className="font-display text-sm font-bold text-sky-600">{f.n}</span>
-                  </div>
-                  <h3 className="font-display text-xl font-bold text-[#061a33]">{f.title}</h3>
-                  <p className="mt-2 text-sm leading-relaxed text-slate-600 sm:text-base">{f.body}</p>
-                </article>
-              );
-            })}
+
+          <div className="relative mt-14">
+            {/* Dotted connector path (desktop) */}
+            <svg
+              className="pointer-events-none absolute inset-0 hidden h-full w-full lg:block"
+              viewBox="0 0 1000 520"
+              fill="none"
+              aria-hidden
+              preserveAspectRatio="none"
+            >
+              <path
+                d="M160 90 H500 H840 M840 90 V260 H500 H160 M160 260 V430 H500 H840"
+                stroke="#cbd5e1"
+                strokeWidth="2"
+                strokeDasharray="6 10"
+              />
+            </svg>
+
+            <div className="relative grid gap-6 sm:grid-cols-2 lg:grid-cols-3 lg:gap-8">
+              {FEATURES.map((f) => {
+                const Icon = f.icon;
+                return (
+                  <article
+                    key={f.n}
+                    className="relative rounded-2xl border border-slate-100 bg-white p-6 shadow-[0_12px_40px_-24px_rgba(10,31,68,0.35)]"
+                  >
+                    <div className="mb-4 flex items-start justify-between">
+                      <span
+                        className={`flex h-12 w-12 items-center justify-center rounded-full text-white shadow-md ${f.iconBg}`}
+                      >
+                        <Icon className="h-5 w-5" />
+                      </span>
+                      <span className="font-display text-sm font-bold text-slate-300">{f.n}</span>
+                    </div>
+                    <h3 className={`font-display text-xl font-bold ${f.titleColor}`}>{f.title}</h3>
+                    <p className="mt-2 text-sm leading-relaxed text-slate-600 sm:text-[0.95rem]">{f.body}</p>
+                  </article>
+                );
+              })}
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Stakeholders / Platform */}
-      <section id="platform" className="scroll-mt-24 border-y border-slate-200 bg-white py-16 sm:py-24">
+      {/* Stakeholders — portrait cards with connector path */}
+      <section id="platform" className="scroll-mt-24 bg-[#f4f7fb] py-16 sm:py-24">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="mx-auto max-w-3xl text-center">
-            <h2 className="font-display text-3xl font-extrabold text-[#061a33] sm:text-4xl">
-              Benefits for Every Stakeholder
-            </h2>
-            <p className="mt-3 text-base text-slate-600 sm:text-lg">
-              One platform that serves students, teachers, and school leadership together.
-            </p>
-          </div>
-          <div className="mt-12 grid gap-6 lg:grid-cols-3">
-            {STAKEHOLDERS.map((s) => (
-              <article
-                key={s.title}
-                className="overflow-hidden rounded-2xl border border-slate-200 bg-[#f8fafc] shadow-sm"
-              >
-                <div className="relative h-44 overflow-hidden sm:h-52">
-                  <img
-                    src={s.photo}
-                    alt=""
-                    className={`h-full w-full object-cover ${s.object}`}
-                    loading="lazy"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#061a33]/70 to-transparent" />
-                  <h3 className="absolute bottom-4 left-5 font-display text-2xl font-bold text-white">{s.title}</h3>
-                </div>
-                <ul className="space-y-3 p-5 sm:p-6">
-                  {s.points.map((p) => (
-                    <li key={p} className="flex gap-2.5 text-sm text-slate-700 sm:text-base">
-                      <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
-                      {p}
-                    </li>
-                  ))}
-                </ul>
-              </article>
-            ))}
+          <h2 className="text-center font-display text-3xl font-extrabold tracking-tight text-[#0a1f44] sm:text-4xl">
+            Benefits for <span className="text-sky-600">Every Stakeholder</span>
+          </h2>
+
+          <div className="relative mt-16">
+            {/* Dashed connector across cards (desktop) */}
+            <div
+              className="pointer-events-none absolute left-[16%] right-[16%] top-[4.75rem] hidden items-center lg:flex"
+              aria-hidden
+            >
+              <div className="h-0 flex-1 border-t-2 border-dashed border-slate-300" />
+              <span className="mx-1 h-3 w-3 shrink-0 rounded-full bg-sky-500" />
+              <div className="h-0 flex-1 border-t-2 border-dashed border-slate-300" />
+              <span className="mx-1 h-3 w-3 shrink-0 rounded-full bg-emerald-500" />
+              <div className="h-0 flex-1 border-t-2 border-dashed border-slate-300" />
+            </div>
+
+            <div className="relative grid gap-12 sm:grid-cols-2 lg:grid-cols-3 lg:gap-8">
+              {STAKEHOLDERS.map((s) => {
+                const BadgeIcon = s.badgeIcon;
+                return (
+                  <div key={s.title} className="relative flex flex-col items-center pt-2">
+                    {/* Portrait + side badge */}
+                    <div className="relative z-10 mb-[-2.75rem] flex items-center">
+                      <div className="h-[7.5rem] w-[7.5rem] overflow-hidden rounded-full border-[5px] border-white bg-amber-300 shadow-xl sm:h-32 sm:w-32">
+                        <img
+                          src={s.photo}
+                          alt=""
+                          className={`h-full w-full object-cover ${s.object}`}
+                          loading="lazy"
+                        />
+                      </div>
+                      <span
+                        className={`absolute -right-3 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border-[3px] border-white text-white shadow-md sm:-right-4 ${s.badgeBg}`}
+                      >
+                        <BadgeIcon className="h-5 w-5" />
+                      </span>
+                    </div>
+
+                    <div className="w-full rounded-2xl bg-[#0a1f44] px-6 pb-7 pt-14 text-left shadow-lg">
+                      <h3 className="font-display text-xl font-bold text-white">{s.title}</h3>
+                      <ul className="mt-4 space-y-3">
+                        {s.points.map((p) => (
+                          <li key={p} className="flex gap-2.5 text-sm text-white/85">
+                            <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-sky-400" />
+                            {p}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
       </section>
-
       {/* How it works */}
       <section id="about" className="scroll-mt-24 py-16 sm:py-24">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <h2 className="text-center font-display text-3xl font-extrabold text-[#061a33] sm:text-4xl">
-            How it Works
+          <h2 className="text-center font-display text-3xl font-extrabold text-[#0a1f44] sm:text-4xl">
+            How <span className="relative inline-block">it<span className="absolute -bottom-1 left-0 right-0 h-1 rounded-full bg-sky-500" /></span> Works
           </h2>
-          <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            {STEPS.map((step) => {
-              const Icon = step.icon;
-              return (
-                <div key={step.n} className="text-center">
-                  <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-[#061a33] text-white shadow-md">
-                    <Icon className="h-7 w-7" />
+
+          <div className="relative mt-14">
+            <svg
+              className="pointer-events-none absolute left-0 right-0 top-8 hidden h-16 w-full lg:block"
+              viewBox="0 0 1000 64"
+              fill="none"
+              aria-hidden
+              preserveAspectRatio="none"
+            >
+              <path
+                d="M80 32 C200 8 280 56 400 32 C520 8 600 56 720 32 C840 8 900 40 920 32"
+                stroke="#cbd5e1"
+                strokeWidth="2"
+                strokeDasharray="6 8"
+                strokeLinecap="round"
+              />
+              <path d="M920 32 L940 28 L940 36 Z" fill="#cbd5e1" />
+            </svg>
+
+            <div className="relative grid gap-10 sm:grid-cols-2 lg:grid-cols-4 lg:gap-6">
+              {STEPS.map((step) => {
+                const Icon = step.icon;
+                return (
+                  <div key={step.n} className="relative text-center">
+                    <span
+                      className={`pointer-events-none absolute left-1/2 top-0 -translate-x-1/2 select-none font-display text-[7rem] font-extrabold leading-none ${step.numColor}`}
+                      aria-hidden
+                    >
+                      {step.n}
+                    </span>
+                    <div className="relative z-10 pt-10">
+                      <span
+                        className={`mx-auto flex h-14 w-14 items-center justify-center rounded-full text-white shadow-lg ${step.iconBg}`}
+                      >
+                        <Icon className="h-6 w-6" />
+                      </span>
+                      <h3 className={`mt-5 font-display text-xl font-bold ${step.titleColor}`}>{step.title}</h3>
+                      <p className="mx-auto mt-2 max-w-[16rem] text-sm leading-relaxed text-slate-600">{step.body}</p>
+                    </div>
                   </div>
-                  <p className="mt-4 font-display text-sm font-bold uppercase tracking-wider text-sky-600">
-                    Step {step.n}
-                  </p>
-                  <h3 className="mt-1 font-display text-xl font-bold text-[#061a33]">{step.title}</h3>
-                  <p className="mt-2 text-sm leading-relaxed text-slate-600 sm:text-base">{step.body}</p>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Social proof */}
-      <section id="resources" className="scroll-mt-24 bg-[#061a33] py-16 text-white sm:py-24">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="grid gap-12 lg:grid-cols-2 lg:gap-16">
-            <div>
-              <h2 className="font-display text-3xl font-extrabold sm:text-4xl">Loved by Educators</h2>
-              <div className="mt-8 space-y-4">
-                {TESTIMONIALS.map((t) => (
-                  <blockquote key={t.name} className="rounded-2xl border border-white/10 bg-white/5 p-5 backdrop-blur-sm">
-                    <div className="mb-3 flex gap-0.5 text-amber-400">
+      {/* Testimonials + Partners */}
+      <section id="resources" className="scroll-mt-24 bg-[#0a1f44] py-10 text-white sm:py-14">
+        <div className="mx-auto grid max-w-7xl gap-8 px-4 sm:px-6 lg:grid-cols-[1.15fr_0.85fr] lg:gap-8 lg:px-8">
+          <div className="min-w-0">
+            <h2 className="font-display text-2xl font-extrabold sm:text-3xl">
+              Loved by Educators. <span className="text-sky-300">Trusted by Schools.</span>
+            </h2>
+            <div className="mt-5 h-[22rem] overflow-hidden">
+              <div className="homepage-marquee homepage-marquee-testimonials flex flex-col gap-3">
+                {[...TESTIMONIALS, ...TESTIMONIALS].map((t, index) => (
+                  <article
+                    key={`${t.name}-${index}`}
+                    className="flex w-full shrink-0 flex-col rounded-xl bg-white p-4 text-slate-900 shadow-md"
+                    aria-hidden={index >= TESTIMONIALS.length}
+                  >
+                    <div className="flex gap-0.5 text-amber-400">
                       {Array.from({ length: 5 }).map((_, i) => (
-                        <Star key={i} className="h-4 w-4 fill-current" />
+                        <Star key={i} className="h-3.5 w-3.5 fill-current" />
                       ))}
                     </div>
-                    <p className="text-sm leading-relaxed text-white/90 sm:text-base">“{t.quote}”</p>
-                    <footer className="mt-4">
-                      <p className="font-semibold text-white">{t.name}</p>
-                      <p className="text-sm text-sky-200">{t.role}</p>
-                    </footer>
-                  </blockquote>
+                    <p className="mt-2 line-clamp-3 text-[0.8125rem] italic leading-relaxed text-slate-700">
+                      &ldquo;{t.quote}&rdquo;
+                    </p>
+                    <div className="mt-3 flex items-center justify-between gap-2 border-t border-slate-100 pt-3">
+                      <div className="min-w-0">
+                        <p className="truncate font-display text-sm font-bold text-[#0a1f44]">{t.name}</p>
+                        <p className="text-[0.7rem] text-slate-500">{t.role}</p>
+                      </div>
+                      <img
+                        src={t.photo}
+                        alt=""
+                        className="h-9 w-9 shrink-0 rounded-full object-cover ring-2 ring-slate-100"
+                        style={{ objectPosition: t.pos }}
+                        loading="lazy"
+                      />
+                    </div>
+                  </article>
                 ))}
               </div>
             </div>
-            <div>
-              <h2 className="font-display text-3xl font-extrabold sm:text-4xl">Our Partner Schools</h2>
-              <p className="mt-3 text-white/70">Schools and networks we support across India.</p>
-              <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-2">
-                {PARTNER_NAMES.map((name) => (
+          </div>
+
+          <div className="min-w-0">
+            <h2 className="font-display text-xl font-extrabold sm:text-2xl">Our Partner Schools</h2>
+            <div className="mt-5 h-[22rem] overflow-hidden">
+              <div className="homepage-marquee homepage-marquee-partners flex flex-col gap-3">
+                {[...PARTNER_SCHOOLS, ...PARTNER_SCHOOLS].map((school, index) => (
                   <div
-                    key={name}
-                    className="flex min-h-[72px] items-center justify-center rounded-xl border border-white/15 bg-white/5 px-3 py-4 text-center text-sm font-semibold text-white/90"
+                    key={`${school.name}-${index}`}
+                    className={`flex h-[4.75rem] w-full shrink-0 items-center gap-3 rounded-xl border bg-white px-4 py-3 text-left shadow-sm ${school.tone}`}
+                    aria-hidden={index >= PARTNER_SCHOOLS.length}
                   >
-                    {name}
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/80 font-display text-xs font-extrabold shadow-sm">
+                      {school.initial}
+                    </span>
+                    <p className="font-display text-sm font-semibold leading-snug">{school.name}</p>
                   </div>
                 ))}
-              </div>
-              <div className="relative mt-8 overflow-hidden rounded-2xl">
-                <img
-                  src={GROUP_PHOTO}
-                  alt="Students collaborating on Physics, Chemistry, and Mathematics"
-                  className="h-48 w-full object-cover object-center sm:h-56"
-                  loading="lazy"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#061a33]/80 to-transparent" />
-                <p className="absolute bottom-4 left-4 right-4 text-sm font-medium text-white/90">
-                  Real classrooms. Board pathways. Measurable outcomes.
-                </p>
               </div>
             </div>
           </div>
@@ -589,84 +728,85 @@ export default function Homepage() {
       {/* Pricing */}
       <section id="pricing" className="scroll-mt-24 py-16 sm:py-24">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="mx-auto max-w-2xl text-center">
-            <h2 className="font-display text-3xl font-extrabold text-[#061a33] sm:text-4xl">
-              Simple, Transparent Pricing
-            </h2>
-            <p className="mt-3 text-base text-slate-600 sm:text-lg">
-              Start with a 7-day free trial. Custom institutional plans available on request.
-            </p>
-          </div>
+          <h2 className="text-center font-display text-3xl font-extrabold text-[#0a1f44] sm:text-4xl">
+            Simple, <span className="text-sky-600">Transparent</span> Pricing
+          </h2>
+
           <div className="mx-auto mt-12 grid max-w-4xl gap-6 md:grid-cols-2">
-            <article className="rounded-2xl border border-slate-200 bg-white p-7 shadow-sm sm:p-8">
-              <p className="text-sm font-bold uppercase tracking-wider text-sky-600">Student Plan</p>
-              <h3 className="mt-2 font-display text-2xl font-bold text-[#061a33]">Board + IIT</h3>
-              <p className="mt-4 font-display text-4xl font-extrabold text-[#061a33]">
-                ₹249<span className="text-lg font-semibold text-slate-500"> / month</span>
-              </p>
-              <p className="mt-1 text-sm text-slate-500">per child</p>
-              <ul className="mt-6 space-y-3">
-                {[
-                  "Videos & notes access",
-                  "AI Tutor · 10 queries / day",
-                  "Practice tests & mocks",
-                  "Progress reports",
-                ].map((p) => (
-                  <li key={p} className="flex gap-2 text-sm text-slate-700 sm:text-base">
-                    <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-sky-600" />
-                    {p}
-                  </li>
-                ))}
-              </ul>
-              <Link href="/auth/register" className="mt-8 block">
-                <Button className="h-12 w-full bg-sky-600 text-white hover:bg-sky-700">
-                  Start 7-Day Free Trial
-                </Button>
-              </Link>
+            <article className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_16px_40px_-24px_rgba(10,31,68,0.35)]">
+              <div className="bg-[#0a1f44] px-6 py-5 text-white">
+                <h3 className="font-display text-xl font-bold">Student Plan</h3>
+                <p className="mt-0.5 text-sm text-white/70">Board + IIT</p>
+              </div>
+              <div className="px-6 py-6">
+                <p className="font-display text-3xl font-extrabold text-sky-600">
+                  ₹249 <span className="text-base font-semibold text-slate-500">/ month per child</span>
+                </p>
+                <ul className="mt-6 space-y-3">
+                  {[
+                    "Access to all videos & notes",
+                    "AI Tutor — 10 queries/day",
+                    "Practice tests & quizzes",
+                    "Progress reports & analytics",
+                    "Community access",
+                  ].map((f) => (
+                    <li key={f} className="flex gap-2.5 text-sm text-slate-700">
+                      <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
+                      {f}
+                    </li>
+                  ))}
+                </ul>
+                <Link href="/auth/register" className="mt-8 block">
+                  <Button className="h-12 w-full rounded-full bg-sky-500 text-base font-semibold text-white hover:bg-sky-600">
+                    Start 7-Day Free Trial
+                  </Button>
+                </Link>
+              </div>
             </article>
 
-            <article className="rounded-2xl border-2 border-sky-500 bg-sky-50/60 p-7 shadow-md sm:p-8">
-              <p className="text-sm font-bold uppercase tracking-wider text-sky-700">Teacher Plan</p>
-              <h3 className="mt-2 font-display text-2xl font-bold text-[#061a33]">AI Studio</h3>
-              <p className="mt-4 font-display text-4xl font-extrabold text-[#061a33]">
-                ₹3,999<span className="text-lg font-semibold text-slate-500"> / year</span>
-              </p>
-              <p className="mt-1 text-sm text-slate-500">per teacher</p>
-              <ul className="mt-6 space-y-3">
-                {[
-                  "Unlimited AI Tutor access",
-                  "Lesson plans, worksheets, papers",
-                  "AI grading support",
-                  "Priority support",
-                ].map((p) => (
-                  <li key={p} className="flex gap-2 text-sm text-slate-700 sm:text-base">
-                    <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-sky-700" />
-                    {p}
-                  </li>
-                ))}
-              </ul>
-              <Link href="/auth/register" className="mt-8 block">
-                <Button className="h-12 w-full bg-[#061a33] text-white hover:bg-[#0a2748]">
-                  Start 7-Day Free Trial
-                </Button>
-              </Link>
+            <article className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_16px_40px_-24px_rgba(10,31,68,0.35)]">
+              <div className="bg-emerald-500 px-6 py-5 text-white">
+                <h3 className="font-display text-xl font-bold">Teacher Plan</h3>
+                <p className="mt-0.5 text-sm text-white/80">&nbsp;</p>
+              </div>
+              <div className="px-6 py-6">
+                <p className="font-display text-3xl font-extrabold text-emerald-600">
+                  ₹3,999 <span className="text-base font-semibold text-slate-500">/ year per teacher</span>
+                </p>
+                <ul className="mt-6 space-y-3">
+                  {[
+                    "Unlimited AI Tutor access",
+                    "All teaching resources",
+                    "AI grading & assessments",
+                    "Advanced analytics",
+                    "Priority support",
+                  ].map((f) => (
+                    <li key={f} className="flex gap-2.5 text-sm text-slate-700">
+                      <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
+                      {f}
+                    </li>
+                  ))}
+                </ul>
+                <Link href="/auth/register" className="mt-8 block">
+                  <Button className="h-12 w-full rounded-full bg-emerald-500 text-base font-semibold text-white hover:bg-emerald-600">
+                    Start 7-Day Free Trial
+                  </Button>
+                </Link>
+              </div>
             </article>
           </div>
-          <p className="mt-6 text-center text-sm text-slate-500">
-            Need a school-wide rollout?{" "}
-            <Link href="/contact" className="font-semibold text-sky-700 underline-offset-2 hover:underline">
-              Talk to us about institutional pricing
-            </Link>
-            .
+
+          <p className="mt-8 text-center text-sm text-slate-500">
+            School-wide and customised institutional plans are available on request.
           </p>
         </div>
       </section>
 
       {/* FAQ */}
-      <section id="faq" className="scroll-mt-24 border-t border-slate-200 bg-white py-16 sm:py-24">
-        <div className="mx-auto max-w-3xl px-4 sm:px-6">
-          <h2 className="text-center font-display text-3xl font-extrabold text-[#061a33] sm:text-4xl">FAQ</h2>
-          <div className="mt-10 space-y-3">
+      <section id="faq" className="scroll-mt-24 bg-[#f4f7fb] py-16 sm:py-20">
+        <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
+          <h2 className="text-center font-display text-3xl font-extrabold text-[#0a1f44] sm:text-4xl">FAQ</h2>
+          <div className="mt-8 space-y-3">
             {FAQS.map((item) => (
               <FaqItem key={item.q} q={item.q} a={item.a} />
             ))}
@@ -674,27 +814,26 @@ export default function Homepage() {
         </div>
       </section>
 
-      {/* Orange CTA banner */}
-      <section className="bg-gradient-to-r from-orange-500 via-orange-500 to-amber-500 py-12 sm:py-14">
-        <div className="mx-auto flex max-w-7xl flex-col items-center gap-6 px-4 text-center sm:px-6 lg:flex-row lg:justify-between lg:text-left lg:px-8">
-          <div>
-            <h2 className="font-display text-2xl font-extrabold text-white sm:text-3xl">
-              Ready to Build Future-Ready Schools?
-            </h2>
-            <p className="mt-2 text-base text-white/90 sm:text-lg">
-              Join India’s AI-first learning platform for schools, teachers, and students.
+      {/* CTA banner */}
+      <section className="px-4 pb-4 sm:px-6 lg:px-8">
+        <div className="mx-auto flex max-w-7xl flex-col items-start gap-5 rounded-2xl bg-orange-500 px-6 py-6 sm:flex-row sm:items-center sm:justify-between sm:px-8 sm:py-7">
+          <div className="flex items-start gap-3 text-white sm:items-center">
+            <CalendarClock className="mt-0.5 h-7 w-7 shrink-0 sm:mt-0" />
+            <p className="font-display text-base font-semibold leading-snug sm:text-lg">
+              Ready to Build Future-Ready Schools? Join India&apos;s AI-First Learning Platform for Schools.
             </p>
           </div>
-          <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
-            <Link href="/contact">
-              <Button className="h-12 w-full bg-white px-6 text-[#061a33] hover:bg-orange-50 sm:w-auto">
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:shrink-0">
+            <Link href="/contact" className="w-full sm:w-auto">
+              <Button className="h-11 w-full rounded-full bg-white px-5 font-semibold text-sky-600 hover:bg-white/95 sm:w-auto">
                 Book a Demo
+                <ArrowRight className="h-4 w-4" />
               </Button>
             </Link>
-            <Link href="/contact">
+            <Link href="/contact" className="w-full sm:w-auto">
               <Button
                 variant="outline"
-                className="h-12 w-full border-white/70 bg-transparent px-6 text-white hover:bg-white/10 hover:text-white sm:w-auto"
+                className="h-11 w-full rounded-full border-2 border-white bg-transparent px-5 font-semibold text-white hover:bg-white/10 hover:text-white sm:w-auto"
               >
                 Talk to Our Team
               </Button>
@@ -704,80 +843,101 @@ export default function Homepage() {
       </section>
 
       {/* Footer */}
-      <footer className="bg-[#041426] py-14 text-slate-300">
-        <div className="mx-auto grid max-w-7xl gap-10 px-4 sm:px-6 lg:grid-cols-[1.2fr_1fr_1fr] lg:px-8">
+      <footer className="bg-[#0a1f44] pt-14 text-white">
+        <div className="mx-auto grid max-w-7xl gap-10 px-4 pb-12 sm:px-6 md:grid-cols-2 lg:grid-cols-4 lg:px-8">
           <div>
-            <p className="font-display text-xl font-extrabold text-white">
-              ASLILEARN<span className="text-sky-400">.AI</span>
+            <Link href="/" className="flex items-center gap-2.5">
+              <img src="/logo.jpg" alt="AsliLearn AI" className="h-9 w-9 rounded-lg object-contain" />
+              <span className="font-display text-lg font-extrabold tracking-tight">
+                ASLILEARN<span className="text-sky-300">.AI</span>
+              </span>
+            </Link>
+            <p className="mt-4 text-sm leading-relaxed text-white/65">
+              AsliLearn AI
+              <br />
+              Empowering schools with intelligent learning tools across India.
             </p>
-            <p className="mt-3 max-w-sm text-sm leading-relaxed text-slate-400">
-              India’s AI-first learning platform for schools. Hyderabad, Telangana.
-            </p>
-            <div className="mt-5 space-y-2 text-sm">
-              <p className="flex items-center gap-2">
-                <Phone className="h-4 w-4 text-sky-400" />
-                <a href="tel:+919876543210" className="hover:text-white">
-                  987 654 3210
-                </a>
-              </p>
-              <p>
-                <a href="mailto:hello@aslilearn.ai" className="hover:text-white">
-                  hello@aslilearn.ai
-                </a>
-              </p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-6">
+            <div>
+              <ul className="space-y-2.5 text-sm text-white/80">
+                {[
+                  { href: "#features", label: "Features" },
+                  { href: "#platform", label: "Platform" },
+                  { href: "#pricing", label: "Pricing" },
+                  { href: "#resources", label: "Resources" },
+                ].map((l) => (
+                  <li key={l.href}>
+                    <a href={l.href} className="hover:text-white">
+                      {l.label}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <ul className="space-y-2.5 text-sm text-white/80">
+                {[
+                  { href: "#about", label: "About Us" },
+                  { href: "#faq", label: "FAQ" },
+                  { href: "/privacy", label: "Privacy Policy" },
+                  { href: "/terms", label: "Terms of Use" },
+                ].map((l) => (
+                  <li key={l.href}>
+                    {l.href.startsWith("#") ? (
+                      <a href={l.href} className="hover:text-white">
+                        {l.label}
+                      </a>
+                    ) : (
+                      <Link href={l.href} className="hover:text-white">
+                        {l.label}
+                      </Link>
+                    )}
+                  </li>
+                ))}
+              </ul>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-6 text-sm">
-            <div className="space-y-2">
-              <a href="#features" className="block hover:text-white">
-                Features
-              </a>
-              <a href="#platform" className="block hover:text-white">
-                Platform
-              </a>
-              <a href="#pricing" className="block hover:text-white">
-                Pricing
-              </a>
-              <a href="#resources" className="block hover:text-white">
-                Resources
-              </a>
-            </div>
-            <div className="space-y-2">
-              <a href="#about" className="block hover:text-white">
-                About Us
-              </a>
-              <a href="#faq" className="block hover:text-white">
-                FAQ
-              </a>
-              <Link href="/privacy" className="block hover:text-white">
-                Privacy Policy
-              </Link>
-              <Link href="/terms" className="block hover:text-white">
-                Terms of Use
-              </Link>
+
+          <div>
+            <p className="text-sm font-semibold text-white/90">For enquiries, contact:</p>
+            <p className="mt-2 text-sm text-white/75">987 654 3210</p>
+            <a href="mailto:hello@aslilearn.ai" className="mt-1 block text-sm text-sky-300 hover:text-sky-200">
+              hello@aslilearn.ai
+            </a>
+            <div className="mt-4 flex gap-2">
+              {[Facebook, Instagram, Linkedin].map((Icon, i) => (
+                <span
+                  key={i}
+                  className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white/80"
+                >
+                  <Icon className="h-4 w-4" />
+                </span>
+              ))}
             </div>
           </div>
+
           <div>
-            <p className="mb-3 text-sm font-semibold text-white">Built for schools</p>
-            <ul className="space-y-2 text-sm text-slate-400">
+            <ul className="space-y-3">
               {[
-                "Secure student data",
-                "Role-based access",
-                "School-controlled accounts",
-                "Reliable cloud platform",
-                "Dedicated support",
+                "Secure Student Data",
+                "Role-based Access",
+                "School-controlled Accounts",
+                "Reliable Cloud Platform",
+                "Dedicated Support",
               ].map((item) => (
-                <li key={item} className="flex items-center gap-2">
-                  <Shield className="h-3.5 w-3.5 text-emerald-400" />
+                <li key={item} className="flex gap-2.5 text-sm text-white/85">
+                  <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-sky-400" />
                   {item}
                 </li>
               ))}
             </ul>
           </div>
         </div>
-        <p className="mx-auto mt-12 max-w-7xl px-4 text-sm text-slate-500 sm:px-6 lg:px-8">
+        <div className="border-t border-white/10 py-5 text-center text-xs text-white/50">
           © {new Date().getFullYear()} AsliLearn AI. All rights reserved.
-        </p>
+        </div>
       </footer>
     </div>
   );
