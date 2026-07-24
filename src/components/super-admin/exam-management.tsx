@@ -400,14 +400,20 @@ export default function ExamManagement() {
       if (!response.ok || data.success === false) {
         throw new Error(data.message || 'Failed to update question');
       }
-      if (data.data) {
+      if (Array.isArray(data.questions) && data.questions.length > 0) {
+        setQuestions(data.questions);
+      } else if (data.data) {
         patchLocalQuestion(questionId, data.data);
+        await fetchQuestions(selectedExam._id);
+      } else {
+        await fetchQuestions(selectedExam._id);
       }
       toast({
         title: 'Saved',
-        description: `Q${data.data?.displayOrder || question.displayOrder} updated (order + section).`,
+        description:
+          data.message ||
+          `Q${data.data?.displayOrder || question.displayOrder} updated (order + section).`,
       });
-      await fetchQuestions(selectedExam._id);
     } catch (error: any) {
       toast({
         title: 'Error',
@@ -2384,24 +2390,32 @@ export default function ExamManagement() {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="totalQuestions">Total Questions *</Label>
+                  <Label htmlFor="totalQuestions">Total Questions * (max allowed)</Label>
                   <Input
                     id="totalQuestions"
                     type="number"
+                    min={1}
                     value={formData.totalQuestions}
                     onChange={(e) => setFormData({ ...formData, totalQuestions: e.target.value })}
                     placeholder="90"
                   />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Cap for this exam — uploads cannot exceed this count.
+                  </p>
                 </div>
                 <div>
-                  <Label htmlFor="totalMarks">Total Marks *</Label>
+                  <Label htmlFor="totalMarks">Total Marks * (max allowed)</Label>
                   <Input
                     id="totalMarks"
                     type="number"
+                    min={1}
                     value={formData.totalMarks}
                     onChange={(e) => setFormData({ ...formData, totalMarks: e.target.value })}
                     placeholder="360"
                   />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Cap for this exam — sum of question marks cannot exceed this.
+                  </p>
                 </div>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -2607,7 +2621,16 @@ export default function ExamManagement() {
                                   </div>
                                   <div className="flex items-center gap-1.5">
                                     <BookOpen className="h-3.5 w-3.5 shrink-0 text-gray-500" />
-                                    <span>{exam.totalQuestions} questions · {exam.totalMarks} marks</span>
+                                    <span>
+                                      {typeof exam.actualQuestionCount === 'number'
+                                        ? `${exam.actualQuestionCount}/${exam.totalQuestions}`
+                                        : exam.totalQuestions}{' '}
+                                      questions ·{' '}
+                                      {typeof exam.actualMarksSum === 'number'
+                                        ? `${exam.actualMarksSum}/${exam.totalMarks}`
+                                        : exam.totalMarks}{' '}
+                                      marks
+                                    </span>
                                   </div>
                                   <div className="flex items-center gap-1.5">
                                     <Eye className="h-3.5 w-3.5 shrink-0 text-gray-500" />
@@ -3009,8 +3032,9 @@ export default function ExamManagement() {
               ) : (
                 <div className="space-y-4 max-h-[32rem] overflow-y-auto">
                   <p className="text-xs text-muted-foreground">
-                    Set <strong>Order</strong> (display number) and <strong>Section</strong> heading
-                    (e.g. Maths, Physics). Students see questions in this order with section titles.
+                    Set <strong>Order</strong> then Save — other questions shift automatically
+                    (e.g. move Q80→1 makes old 1→2, 2→3…). Use ↑↓ for one-step moves.
+                    Set <strong>Section</strong> heading (e.g. Maths, Physics) for student paper titles.
                   </p>
                   {questions.map((q: any, idx: number) => {
                     const prev = idx > 0 ? questions[idx - 1] : null;
@@ -3033,11 +3057,15 @@ export default function ExamManagement() {
                                 <Input
                                   type="number"
                                   min={1}
+                                  max={Math.max(1, questions.length)}
                                   value={orderValue}
                                   disabled={Boolean(savingQuestionId) || isReorderingQuestions}
                                   onChange={(e) =>
                                     patchLocalQuestion(String(q._id), {
-                                      displayOrder: Math.max(1, parseInt(e.target.value, 10) || 1),
+                                      displayOrder: Math.min(
+                                        Math.max(1, questions.length),
+                                        Math.max(1, parseInt(e.target.value, 10) || 1)
+                                      ),
                                     })
                                   }
                                 />
