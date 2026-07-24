@@ -1859,6 +1859,7 @@ export default function ExamManagement() {
       const data = await response.json();
 
       if (response.ok && data.success) {
+        setExams((prev) => prev.filter((exam) => exam._id !== examId));
         toast({
           title: 'Success',
           description: 'Exam deleted successfully'
