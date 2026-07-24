@@ -1,9 +1,14 @@
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
 import { saveAs } from 'file-saver';
-import { resolveWorksheetFromPayload } from '@/lib/parse-worksheet-mcq';
-import { resolveHomeworkFromPayload } from '@/lib/parse-homework-creator';
-import { resolveExamPaperFromPayload } from '@/lib/parse-exam-question-paper';
+import { resolveWorksheetFromPayload, type NormalizedWorksheet } from '@/lib/parse-worksheet-mcq';
+import { resolveHomeworkFromPayload, type NormalizedHomework } from '@/lib/parse-homework-creator';
+import {
+  formatLabeledMcqOptions,
+  resolveExamPaperFromPayload,
+  type NormalizedExamPaper,
+} from '@/lib/parse-exam-question-paper';
+import { resolveMockTestFromPayload } from '@/lib/parse-mock-test';
 import { getFlashcardsFromContent } from '@/components/flashcard-viewer';
 import { formatClassroomScienceText } from '@/lib/exam-text-normalize';
 
@@ -223,6 +228,187 @@ export function buildTeacherToolCsv(
   }
 
   return null;
+}
+
+function pushBlock(lines: string[], heading: string, body?: string) {
+  const text = String(body || '').trim();
+  if (!text) return;
+  lines.push(`## ${heading}`, '', text, '');
+}
+
+function formatWorksheetAsMarkdown(worksheet: NormalizedWorksheet, subject?: string): string {
+  const lines: string[] = [];
+  lines.push(`# ${fmt(worksheet.title || 'Worksheet', subject)}`, '');
+
+  if (worksheet.learningObjectives.length) {
+    lines.push('## Learning Objectives', '');
+    for (const obj of worksheet.learningObjectives) {
+      const t = fmt(obj, subject);
+      if (t) lines.push(`- ${t}`);
+    }
+    lines.push('');
+  }
+
+  pushBlock(lines, 'Instructions', fmt(worksheet.instructions, subject));
+
+  for (const section of worksheet.sections) {
+    if (!section.questions.length) continue;
+    lines.push(`## ${fmt(section.displayLabel || section.label, subject)}`, '');
+    section.questions.forEach((q, index) => {
+      const num = q.questionNumber ?? index + 1;
+      const marks = q.marks != null && q.marks > 0 ? ` (${q.marks} mark${q.marks === 1 ? '' : 's'})` : '';
+      lines.push(`${num}. ${fmt(q.question, subject)}${marks}`);
+      for (const opt of formatLabeledMcqOptions(q.options || [])) {
+        lines.push(fmt(opt, subject));
+      }
+      lines.push('');
+    });
+  }
+
+  pushBlock(lines, 'Answer Key', fmt(worksheet.answerKey, subject));
+  if (worksheet.bloomLevel) pushBlock(lines, 'Bloom Level', fmt(worksheet.bloomLevel, subject));
+  if (worksheet.difficultyTag) pushBlock(lines, 'Difficulty', fmt(worksheet.difficultyTag, subject));
+
+  return lines.join('\n').trim();
+}
+
+function formatExamPaperAsMarkdown(paper: NormalizedExamPaper, subject?: string): string {
+  const lines: string[] = [];
+  lines.push(`# ${fmt(paper.paperTitle || 'Exam Question Paper', subject)}`, '');
+  pushBlock(lines, 'Instructions', fmt(paper.instructions, subject));
+  pushBlock(lines, 'Blueprint', fmt(paper.blueprint, subject));
+
+  for (const section of paper.sections) {
+    if (!section.questions.length) continue;
+    lines.push(`## ${fmt(section.title, subject)}`, '');
+    section.questions.forEach((q, index) => {
+      const num = q.questionNumber || String(index + 1);
+      const marks = q.marks != null && q.marks > 0 ? ` (${q.marks} mark${q.marks === 1 ? '' : 's'})` : '';
+      lines.push(`${num}. ${fmt(q.question, subject)}${marks}`);
+      for (const opt of formatLabeledMcqOptions(q.options || [])) {
+        lines.push(fmt(opt, subject));
+      }
+      lines.push('');
+    });
+  }
+
+  pushBlock(lines, 'Internal Choices', fmt(paper.internalChoices, subject));
+  pushBlock(lines, 'Answer Key', fmt(paper.answerKey, subject));
+  pushBlock(lines, 'Marking Scheme', fmt(paper.markingScheme, subject));
+  pushBlock(lines, 'Open-ended Rubric', fmt(paper.openEndedRubric, subject));
+
+  return lines.join('\n').trim();
+}
+
+function formatHomeworkAsMarkdown(homework: NormalizedHomework, subject?: string): string {
+  const lines: string[] = [];
+  lines.push(`# ${fmt(homework.title || 'Homework', subject)}`, '');
+  pushBlock(lines, 'Instructions', fmt(homework.instructions, subject));
+
+  if (homework.practiceQuestions.length) {
+    lines.push('## Practice Questions', '');
+    homework.practiceQuestions.forEach((q, index) => {
+      const num = q.questionNumber ?? index + 1;
+      lines.push(`${num}. ${fmt(q.question || `Question ${num}`, subject)}`);
+      for (const opt of formatLabeledMcqOptions(q.options || [])) {
+        lines.push(fmt(opt, subject));
+      }
+      lines.push('');
+    });
+  }
+
+  if (homework.applicationTasks.length) {
+    lines.push('## Application Tasks', '');
+    homework.applicationTasks.forEach((task, index) => {
+      const t = fmt(task, subject);
+      if (t) lines.push(`${index + 1}. ${t}`);
+    });
+    lines.push('');
+  }
+
+  pushBlock(lines, 'Creative Thinking', fmt(homework.creativeThinkingQuestion, subject));
+  pushBlock(lines, 'Real-life Observation', fmt(homework.realLifeObservationTask, subject));
+  pushBlock(lines, 'Challenge Question', fmt(homework.challengeQuestion, subject));
+  pushBlock(lines, 'Support Hint', fmt(homework.supportHint, subject));
+  pushBlock(lines, 'Answer Hints', fmt(homework.answerHints, subject));
+  pushBlock(lines, 'Parent Note', fmt(homework.parentNote, subject));
+
+  return lines.join('\n').trim();
+}
+
+/**
+ * Build markdown for Word export. Structured tools often have empty display
+ * markdown (content lives in raw JSON) — CSV already handles that; Word must too.
+ */
+export function buildTeacherToolWordText(
+  toolType: string,
+  content: string,
+  rawContent: unknown,
+  subject?: string,
+): string {
+  const fallback = String(content || '').trim();
+
+  if (toolType === 'worksheet-mcq-generator') {
+    const { worksheet, markdownFallback } = resolveWorksheetFromPayload(content, rawContent);
+    if (worksheet) {
+      const text = formatWorksheetAsMarkdown(worksheet, subject);
+      if (text) return text;
+    }
+    if (markdownFallback?.trim()) return markdownFallback.trim();
+    return fallback;
+  }
+
+  if (toolType === 'exam-question-paper-generator' || toolType === 'mock-test-builder') {
+    if (toolType === 'mock-test-builder') {
+      const { paper, markdownFallback } = resolveMockTestFromPayload(content, rawContent);
+      if (paper) {
+        const text = formatExamPaperAsMarkdown(paper, subject);
+        if (text) return text;
+      }
+      if (markdownFallback?.trim()) return markdownFallback.trim();
+      return fallback;
+    }
+    const { paper, markdownFallback } = resolveExamPaperFromPayload(content, rawContent);
+    if (paper) {
+      const text = formatExamPaperAsMarkdown(paper, subject);
+      if (text) return text;
+    }
+    if (markdownFallback?.trim()) return markdownFallback.trim();
+    return fallback;
+  }
+
+  if (toolType === 'homework-creator') {
+    const { homework, markdownFallback } = resolveHomeworkFromPayload(content, rawContent);
+    if (homework) {
+      const text = formatHomeworkAsMarkdown(homework, subject);
+      if (text) return text;
+    }
+    if (markdownFallback?.trim()) return markdownFallback.trim();
+    return fallback;
+  }
+
+  if (toolType === 'flashcard-generator') {
+    const cards = getFlashcardsFromContent(
+      fallback ||
+        (rawContent && typeof rawContent === 'object'
+          ? JSON.stringify({ formatted: '', raw: rawContent })
+          : ''),
+    );
+    if (cards.length) {
+      const lines: string[] = ['# Flashcards', ''];
+      cards.forEach((card, index) => {
+        lines.push(`## Card ${index + 1}`, '');
+        lines.push(`**Front:** ${fmt(card.front, subject)}`);
+        lines.push(`**Back:** ${fmt(card.back, subject)}`);
+        const hook = fmt(card.memoryHookQuickTip || card.memoryCue || '', subject);
+        if (hook) lines.push(`**Memory hook:** ${hook}`);
+        lines.push('');
+      });
+      return lines.join('\n').trim();
+    }
+  }
+
+  return fallback;
 }
 
 export function queryAiToolExportElement(): HTMLElement | null {

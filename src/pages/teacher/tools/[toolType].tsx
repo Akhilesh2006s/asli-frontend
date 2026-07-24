@@ -62,6 +62,7 @@ import {
   STORY_PASSAGE_TOOL_ID,
 } from '@/lib/ai-tool-subject-rules';
 import {
+  buildTeacherToolWordText,
   downloadTeacherToolCsv,
   isTeacherDownloadTool,
 } from '@/lib/ai-tool-teacher-export';
@@ -1464,7 +1465,14 @@ export default function TeacherToolPage() {
   const handleDownloadWord = async () => {
     try {
       setIsDownloading(true);
-      const doc = await convertToWordDocument(displayGeneratedContent);
+      const subject = String(formParams.subject || formParams.subjects || '');
+      const wordText = buildTeacherToolWordText(
+        toolType,
+        displayGeneratedContent,
+        effectiveRawContent,
+        subject,
+      );
+      const doc = await convertToWordDocument(wordText);
       const blob = await Packer.toBlob(doc);
       const fileName = `${config.name.replace(/\s+/g, '-')}-${Date.now()}.docx`;
       saveAs(blob, fileName);

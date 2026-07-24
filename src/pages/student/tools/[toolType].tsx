@@ -27,6 +27,7 @@ import {
   pickAiToolRawData,
   resolveAiToolDisplayState,
 } from '@/lib/ai-tool-response-payload';
+import { buildTeacherToolWordText } from '@/lib/ai-tool-teacher-export';
 import {
   getAiToolBoardOptions,
   getDefaultAiToolBoard,
@@ -1690,7 +1691,21 @@ export default function StudentToolPage() {
   const handleDownloadWord = async () => {
     try {
       setIsDownloading(true);
-      const doc = await convertToWordDocument(displayGeneratedContent);
+      const subject = String(formParams.subject || formParams.subjects || '');
+      const wordToolSlug =
+        toolType === 'worksheet-mcq-generator' ||
+        toolType === 'exam-question-paper-generator' ||
+        toolType === 'homework-creator' ||
+        toolType === 'flashcard-generator'
+          ? toolType
+          : apiToolType || toolType;
+      const wordText = buildTeacherToolWordText(
+        wordToolSlug,
+        displayGeneratedContent,
+        effectiveRawContent,
+        subject,
+      );
+      const doc = await convertToWordDocument(wordText);
       const blob = await Packer.toBlob(doc);
       const fileName = `${config.name.replace(/\s+/g, '-')}-${Date.now()}.docx`;
       saveAs(blob, fileName);
