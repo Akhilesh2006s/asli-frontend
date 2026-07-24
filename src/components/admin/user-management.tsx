@@ -53,7 +53,9 @@ interface Student {
   status: 'active' | 'inactive';
   createdAt: string;
   lastLogin?: string;
-  assignedClass?: string;
+  assignedClass?: string | null;
+  /** Display label like "9-A" when linked to a class section */
+  classLabel?: string;
 }
 
 const normalizeClassNumberForDisplay = (value: unknown): string => {
@@ -63,6 +65,53 @@ const normalizeClassNumberForDisplay = (value: unknown): string => {
   return raw
     .replace(/^class\s*-\s*(\d+)/i, 'Class $1')
     .replace(/^-([0-9]+)([A-Za-z]?)$/, '$1$2');
+};
+
+const resolveAssignedClassId = (assignedClass: unknown): string | null => {
+  if (!assignedClass) return null;
+  if (typeof assignedClass === 'string' || typeof assignedClass === 'number') {
+    const id = String(assignedClass).trim();
+    return id || null;
+  }
+  if (typeof assignedClass === 'object') {
+    const obj = assignedClass as { _id?: unknown; id?: unknown };
+    const id = obj._id ?? obj.id;
+    if (id == null) return null;
+    return String(id).trim() || null;
+  }
+  return null;
+};
+
+const mapApiUserToStudent = (user: any): Student => {
+  const assignedClassId = resolveAssignedClassId(user.assignedClass);
+  const sectionFromAssigned =
+    (typeof user.assignedClass === 'object' && user.assignedClass?.section
+      ? String(user.assignedClass.section)
+      : '') ||
+    (user.section ? String(user.section) : '');
+  const classNumber = normalizeClassNumberForDisplay(
+    (typeof user.assignedClass === 'object' && user.assignedClass?.classNumber) ||
+      user.classNumber
+  );
+  const classLabel =
+    user.classLabel ||
+    (assignedClassId && sectionFromAssigned
+      ? `${classNumber}-${sectionFromAssigned}`
+      : classNumber);
+
+  return {
+    id: user._id || user.id,
+    name: user.fullName || user.name || 'Unknown Student',
+    email: user.email || '',
+    classNumber,
+    section: sectionFromAssigned,
+    phone: user.phone || '',
+    status: (user.isActive ? 'active' : 'inactive') as 'active' | 'inactive',
+    createdAt: user.createdAt || new Date().toISOString(),
+    lastLogin: user.lastLogin || undefined,
+    assignedClass: assignedClassId,
+    classLabel,
+  };
 };
 
 const UserManagement = () => {
@@ -155,24 +204,7 @@ const UserManagement = () => {
         throw new Error('Invalid data format received from server');
       }
       
-      // Map backend data to frontend format
-      const mappedStudents = data.map((user: any) => ({
-        id: user._id || user.id,
-        name: user.fullName || user.name || 'Unknown Student',
-        email: user.email || '',
-        classNumber: normalizeClassNumberForDisplay(user.classNumber),
-        section:
-          user.assignedClass?.section ||
-          (typeof user.assignedClass === 'object' ? user.assignedClass?.section : '') ||
-          '',
-        phone: user.phone || '',
-        status: (user.isActive ? 'active' : 'inactive') as 'active' | 'inactive',
-        createdAt: user.createdAt || new Date().toISOString(),
-        lastLogin: user.lastLogin || null,
-        assignedClass: user.assignedClass?._id || user.assignedClass || null
-      }));
-      
-      setStudents(mappedStudents);
+      setStudents(data.map(mapApiUserToStudent));
       void refreshSeats();
     } catch (error) {
       console.error('Failed to fetch students:', error);
@@ -317,7 +349,31 @@ const UserManagement = () => {
         if (fileInputRef.current) {
           fileInputRef.current.value = '';
         }
-        fetchStudents();
+
+        // Instant UI from upload payload (class + section), then confirm with API refresh.
+        const created = Array.isArray(result.createdUsers) ? result.createdUsers : [];
+        if (created.length > 0) {
+          const optimistic = created.map((row: any) =>
+            mapApiUserToStudent({
+              _id: row.id,
+              fullName: row.name,
+              email: row.email,
+              classNumber: row.classNumber,
+              section: row.section,
+              classLabel: row.classLabel || row.class,
+              assignedClass: row.assignedClass || null,
+              isActive: true,
+              createdAt: new Date().toISOString(),
+            })
+          );
+          setStudents((prev) => {
+            const existingIds = new Set(prev.map((s) => s.id));
+            const fresh = optimistic.filter((s: Student) => s.id && !existingIds.has(s.id));
+            return [...fresh, ...prev];
+          });
+        }
+
+        await Promise.all([fetchStudents(), fetchClasses()]);
         
         // Show detailed results
         let description =
@@ -674,11 +730,11 @@ const UserManagement = () => {
   }, {});
 
   const toggleClassCollapse = (classKey: string) => {
-    setCollapsedClasses((prev) => ({ ...prev, [classKey]: !(prev[classKey] ?? true) }));
+    setCollapsedClasses((prev) => ({ ...prev, [classKey]: !(prev[classKey] ?? false) }));
   };
 
   const toggleSectionCollapse = (scopeKey: string) => {
-    setCollapsedSections((prev) => ({ ...prev, [scopeKey]: !(prev[scopeKey] ?? true) }));
+    setCollapsedSections((prev) => ({ ...prev, [scopeKey]: !(prev[scopeKey] ?? false) }));
   };
 
   const renderStudentCard = (student: Student, indexKey: string | number) => (
@@ -722,7 +778,7 @@ const UserManagement = () => {
           </div>
         </div>
         <Badge className="bg-sky-100 text-sky-700 border border-sky-200 text-micro shrink-0 whitespace-nowrap">
-          {student.classNumber || 'N/A'}
+          {student.classLabel || student.classNumber || 'N/A'}
         </Badge>
       </div>
 
@@ -783,7 +839,7 @@ const UserManagement = () => {
           }}
         >
           <GraduationCap className="w-4 h-4 sm:w-5 sm:h-5 mr-1.5 shrink-0" />
-          Assign Class
+          {student.assignedClass ? 'Change Class' : 'Assign Class'}
         </Button>
         </div>
       </div>
@@ -1396,7 +1452,7 @@ const UserManagement = () => {
               {studentViewMode === 'class-wise' && (
                 <div className="space-y-4">
                   {Object.keys(classSectionGroups).sort(sortByClassLabel).map((classKey) => {
-                    const isClassCollapsed = collapsedClasses[classKey] ?? true;
+                    const isClassCollapsed = collapsedClasses[classKey] ?? false;
                     return (
                       <div key={classKey} className="rounded-xl border border-sky-200 bg-white/70 shadow-sm">
                         <button
@@ -1417,7 +1473,7 @@ const UserManagement = () => {
                           <div className="px-4 pb-4 space-y-3">
                             {Object.keys(classSectionGroups[classKey]).sort().map((sectionKey) => {
                               const sectionScopeKey = `${classKey}::${sectionKey}`;
-                              const isSectionCollapsed = collapsedSections[sectionScopeKey] ?? true;
+                              const isSectionCollapsed = collapsedSections[sectionScopeKey] ?? false;
                               return (
                                 <div key={sectionScopeKey} className="rounded-lg border border-sky-100 bg-white p-3">
                                   <button
@@ -1452,7 +1508,7 @@ const UserManagement = () => {
               {studentViewMode === 'section-wise' && (
                 <div className="space-y-4">
                   {Object.keys(sectionClassGroups).sort().map((sectionKey) => {
-                    const isSectionCollapsed = collapsedSections[sectionKey] ?? true;
+                    const isSectionCollapsed = collapsedSections[sectionKey] ?? false;
                     return (
                       <div key={sectionKey} className="rounded-xl border border-teal-200 bg-white/70 shadow-sm">
                         <button
@@ -1530,11 +1586,15 @@ const UserManagement = () => {
               </div>
             ) : (
               <div className="space-y-2 max-h-64 overflow-y-auto">
-                {availableClasses.map((classItem) => (
+                {availableClasses.map((classItem) => {
+                  const classId = String(classItem.id || classItem._id || '');
+                  const isCurrentlyAssigned =
+                    String(selectedStudentForClass?.assignedClass || '') === classId;
+                  return (
                   <div
-                    key={classItem.id}
+                    key={classId}
                     className={`p-3 rounded-lg border cursor-pointer transition-all ${
-                      selectedStudentForClass?.assignedClass === classItem.id
+                      isCurrentlyAssigned
                         ? 'bg-sky-100 border-sky-400 border-2'
                         : 'bg-white border-sky-200 hover:border-sky-300 hover:bg-sky-50'
                     }`}
@@ -1548,7 +1608,7 @@ const UserManagement = () => {
                               'Authorization': `Bearer ${token}`,
                               'Content-Type': 'application/json'
                             },
-                            body: JSON.stringify({ classId: classItem.id })
+                            body: JSON.stringify({ classId })
                           });
 
                           const responseData = await response.json();
@@ -1556,7 +1616,7 @@ const UserManagement = () => {
                           if (response.ok && responseData.success !== false) {
                             setIsAssignClassDialogOpen(false);
                             setSelectedStudentForClass(null);
-                            fetchStudents();
+                            await Promise.all([fetchStudents(), fetchClasses()]);
                             alert('Class assigned successfully!');
                           } else {
                             alert(`Failed to assign class: ${responseData.message || 'Unknown error'}`);
@@ -1578,12 +1638,13 @@ const UserManagement = () => {
                           {classItem.studentCount || 0} students
                         </p>
                       </div>
-                      {selectedStudentForClass?.assignedClass === classItem.id && (
+                      {isCurrentlyAssigned && (
                         <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-sky-600" />
                       )}
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             )}
             <div className="flex justify-end pt-4 border-t border-sky-200">
