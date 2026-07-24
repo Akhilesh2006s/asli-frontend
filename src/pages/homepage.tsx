@@ -54,7 +54,7 @@ const FEATURES = [
     n: "01",
     icon: Brain,
     title: "Adaptive Learning",
-    body: "AI adapts to each student's pace with personalised practice and concept paths.",
+    body: "AI adapts to each student's pace and understanding. Ensures no student is left behind.",
     titleColor: "text-sky-600",
     iconBg: "bg-sky-500",
   },
@@ -62,7 +62,7 @@ const FEATURES = [
     n: "02",
     icon: ClipboardCheck,
     title: "Smart Assessments",
-    body: "Auto-generate tests, instant grading, and actionable insights after every attempt.",
+    body: "Auto-generate tests, instant grading & insights. Saves teachers hours every week.",
     titleColor: "text-emerald-600",
     iconBg: "bg-emerald-500",
   },
@@ -70,7 +70,7 @@ const FEATURES = [
     n: "03",
     icon: Play,
     title: "Interactive Content",
-    body: "Multimedia lessons, EduOTT videos, and notes aligned to board curriculum.",
+    body: "Engaging multimedia lessons aligned to curriculum. Keeps students genuinely engaged.",
     titleColor: "text-orange-500",
     iconBg: "bg-orange-500",
   },
@@ -78,7 +78,7 @@ const FEATURES = [
     n: "04",
     icon: LineChart,
     title: "Learning Analytics",
-    body: "Real-time dashboards for students, teachers, and school leadership.",
+    body: "Real-time dashboards for students, teachers & admins. Gives school leadership measurable outcomes.",
     titleColor: "text-teal-600",
     iconBg: "bg-teal-500",
   },
@@ -86,17 +86,17 @@ const FEATURES = [
     n: "05",
     icon: MessageSquare,
     title: "Communication Hub",
-    body: "Keep school, teachers, and families aligned with clear progress signals.",
-    titleColor: "text-sky-600",
-    iconBg: "bg-sky-500",
+    body: "Seamless communication between teachers, students & parents in one place.",
+    titleColor: "text-blue-600",
+    iconBg: "bg-blue-600",
   },
   {
     n: "06",
     icon: Library,
     title: "Resource Library",
-    body: "Curated digital resources across subjects, grades, and exam pathways.",
-    titleColor: "text-emerald-600",
-    iconBg: "bg-emerald-500",
+    body: "Curated digital resources across subjects & grades. One place for every teacher to find quality material.",
+    titleColor: "text-emerald-700",
+    iconBg: "bg-emerald-600",
   },
 ];
 
@@ -320,7 +320,7 @@ function Navbar({ scrolled }: { scrolled: boolean }) {
       className={`sticky top-0 z-50 border-b transition-colors duration-300 ${
         scrolled
           ? "border-slate-200 bg-white/95 shadow-sm backdrop-blur-xl"
-          : "border-transparent bg-[#0a1f44]"
+          : "border-transparent bg-[#050d24]"
       }`}
     >
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-3 px-4 sm:h-[4.25rem] sm:px-6 lg:px-8">
@@ -385,7 +385,7 @@ function Navbar({ scrolled }: { scrolled: boolean }) {
       {mobileOpen ? (
         <div
           className={`border-t px-4 py-4 xl:hidden ${
-            scrolled ? "border-slate-200 bg-white" : "border-white/10 bg-[#0a1f44]"
+            scrolled ? "border-slate-200 bg-white" : "border-white/10 bg-[#050d24]"
           }`}
         >
           <div className="flex flex-col gap-1">
@@ -432,51 +432,113 @@ export default function Homepage() {
     <div className="min-h-screen overflow-x-hidden bg-white text-slate-900">
       <Navbar scrolled={scrolled} />
 
-      {/* HERO — headline top aligns with photo top (girl's head) */}
-      <section className="relative overflow-hidden bg-[#0a1f44] pb-24 pt-8 sm:pb-28 sm:pt-12 lg:pb-32 lg:pt-14">
-        {/* Soft decorative icons only — keep navy clean */}
+      {/* HERO — exact mock: blended photo, aligned head/headline, soft glow */}
+      <section className="relative overflow-hidden bg-[#050d24] pb-28 pt-10 sm:pb-32 sm:pt-14 lg:pb-36 lg:pt-16">
+        {/* Soft grid / mesh */}
+        <div
+          className="pointer-events-none absolute inset-0 opacity-[0.22]"
+          style={{
+            backgroundImage:
+              "linear-gradient(rgba(56,189,248,0.12) 1px, transparent 1px), linear-gradient(90deg, rgba(56,189,248,0.12) 1px, transparent 1px)",
+            backgroundSize: "48px 48px",
+            maskImage: "radial-gradient(ellipse 70% 60% at 40% 40%, black 20%, transparent 75%)",
+          }}
+          aria-hidden
+        />
+
+        {/* Light-stream curves */}
+        <svg
+          className="pointer-events-none absolute inset-0 h-full w-full opacity-40"
+          viewBox="0 0 1440 700"
+          fill="none"
+          aria-hidden
+          preserveAspectRatio="xMidYMid slice"
+        >
+          <path
+            d="M-40 420 C280 280 420 520 720 360 C980 220 1180 300 1500 180"
+            stroke="url(#heroStream)"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+          />
+          <path
+            d="M-20 520 C320 380 500 600 780 440 C1040 300 1220 380 1520 260"
+            stroke="url(#heroStream)"
+            strokeWidth="1"
+            strokeOpacity="0.55"
+            strokeLinecap="round"
+          />
+          <defs>
+            <linearGradient id="heroStream" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stopColor="#38bdf8" stopOpacity="0" />
+              <stop offset="45%" stopColor="#60a5fa" stopOpacity="0.7" />
+              <stop offset="100%" stopColor="#38bdf8" stopOpacity="0" />
+            </linearGradient>
+          </defs>
+        </svg>
+
+        {/* Decorative education icons */}
         <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
           {HERO_ICONS.map(({ Icon, className }, i) => (
-            <Icon key={i} className={`absolute h-12 w-12 text-white sm:h-14 sm:w-14 ${className}`} strokeWidth={1.25} />
+            <Icon key={i} className={`absolute h-12 w-12 text-sky-200/25 sm:h-14 sm:w-14 ${className}`} strokeWidth={1.2} />
           ))}
         </div>
 
-        <div className="relative mx-auto grid max-w-7xl items-start gap-8 px-4 sm:px-6 lg:grid-cols-2 lg:gap-12 lg:px-8">
-          {/* Left copy — same top edge as image */}
-          <div className="relative z-10 flex flex-col justify-start lg:pt-1">
+        {/* Full-bleed blended photo (desktop) — head lines up with headline */}
+        <div
+          className="pointer-events-none absolute bottom-16 right-0 top-10 hidden w-[54%] lg:block xl:w-[56%]"
+          aria-hidden
+        >
+          <img
+            src={HERO_PHOTO}
+            alt=""
+            className="h-full w-full object-cover object-[68%_10%]"
+            loading="eager"
+            fetchPriority="high"
+            decoding="async"
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-[#050d24] via-[#050d24]/55 to-transparent to-[42%]" />
+          <div className="absolute inset-x-0 bottom-0 h-36 bg-gradient-to-t from-[#050d24] to-transparent" />
+          <div className="absolute inset-x-0 top-0 h-16 bg-gradient-to-b from-[#050d24]/80 to-transparent" />
+        </div>
+
+        <div className="relative mx-auto grid min-h-[22rem] max-w-7xl items-center gap-10 px-4 sm:px-6 lg:min-h-[28rem] lg:grid-cols-2 lg:gap-8 lg:px-8 xl:min-h-[30rem]">
+          {/* Left copy — vertically centered with photo */}
+          <div className="relative z-10 max-w-xl">
             <h1
-              className="animate-fade-rise font-display text-4xl font-extrabold leading-[1.12] tracking-tight text-white sm:text-5xl lg:text-[3.15rem]"
+              className="animate-fade-rise font-display text-4xl font-extrabold leading-[1.1] tracking-tight text-white sm:text-5xl lg:text-[3.35rem]"
               style={{ animationDelay: "0ms" }}
             >
-              <span className="text-sky-400">AI</span>-First Learning.
+              AI-First Learning.
               <br />
               Future-Ready Schools.
             </h1>
             <p
-              className="animate-fade-rise mt-5 max-w-lg text-base font-medium leading-relaxed text-white/80 sm:text-lg"
-              style={{ animationDelay: "120ms" }}
+              className="animate-fade-rise mt-5 max-w-lg text-base font-medium leading-relaxed text-white/75 sm:text-lg"
+              style={{ animationDelay: "110ms" }}
             >
               AsliLearn.ai empowers schools with intelligent tools to personalise learning, elevate teaching, and
               drive measurable outcomes.
             </p>
             <div
-              className="animate-fade-rise mt-8 flex w-full flex-col gap-3 sm:max-w-md sm:flex-row"
-              style={{ animationDelay: "220ms" }}
+              className="animate-fade-rise mt-8 flex w-full flex-col gap-3 sm:max-w-lg sm:flex-row sm:items-center"
+              style={{ animationDelay: "200ms" }}
             >
               <Link href="/contact" className="w-full sm:w-auto">
                 <Button
                   size="lg"
-                  className="h-12 w-full rounded-xl bg-sky-500 px-6 text-base font-semibold text-white hover:bg-sky-600 sm:w-auto"
+                  className="group h-12 w-full rounded-full bg-sky-500 px-5 pl-6 text-base font-semibold text-white hover:bg-sky-600 sm:w-auto"
                 >
                   Book a Demo
-                  <ArrowRight className="h-5 w-5" />
+                  <span className="ml-2 flex h-8 w-8 items-center justify-center rounded-full bg-white/20 transition group-hover:bg-white/30">
+                    <ArrowRight className="h-4 w-4" />
+                  </span>
                 </Button>
               </Link>
               <a href="#platform" className="w-full sm:w-auto">
                 <Button
                   size="lg"
                   variant="outline"
-                  className="h-12 w-full rounded-xl border-2 border-white/60 bg-transparent px-6 text-base font-semibold text-white hover:bg-white/10 hover:text-white sm:w-auto"
+                  className="h-12 w-full rounded-full border border-white/55 bg-transparent px-6 text-base font-semibold text-white hover:bg-white/10 hover:text-white sm:w-auto"
                 >
                   Explore the Platform
                 </Button>
@@ -484,37 +546,33 @@ export default function Homepage() {
             </div>
             <div
               className="animate-fade-rise mt-8 flex items-center gap-3"
-              style={{ animationDelay: "320ms" }}
+              style={{ animationDelay: "300ms" }}
             >
-              <div className="flex -space-x-2">
+              <div className="flex -space-x-2.5">
                 {["/avatar-1.png", "/avatar-2.png", "/avatar-3.png", "/avatar-4.png"].map((src) => (
                   <img
                     key={src}
                     src={src}
                     alt=""
-                    className="h-9 w-9 rounded-full border-2 border-[#0a1f44] object-cover"
+                    className="h-9 w-9 rounded-full border-2 border-[#050d24] object-cover"
                     aria-hidden
                   />
                 ))}
               </div>
-              <p className="text-sm font-medium text-white/75 sm:text-base">
-                Trusted by <span className="font-semibold text-sky-300">500+</span> schools across India
+              <p className="text-sm font-medium text-white/70 sm:text-base">
+                Trusted by <span className="font-bold text-sky-300">500+</span> schools across India
               </p>
             </div>
           </div>
 
-          {/* Right photo — top of frame = top of headline */}
-          <div className="relative z-10 w-full">
-            <div
-              className="animate-fade-rise relative overflow-hidden rounded-[1.5rem] border-[3px] border-white/20 shadow-2xl shadow-black/40 sm:rounded-[1.75rem]"
-              style={{ animationDelay: "160ms" }}
-            >
+          {/* Mobile / tablet photo (desktop uses blended layer) */}
+          <div className="relative z-10 w-full lg:invisible lg:h-[28rem] lg:pointer-events-none">
+            <div className="overflow-hidden rounded-3xl shadow-2xl shadow-black/40 lg:hidden">
               <img
                 src={HERO_PHOTO}
                 alt="Student learning with tablet and notes"
-                className="aspect-[5/4] w-full object-cover object-[70%_12%] sm:aspect-[4/3] lg:aspect-[5/4] lg:max-h-[28rem]"
+                className="aspect-[5/4] w-full object-cover object-[70%_12%]"
                 loading="eager"
-                fetchPriority="high"
                 decoding="async"
               />
             </div>
@@ -522,21 +580,23 @@ export default function Homepage() {
         </div>
       </section>
 
-      {/* Metrics card overlapping hero */}
+      {/* Metrics pill overlapping hero */}
       <section className="relative z-20 -mt-14 px-4 sm:-mt-16 sm:px-6 lg:px-8">
         <Reveal>
-          <div className="mx-auto max-w-6xl rounded-2xl border border-slate-100 bg-white px-4 py-6 shadow-[0_24px_60px_-30px_rgba(10,31,68,0.55)] sm:px-8 sm:py-7">
-            <div className="grid grid-cols-2 gap-5 md:grid-cols-4 md:gap-4">
+          <div className="mx-auto max-w-5xl rounded-[1.75rem] border border-slate-100 bg-white px-3 py-5 shadow-[0_24px_60px_-28px_rgba(5,13,36,0.55)] sm:rounded-full sm:px-6 sm:py-5">
+            <div className="grid grid-cols-2 divide-y divide-slate-100 sm:grid-cols-4 sm:divide-x sm:divide-y-0">
               {METRICS.map((m) => {
                 const Icon = m.icon;
                 return (
-                  <div key={m.label} className="flex items-center gap-3">
-                    <span className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full ${m.bg}`}>
+                  <div key={m.label} className="flex items-center gap-3 px-3 py-3 sm:justify-center sm:px-4 sm:py-1">
+                    <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full ${m.bg}`}>
                       <Icon className={`h-5 w-5 ${m.color}`} />
                     </span>
                     <div>
-                      <p className={`font-display text-2xl font-extrabold leading-none ${m.color}`}>{m.value}</p>
-                      <p className="mt-1 text-xs font-medium text-slate-500 sm:text-sm">{m.label}</p>
+                      <p className={`font-display text-xl font-extrabold leading-none sm:text-2xl ${m.color}`}>
+                        {m.value}
+                      </p>
+                      <p className="mt-1 text-[0.7rem] font-medium text-slate-500 sm:text-xs">{m.label}</p>
                     </div>
                   </div>
                 );
@@ -546,50 +606,94 @@ export default function Homepage() {
         </Reveal>
       </section>
 
-      {/* Features with numbered path */}
-      <section id="features" className="scroll-mt-24 py-16 sm:py-24">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      {/* Features — overlapping number badges + dashed snake path (exact mock) */}
+      <section id="features" className="relative scroll-mt-24 bg-[#fafbfc] py-16 sm:py-24">
+        <div
+          className="pointer-events-none absolute left-6 top-10 hidden h-28 w-28 opacity-50 lg:block"
+          style={{
+            backgroundImage: "radial-gradient(#94a3b8 1.4px, transparent 1.4px)",
+            backgroundSize: "11px 11px",
+          }}
+          aria-hidden
+        />
+        <div
+          className="pointer-events-none absolute bottom-10 right-6 hidden h-28 w-28 opacity-50 lg:block"
+          style={{
+            backgroundImage: "radial-gradient(#94a3b8 1.4px, transparent 1.4px)",
+            backgroundSize: "11px 11px",
+          }}
+          aria-hidden
+        />
+
+        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
           <Reveal>
             <div className="mx-auto max-w-3xl text-center">
-              <h2 className="font-display text-3xl font-extrabold tracking-tight text-[#0a1f44] sm:text-4xl lg:text-5xl">
-                Powerful Features. <span className="text-sky-600">Purposeful Impact.</span>
+              <h2 className="font-display text-3xl font-extrabold tracking-tight text-[#0a1f44] sm:text-4xl lg:text-[2.65rem]">
+                Powerful Features.{" "}
+                <span className="relative inline-block text-sky-600">
+                  Purposeful
+                  <span className="absolute -bottom-1 left-0 right-0 mx-auto h-[3px] w-[72%] rounded-full bg-sky-500" />
+                </span>{" "}
+                <span className="text-sky-600">Impact.</span>
               </h2>
             </div>
           </Reveal>
 
-          <div className="relative mt-14">
-            {/* Dotted connector path (desktop) */}
+          <div className="relative mt-14 px-8 sm:mt-16 sm:px-10 lg:px-14">
+            {/* Curvy dashed snake — all segments arched like 03↔06 */}
             <svg
-              className="pointer-events-none absolute inset-0 hidden h-full w-full lg:block"
-              viewBox="0 0 1000 520"
+              className="pointer-events-none absolute inset-x-4 inset-y-0 z-[1] hidden h-full w-full lg:block sm:inset-x-6 lg:inset-x-10"
+              viewBox="0 0 1000 400"
               fill="none"
               aria-hidden
               preserveAspectRatio="none"
             >
               <path
-                d="M160 90 H500 H840 M840 90 V260 H500 H160 M160 260 V430 H500 H840"
-                stroke="#cbd5e1"
-                strokeWidth="2"
-                strokeDasharray="6 10"
+                d="
+                  M 55 95
+                  C 140 55, 230 135, 333 95
+                  C 430 55, 520 135, 667 95
+                  C 760 55, 850 120, 905 95
+                  C 980 55, 1010 160, 980 200
+                  C 950 250, 980 310, 905 305
+                  C 820 345, 740 265, 667 305
+                  C 560 345, 440 265, 333 305
+                  C 240 345, 150 265, 55 305
+                  C -10 265, -20 135, 55 95
+                "
+                stroke="#94a3b8"
+                strokeWidth="2.5"
+                strokeDasharray="7 9"
+                strokeLinecap="round"
+                strokeLinejoin="round"
               />
             </svg>
 
-            <div className="relative grid gap-6 sm:grid-cols-2 lg:grid-cols-3 lg:gap-8">
+            <div className="relative z-[2] grid grid-cols-1 gap-10 sm:grid-cols-2 sm:gap-x-12 sm:gap-y-14 lg:grid-cols-3 lg:gap-x-16 lg:gap-y-20">
               {FEATURES.map((f, i) => {
                 const Icon = f.icon;
                 return (
-                  <Reveal key={f.n} delay={i * 80}>
-                    <article className="relative h-full rounded-2xl border border-slate-100 bg-white p-6 shadow-[0_12px_40px_-24px_rgba(10,31,68,0.35)]">
-                      <div className="mb-4 flex items-start justify-between">
+                  <Reveal key={f.n} delay={i * 60} className="h-full">
+                    <article className="relative flex h-full min-h-[7.5rem] items-center rounded-2xl border border-slate-100/80 bg-white py-5 pl-11 pr-5 shadow-[0_10px_36px_-18px_rgba(15,23,42,0.35)] sm:min-h-[8.25rem] sm:pl-12 sm:pr-6">
+                      <span className="absolute -left-[18px] top-1/2 z-20 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-[#0a1f44] font-display text-[11px] font-bold text-white shadow-md ring-[5px] ring-[#fafbfc] sm:-left-5 sm:h-10 sm:w-10 sm:text-xs sm:ring-[6px]">
+                        {f.n}
+                      </span>
+
+                      <div className="flex w-full items-center gap-3.5 sm:gap-4">
                         <span
-                          className={`flex h-12 w-12 items-center justify-center rounded-full text-white shadow-md ${f.iconBg}`}
+                          className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-white shadow-sm sm:h-12 sm:w-12 ${f.iconBg}`}
                         >
-                          <Icon className="h-5 w-5" />
+                          <Icon className="h-[1.15rem] w-[1.15rem] sm:h-5 sm:w-5" strokeWidth={2.25} />
                         </span>
-                        <span className="font-display text-sm font-bold text-slate-300">{f.n}</span>
+                        <div className="min-w-0 flex-1">
+                          <h3 className={`font-display text-base font-bold leading-tight sm:text-lg ${f.titleColor}`}>
+                            {f.title}
+                          </h3>
+                          <p className="mt-1 text-[0.8125rem] leading-snug text-slate-600 sm:text-sm sm:leading-relaxed">
+                            {f.body}
+                          </p>
+                        </div>
                       </div>
-                      <h3 className={`font-display text-xl font-bold ${f.titleColor}`}>{f.title}</h3>
-                      <p className="mt-2 text-sm leading-relaxed text-slate-600 sm:text-[0.95rem]">{f.body}</p>
                     </article>
                   </Reveal>
                 );
