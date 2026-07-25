@@ -150,16 +150,25 @@ export function GeneratorRecordsPanel({
         qs.set("board", recordsBoardFilter);
       }
       qs.set("limit", "400");
-      const res = await fetch(`${API_BASE_URL}${apiPrefix}/records?${qs.toString()}`, {
-        headers: authHeaders(),
-      });
-      const json = await res.json();
-      if (!res.ok || !json?.success) throw new Error(json?.message || "Failed to load records");
+      let res: Response | null = null;
+      let json: { success?: boolean; message?: string; data?: { grouped?: unknown[]; total?: number; loadedCount?: number; truncated?: boolean } } | null = null;
+      // Brief retry if an old deploy still rate-limits GETs after generate/poll.
+      for (let attempt = 0; attempt < 3; attempt += 1) {
+        res = await fetch(`${API_BASE_URL}${apiPrefix}/records?${qs.toString()}`, {
+          headers: authHeaders(),
+        });
+        json = await res.json().catch(() => null);
+        if (res.status !== 429) break;
+        await new Promise((r) => setTimeout(r, 800 * (attempt + 1)));
+      }
+      if (!res || !res.ok || !json?.success) {
+        throw new Error(json?.message || "Failed to load records");
+      }
       const grouped = Array.isArray(json?.data?.grouped) ? json.data.grouped : [];
-      setRecordsTree(grouped);
+      setRecordsTree(grouped as typeof recordsTree);
       setRecordsTotal(Number(json?.data?.total || 0));
       const loaded = Number(json?.data?.loadedCount);
-      setRecordsLoadedCount(Number.isFinite(loaded) && loaded > 0 ? loaded : countGroupedRecords(grouped));
+      setRecordsLoadedCount(Number.isFinite(loaded) && loaded > 0 ? loaded : countGroupedRecords(grouped as typeof recordsTree));
       setRecordsTruncated(Boolean(json?.data?.truncated));
     } catch (error: unknown) {
       setRecordsTree([]);

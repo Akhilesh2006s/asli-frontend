@@ -167,6 +167,8 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
   const [topic, setTopic] = useState("");
   const [subTopic, setSubTopic] = useState(WHOLE_CHAPTER_VALUE);
   const [extraSubTopics, setExtraSubTopics] = useState<string[]>([]);
+  /** When Whole chapter is selected, also generate one batch per real subtopic. */
+  const [expandEachSubtopic, setExpandEachSubtopic] = useState(true);
   const [bookId, setBookId] = useState("");
   const [useBookKnowledge, setUseBookKnowledge] = useState(true);
   const [qualityTier, setQualityTier] = useState<GenerationQualityTierId>(DEFAULT_GENERATION_QUALITY_TIER);
@@ -431,7 +433,9 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
     if (!supportsMultiSubtopic || extraSubTopics.length === 0) return [];
     return [subTopic, ...extraSubTopics.filter((s) => s && s !== subTopic)];
   })();
-  const isCombinedPaper = selectedSubTopicsForPayload.length > 1;
+  const isCombinedPaper = !isWholeChapter && selectedSubTopicsForPayload.length > 1;
+  const shouldExpandSubtopics =
+    isWholeChapter && expandEachSubtopic && subtopics.length > 0;
 
   const buildGenerationPayload = (forceUnlock = false) => ({
     toolSlug: selectedTool,
@@ -446,6 +450,13 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
     ...(isWholeChapter || isCombinedPaper
       ? { subTopics: selectedSubTopicsForPayload }
       : {}),
+    // Whole chapter + expand: save under each real subtopic AND Whole chapter
+    // (fixes all content landing only under "Whole chapter").
+    ...(shouldExpandSubtopics
+      ? { expandSubtopics: true, includeWholeChapter: true, combineSubtopics: false }
+      : isCombinedPaper
+        ? { combineSubtopics: true }
+        : {}),
     batchSize: parseBatchSize(),
     useBookKnowledge,
     qualityTier,
@@ -1012,6 +1023,20 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
                   ? `Combined paper covering ${selectedSubTopicsForPayload.length} subtopics.`
                   : "Questions will focus on this sub-topic — or add more below for a combined paper."}
             </p>
+            {isWholeChapter && subtopics.length > 0 ? (
+              <label className="mt-2 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50/80 px-3 py-2 text-xs text-amber-950 cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="mt-0.5"
+                  checked={expandEachSubtopic}
+                  onChange={(e) => setExpandEachSubtopic(e.target.checked)}
+                />
+                <span>
+                  Also generate <strong>separately for each of the {subtopics.length} subtopic(s)</strong>,
+                  plus Whole chapter. Keeps content under the correct SUBTOPIC cards (not all under Whole chapter).
+                </span>
+              </label>
+            ) : null}
           </div>
           {supportsMultiSubtopic && subtopics.length > 1 ? (
             <div className="sm:col-span-2 lg:col-span-3 space-y-1.5">

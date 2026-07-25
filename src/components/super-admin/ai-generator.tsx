@@ -307,6 +307,8 @@ export default function SuperAdminAiGenerator() {
   const [subTopic, setSubTopic] = useState("");
   // Additional subtopics for a COMBINED paper (question tools only).
   const [extraSubTopics, setExtraSubTopics] = useState<string[]>([]);
+  /** Generate each selected subtopic as its own batch (+ optional whole chapter). */
+  const [expandEachSubtopic, setExpandEachSubtopic] = useState(false);
   const [questionType, setQuestionType] = useState("All Types");
   const [questionCount, setQuestionCount] = useState("10");
   const [generationRecordCount, setGenerationRecordCount] = useState("");
@@ -459,13 +461,21 @@ export default function SuperAdminAiGenerator() {
         qs.set("board", boardFilter);
       }
       qs.set("limit", "400");
-      const res = await fetch(`${API_BASE_URL}/api/ai-generator/records?${qs.toString()}`, {
-        headers: { ...authHeaders() },
-      });
-      const json = await res.json();
-      if (!res.ok || !json?.success) throw new Error(json?.message || "Failed to load records");
+      let res: Response | null = null;
+      let json: { success?: boolean; message?: string; data?: { grouped?: unknown[]; total?: number; loadedCount?: number; truncated?: boolean } } | null = null;
+      for (let attempt = 0; attempt < 3; attempt += 1) {
+        res = await fetch(`${API_BASE_URL}/api/ai-generator/records?${qs.toString()}`, {
+          headers: { ...authHeaders() },
+        });
+        json = await res.json().catch(() => null);
+        if (res.status !== 429) break;
+        await new Promise((r) => setTimeout(r, 800 * (attempt + 1)));
+      }
+      if (!res || !res.ok || !json?.success) {
+        throw new Error(json?.message || "Failed to load records");
+      }
       const grouped = Array.isArray(json?.data?.grouped) ? json.data.grouped : [];
-      setRecordsTree(grouped);
+      setRecordsTree(grouped as typeof recordsTree);
       setRecordsTotal(Number(json?.data?.total || 0));
       const loaded = Number(json?.data?.loadedCount);
       setRecordsLoadedCount(Number.isFinite(loaded) && loaded > 0 ? loaded : 0);
@@ -613,25 +623,35 @@ export default function SuperAdminAiGenerator() {
 
   const parseBatchSize = () => parseGenerationRecordCount(generationRecordCount)!;
 
-  const buildGenerationPayload = (forceUnlock = false) => ({
-    toolSlug: selectedTool,
-    toolName: currentTool?.name || selectedTool,
-    board,
-    productCategory,
-    className: classNumber,
-    subjectName: subject,
-    topicName: topic,
-    subtopicName: subTopic,
-    ...(MULTI_SUBTOPIC_TOOLS.has(selectedTool) && extraSubTopics.length > 0
-      ? { subTopics: [subTopic, ...extraSubTopics.filter((s) => s && s !== subTopic)] }
-      : {}),
-    batchSize: parseBatchSize(),
-    qualityTier,
-    forceGenerate: forceGenerateNew,
-    forceGenerateNew: forceGenerateNew,
-    extraParams: buildExtraParams(),
-    ...(forceUnlock ? { forceUnlock: true } : {}),
-  });
+  const buildGenerationPayload = (forceUnlock = false) => {
+    const multiList =
+      MULTI_SUBTOPIC_TOOLS.has(selectedTool) && extraSubTopics.length > 0
+        ? [subTopic, ...extraSubTopics.filter((s) => s && s !== subTopic)]
+        : [];
+    const expand = expandEachSubtopic && multiList.length > 1;
+    return {
+      toolSlug: selectedTool,
+      toolName: currentTool?.name || selectedTool,
+      board,
+      productCategory,
+      className: classNumber,
+      subjectName: subject,
+      topicName: topic,
+      subtopicName: subTopic,
+      ...(multiList.length > 1 ? { subTopics: multiList } : {}),
+      ...(expand
+        ? { expandSubtopics: true, includeWholeChapter: true, combineSubtopics: false }
+        : multiList.length > 1
+          ? { combineSubtopics: true }
+          : {}),
+      batchSize: parseBatchSize(),
+      qualityTier,
+      forceGenerate: forceGenerateNew,
+      forceGenerateNew: forceGenerateNew,
+      extraParams: buildExtraParams(),
+      ...(forceUnlock ? { forceUnlock: true } : {}),
+    };
+  };
 
   const releaseLockAndRetry = async () => {
     try {
@@ -1231,9 +1251,25 @@ export default function SuperAdminAiGenerator() {
                 })}
               </div>
               {extraSubTopics.length > 0 && (
-                <p className="mt-1 text-mini text-slate-400">
-                  One combined paper covering {extraSubTopics.length + 1} subtopics.
-                </p>
+                <>
+                  <p className="mt-1 text-mini text-slate-400">
+                    {expandEachSubtopic
+                      ? `Will generate separately for ${extraSubTopics.length + 1} subtopics + Whole chapter.`
+                      : `One combined paper covering ${extraSubTopics.length + 1} subtopics (saved under Whole chapter).`}
+                  </p>
+                  <label className="mt-2 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50/80 px-3 py-2 text-xs text-amber-950 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      className="mt-0.5"
+                      checked={expandEachSubtopic}
+                      onChange={(e) => setExpandEachSubtopic(e.target.checked)}
+                    />
+                    <span>
+                      Generate <strong>separately per subtopic</strong> (+ Whole chapter) instead of one
+                      combined Whole chapter paper.
+                    </span>
+                  </label>
+                </>
               )}
             </div>
           )}
