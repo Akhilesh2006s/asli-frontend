@@ -1071,7 +1071,12 @@ export default function SubjectContentManagement() {
           ? extractPlainSubjectName(item.subject.name)
           : inferSubjectLabelFromContent(item)
       ).toLowerCase();
-      return selectedPlain !== '' && itemPlain === selectedPlain;
+      if (!selectedPlain || !itemPlain) return false;
+      // Maths / Mathematics / Math must share Content under the same sidebar row
+      return (
+        itemPlain === selectedPlain ||
+        normalizeSubjectDisplayKey(itemPlain) === normalizeSubjectDisplayKey(selectedPlain)
+      );
     };
   }, [
     contents,
