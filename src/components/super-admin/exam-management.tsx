@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -78,6 +78,91 @@ function subjectSectionLabel(subject?: string) {
 function resolveQuestionSectionHeading(q: { sectionHeading?: string; subject?: string }) {
   const custom = String(q?.sectionHeading || '').trim();
   return custom || subjectSectionLabel(q?.subject);
+}
+
+const EMPTY_QUESTION_FORM = {
+  questionText: '',
+  questionImage: '',
+  questionType: 'mcq' as 'mcq' | 'multiple' | 'integer',
+  subject: 'maths',
+  marks: '1',
+  negativeMarks: '0',
+  explanation: '',
+  options: ['', '', '', ''],
+  correctAnswer: '',
+  correctAnswers: [] as string[],
+  integerAnswer: '',
+};
+
+function optionText(opt: unknown): string {
+  if (typeof opt === 'string') return opt;
+  if (opt && typeof opt === 'object' && 'text' in opt) {
+    return String((opt as { text?: unknown }).text ?? '');
+  }
+  return '';
+}
+
+function buildQuestionFormFromExisting(q: any): typeof EMPTY_QUESTION_FORM {
+  const rawOptions = Array.isArray(q?.options) ? q.options : [];
+  const options = rawOptions.map(optionText);
+  while (options.length < 4) options.push('');
+
+  const type = (['mcq', 'multiple', 'integer'].includes(String(q?.questionType))
+    ? q.questionType
+    : 'mcq') as 'mcq' | 'multiple' | 'integer';
+
+  let correctAnswer = '';
+  let correctAnswers: string[] = [];
+  let integerAnswer = '';
+
+  if (type === 'integer') {
+    integerAnswer =
+      q?.correctAnswer === null || q?.correctAnswer === undefined ? '' : String(q.correctAnswer);
+  } else if (type === 'multiple') {
+    const answers = Array.isArray(q?.correctAnswer)
+      ? q.correctAnswer
+      : q?.correctAnswer != null && q?.correctAnswer !== ''
+        ? [q.correctAnswer]
+        : [];
+    correctAnswers = answers
+      .map((ans: unknown) => {
+        const idx = options.findIndex(
+          (o) => o.trim().toLowerCase() === String(ans ?? '').trim().toLowerCase()
+        );
+        return idx >= 0 ? String(idx) : '';
+      })
+      .filter(Boolean);
+    if (correctAnswers.length === 0) {
+      rawOptions.forEach((opt: any, i: number) => {
+        if (opt?.isCorrect) correctAnswers.push(String(i));
+      });
+    }
+  } else {
+    const ans = q?.correctAnswer;
+    const idx = options.findIndex(
+      (o) => o.trim().toLowerCase() === String(ans ?? '').trim().toLowerCase()
+    );
+    if (idx >= 0) {
+      correctAnswer = String(idx);
+    } else {
+      const flagged = rawOptions.findIndex((opt: any) => opt?.isCorrect);
+      if (flagged >= 0) correctAnswer = String(flagged);
+    }
+  }
+
+  return {
+    questionText: String(q?.questionText || ''),
+    questionImage: String(q?.questionImage || ''),
+    questionType: type,
+    subject: String(q?.subject || 'maths').toLowerCase() || 'maths',
+    marks: String(q?.marks ?? 1),
+    negativeMarks: String(q?.negativeMarks ?? 0),
+    explanation: String(q?.explanation || ''),
+    options,
+    correctAnswer,
+    correctAnswers,
+    integerAnswer,
+  };
 }
 
 const BOARDS = [
@@ -267,19 +352,9 @@ export default function ExamManagement() {
   const [csvFile, setCsvFile] = useState<File | null>(null);
   const [isUploadingCsv, setIsUploadingCsv] = useState(false);
   const [csvUploadResults, setCsvUploadResults] = useState<{ success: number; errors: string[] } | null>(null);
-  const [questionFormData, setQuestionFormData] = useState({
-    questionText: '',
-    questionImage: '',
-    questionType: 'mcq' as 'mcq' | 'multiple' | 'integer',
-    subject: 'maths',
-    marks: '1',
-    negativeMarks: '0',
-    explanation: '',
-    options: ['', '', '', ''],
-    correctAnswer: '',
-    correctAnswers: [] as string[],
-    integerAnswer: ''
-  });
+  const [questionFormData, setQuestionFormData] = useState(() => ({ ...EMPTY_QUESTION_FORM }));
+  const [editingQuestionId, setEditingQuestionId] = useState<string | null>(null);
+  const questionFormRef = useRef<HTMLDivElement | null>(null);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -1235,12 +1310,33 @@ export default function ExamManagement() {
     }
   };
 
+  const resetQuestionForm = () => {
+    setQuestionFormData({ ...EMPTY_QUESTION_FORM });
+    setQuestionImageFile(null);
+    setEditingQuestionId(null);
+  };
+
+  const handleEditQuestion = (q: any) => {
+    if (!q?._id) return;
+    setEditingQuestionId(String(q._id));
+    setQuestionFormData(buildQuestionFormFromExisting(q));
+    setQuestionImageFile(null);
+    setBulkQuestionUploadMode('csv');
+    window.setTimeout(() => {
+      questionFormRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 50);
+  };
+
+  const handleCancelEditQuestion = () => {
+    resetQuestionForm();
+  };
+
   const handleAddQuestion = async () => {
     if (!selectedExam) return;
 
     // In PDF upload mode, treat "Add Question" as final save action
     // for extracted rows so users can confirm before persistence.
-    if (bulkQuestionUploadMode === 'pdf' && pdfQuestionRows.length > 0) {
+    if (!editingQuestionId && bulkQuestionUploadMode === 'pdf' && pdfQuestionRows.length > 0) {
       await handleUploadExtractedQuestions();
       return;
     }
@@ -1311,7 +1407,7 @@ export default function ExamManagement() {
 
     const buildQuestionPayload = (replaceDuplicate = false) => ({
       questionText: questionFormData.questionText.trim(),
-      questionImage: questionFormData.questionImage.trim() || undefined,
+      questionImage: questionFormData.questionImage.trim(),
       questionType: questionFormData.questionType,
       options: formattedOptions,
       correctAnswer,
@@ -1325,20 +1421,7 @@ export default function ExamManagement() {
     });
 
     const handleQuestionSaved = () => {
-      setQuestionFormData({
-        questionText: '',
-        questionImage: '',
-        questionType: 'mcq',
-        subject: 'maths',
-        marks: '1',
-        negativeMarks: '0',
-        explanation: '',
-        options: ['', '', '', ''],
-        correctAnswer: '',
-        correctAnswers: [],
-        integerAnswer: ''
-      });
-      setQuestionImageFile(null);
+      resetQuestionForm();
       fetchQuestions(selectedExam._id);
       fetchExams(); // Refresh exam list to update question count
     };
@@ -1350,10 +1433,13 @@ export default function ExamManagement() {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
       };
-      const endpoint = `${API_BASE_URL}/api/super-admin/exams/${selectedExam._id}/questions`;
+      const isEditing = Boolean(editingQuestionId);
+      const endpoint = isEditing
+        ? `${API_BASE_URL}/api/super-admin/exams/${selectedExam._id}/questions/${editingQuestionId}`
+        : `${API_BASE_URL}/api/super-admin/exams/${selectedExam._id}/questions`;
 
       const response = await fetch(endpoint, {
-        method: 'POST',
+        method: isEditing ? 'PUT' : 'POST',
         headers,
         body: JSON.stringify(buildQuestionPayload(false))
       });
@@ -1363,10 +1449,20 @@ export default function ExamManagement() {
       if (response.ok && data.success) {
         toast({
           title: 'Success',
-          description: 'Question added successfully'
+          description: isEditing ? 'Question updated successfully' : 'Question added successfully'
         });
-        handleQuestionSaved();
-      } else if (response.status === 409 && String(data.message || '').toLowerCase().includes('duplicate')) {
+        if (isEditing && Array.isArray(data.questions)) {
+          setQuestions(data.questions);
+          resetQuestionForm();
+          fetchExams();
+        } else {
+          handleQuestionSaved();
+        }
+      } else if (
+        !isEditing &&
+        response.status === 409 &&
+        String(data.message || '').toLowerCase().includes('duplicate')
+      ) {
         const shouldReplace = window.confirm(
           'A question with the same text AND image already exists for this exam/subject.\n\n' +
             'OK = DELETE the existing question and save this one.\n' +
@@ -1401,15 +1497,15 @@ export default function ExamManagement() {
       } else {
         toast({
           title: 'Error',
-          description: data.message || 'Failed to add question',
+          description: data.message || (isEditing ? 'Failed to update question' : 'Failed to add question'),
           variant: 'destructive'
         });
       }
     } catch (error) {
-      console.error('Failed to add question:', error);
+      console.error('Failed to save question:', error);
       toast({
         title: 'Error',
-        description: 'Failed to add question',
+        description: editingQuestionId ? 'Failed to update question' : 'Failed to add question',
         variant: 'destructive'
       });
     } finally {
@@ -2683,7 +2779,7 @@ export default function ExamManagement() {
                                   }}
                                 >
                                   <FileQuestion className="mr-1 h-3.5 w-3.5 shrink-0" />
-                                  <span className="whitespace-nowrap">Add Questions</span>
+                                  <span className="whitespace-nowrap">Manage Questions</span>
                                 </Button>
                                 <Button
                                   type="button"
@@ -2719,6 +2815,7 @@ export default function ExamManagement() {
           setPdfPreviewPage(1);
           setBulkQuestionUploadMode('csv');
           setPendingDeleteQuestion(null);
+          resetQuestionForm();
         }
       }}>
         <DialogContent
@@ -2728,7 +2825,7 @@ export default function ExamManagement() {
           <DialogHeader>
             <DialogTitle>Manage Questions - {selectedExam?.title}</DialogTitle>
             <DialogDescription>
-              Add single MCQ, multiple MCQ, or integer type questions to this exam
+              Add, edit, or upload MCQ / multiple / integer questions. Use Edit on any question to fix text, options, or answers without re-entering everything.
             </DialogDescription>
           </DialogHeader>
 
@@ -3147,6 +3244,22 @@ export default function ExamManagement() {
                                 <Button
                                   type="button"
                                   size="sm"
+                                  variant="outline"
+                                  disabled={Boolean(savingQuestionId) || isReorderingQuestions}
+                                  onClick={() => handleEditQuestion(q)}
+                                  title="Edit question content"
+                                  className={
+                                    editingQuestionId === String(q._id)
+                                      ? 'border-sky-500 bg-sky-50 text-sky-700'
+                                      : undefined
+                                  }
+                                >
+                                  <Edit className="h-4 w-4" />
+                                  <span className="ml-1">Edit</span>
+                                </Button>
+                                <Button
+                                  type="button"
+                                  size="sm"
                                   disabled={
                                     savingQuestionId === String(q._id) || isReorderingQuestions
                                   }
@@ -3280,10 +3393,28 @@ export default function ExamManagement() {
               )}
             </div>
 
-            {/* Add New Question Form */}
-            <div className="border-t pt-6 space-y-4">
-              <h3 className="font-semibold">Add New Question (Single)</h3>
-              
+            {/* Add / Edit Question Form */}
+            <div
+              ref={questionFormRef}
+              className={`border-t pt-6 space-y-4 ${
+                editingQuestionId ? 'rounded-xl border border-sky-200 bg-sky-50/40 px-3 pb-3 sm:px-4' : ''
+              }`}
+            >
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h3 className="font-semibold">
+                  {editingQuestionId ? 'Edit Question' : 'Add New Question (Single)'}
+                </h3>
+                {editingQuestionId ? (
+                  <Button type="button" variant="outline" size="sm" onClick={handleCancelEditQuestion}>
+                    Cancel edit
+                  </Button>
+                ) : null}
+              </div>
+              {editingQuestionId ? (
+                <p className="text-xs text-sky-800">
+                  Editing an existing question. Fix text, options, answer, marks, or image, then click Update Question.
+                </p>
+              ) : null}
               <div>
                 <Label>Question Type *</Label>
                 <Select
@@ -3516,8 +3647,21 @@ export default function ExamManagement() {
             <Button variant="outline" onClick={() => setIsQuestionDialogOpen(false)}>
               Close
             </Button>
+            {editingQuestionId ? (
+              <Button variant="outline" onClick={handleCancelEditQuestion} disabled={isAddingQuestion}>
+                Cancel edit
+              </Button>
+            ) : null}
             <Button onClick={handleAddQuestion} disabled={isAddingQuestion}>
-              {isAddingQuestion ? 'Adding...' : 'Add Question'}
+              {isAddingQuestion
+                ? editingQuestionId
+                  ? 'Updating...'
+                  : 'Adding...'
+                : editingQuestionId
+                  ? 'Update Question'
+                  : bulkQuestionUploadMode === 'pdf' && pdfQuestionRows.length > 0
+                    ? 'Upload Extracted Questions'
+                    : 'Add Question'}
             </Button>
           </DialogFooter>
         </DialogContent>

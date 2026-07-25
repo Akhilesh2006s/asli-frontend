@@ -12,6 +12,8 @@ import { API_BASE_URL } from "@/lib/api-config";
 import { networkErrorUserMessage, resilientFetch } from "@/lib/resilient-fetch";
 import { useToast } from "@/hooks/use-toast";
 import { useCurriculumCascade } from "@/hooks/use-curriculum-cascade";
+import { useProductCategories } from "@/hooks/use-product-categories";
+import { formatIitCategoryLabel, normalizeIitCategory } from "@/lib/products";
 import { cn } from "@/lib/utils";
 import {
   BOOK_BASED_STUDENT_TOOLS,
@@ -159,6 +161,7 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
   const [selectedTool, setSelectedTool] = useState<BookBasedToolId | "">("");
   const [boardOptions, setBoardOptions] = useState<string[]>([]);
   const [board, setBoard] = useState("");
+  const [productCategory, setProductCategory] = useState("");
   const [classNumber, setClassNumber] = useState("");
   const [subject, setSubject] = useState("");
   const [topic, setTopic] = useState("");
@@ -197,8 +200,23 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
     subject || undefined,
     topic || undefined,
     board || undefined,
-    undefined,
+    productCategory || undefined,
   );
+
+  const { codes: iitCategoryCodes, labelMap: iitLabelMap } = useProductCategories();
+  const isIitBoardSelected = useMemo(() => {
+    const boardKey = String(board || "").toUpperCase().replace(/[\s/\\-]+/g, "");
+    return boardKey.includes("IIT") || boardKey.includes("NEET") || boardKey.includes("JEE");
+  }, [board]);
+  const categorySelectOptions = useMemo(() => {
+    const rows = [{ code: "", label: "General" }];
+    for (const code of iitCategoryCodes) {
+      const c = normalizeIitCategory(code);
+      if (!c) continue;
+      rows.push({ code: c, label: `IIT ${formatIitCategoryLabel(c, iitLabelMap)}` });
+    }
+    return rows;
+  }, [iitCategoryCodes, iitLabelMap]);
 
   const currentTool = useMemo(() => BOOK_BASED_TOOLS.find((t) => t.id === selectedTool), [selectedTool]);
   const subjectsForTool = useMemo(
@@ -314,6 +332,16 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
 
   const handleBoardChange = (value: string) => {
     setBoard(value);
+    setProductCategory("");
+    setClassNumber("");
+    setSubject("");
+    setTopic("");
+    setSubTopic(WHOLE_CHAPTER_VALUE);
+    setExtraSubTopics([]);
+  };
+
+  const handleCategoryChange = (value: string) => {
+    setProductCategory(value === "__general__" ? "" : normalizeIitCategory(value));
     setClassNumber("");
     setSubject("");
     setTopic("");
@@ -414,6 +442,7 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
     topicName: topic,
     subtopicName: isWholeChapter ? "" : subTopic,
     chapterScope: isWholeChapter,
+    productCategory: productCategory || "",
     ...(isWholeChapter || isCombinedPaper
       ? { subTopics: selectedSubTopicsForPayload }
       : {}),
@@ -876,6 +905,34 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
                 {boardOptions.map((b) => <SelectItem key={b} value={b}>{b}</SelectItem>)}
               </SelectContent>
             </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>Product category (IIT track)</Label>
+            <Select
+              value={productCategory || "__general__"}
+              onValueChange={handleCategoryChange}
+              disabled={!board}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder={!board ? "Select board first" : "General"} />
+              </SelectTrigger>
+              <SelectContent>
+                {categorySelectOptions.map((c) => (
+                  <SelectItem key={c.code || "__general__"} value={c.code || "__general__"}>
+                    {c.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {isIitBoardSelected ? (
+              <p className="text-[11px] text-slate-500">
+                Pick Alpha / Beta / Gamma / Delta so teachers &amp; students on that track receive this content.
+              </p>
+            ) : (
+              <p className="text-[11px] text-slate-500">
+                Use General for board curriculum. For IIT tracks, choose Board IIT then Alpha–Delta.
+              </p>
+            )}
           </div>
           <div className="space-y-2">
             <Label>Class</Label>

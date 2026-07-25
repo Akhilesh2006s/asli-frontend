@@ -2333,7 +2333,7 @@ export default function SubjectContentManagement() {
         </div>
         <p className="mt-2 text-xs text-slate-500">
           <strong>General</strong> = board curriculum (CBSE, etc.).{' '}
-          <strong>Alpha / Beta / Gamma</strong> = IIT tracks — videos go to EduOTT; materials stay on
+                <strong>Alpha / Beta / Gamma / Delta</strong> = IIT tracks — videos go to EduOTT; materials stay on
           Learning Paths. Pick Board <strong>IIT</strong> above when managing those tracks.
         </p>
       </div>

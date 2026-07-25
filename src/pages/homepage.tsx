@@ -433,10 +433,10 @@ export default function Homepage() {
       <Navbar scrolled={scrolled} />
 
       {/* HERO — exact mock: blended photo, aligned head/headline, soft glow */}
-      <section className="relative overflow-hidden bg-[#050d24] pb-28 pt-10 sm:pb-32 sm:pt-14 lg:pb-36 lg:pt-16">
-        {/* Soft grid / mesh */}
+      <section className="relative overflow-hidden bg-[#050d24] pb-16 pt-7 sm:pb-24 sm:pt-12 lg:pb-36 lg:pt-16">
+        {/* Soft grid / mesh — desktop/tablet only */}
         <div
-          className="pointer-events-none absolute inset-0 opacity-[0.22]"
+          className="pointer-events-none absolute inset-0 hidden opacity-[0.22] sm:block"
           style={{
             backgroundImage:
               "linear-gradient(rgba(56,189,248,0.12) 1px, transparent 1px), linear-gradient(90deg, rgba(56,189,248,0.12) 1px, transparent 1px)",
@@ -448,7 +448,7 @@ export default function Homepage() {
 
         {/* Light-stream curves */}
         <svg
-          className="pointer-events-none absolute inset-0 h-full w-full opacity-40"
+          className="pointer-events-none absolute inset-0 hidden h-full w-full opacity-40 sm:block"
           viewBox="0 0 1440 700"
           fill="none"
           aria-hidden
@@ -476,8 +476,8 @@ export default function Homepage() {
           </defs>
         </svg>
 
-        {/* Decorative education icons */}
-        <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
+        {/* Decorative education icons — hide on phone to reduce clutter */}
+        <div className="pointer-events-none absolute inset-0 hidden overflow-hidden md:block" aria-hidden>
           {HERO_ICONS.map(({ Icon, className }, i) => (
             <Icon key={i} className={`absolute h-12 w-12 text-sky-200/25 sm:h-14 sm:w-14 ${className}`} strokeWidth={1.2} />
           ))}
@@ -501,11 +501,11 @@ export default function Homepage() {
           <div className="absolute inset-x-0 top-0 h-16 bg-gradient-to-b from-[#050d24]/80 to-transparent" />
         </div>
 
-        <div className="relative mx-auto grid min-h-[22rem] max-w-7xl items-center gap-10 px-4 sm:px-6 lg:min-h-[28rem] lg:grid-cols-2 lg:gap-8 lg:px-8 xl:min-h-[30rem]">
-          {/* Left copy — vertically centered with photo */}
+        <div className="relative mx-auto grid max-w-7xl items-center gap-6 px-4 sm:gap-8 sm:px-6 lg:min-h-[28rem] lg:grid-cols-2 lg:gap-8 lg:px-8 xl:min-h-[30rem]">
+          {/* Left copy */}
           <div className="relative z-10 max-w-xl">
             <h1
-              className="animate-fade-rise font-display text-4xl font-extrabold leading-[1.1] tracking-tight text-white sm:text-5xl lg:text-[3.35rem]"
+              className="animate-fade-rise font-display text-[1.85rem] font-extrabold leading-[1.15] tracking-tight text-white sm:text-4xl md:text-5xl lg:text-[3.35rem]"
               style={{ animationDelay: "0ms" }}
             >
               AI-First Learning.
@@ -513,23 +513,23 @@ export default function Homepage() {
               Future-Ready Schools.
             </h1>
             <p
-              className="animate-fade-rise mt-5 max-w-lg text-base font-medium leading-relaxed text-white/75 sm:text-lg"
+              className="animate-fade-rise mt-4 max-w-lg text-sm font-medium leading-relaxed text-white/75 sm:mt-5 sm:text-lg"
               style={{ animationDelay: "110ms" }}
             >
               AsliLearn.ai empowers schools with intelligent tools to personalise learning, elevate teaching, and
               drive measurable outcomes.
             </p>
             <div
-              className="animate-fade-rise mt-8 flex w-full flex-col gap-3 sm:max-w-lg sm:flex-row sm:items-center"
+              className="animate-fade-rise mt-6 flex w-full flex-col gap-2.5 sm:mt-8 sm:max-w-lg sm:flex-row sm:items-center sm:gap-3"
               style={{ animationDelay: "200ms" }}
             >
               <Link href="/contact" className="w-full sm:w-auto">
                 <Button
                   size="lg"
-                  className="group h-12 w-full rounded-full bg-sky-500 px-5 pl-6 text-base font-semibold text-white hover:bg-sky-600 sm:w-auto"
+                  className="group h-11 w-full rounded-full bg-sky-500 px-5 pl-6 text-sm font-semibold text-white hover:bg-sky-600 sm:h-12 sm:w-auto sm:text-base"
                 >
                   Book a Demo
-                  <span className="ml-2 flex h-8 w-8 items-center justify-center rounded-full bg-white/20 transition group-hover:bg-white/30">
+                  <span className="ml-2 flex h-7 w-7 items-center justify-center rounded-full bg-white/20 transition group-hover:bg-white/30 sm:h-8 sm:w-8">
                     <ArrowRight className="h-4 w-4" />
                   </span>
                 </Button>
@@ -538,40 +538,40 @@ export default function Homepage() {
                 <Button
                   size="lg"
                   variant="outline"
-                  className="h-12 w-full rounded-full border border-white/55 bg-transparent px-6 text-base font-semibold text-white hover:bg-white/10 hover:text-white sm:w-auto"
+                  className="h-11 w-full rounded-full border border-white/55 bg-transparent px-6 text-sm font-semibold text-white hover:bg-white/10 hover:text-white sm:h-12 sm:w-auto sm:text-base"
                 >
                   Explore the Platform
                 </Button>
               </a>
             </div>
             <div
-              className="animate-fade-rise mt-8 flex items-center gap-3"
+              className="animate-fade-rise mt-6 flex items-center gap-2.5 sm:mt-8 sm:gap-3"
               style={{ animationDelay: "300ms" }}
             >
-              <div className="flex -space-x-2.5">
+              <div className="flex shrink-0 -space-x-2 sm:-space-x-2.5">
                 {["/avatar-1.png", "/avatar-2.png", "/avatar-3.png", "/avatar-4.png"].map((src) => (
                   <img
                     key={src}
                     src={src}
                     alt=""
-                    className="h-9 w-9 rounded-full border-2 border-[#050d24] object-cover"
+                    className="h-8 w-8 rounded-full border-2 border-[#050d24] object-cover sm:h-9 sm:w-9"
                     aria-hidden
                   />
                 ))}
               </div>
-              <p className="text-sm font-medium text-white/70 sm:text-base">
+              <p className="min-w-0 text-xs font-medium leading-snug text-white/70 sm:text-base">
                 Trusted by <span className="font-bold text-sky-300">500+</span> schools across India
               </p>
             </div>
           </div>
 
           {/* Mobile / tablet photo (desktop uses blended layer) */}
-          <div className="relative z-10 w-full lg:invisible lg:h-[28rem] lg:pointer-events-none">
-            <div className="overflow-hidden rounded-3xl shadow-2xl shadow-black/40 lg:hidden">
+          <div className="relative z-10 w-full lg:invisible lg:pointer-events-none lg:h-[28rem]">
+            <div className="mx-auto max-w-xl overflow-hidden rounded-2xl shadow-2xl shadow-black/40 sm:max-w-2xl sm:rounded-3xl md:max-w-3xl lg:hidden">
               <img
                 src={HERO_PHOTO}
                 alt="Student learning with tablet and notes"
-                className="aspect-[5/4] w-full object-cover object-[70%_12%]"
+                className="aspect-[16/10] max-h-[15.5rem] w-full object-cover object-[70%_12%] sm:aspect-[16/11] sm:max-h-[20rem] md:max-h-[22rem]"
                 loading="eager"
                 decoding="async"
               />
@@ -581,22 +581,27 @@ export default function Homepage() {
       </section>
 
       {/* Metrics pill overlapping hero */}
-      <section className="relative z-20 -mt-14 px-4 sm:-mt-16 sm:px-6 lg:px-8">
+      <section className="relative z-20 -mt-8 px-3 sm:-mt-12 sm:px-6 lg:-mt-16 lg:px-8">
         <Reveal>
-          <div className="mx-auto max-w-5xl rounded-[1.75rem] border border-slate-100 bg-white px-3 py-5 shadow-[0_24px_60px_-28px_rgba(5,13,36,0.55)] sm:rounded-full sm:px-6 sm:py-5">
-            <div className="grid grid-cols-2 divide-y divide-slate-100 sm:grid-cols-4 sm:divide-x sm:divide-y-0">
+          <div className="mx-auto max-w-5xl rounded-2xl border border-slate-100 bg-white px-2 py-3 shadow-[0_24px_60px_-28px_rgba(5,13,36,0.55)] sm:rounded-[1.75rem] sm:px-4 sm:py-5 lg:rounded-full lg:px-6">
+            <div className="grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-4 lg:gap-0 lg:divide-x lg:divide-slate-100">
               {METRICS.map((m) => {
                 const Icon = m.icon;
                 return (
-                  <div key={m.label} className="flex items-center gap-3 px-3 py-3 sm:justify-center sm:px-4 sm:py-1">
-                    <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full ${m.bg}`}>
-                      <Icon className={`h-5 w-5 ${m.color}`} />
+                  <div
+                    key={m.label}
+                    className="flex items-center gap-2.5 rounded-xl bg-slate-50/80 px-2.5 py-2.5 sm:gap-3 sm:px-3 sm:py-2.5 lg:justify-center lg:bg-transparent lg:px-4 lg:py-1"
+                  >
+                    <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full sm:h-11 sm:w-11 ${m.bg}`}>
+                      <Icon className={`h-4 w-4 sm:h-5 sm:w-5 ${m.color}`} />
                     </span>
-                    <div>
-                      <p className={`font-display text-xl font-extrabold leading-none sm:text-2xl ${m.color}`}>
+                    <div className="min-w-0">
+                      <p className={`font-display text-lg font-extrabold leading-none sm:text-2xl ${m.color}`}>
                         {m.value}
                       </p>
-                      <p className="mt-1 text-[0.7rem] font-medium text-slate-500 sm:text-xs">{m.label}</p>
+                      <p className="mt-0.5 text-[0.65rem] font-medium leading-tight text-slate-500 sm:mt-1 sm:text-xs">
+                        {m.label}
+                      </p>
                     </div>
                   </div>
                 );
@@ -607,7 +612,7 @@ export default function Homepage() {
       </section>
 
       {/* Features — overlapping number badges + dashed snake path (exact mock) */}
-      <section id="features" className="relative scroll-mt-24 bg-[#fafbfc] py-16 sm:py-24">
+      <section id="features" className="relative scroll-mt-24 bg-[#fafbfc] py-12 sm:py-20 lg:py-24">
         <div
           className="pointer-events-none absolute left-6 top-10 hidden h-28 w-28 opacity-50 lg:block"
           style={{
@@ -628,7 +633,7 @@ export default function Homepage() {
         <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
           <Reveal>
             <div className="mx-auto max-w-3xl text-center">
-              <h2 className="font-display text-3xl font-extrabold tracking-tight text-[#0a1f44] sm:text-4xl lg:text-[2.65rem]">
+              <h2 className="font-display text-[1.65rem] font-extrabold tracking-tight text-[#0a1f44] sm:text-3xl md:text-4xl lg:text-[2.65rem]">
                 Powerful Features.{" "}
                 <span className="relative inline-block text-sky-600">
                   Purposeful
@@ -639,10 +644,10 @@ export default function Homepage() {
             </div>
           </Reveal>
 
-          <div className="relative mt-14 px-8 sm:mt-16 sm:px-10 lg:px-14">
-            {/* Curvy dashed snake — all segments arched like 03↔06 */}
+          <div className="relative mt-8 px-3 sm:mt-12 sm:px-6 md:px-8 lg:mt-16 lg:px-14">
+            {/* Curvy dashed snake — desktop 3-col only */}
             <svg
-              className="pointer-events-none absolute inset-x-4 inset-y-0 z-[1] hidden h-full w-full lg:block sm:inset-x-6 lg:inset-x-10"
+              className="pointer-events-none absolute inset-x-4 inset-y-0 z-[1] hidden h-full w-full lg:block lg:inset-x-10"
               viewBox="0 0 1000 400"
               fill="none"
               aria-hidden
@@ -669,27 +674,27 @@ export default function Homepage() {
               />
             </svg>
 
-            <div className="relative z-[2] grid grid-cols-1 gap-10 sm:grid-cols-2 sm:gap-x-12 sm:gap-y-14 lg:grid-cols-3 lg:gap-x-16 lg:gap-y-20">
+            <div className="relative z-[2] grid grid-cols-1 gap-5 sm:grid-cols-2 sm:gap-x-8 sm:gap-y-10 lg:grid-cols-3 lg:gap-x-16 lg:gap-y-20">
               {FEATURES.map((f, i) => {
                 const Icon = f.icon;
                 return (
                   <Reveal key={f.n} delay={i * 60} className="h-full">
-                    <article className="relative flex h-full min-h-[7.5rem] items-center rounded-2xl border border-slate-100/80 bg-white py-5 pl-11 pr-5 shadow-[0_10px_36px_-18px_rgba(15,23,42,0.35)] sm:min-h-[8.25rem] sm:pl-12 sm:pr-6">
-                      <span className="absolute -left-[18px] top-1/2 z-20 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-[#0a1f44] font-display text-[11px] font-bold text-white shadow-md ring-[5px] ring-[#fafbfc] sm:-left-5 sm:h-10 sm:w-10 sm:text-xs sm:ring-[6px]">
+                    <article className="relative flex h-full min-h-0 items-start rounded-2xl border border-slate-100/80 bg-white py-4 pl-10 pr-4 shadow-[0_10px_36px_-18px_rgba(15,23,42,0.35)] sm:min-h-[8.25rem] sm:items-center sm:py-5 sm:pl-12 sm:pr-6">
+                      <span className="absolute -left-3 top-5 z-20 flex h-8 w-8 items-center justify-center rounded-full bg-[#0a1f44] font-display text-[10px] font-bold text-white shadow-md ring-4 ring-[#fafbfc] sm:-left-5 sm:top-1/2 sm:h-10 sm:w-10 sm:-translate-y-1/2 sm:text-xs sm:ring-[6px]">
                         {f.n}
                       </span>
 
-                      <div className="flex w-full items-center gap-3.5 sm:gap-4">
+                      <div className="flex w-full items-start gap-3 sm:items-center sm:gap-4">
                         <span
-                          className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-white shadow-sm sm:h-12 sm:w-12 ${f.iconBg}`}
+                          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-white shadow-sm sm:h-12 sm:w-12 ${f.iconBg}`}
                         >
-                          <Icon className="h-[1.15rem] w-[1.15rem] sm:h-5 sm:w-5" strokeWidth={2.25} />
+                          <Icon className="h-4 w-4 sm:h-5 sm:w-5" strokeWidth={2.25} />
                         </span>
                         <div className="min-w-0 flex-1">
-                          <h3 className={`font-display text-base font-bold leading-tight sm:text-lg ${f.titleColor}`}>
+                          <h3 className={`font-display text-[0.95rem] font-bold leading-tight sm:text-lg ${f.titleColor}`}>
                             {f.title}
                           </h3>
-                          <p className="mt-1 text-[0.8125rem] leading-snug text-slate-600 sm:text-sm sm:leading-relaxed">
+                          <p className="mt-1 text-[0.78rem] leading-snug text-slate-600 sm:text-sm sm:leading-relaxed">
                             {f.body}
                           </p>
                         </div>
@@ -704,15 +709,15 @@ export default function Homepage() {
       </section>
 
       {/* Stakeholders — portrait cards with connector path */}
-      <section id="platform" className="scroll-mt-24 bg-[#f4f7fb] py-16 sm:py-24">
+      <section id="platform" className="scroll-mt-24 bg-[#f4f7fb] py-12 sm:py-20 lg:py-24">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <Reveal>
-            <h2 className="text-center font-display text-3xl font-extrabold tracking-tight text-[#0a1f44] sm:text-4xl">
+            <h2 className="text-center font-display text-[1.65rem] font-extrabold tracking-tight text-[#0a1f44] sm:text-3xl md:text-4xl">
               Benefits for <span className="text-sky-600">Every Stakeholder</span>
             </h2>
           </Reveal>
 
-          <div className="relative mt-16">
+          <div className="relative mt-10 sm:mt-14 lg:mt-16">
             {/* Dashed connector across cards (desktop) */}
             <div
               className="pointer-events-none absolute left-[16%] right-[16%] top-[4.75rem] hidden items-center lg:flex"
@@ -725,15 +730,19 @@ export default function Homepage() {
               <div className="h-0 flex-1 border-t-2 border-dashed border-slate-300" />
             </div>
 
-            <div className="relative grid gap-12 sm:grid-cols-2 lg:grid-cols-3 lg:gap-8">
+            <div className="relative grid gap-10 sm:grid-cols-2 sm:gap-8 lg:grid-cols-3 lg:gap-8">
               {STAKEHOLDERS.map((s, i) => {
                 const BadgeIcon = s.badgeIcon;
                 return (
-                  <Reveal key={s.title} delay={i * 100}>
+                  <Reveal
+                    key={s.title}
+                    delay={i * 100}
+                    className={i === 2 ? "sm:col-span-2 sm:mx-auto sm:w-full sm:max-w-md lg:col-span-1 lg:max-w-none" : undefined}
+                  >
                   <div className="relative flex flex-col items-center pt-2">
                     {/* Portrait + side badge */}
-                    <div className="relative z-10 mb-[-2.75rem] flex items-center">
-                      <div className="h-[7.5rem] w-[7.5rem] overflow-hidden rounded-full border-[5px] border-white bg-amber-300 shadow-xl sm:h-32 sm:w-32">
+                    <div className="relative z-10 mb-[-2.5rem] flex items-center sm:mb-[-2.75rem]">
+                      <div className="h-[6.75rem] w-[6.75rem] overflow-hidden rounded-full border-[5px] border-white bg-amber-300 shadow-xl sm:h-32 sm:w-32">
                         <img
                           src={s.photo}
                           alt=""
@@ -742,17 +751,17 @@ export default function Homepage() {
                         />
                       </div>
                       <span
-                        className={`absolute -right-3 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border-[3px] border-white text-white shadow-md sm:-right-4 ${s.badgeBg}`}
+                        className={`absolute -right-2.5 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border-[3px] border-white text-white shadow-md sm:-right-4 sm:h-11 sm:w-11 ${s.badgeBg}`}
                       >
-                        <BadgeIcon className="h-5 w-5" />
+                        <BadgeIcon className="h-4 w-4 sm:h-5 sm:w-5" />
                       </span>
                     </div>
 
-                    <div className="w-full rounded-2xl bg-[#0a1f44] px-6 pb-7 pt-14 text-left shadow-lg">
-                      <h3 className="font-display text-xl font-bold text-white">{s.title}</h3>
-                      <ul className="mt-4 space-y-3">
+                    <div className="w-full rounded-2xl bg-[#0a1f44] px-5 pb-6 pt-12 text-left shadow-lg sm:px-6 sm:pb-7 sm:pt-14">
+                      <h3 className="font-display text-lg font-bold text-white sm:text-xl">{s.title}</h3>
+                      <ul className="mt-3 space-y-2.5 sm:mt-4 sm:space-y-3">
                         {s.points.map((p) => (
-                          <li key={p} className="flex gap-2.5 text-sm text-white/85">
+                          <li key={p} className="flex gap-2.5 text-[0.8125rem] text-white/85 sm:text-sm">
                             <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-sky-400" />
                             {p}
                           </li>
@@ -768,15 +777,15 @@ export default function Homepage() {
         </div>
       </section>
       {/* How it works */}
-      <section id="about" className="scroll-mt-24 py-16 sm:py-24">
+      <section id="about" className="scroll-mt-24 py-12 sm:py-20 lg:py-24">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <Reveal>
-            <h2 className="text-center font-display text-3xl font-extrabold text-[#0a1f44] sm:text-4xl">
+            <h2 className="text-center font-display text-[1.65rem] font-extrabold text-[#0a1f44] sm:text-3xl md:text-4xl">
               How <span className="relative inline-block">it<span className="absolute -bottom-1 left-0 right-0 h-1 rounded-full bg-sky-500" /></span> Works
             </h2>
           </Reveal>
 
-          <div className="relative mt-14">
+          <div className="relative mt-10 sm:mt-14">
             <svg
               className="pointer-events-none absolute left-0 right-0 top-8 hidden h-16 w-full lg:block"
               viewBox="0 0 1000 64"
@@ -794,24 +803,26 @@ export default function Homepage() {
               <path d="M920 32 L940 28 L940 36 Z" fill="#cbd5e1" />
             </svg>
 
-            <div className="relative grid gap-10 sm:grid-cols-2 lg:grid-cols-4 lg:gap-6">
+            <div className="relative grid gap-8 sm:grid-cols-2 sm:gap-10 lg:grid-cols-4 lg:gap-6">
               {STEPS.map((step) => {
                 const Icon = step.icon;
                 return (
                   <div key={step.n} className="relative text-center">
                     <span
-                      className={`pointer-events-none absolute left-1/2 top-0 -translate-x-1/2 select-none font-display text-[7rem] font-extrabold leading-none ${step.numColor}`}
+                      className={`pointer-events-none absolute left-1/2 top-0 -translate-x-1/2 select-none font-display text-[4.5rem] font-extrabold leading-none sm:text-[6rem] lg:text-[7rem] ${step.numColor}`}
                       aria-hidden
                     >
                       {step.n}
                     </span>
-                    <div className="relative z-10 pt-10">
+                    <div className="relative z-10 pt-8 sm:pt-10">
                       <span
-                        className={`mx-auto flex h-14 w-14 items-center justify-center rounded-full text-white shadow-lg ${step.iconBg}`}
+                        className={`mx-auto flex h-12 w-12 items-center justify-center rounded-full text-white shadow-lg sm:h-14 sm:w-14 ${step.iconBg}`}
                       >
-                        <Icon className="h-6 w-6" />
+                        <Icon className="h-5 w-5 sm:h-6 sm:w-6" />
                       </span>
-                      <h3 className={`mt-5 font-display text-xl font-bold ${step.titleColor}`}>{step.title}</h3>
+                      <h3 className={`mt-4 font-display text-lg font-bold sm:mt-5 sm:text-xl ${step.titleColor}`}>
+                        {step.title}
+                      </h3>
                       <p className="mx-auto mt-2 max-w-[16rem] text-sm leading-relaxed text-slate-600">{step.body}</p>
                     </div>
                   </div>
@@ -827,11 +838,11 @@ export default function Homepage() {
         <div className="mx-auto grid max-w-7xl gap-8 px-4 sm:px-6 lg:grid-cols-[1.15fr_0.85fr] lg:gap-8 lg:px-8">
           <div className="min-w-0">
             <Reveal>
-              <h2 className="font-display text-2xl font-extrabold sm:text-3xl">
+              <h2 className="font-display text-xl font-extrabold sm:text-2xl md:text-3xl">
                 Loved by Educators. <span className="text-sky-300">Trusted by Schools.</span>
               </h2>
             </Reveal>
-            <div className="mt-5 h-[22rem] overflow-hidden">
+            <div className="mt-5 h-[16rem] overflow-hidden sm:h-[20rem] lg:h-[22rem]">
               <div className="homepage-marquee homepage-marquee-testimonials flex flex-col gap-3">
                 {[...TESTIMONIALS, ...TESTIMONIALS].map((t, index) => (
                   <article
@@ -868,17 +879,17 @@ export default function Homepage() {
 
           <div className="min-w-0">
             <Reveal>
-              <h2 className="font-display text-xl font-extrabold sm:text-2xl">Our Partner Schools</h2>
+              <h2 className="font-display text-lg font-extrabold sm:text-xl md:text-2xl">Our Partner Schools</h2>
             </Reveal>
-            <div className="mt-5 h-[22rem] overflow-hidden">
+            <div className="mt-5 h-[14rem] overflow-hidden sm:h-[18rem] lg:h-[22rem]">
               <div className="homepage-marquee homepage-marquee-partners flex flex-col gap-3">
                 {[...PARTNER_SCHOOLS, ...PARTNER_SCHOOLS].map((school, index) => (
                   <div
                     key={`${school.name}-${index}`}
-                    className={`flex h-[4.75rem] w-full shrink-0 items-center gap-3 rounded-xl border bg-white px-4 py-3 text-left shadow-sm ${school.tone}`}
+                    className={`flex h-[4.25rem] w-full shrink-0 items-center gap-3 rounded-xl border bg-white px-4 py-3 text-left shadow-sm sm:h-[4.75rem] ${school.tone}`}
                     aria-hidden={index >= PARTNER_SCHOOLS.length}
                   >
-                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/80 font-display text-xs font-extrabold shadow-sm">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/80 font-display text-xs font-extrabold shadow-sm sm:h-10 sm:w-10">
                       {school.initial}
                     </span>
                     <p className="font-display text-sm font-semibold leading-snug">{school.name}</p>
@@ -891,23 +902,26 @@ export default function Homepage() {
       </section>
 
       {/* Pricing */}
-      <section id="pricing" className="scroll-mt-24 py-16 sm:py-24">
+      <section id="pricing" className="scroll-mt-24 py-12 sm:py-20 lg:py-24">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <Reveal>
-            <h2 className="text-center font-display text-3xl font-extrabold text-[#0a1f44] sm:text-4xl">
+            <h2 className="text-center font-display text-[1.65rem] font-extrabold text-[#0a1f44] sm:text-3xl md:text-4xl">
               Simple, <span className="text-sky-600">Transparent</span> Pricing
             </h2>
           </Reveal>
 
-          <div className="mx-auto mt-12 grid max-w-4xl gap-6 md:grid-cols-2">
+          <div className="mx-auto mt-8 grid max-w-4xl gap-5 sm:mt-12 sm:gap-6 md:grid-cols-2">
             <article className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_16px_40px_-24px_rgba(10,31,68,0.35)]">
-              <div className="bg-[#0a1f44] px-6 py-5 text-white">
-                <h3 className="font-display text-xl font-bold">Student Plan</h3>
+              <div className="bg-[#0a1f44] px-5 py-4 text-white sm:px-6 sm:py-5">
+                <h3 className="font-display text-lg font-bold sm:text-xl">Student Plan</h3>
                 <p className="mt-0.5 text-sm text-white/70">Board + IIT</p>
               </div>
-              <div className="px-6 py-6">
-                <p className="font-display text-3xl font-extrabold text-sky-600">
-                  ₹249 <span className="text-base font-semibold text-slate-500">/ month per child</span>
+              <div className="px-5 py-5 sm:px-6 sm:py-6">
+                <p className="font-display text-2xl font-extrabold text-sky-600 sm:text-3xl">
+                  ₹249{" "}
+                  <span className="mt-1 block text-sm font-semibold text-slate-500 sm:mt-0 sm:inline sm:text-base">
+                    / month per child
+                  </span>
                 </p>
                 <ul className="mt-6 space-y-3">
                   {[
@@ -932,13 +946,16 @@ export default function Homepage() {
             </article>
 
             <article className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_16px_40px_-24px_rgba(10,31,68,0.35)]">
-              <div className="bg-emerald-500 px-6 py-5 text-white">
-                <h3 className="font-display text-xl font-bold">Teacher Plan</h3>
+              <div className="bg-emerald-500 px-5 py-4 text-white sm:px-6 sm:py-5">
+                <h3 className="font-display text-lg font-bold sm:text-xl">Teacher Plan</h3>
                 <p className="mt-0.5 text-sm text-white/80">&nbsp;</p>
               </div>
-              <div className="px-6 py-6">
-                <p className="font-display text-3xl font-extrabold text-emerald-600">
-                  ₹3,999 <span className="text-base font-semibold text-slate-500">/ year per teacher</span>
+              <div className="px-5 py-5 sm:px-6 sm:py-6">
+                <p className="font-display text-2xl font-extrabold text-emerald-600 sm:text-3xl">
+                  ₹3,999{" "}
+                  <span className="mt-1 block text-sm font-semibold text-slate-500 sm:mt-0 sm:inline sm:text-base">
+                    / year per teacher
+                  </span>
                 </p>
                 <ul className="mt-6 space-y-3">
                   {[
@@ -970,12 +987,14 @@ export default function Homepage() {
       </section>
 
       {/* FAQ */}
-      <section id="faq" className="scroll-mt-24 bg-[#f4f7fb] py-16 sm:py-20">
+      <section id="faq" className="scroll-mt-24 bg-[#f4f7fb] py-12 sm:py-16 lg:py-20">
         <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
           <Reveal>
-            <h2 className="text-center font-display text-3xl font-extrabold text-[#0a1f44] sm:text-4xl">FAQ</h2>
+            <h2 className="text-center font-display text-[1.65rem] font-extrabold text-[#0a1f44] sm:text-3xl md:text-4xl">
+              FAQ
+            </h2>
           </Reveal>
-          <div className="mt-8 space-y-3">
+          <div className="mt-6 space-y-3 sm:mt-8">
             {FAQS.map((item) => (
               <FaqItem key={item.q} q={item.q} a={item.a} />
             ))}
@@ -984,15 +1003,15 @@ export default function Homepage() {
       </section>
 
       {/* CTA banner */}
-      <section className="px-4 pb-4 sm:px-6 lg:px-8">
-        <div className="mx-auto flex max-w-7xl flex-col items-start gap-5 rounded-2xl bg-orange-500 px-6 py-6 sm:flex-row sm:items-center sm:justify-between sm:px-8 sm:py-7">
+      <section className="px-3 pb-3 sm:px-6 sm:pb-4 lg:px-8">
+        <div className="mx-auto flex max-w-7xl flex-col items-stretch gap-4 rounded-2xl bg-orange-500 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:gap-5 sm:px-8 sm:py-7">
           <div className="flex items-start gap-3 text-white sm:items-center">
-            <CalendarClock className="mt-0.5 h-7 w-7 shrink-0 sm:mt-0" />
-            <p className="font-display text-base font-semibold leading-snug sm:text-lg">
+            <CalendarClock className="mt-0.5 h-6 w-6 shrink-0 sm:mt-0 sm:h-7 sm:w-7" />
+            <p className="font-display text-sm font-semibold leading-snug sm:text-base md:text-lg">
               Ready to Build Future-Ready Schools? Join India&apos;s AI-First Learning Platform for Schools.
             </p>
           </div>
-          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:shrink-0">
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:shrink-0 sm:flex-row">
             <Link href="/contact" className="w-full sm:w-auto">
               <Button className="h-11 w-full rounded-full bg-white px-5 font-semibold text-sky-600 hover:bg-white/95 sm:w-auto">
                 Book a Demo
@@ -1012,8 +1031,8 @@ export default function Homepage() {
       </section>
 
       {/* Footer */}
-      <footer className="bg-[#0a1f44] pt-14 text-white">
-        <div className="mx-auto grid max-w-7xl gap-10 px-4 pb-12 sm:px-6 md:grid-cols-2 lg:grid-cols-4 lg:px-8">
+      <footer className="bg-[#0a1f44] pt-10 text-white sm:pt-14">
+        <div className="mx-auto grid max-w-7xl gap-8 px-4 pb-10 sm:gap-10 sm:px-6 sm:pb-12 md:grid-cols-2 lg:grid-cols-4 lg:px-8">
           <div>
             <Link href="/" className="flex items-center gap-2.5">
               <img src="/logo.jpg" alt="AsliLearn AI" className="h-9 w-9 rounded-lg object-contain" />

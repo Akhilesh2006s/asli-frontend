@@ -26,7 +26,8 @@ import { networkErrorUserMessage, resilientFetch } from "@/lib/resilient-fetch";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { useCurriculumCascade } from "@/hooks/use-curriculum-cascade";
-import { formatIitCategoryLabel } from "@/lib/products";
+import { useProductCategories } from "@/hooks/use-product-categories";
+import { formatIitCategoryLabel, normalizeIitCategory } from "@/lib/products";
 import { GeneratedRecordBody } from "@/components/super-admin/generated-record-body";
 import { AiToolRecordPreviewBody } from "@/components/super-admin/ai-tool-record-preview-body";
 import {
@@ -363,6 +364,8 @@ export default function SuperAdminAiGenerator() {
     productCategory,
   );
 
+  const { codes: productCategoryCodes, labelMap: productCategoryLabels } = useProductCategories();
+
   const subjectsForTool = useMemo(
     () => filterSubjectsForAiTool(selectedTool || "", subjects),
     [selectedTool, subjects],
@@ -489,6 +492,19 @@ export default function SuperAdminAiGenerator() {
         setCategoryOptions([{ code: "", label: "General" }]);
         return;
       }
+      // Always include active Product tracks (Alpha/Beta/Gamma/Delta) so SA can
+      // generate for a track even before AI Tool Topics exist for it.
+      const fromProducts = productCategoryCodes
+        .map((code) => normalizeIitCategory(code))
+        .filter(Boolean)
+        .map((code) => ({
+          code,
+          label: `IIT ${formatIitCategoryLabel(code, productCategoryLabels)}`,
+        }));
+      const byCode = new Map<string, { code: string; label: string }>();
+      byCode.set("", { code: "", label: "General" });
+      for (const row of fromProducts) byCode.set(row.code, row);
+
       try {
         const res = await fetch(
           `${API_BASE_URL}/api/super-admin/ai-tool-topics/options?${new URLSearchParams({ board }).toString()}`,
@@ -497,20 +513,28 @@ export default function SuperAdminAiGenerator() {
         const json = await res.json();
         if (!res.ok || cancelled) return;
         const rows = Array.isArray(json?.data?.productCategories) ? json.data.productCategories : [];
-        const mapped = rows.map((c: any) => ({
-          code: String(c.code ?? ""),
-          label: String(c.label || formatIitCategoryLabel(c.code) || "General"),
-        }));
-        setCategoryOptions(mapped.length ? mapped : [{ code: "", label: "General" }]);
+        for (const c of rows) {
+          const code = normalizeIitCategory(c?.code);
+          if (!code) continue;
+          if (!byCode.has(code)) {
+            byCode.set(code, {
+              code,
+              label: String(c.label || formatIitCategoryLabel(code, productCategoryLabels) || code),
+            });
+          }
+        }
       } catch {
-        if (!cancelled) setCategoryOptions([{ code: "", label: "General" }]);
+        // Products list is enough as fallback
+      }
+      if (!cancelled) {
+        setCategoryOptions(Array.from(byCode.values()));
       }
     };
     void loadCategories();
     return () => {
       cancelled = true;
     };
-  }, [board]);
+  }, [board, productCategoryCodes, productCategoryLabels]);
 
   useEffect(() => {
     void loadRecords();
@@ -1104,7 +1128,7 @@ export default function SuperAdminAiGenerator() {
             </Select>
           </div>
           <div>
-            <Label>Product category</Label>
+            <Label>Product category (IIT track)</Label>
             <Select
               value={productCategory || "__general__"}
               onValueChange={handleCategoryChange}
@@ -1121,6 +1145,9 @@ export default function SuperAdminAiGenerator() {
                 ))}
               </SelectContent>
             </Select>
+            <p className="mt-1 text-[11px] text-muted-foreground">
+              Alpha / Beta / Gamma / Delta — must match the track assigned to schools so teachers &amp; students can open this content.
+            </p>
           </div>
           <div>
             <Label>Class</Label>

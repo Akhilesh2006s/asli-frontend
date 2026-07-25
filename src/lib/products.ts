@@ -3,7 +3,7 @@
 export const PRODUCT_IIT = 'IIT';
 
 /** Built-in defaults when API has not loaded yet. */
-export const IIT_CATEGORIES = ['ALPHA', 'BETA', 'GAMMA'] as const;
+export const IIT_CATEGORIES = ['ALPHA', 'BETA', 'GAMMA', 'DELTA'] as const;
 
 export type IitCategory = string;
 

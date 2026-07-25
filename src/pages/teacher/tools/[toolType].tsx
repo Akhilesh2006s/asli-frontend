@@ -122,7 +122,7 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
       { name: 'subject', label: 'Subject *', type: 'select', required: true },
       { name: 'topic', label: 'Topic *', type: 'select', required: true, placeholder: 'Select topic', isNCERT: true },
-      { name: 'subTopic', label: 'Sub Topic *', type: 'select', required: true, placeholder: 'Select subtopic', isCascadeSubtopic: true },
+      { name: 'subTopic', label: 'Sub Topic (optional — leave empty for whole chapter)', type: 'select', required: false, placeholder: 'Whole chapter', isCascadeSubtopic: true },
       { name: 'className', label: 'Section (Optional)', type: 'text', placeholder: 'e.g., A, B, C' }
     ]
   },
@@ -150,7 +150,7 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
       { name: 'subject', label: 'Subject *', type: 'select', required: true, dependsOn: 'gradeLevel' },
       { name: 'topic', label: 'Topic *', type: 'select', required: true, placeholder: 'Select topic', isNCERT: true },
-      { name: 'subTopic', label: 'Sub Topic *', type: 'select', required: true, placeholder: 'Select subtopic', isCascadeSubtopic: true }
+      { name: 'subTopic', label: 'Sub Topic (optional — leave empty for whole chapter)', type: 'select', required: false, placeholder: 'Whole chapter', isCascadeSubtopic: true }
     ]
   },
   'lesson-planner': {
@@ -161,7 +161,7 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
       { name: 'subject', label: 'Subject *', type: 'select', required: true },
       { name: 'topic', label: 'Topic *', type: 'select', required: true, placeholder: 'Select topic', isNCERT: true },
-      { name: 'subTopic', label: 'Sub Topic *', type: 'select', required: true, placeholder: 'Select subtopic', isCascadeSubtopic: true }
+      { name: 'subTopic', label: 'Sub Topic (optional — leave empty for whole chapter)', type: 'select', required: false, placeholder: 'Whole chapter', isCascadeSubtopic: true }
     ]
   },
   'homework-creator': {
@@ -172,7 +172,7 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
       { name: 'subject', label: 'Subject *', type: 'select', required: true },
       { name: 'topic', label: 'Topic *', type: 'select', required: true, placeholder: 'Select topic', isNCERT: true },
-      { name: 'subTopic', label: 'Sub Topic *', type: 'select', required: true, placeholder: 'Select subtopic', isCascadeSubtopic: true },
+      { name: 'subTopic', label: 'Sub Topic (optional — leave empty for whole chapter)', type: 'select', required: false, placeholder: 'Whole chapter', isCascadeSubtopic: true },
       { name: 'duration', label: 'Expected Duration (minutes)', type: 'number', placeholder: '30' }
     ]
   },
@@ -184,7 +184,7 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
       { name: 'subject', label: 'Subject *', type: 'select', required: true },
       { name: 'topic', label: 'Topic *', type: 'select', required: true, placeholder: 'Select topic', isNCERT: true },
-      { name: 'subTopic', label: 'Sub Topic *', type: 'select', required: true, placeholder: 'Select subtopic', isCascadeSubtopic: true },
+      { name: 'subTopic', label: 'Sub Topic (optional — leave empty for whole chapter)', type: 'select', required: false, placeholder: 'Whole chapter', isCascadeSubtopic: true },
       { name: 'length', label: 'Length', type: 'select', options: ['short', 'medium', 'long'] }
     ]
   },
@@ -196,7 +196,7 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
       { name: 'subject', label: 'Subject *', type: 'select', required: true },
       { name: 'topic', label: 'Topic *', type: 'select', required: true, placeholder: 'Select topic', isNCERT: true },
-      { name: 'subTopic', label: 'Sub Topic *', type: 'select', required: true, placeholder: 'Select subtopic', isCascadeSubtopic: true }
+      { name: 'subTopic', label: 'Sub Topic (optional — leave empty for whole chapter)', type: 'select', required: false, placeholder: 'Whole chapter', isCascadeSubtopic: true }
     ]
   },
   'flashcard-generator': {
@@ -207,7 +207,7 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
       { name: 'subject', label: 'Subject *', type: 'select', required: true },
       { name: 'topic', label: 'Topic *', type: 'select', required: true, placeholder: 'Select topic', isNCERT: true },
-      { name: 'subTopic', label: 'Sub Topic *', type: 'select', required: true, placeholder: 'Select subtopic', isCascadeSubtopic: true }
+      { name: 'subTopic', label: 'Sub Topic (optional — leave empty for whole chapter)', type: 'select', required: false, placeholder: 'Whole chapter', isCascadeSubtopic: true }
     ]
   },
   'daily-class-plan-maker': {
@@ -219,7 +219,7 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
       { name: 'subject', label: 'Subject *', type: 'select', required: true, dependsOn: 'gradeLevel' },
       { name: 'topic', label: 'Topic *', type: 'select', required: true, placeholder: 'Select topic', isNCERT: true },
-      { name: 'subTopic', label: 'Sub Topic *', type: 'select', required: true, placeholder: 'Select subtopic', isCascadeSubtopic: true },
+      { name: 'subTopic', label: 'Sub Topic (optional — leave empty for whole chapter)', type: 'select', required: false, placeholder: 'Whole chapter', isCascadeSubtopic: true },
       { name: 'timeSlots', label: 'Time Slots', type: 'text', placeholder: 'e.g., 9:00-10:00, 10:15-11:15' }
     ]
   },
@@ -900,7 +900,6 @@ export default function TeacherToolPage() {
         classNumber: parseAiToolClassNumber(selectedClass),
         subject: selectedSubject,
         topic: selectedTopic,
-        subTopic: selectedSubTopic,
         section: selectedSection,
         questionCount: formParams.questionCount ? parseInt(formParams.questionCount) : undefined,
         duration: formParams.duration ? parseInt(formParams.duration) : undefined,
@@ -910,6 +909,7 @@ export default function TeacherToolPage() {
         questionComposition,
         board: selectedBoard,
         gradeLevel: selectedClass,
+        chapterScope: !selectedSubTopic,
       };
 
       const response = await fetch(`${API_BASE_URL}/api/teacher/ai/generate-content`, {
