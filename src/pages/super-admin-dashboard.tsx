@@ -22,6 +22,8 @@ const SubscriptionManagement = lazy(() => import("@/components/super-admin/subsc
 const ProductsManagement = lazy(() => import("@/components/super-admin/products-management"));
 const BoardsManagement = lazy(() => import("@/components/super-admin/boards-management"));
 const TrialMembersManagement = lazy(() => import("@/components/super-admin/trial-members-management"));
+const AuditLogsPanel = lazy(() => import("@/components/super-admin/audit-logs-panel"));
+const ImpactReportsPanel = lazy(() => import("@/components/super-admin/impact-reports-panel"));
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -1034,6 +1036,18 @@ export default function SuperAdminDashboard() {
         return (
           <Suspense fallback={lazySectionFallback}>
             <TrialMembersManagement />
+          </Suspense>
+        );
+      case 'audit-logs':
+        return (
+          <Suspense fallback={lazySectionFallback}>
+            <AuditLogsPanel />
+          </Suspense>
+        );
+      case 'impact-reports':
+        return (
+          <Suspense fallback={lazySectionFallback}>
+            <ImpactReportsPanel />
           </Suspense>
         );
       case 'subjects-and-content':

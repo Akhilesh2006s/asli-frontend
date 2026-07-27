@@ -21,6 +21,8 @@ import {
   CreditCardIcon,
   Radio,
   Timer,
+  ScrollText,
+  FileBarChart,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -47,6 +49,8 @@ export function SuperAdminSidebar({ currentView, onViewChange, user, onLogout }:
     { id: 'admins', label: 'School Management', icon: Shield },
     { id: 'products', label: 'Products', icon: Layers },
     { id: 'trial-members', label: 'Trial Members', icon: Timer },
+    { id: 'audit-logs', label: 'Audit Logs', icon: ScrollText },
+    { id: 'impact-reports', label: 'Impact Reports', icon: FileBarChart },
     { id: 'subjects-and-content', label: 'Subject & Content', icon: LayoutList },
     { id: 'edu-ott-live', label: 'Edu OTT Live', icon: Radio },
     { id: 'exams', label: 'Exam Management', icon: FileTextIcon },

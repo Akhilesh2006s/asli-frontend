@@ -9,6 +9,7 @@ import StatCard from '@/components/dashboard/StatCard';
 import { API_BASE_URL } from '@/lib/api-config';
 import { formatSeatUsage } from '@/hooks/use-account-seats';
 import { AtRiskStudentsPanel } from '@/components/admin/AtRiskStudentsPanel';
+const SchoolImpactReportCard = lazy(() => import('@/components/admin/school-impact-report-card'));
 import {
   BookOpen,
   Users,
@@ -418,6 +419,10 @@ const AdminDashboard = () => {
             </div>
 
             <AtRiskStudentsPanel />
+
+            <Suspense fallback={lazySectionFallback}>
+              <SchoolImpactReportCard />
+            </Suspense>
 
             {/* Detailed School Analysis Section */}
               <motion.div

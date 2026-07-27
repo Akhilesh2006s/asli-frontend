@@ -1,7 +1,9 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { API_BASE_URL } from "@/lib/api-config";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -12,6 +14,8 @@ import {
   Users,
   GraduationCap,
   Activity,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 
 type SchoolSnap = {
@@ -37,18 +41,54 @@ type SchoolSnap = {
   teachers?: Array<{ name: string; status: string; generationsCreated: number; email?: string }>;
 };
 
+type Mode = "weekly" | "custom";
+
+function toInputDate(d: Date) {
+  return d.toISOString().slice(0, 10);
+}
+
+function startOfIsoWeekLocal(d: Date) {
+  const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  const day = date.getUTCDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  date.setUTCDate(date.getUTCDate() + diff);
+  return date;
+}
+
+function authToken() {
+  return (
+    localStorage.getItem("authToken") ||
+    localStorage.getItem("adminToken") ||
+    localStorage.getItem("token") ||
+    ""
+  );
+}
+
 export function SchoolImpactReportCard() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [snap, setSnap] = useState<SchoolSnap | null>(null);
+  const [mode, setMode] = useState<Mode>("weekly");
+  const [weekStart, setWeekStart] = useState(() => toInputDate(startOfIsoWeekLocal(new Date())));
+  const [fromDate, setFromDate] = useState(() => toInputDate(new Date()));
+  const [toDate, setToDate] = useState(() => toInputDate(new Date()));
+
+  const periodQuery = useMemo(() => {
+    const params = new URLSearchParams();
+    if (mode === "custom") {
+      params.set("from", fromDate);
+      params.set("to", toDate);
+    } else {
+      params.set("weekStart", weekStart);
+    }
+    return params;
+  }, [mode, fromDate, toDate, weekStart]);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE_URL}/api/admin/impact-report`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("authToken") || ""}`,
-        },
+      const res = await fetch(`${API_BASE_URL}/api/admin/impact-report?${periodQuery}`, {
+        headers: { Authorization: `Bearer ${authToken()}` },
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.message || "Failed to load");
@@ -62,23 +102,29 @@ export function SchoolImpactReportCard() {
     } finally {
       setLoading(false);
     }
-  }, [toast]);
+  }, [toast, periodQuery]);
 
   useEffect(() => {
     void load();
   }, [load]);
 
+  const shiftWeek = (delta: number) => {
+    const d = new Date(`${weekStart}T00:00:00.000Z`);
+    d.setUTCDate(d.getUTCDate() + delta * 7);
+    setWeekStart(toInputDate(startOfIsoWeekLocal(d)));
+  };
+
   const downloadPdf = async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/api/admin/impact-report/pdf`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem("authToken") || ""}` },
+      const res = await fetch(`${API_BASE_URL}/api/admin/impact-report/pdf?${periodQuery}`, {
+        headers: { Authorization: `Bearer ${authToken()}` },
       });
       if (!res.ok) throw new Error("PDF failed");
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `school-impact-${(snap?.schoolName || "school").replace(/\s+/g, "-")}.pdf`;
+      a.download = `school-impact-${(snap?.schoolName || "school").replace(/\s+/g, "-").slice(0, 40)}.pdf`;
       a.click();
       URL.revokeObjectURL(url);
     } catch (e: unknown) {
@@ -97,10 +143,10 @@ export function SchoolImpactReportCard() {
           <div>
             <CardTitle className="text-base sm:text-lg flex items-center gap-2">
               <FileText className="h-5 w-5 text-orange-600" />
-              Weekly School Impact Snapshot
+              Personalized School Impact Report
             </CardTitle>
             <p className="text-sm text-slate-600 mt-1">
-              {snap?.periodLabel || "Current week"} · your school only
+              {snap?.periodLabel || "Select a period"} · your school only
             </p>
           </div>
           <div className="flex gap-2">
@@ -115,10 +161,80 @@ export function SchoolImpactReportCard() {
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
+        <div className="rounded-lg border border-slate-200 bg-slate-50/70 p-3 space-y-3">
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              size="sm"
+              variant={mode === "weekly" ? "default" : "outline"}
+              onClick={() => setMode("weekly")}
+            >
+              Weekly
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant={mode === "custom" ? "default" : "outline"}
+              onClick={() => setMode("custom")}
+            >
+              Day to day
+            </Button>
+          </div>
+          {mode === "weekly" ? (
+            <div className="flex flex-wrap items-end gap-2">
+              <div className="space-y-1">
+                <Label htmlFor="admin-impact-week">Week of</Label>
+                <Input
+                  id="admin-impact-week"
+                  type="date"
+                  value={weekStart}
+                  onChange={(e) => setWeekStart(e.target.value)}
+                  className="w-[170px] bg-white"
+                />
+              </div>
+              <Button type="button" size="sm" variant="outline" onClick={() => shiftWeek(-1)}>
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <Button type="button" size="sm" variant="outline" onClick={() => shiftWeek(1)}>
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+              <Button type="button" size="sm" onClick={() => void load()} disabled={loading}>
+                Apply
+              </Button>
+            </div>
+          ) : (
+            <div className="flex flex-wrap items-end gap-2">
+              <div className="space-y-1">
+                <Label htmlFor="admin-impact-from">From</Label>
+                <Input
+                  id="admin-impact-from"
+                  type="date"
+                  value={fromDate}
+                  onChange={(e) => setFromDate(e.target.value)}
+                  className="w-[150px] bg-white"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="admin-impact-to">To</Label>
+                <Input
+                  id="admin-impact-to"
+                  type="date"
+                  value={toDate}
+                  onChange={(e) => setToDate(e.target.value)}
+                  className="w-[150px] bg-white"
+                />
+              </div>
+              <Button type="button" size="sm" onClick={() => void load()} disabled={loading}>
+                Apply
+              </Button>
+            </div>
+          )}
+        </div>
+
         {loading && !snap ? (
           <p className="text-sm text-slate-500">Building snapshot from live usage…</p>
         ) : !snap ? (
-          <p className="text-sm text-slate-500">No data yet for this week.</p>
+          <p className="text-sm text-slate-500">No data yet for this period.</p>
         ) : (
           <>
             <p className="text-sm text-slate-700">{snap.keyObservation}</p>
@@ -128,37 +244,11 @@ export function SchoolImpactReportCard() {
               <Mini label="Sessions" value={String(snap.totalLearningSessions ?? 0)} icon={Activity} />
               <Mini label="Repeat practice" value={`${snap.repeatPracticeStudentPct ?? 0}%`} icon={FileText} />
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-sm">
-              <p><span className="text-slate-500">AI doubts:</span> {snap.aiExplanationsCount ?? 0}</p>
-              <p><span className="text-slate-500">Practice attempts:</span> {snap.practiceAttempts ?? 0}</p>
-              <p><span className="text-slate-500">Minutes:</span> {snap.totalMinutesSpent ?? 0}</p>
-              <p><span className="text-slate-500">Occasional teachers:</span> {snap.teachersOccasional ?? 0}</p>
-              <p><span className="text-slate-500">Inactive teachers:</span> {snap.teachersInactive ?? 0}</p>
-              <p><span className="text-slate-500">Avg sessions / student:</span> {snap.avgSessionsPerActiveStudent ?? 0}</p>
-            </div>
             {snap.topSubjects?.length ? (
               <div className="flex flex-wrap gap-1.5">
-                {snap.topSubjects.map((s) => (
-                  <Badge key={s.subject} variant="secondary">
-                    {s.subject}: {s.pct}%
-                  </Badge>
-                ))}
-              </div>
-            ) : null}
-            {snap.teachers?.length ? (
-              <div className="flex flex-wrap gap-1.5">
-                {snap.teachers.map((t) => (
-                  <Badge
-                    key={`${t.email || t.name}-${t.status}`}
-                    className={
-                      t.status === "active"
-                        ? "bg-emerald-100 text-emerald-800"
-                        : t.status === "occasional"
-                          ? "bg-amber-100 text-amber-800"
-                          : "bg-slate-100 text-slate-600"
-                    }
-                  >
-                    {t.name || "Teacher"} · {t.status}
+                {snap.topSubjects.map((row) => (
+                  <Badge key={row.subject} variant="secondary">
+                    {row.subject}: {row.pct}%
                   </Badge>
                 ))}
               </div>
@@ -180,8 +270,8 @@ function Mini({
   icon: typeof Users;
 }) {
   return (
-    <div className="rounded-lg border bg-white px-3 py-2">
-      <div className="flex items-center gap-1 text-xs text-slate-500">
+    <div className="rounded-lg border border-orange-50 bg-orange-50/40 px-3 py-2">
+      <div className="flex items-center gap-1.5 text-xs text-slate-500">
         <Icon className="h-3.5 w-3.5" />
         {label}
       </div>
