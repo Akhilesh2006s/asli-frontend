@@ -117,6 +117,9 @@ export default function AiToolTopicsManagement() {
   const [availableBoards, setAvailableBoards] = useState<string[]>([]);
   const [dialogClassOptions, setDialogClassOptions] = useState<string[]>([]);
   const [dialogSubjectOptions, setDialogSubjectOptions] = useState<string[]>([]);
+  const [dialogCategoryOptions, setDialogCategoryOptions] = useState<ProductCategoryOption[]>([
+    { code: '', label: 'General' },
+  ]);
 
   const reloadData = async () => {
     await Promise.all([fetchRows(), loadBoards(), loadBoardHierarchy(selectedBoard, selectedCategory)]);
@@ -302,14 +305,21 @@ export default function AiToolTopicsManagement() {
     try {
       const baseUrl = `${API_BASE_URL}/api/super-admin/ai-tool-topics/options`;
       const classesParams = new URLSearchParams();
+      const categoryParams = new URLSearchParams();
       if (boardValue) {
         classesParams.set('board', boardValue);
-        classesParams.set('productCategory', productCategoryValue || '');
+        categoryParams.set('board', boardValue);
+        if (productCategoryValue !== '') {
+          classesParams.set('productCategory', productCategoryValue);
+        }
       }
       const subjectsParams = new URLSearchParams(classesParams);
       if (classLabelValue) subjectsParams.set('classLabel', classLabelValue);
 
-      const [classesRes, subjectsRes] = await Promise.all([
+      const [categoriesRes, classesRes, subjectsRes] = await Promise.all([
+        boardValue
+          ? fetch(`${baseUrl}?${categoryParams.toString()}`, { headers: authHeaders() })
+          : Promise.resolve(null),
         boardValue
           ? fetch(`${baseUrl}?${classesParams.toString()}`, { headers: authHeaders() })
           : Promise.resolve(null),
@@ -317,6 +327,23 @@ export default function AiToolTopicsManagement() {
           ? fetch(`${baseUrl}?${subjectsParams.toString()}`, { headers: authHeaders() })
           : Promise.resolve(null),
       ]);
+
+      if (categoriesRes?.ok) {
+        const categoriesJson = await categoriesRes.json();
+        const categories: ProductCategoryOption[] = Array.isArray(categoriesJson?.data?.productCategories)
+          ? categoriesJson.data.productCategories.map((c: any) => ({
+              code: String(c.code ?? ''),
+              label: String(c.label || formatIitCategoryLabel(c.code) || 'General'),
+            }))
+          : [{ code: '', label: 'General' }];
+        const normalized = categories.length ? categories : [{ code: '', label: 'General' }];
+        setDialogCategoryOptions(normalized);
+        if (!normalized.some((c) => c.code === (productCategoryValue || ''))) {
+          setForm((prev) => ({ ...prev, productCategory: GENERAL_CATEGORY }));
+        }
+      } else {
+        setDialogCategoryOptions([{ code: '', label: 'General' }]);
+      }
 
       if (classesRes?.ok) {
         const classesJson = await classesRes.json();
@@ -332,6 +359,7 @@ export default function AiToolTopicsManagement() {
         setDialogSubjectOptions([]);
       }
     } catch {
+      setDialogCategoryOptions([{ code: '', label: 'General' }]);
       setDialogClassOptions([]);
       setDialogSubjectOptions([]);
     }
@@ -343,6 +371,12 @@ export default function AiToolTopicsManagement() {
 
   useEffect(() => {
     if (!isDialogOpen) return;
+    if (!form.board) {
+      setDialogCategoryOptions([{ code: '', label: 'General' }]);
+      setDialogClassOptions([]);
+      setDialogSubjectOptions([]);
+      return;
+    }
     void fetchDialogOptions(form.board, form.productCategory || '', form.classLabel);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isDialogOpen, form.board, form.productCategory, form.classLabel]);
@@ -919,7 +953,7 @@ export default function AiToolTopicsManagement() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="__general__">General</SelectItem>
-                  {categoryOptions
+                  {(dialogCategoryOptions.length ? dialogCategoryOptions : categoryOptions)
                     .filter((c) => c.code)
                     .map((c) => (
                       <SelectItem key={c.code} value={c.code}>

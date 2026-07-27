@@ -695,7 +695,7 @@ export default function ExamViewOnly() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h2 className="text-xl sm:text-2xl font-bold">Exams (View Only)</h2>
-          <p className="text-gray-600 mt-1">View exams created by Super Admin for your board</p>
+          <p className="text-gray-600 mt-1">View exams Super Admin assigned to your school</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Label className="text-xs sm:text-sm text-gray-600 whitespace-nowrap">Class</Label>
