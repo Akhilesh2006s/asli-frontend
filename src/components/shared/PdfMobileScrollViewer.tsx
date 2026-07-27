@@ -53,7 +53,7 @@ function getSafeOutputScale(
 }
 
 function getFitWidthScale(containerWidth: number, pageWidth: number): number {
-  const pad = 8;
+  const pad = 24;
   const availW = Math.max(0, containerWidth - pad);
   if (availW <= 0 || pageWidth <= 0) return 1;
   return availW / pageWidth;
@@ -175,7 +175,7 @@ function PdfMobilePage({
     if (!canvas) return;
 
     let cancelled = false;
-    const fitW = Math.max(containerWidth - 8, 280);
+    const fitW = Math.max(containerWidth - 24, 260);
     void (async () => {
       const result = await renderPdfPageCanvas(
         pdf,
@@ -199,8 +199,8 @@ function PdfMobilePage({
     <div
       ref={slotRef}
       data-page={pageNum}
-      className="pdf-page-slot flex w-full shrink-0 justify-center px-1 py-2"
-      style={{ minHeight: `${pageHeight + 16}px` }}
+      className="pdf-page-slot flex w-full shrink-0 justify-center px-3 py-3 sm:px-4 sm:py-4"
+      style={{ minHeight: `${pageHeight + 24}px` }}
     >
       <PdfPagePinchFrame
         pageWidth={baseWidth}
@@ -243,7 +243,7 @@ export default function PdfMobileScrollViewer({
   return (
     <div
       ref={scrollRef}
-      className={`h-full w-full touch-manipulation overflow-x-hidden overscroll-y-contain ${scrollLocked ? 'overflow-y-hidden' : 'overflow-y-auto'} ${className}`}
+      className={`h-full w-full touch-manipulation overscroll-y-contain ${scrollLocked ? 'overflow-y-hidden overflow-x-hidden' : 'overflow-y-auto overflow-x-auto'} ${className}`}
       style={{ WebkitOverflowScrolling: 'touch' }}
     >
       {Array.from({ length: totalPages }, (_, index) => (

@@ -79,6 +79,16 @@ export function normalizeContentFileUrl(fileUrl: string): string {
   return `${API_BASE_URL}/${raw}`;
 }
 
+function readAuthToken(): string {
+  if (typeof window === "undefined") return "";
+  return (
+    localStorage.getItem("authToken") ||
+    localStorage.getItem("superAdminToken") ||
+    localStorage.getItem("token") ||
+    ""
+  );
+}
+
 /**
  * PDF bytes via API proxy + JWT query (iframe and PDF.js).
  * Use on digital boards where embedded browser PDF plugins fail.
@@ -88,10 +98,7 @@ export function getPdfContentPreviewProxyUrl(fileUrl: string, title?: string): s
   if (!absolute) return "";
   if (shouldFetchDirectly(absolute)) return absolute;
 
-  const token =
-    typeof window !== "undefined"
-      ? localStorage.getItem("authToken") || ""
-      : "";
+  const token = readAuthToken();
   return (
     `${API_BASE_URL}/api/student/content-preview` +
     `?url=${encodeURIComponent(absolute)}` +
@@ -106,10 +113,7 @@ export function getPdfContentPreviewProxyUrl(fileUrl: string, title?: string): s
 export function getPdfJsFetchUrl(fileUrl: string, title?: string): string {
   const absolute = normalizeContentFileUrl(fileUrl);
   if (!absolute) return "";
-  const token =
-    typeof window !== "undefined"
-      ? localStorage.getItem("authToken") || ""
-      : "";
+  const token = readAuthToken();
   return (
     `${API_BASE_URL}/api/student/content-preview` +
     `?url=${encodeURIComponent(absolute)}` +
@@ -117,6 +121,18 @@ export function getPdfJsFetchUrl(fileUrl: string, title?: string): string {
     `&token=${encodeURIComponent(token)}` +
     `&forceProxy=1`
   );
+}
+
+/**
+ * Best URL to open a PDF in a new browser tab (not iframe).
+ * Prefer direct /uploads links so staff roles are not blocked by student-only checks.
+ */
+export function getPdfOpenInNewTabUrl(fileUrl: string, title?: string): string {
+  const absolute = normalizeContentFileUrl(fileUrl);
+  if (!absolute) return "";
+  if (shouldFetchDirectly(absolute)) return absolute;
+  if (/\/uploads\//i.test(absolute)) return absolute;
+  return getPdfContentPreviewProxyUrl(fileUrl, title);
 }
 
 /** Mobile iframe fallback: one page fitted to the viewport. */

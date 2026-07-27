@@ -3493,7 +3493,7 @@ export default function SubjectContentManagement() {
             contentPreviewItem.type !== 'Audio' &&
             contentPreviewUrl &&
             isPdfPreviewContent(contentPreviewUrl, contentPreviewItem.type)
-              ? 'h-[min(96dvh,1120px)] w-[min(96vw,860px)] max-w-[860px]'
+              ? 'h-[min(96dvh,1120px)] w-[min(98vw,920px)] max-w-[920px]'
               : 'h-[min(98dvh,1200px)] w-[min(98vw,1680px)] max-w-[min(98vw,1680px)] lg:max-w-[min(98vw,1680px)]'
           }`}
         >
