@@ -304,11 +304,10 @@ export default function AiToolTopicsManagement() {
   ) => {
     try {
       const baseUrl = `${API_BASE_URL}/api/super-admin/ai-tool-topics/options`;
+      const categoriesUrl = `${API_BASE_URL}/api/super-admin/product-categories`;
       const classesParams = new URLSearchParams();
-      const categoryParams = new URLSearchParams();
       if (boardValue) {
         classesParams.set('board', boardValue);
-        categoryParams.set('board', boardValue);
         if (productCategoryValue !== '') {
           classesParams.set('productCategory', productCategoryValue);
         }
@@ -318,7 +317,7 @@ export default function AiToolTopicsManagement() {
 
       const [categoriesRes, classesRes, subjectsRes] = await Promise.all([
         boardValue
-          ? fetch(`${baseUrl}?${categoryParams.toString()}`, { headers: authHeaders() })
+          ? fetch(categoriesUrl, { headers: authHeaders() })
           : Promise.resolve(null),
         boardValue
           ? fetch(`${baseUrl}?${classesParams.toString()}`, { headers: authHeaders() })
@@ -330,13 +329,15 @@ export default function AiToolTopicsManagement() {
 
       if (categoriesRes?.ok) {
         const categoriesJson = await categoriesRes.json();
-        const categories: ProductCategoryOption[] = Array.isArray(categoriesJson?.data?.productCategories)
-          ? categoriesJson.data.productCategories.map((c: any) => ({
-              code: String(c.code ?? ''),
-              label: String(c.label || formatIitCategoryLabel(c.code) || 'General'),
-            }))
+        const categories: ProductCategoryOption[] = Array.isArray(categoriesJson?.data)
+          ? categoriesJson.data
+              .filter((c: any) => c?.isActive !== false)
+              .map((c: any) => ({
+                code: String(c.code ?? ''),
+                label: String(c.label || formatIitCategoryLabel(c.code) || 'General'),
+              }))
           : [{ code: '', label: 'General' }];
-        const normalized = categories.length ? categories : [{ code: '', label: 'General' }];
+        const normalized = [{ code: '', label: 'General' }, ...categories.filter((c) => c.code)];
         setDialogCategoryOptions(normalized);
         if (!normalized.some((c) => c.code === (productCategoryValue || ''))) {
           setForm((prev) => ({ ...prev, productCategory: GENERAL_CATEGORY }));
