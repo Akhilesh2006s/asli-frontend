@@ -1043,7 +1043,7 @@ export default function LearningPaths() {
           if (!open) setPreviewContent(null);
         }}
       >
-        <DialogContent className="w-[90vw] h-[95vh] max-w-none bg-white rounded-2xl overflow-hidden flex flex-col p-0">
+        <DialogContent className="flex h-[min(96dvh,1120px)] max-h-[96dvh] w-[min(96vw,860px)] max-w-[860px] flex-col overflow-hidden rounded-2xl bg-white p-0">
           <DialogHeader className="px-4 sm:px-6 lg:px-8 pt-5 pb-3 border-b border-gray-200">
             <DialogTitle className="pl-2 pt-1">{previewContent?.title || "Content Preview"}</DialogTitle>
           </DialogHeader>
@@ -1099,6 +1099,7 @@ export default function LearningPaths() {
                   fileUrl={previewContent?.fileUrl || fileUrl}
                   title={previewContent?.title}
                   className="h-full min-h-0 w-full flex-1"
+                  variant="book"
                 />
               );
             }

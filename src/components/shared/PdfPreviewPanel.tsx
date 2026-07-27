@@ -22,7 +22,15 @@ interface PdfPreviewPanelProps {
   className?: string;
   /** When true, always show external open link. Default: only when preview fails. */
   showOpenInNewTab?: boolean;
+  /**
+   * book = A4 portrait reading column (default for materials).
+   * fill = stretch to parent (legacy wide preview).
+   */
+  variant?: 'book' | 'fill';
 }
+
+/** ~A4 width at screen density — keeps PDF pages readable like a book page. */
+const A4_PAGE_MAX_WIDTH_PX = 794;
 
 function isPdfBuffer(buffer: ArrayBuffer): boolean {
   if (buffer.byteLength < 5) return false;
@@ -352,16 +360,23 @@ export default function PdfPreviewPanel({
   title,
   className = '',
   showOpenInNewTab = false,
+  variant = 'book',
 }: PdfPreviewPanelProps) {
+  const isBookLayout = variant !== 'fill';
   const prefersCanvasPreview = useCanvasPdfPreview();
   const inlineIframeSupported = canUseInlinePdfIframe();
   const avoidCrossOriginIframe = shouldAvoidCrossOriginPdfIframe(fileUrl);
   /** Canvas when touch/tablet, cross-origin API PDFs, or whenever iframes cannot render. */
   const useCanvasRendering =
     prefersCanvasPreview || !inlineIframeSupported || avoidCrossOriginIframe;
-  /** Mobile/tablet: vertical scroll stack (no bottom pager bar). */
+  /**
+   * Book / phone / tablet: vertical page stack (A4 reading).
+   * Digital boards keep snap full-viewport pages.
+   */
   const useMobileScrollLayout =
-    useCanvasRendering && typeof window !== 'undefined' && !detectDigitalBoard();
+    useCanvasRendering &&
+    typeof window !== 'undefined' &&
+    (isBookLayout || !detectDigitalBoard());
   const containerRef = useRef<HTMLDivElement>(null);
   const scrollHostRef = useRef<HTMLDivElement>(null);
   const pdfDocRef = useRef<pdfjs.PDFDocumentProxy | null>(null);
@@ -692,23 +707,54 @@ export default function PdfPreviewPanel({
     );
   }
 
+  const bookShellClass = isBookLayout
+    ? 'mx-auto flex h-full min-h-0 w-full max-w-[min(100%,794px)] flex-1 flex-col'
+    : 'flex h-full min-h-0 w-full flex-1 flex-col';
+  const readingSurfaceClass = isBookLayout
+    ? 'rounded-lg border border-stone-300/80 bg-stone-200/90 shadow-inner'
+    : 'rounded-lg border bg-slate-100';
+
   /** Desktop mouse/trackpad — embedded PDF iframe (never on touch tablets). */
   if (!useCanvasRendering && inlineIframeSupported) {
     return (
       <div className={`flex h-full min-h-0 flex-1 flex-col ${className}`}>
-        <iframe
-          key={iframeSrc}
-          title={title || 'PDF Preview'}
-          src={iframeSrc}
-          className="h-full min-h-[min(70dvh,800px)] w-full flex-1 border-0 bg-white rounded-lg"
-        />
+        {showOpenInNewTab ? (
+          <div className="flex flex-wrap items-center justify-end gap-2 shrink-0 pb-1">
+            <Button type="button" variant="outline" size="sm" onClick={openInNewTab}>
+              <ExternalLink className="mr-2 h-4 w-4" />
+              Open in new tab
+            </Button>
+          </div>
+        ) : null}
+        <div
+          className={`flex min-h-0 flex-1 justify-center overflow-hidden p-2 sm:p-3 ${
+            isBookLayout ? 'bg-stone-300/70' : ''
+          }`}
+        >
+          <div className={`${bookShellClass} overflow-hidden ${readingSurfaceClass}`}>
+            <iframe
+              key={iframeSrc}
+              title={title || 'PDF Preview'}
+              src={iframeSrc}
+              className="h-full min-h-[min(70dvh,900px)] w-full flex-1 border-0 bg-white"
+            />
+          </div>
+        </div>
       </div>
     );
   }
 
   const mobileIframeSrc = getEmbeddedPdfIframeSrc(fileUrl, title);
+  const bookPageWidth = Math.min(
+    A4_PAGE_MAX_WIDTH_PX,
+    Math.max(
+      containerSize.width,
+      containerRef.current?.clientWidth ?? 0,
+      typeof window !== 'undefined' ? Math.floor(Math.min(window.innerWidth * 0.92, A4_PAGE_MAX_WIDTH_PX)) : 320,
+    ),
+  );
 
-  /** Touch / tablet — scroll through pages naturally (no pager bar). */
+  /** Touch / tablet / book — scroll through pages naturally (no pager bar). */
   return (
     <div className={`flex h-full min-h-0 flex-1 flex-col ${className}`}>
       {showOpenInNewTab ? (
@@ -720,43 +766,45 @@ export default function PdfPreviewPanel({
         </div>
       ) : null}
 
-      <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border bg-slate-100 touch-manipulation">
-        <div ref={containerRef} className="relative h-full min-h-0 flex-1 overflow-hidden touch-manipulation">
-          {useIframeFallback ? (
-            <iframe
-              key={mobileIframeSrc}
-              title={title || 'PDF Preview'}
-              src={mobileIframeSrc}
-              className="h-full w-full border-0 bg-white"
-            />
-          ) : useMobileScrollLayout && pdfDoc && totalPages > 0 ? (
-            <PdfMobileScrollViewer
-              pdf={pdfDoc}
-              totalPages={totalPages}
-              containerWidth={Math.max(
-                containerSize.width,
-                containerRef.current?.clientWidth ?? 0,
-                typeof window !== 'undefined' ? Math.floor(window.innerWidth * 0.9) : 320,
-              )}
-              className="h-full w-full"
-            />
-          ) : (
-            <div ref={scrollHostRef} className="h-full w-full" />
-          )}
-          {loadingPdf || (!useIframeFallback && pdfSource && totalPages < 1 && !pdfError) ? (
-            <div className="absolute inset-0 flex items-center justify-center gap-2 bg-slate-100/90 text-muted-foreground">
-              <Loader2 className="h-6 w-6 animate-spin" />
-              <span className="text-sm">Loading document…</span>
-            </div>
-          ) : null}
-          {pdfError ? (
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-slate-100 px-4 text-center">
-              <p className="text-sm text-muted-foreground">{pdfError}</p>
-              <Button type="button" onClick={openInNewTab}>
-                Open PDF externally
-              </Button>
-            </div>
-          ) : null}
+      <div
+        className={`flex min-h-0 flex-1 justify-center overflow-hidden touch-manipulation ${
+          isBookLayout ? 'bg-stone-300/70 p-2 sm:p-3' : ''
+        }`}
+      >
+        <div className={`${bookShellClass} overflow-hidden ${readingSurfaceClass} touch-manipulation`}>
+          <div ref={containerRef} className="relative h-full min-h-0 flex-1 overflow-hidden touch-manipulation">
+            {useIframeFallback ? (
+              <iframe
+                key={mobileIframeSrc}
+                title={title || 'PDF Preview'}
+                src={mobileIframeSrc}
+                className="h-full w-full border-0 bg-white"
+              />
+            ) : useMobileScrollLayout && pdfDoc && totalPages > 0 ? (
+              <PdfMobileScrollViewer
+                pdf={pdfDoc}
+                totalPages={totalPages}
+                containerWidth={bookPageWidth}
+                className="h-full w-full"
+              />
+            ) : (
+              <div ref={scrollHostRef} className="h-full w-full" />
+            )}
+            {loadingPdf || (!useIframeFallback && pdfSource && totalPages < 1 && !pdfError) ? (
+              <div className="absolute inset-0 flex items-center justify-center gap-2 bg-stone-100/90 text-muted-foreground">
+                <Loader2 className="h-6 w-6 animate-spin" />
+                <span className="text-sm">Loading document…</span>
+              </div>
+            ) : null}
+            {pdfError ? (
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-stone-100 px-4 text-center">
+                <p className="text-sm text-muted-foreground">{pdfError}</p>
+                <Button type="button" onClick={openInNewTab}>
+                  Open PDF externally
+                </Button>
+              </div>
+            ) : null}
+          </div>
         </div>
       </div>
     </div>

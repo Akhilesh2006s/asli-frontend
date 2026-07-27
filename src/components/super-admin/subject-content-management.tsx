@@ -3486,7 +3486,17 @@ export default function SubjectContentManagement() {
           if (!open) setContentPreviewItem(null);
         }}
       >
-        <DialogContent className="flex h-[min(98dvh,1200px)] max-h-[98dvh] w-[min(98vw,1680px)] max-w-[min(98vw,1680px)] lg:max-w-[min(98vw,1680px)] flex-col gap-2 overflow-hidden rounded-2xl p-3 sm:gap-3 sm:p-4 lg:p-5">
+        <DialogContent
+          className={`flex max-h-[98dvh] flex-col gap-2 overflow-hidden rounded-2xl p-3 sm:gap-3 sm:p-4 lg:p-5 ${
+            contentPreviewItem &&
+            contentPreviewItem.type !== 'Video' &&
+            contentPreviewItem.type !== 'Audio' &&
+            contentPreviewUrl &&
+            isPdfPreviewContent(contentPreviewUrl, contentPreviewItem.type)
+              ? 'h-[min(96dvh,1120px)] w-[min(96vw,860px)] max-w-[860px]'
+              : 'h-[min(98dvh,1200px)] w-[min(98vw,1680px)] max-w-[min(98vw,1680px)] lg:max-w-[min(98vw,1680px)]'
+          }`}
+        >
           <DialogHeader className="shrink-0 space-y-1 pr-10">
             <DialogTitle className="pr-2 text-base sm:text-lg lg:text-xl font-semibold leading-snug">
               {contentPreviewItem
@@ -3579,6 +3589,7 @@ export default function SubjectContentManagement() {
                     title={contentPreviewItem.title}
                     className="h-full min-h-0 w-full flex-1"
                     showOpenInNewTab
+                    variant="book"
                   />
                 ) : (
                   <div className="flex flex-col items-center justify-center gap-4 p-4 sm:p-6 lg:p-8 text-center text-xs sm:text-sm text-muted-foreground">

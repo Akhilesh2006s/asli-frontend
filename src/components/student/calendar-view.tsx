@@ -504,9 +504,9 @@ export default function CalendarView({
         </div>
       )}
 
-      {/* Preview Dialog — near-fullscreen so textbook pages are readable, not clipped */}
+      {/* Preview Dialog — A4 book-style for readable textbooks / materials */}
       <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
-        <DialogContent className="flex h-[min(98dvh,1200px)] max-h-[98dvh] w-[min(98vw,1680px)] max-w-[min(98vw,1680px)] lg:max-w-[min(98vw,1680px)] flex-col gap-2 overflow-hidden rounded-2xl p-3 sm:gap-3 sm:p-4 lg:p-5">
+        <DialogContent className="flex h-[min(96dvh,1120px)] max-h-[98dvh] w-[min(96vw,860px)] max-w-[860px] flex-col gap-2 overflow-hidden rounded-2xl p-3 sm:gap-3 sm:p-4 lg:p-5">
           <DialogHeader className="shrink-0 space-y-1 pr-10">
             <DialogTitle className="text-base sm:text-lg lg:text-xl font-semibold leading-snug">
               {selectedContent?.title}
@@ -519,7 +519,7 @@ export default function CalendarView({
           {selectedContent && (
             <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
               {/* File Preview */}
-              <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg bg-gray-50">
+              <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg bg-stone-100">
                 {renderFilePreview(selectedContent)}
               </div>
 

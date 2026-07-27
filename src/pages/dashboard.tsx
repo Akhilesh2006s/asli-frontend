@@ -2663,7 +2663,7 @@ export default function Dashboard() {
 
       {/* Content Preview Modal */}
       <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
-        <DialogContent className="flex h-[95dvh] max-h-[95dvh] w-[90vw] max-w-none flex-col overflow-hidden rounded-2xl bg-white">
+        <DialogContent className="flex h-[min(96dvh,1120px)] max-h-[96dvh] w-[min(96vw,860px)] max-w-[860px] flex-col overflow-hidden rounded-2xl bg-white">
           {selectedScheduleItem && (
             <>
               <DialogHeader className="shrink-0">
@@ -2815,6 +2815,7 @@ export default function Dashboard() {
                                 fileUrl={fileUrl}
                                 title={selectedScheduleItem.title}
                                 className="h-full min-h-[min(48dvh,520px)] w-full flex-1"
+                                variant="book"
                               />
                             );
                           }

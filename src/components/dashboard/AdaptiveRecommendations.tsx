@@ -450,22 +450,23 @@ export default function AdaptiveRecommendations(_props: AdaptiveRecommendationsP
       </Card>
 
       <Dialog open={Boolean(previewItem)} onOpenChange={(open) => !open && setPreviewItem(null)}>
-        <DialogContent className="w-[95vw] max-w-4xl h-[92dvh] max-h-[92dvh] flex flex-col overflow-hidden p-4 sm:p-6">
+        <DialogContent className="w-[min(96vw,860px)] max-w-[860px] h-[min(96dvh,1120px)] max-h-[96dvh] flex flex-col overflow-hidden p-4 sm:p-6">
           {previewItem ? (
             <>
               <DialogHeader className="shrink-0">
                 <DialogTitle className="text-base sm:text-lg pr-6">{previewItem.title}</DialogTitle>
                 <DialogDescription className="text-xs sm:text-sm">
-                  Pinch on the page to zoom. Scroll outside the page for more pages. Double-tap to reset.
+                  Read like a book — scroll pages vertically. Pinch on the page to zoom. Double-tap to reset.
                 </DialogDescription>
               </DialogHeader>
-              <div className="flex min-h-0 flex-1 touch-manipulation flex-col overflow-hidden rounded-lg border bg-white">
+              <div className="flex min-h-0 flex-1 touch-manipulation flex-col overflow-hidden rounded-lg border bg-stone-100">
                 {previewItem.displayType?.toLowerCase() === 'pdf' ||
                 previewItem.fileUrl?.toLowerCase().includes('.pdf') ? (
                   <PdfPreviewPanel
                     fileUrl={previewItem.fileUrl || ''}
                     title={previewItem.title}
                     className="h-full min-h-0 w-full flex-1"
+                    variant="book"
                   />
                 ) : previewItem.displayType?.toLowerCase() === 'video' ? (
                   <video src={previewItem.fileUrl} controls className="h-full w-full" />
