@@ -85,6 +85,16 @@ function splitTopicByLabel(label: string, topicName: string) {
   return { label: safeLabel, topicName: safeTopicName };
 }
 
+function normalizeBoardProductKey(value: string) {
+  const compact = String(value || '')
+    .toUpperCase()
+    .replace(/[\s/\\-_]+/g, '');
+  if (compact.includes('IIT') || compact.includes('NEET') || compact.includes('JEE')) {
+    return 'IIT';
+  }
+  return String(value || '').toUpperCase().trim();
+}
+
 export default function AiToolTopicsManagement() {
   const { toast } = useToast();
   const [boards, setBoards] = useState<Board[]>([]);
@@ -306,7 +316,7 @@ export default function AiToolTopicsManagement() {
     try {
       const baseUrl = `${API_BASE_URL}/api/super-admin/ai-tool-topics/options`;
       const boardMeta = boards.find(
-        (item) => String(item.code).toUpperCase() === String(boardValue).toUpperCase(),
+        (item) => normalizeBoardProductKey(item.code) === normalizeBoardProductKey(boardValue),
       );
       const linkedProduct = String(boardMeta?.product || '').toUpperCase().trim();
       const categoriesUrl = linkedProduct
