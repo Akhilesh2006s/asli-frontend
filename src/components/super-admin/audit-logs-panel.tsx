@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { RefreshCw, Search, ScrollText } from "lucide-react";
 import { API_BASE_URL } from "@/lib/api-config";
+import { getAuthToken } from "@/lib/auth-utils";
 import { useToast } from "@/hooks/use-toast";
 
 type AuditItem = {
@@ -25,10 +26,7 @@ type AuditItem = {
 };
 
 function authHeaders() {
-  const token =
-    localStorage.getItem("superAdminToken") ||
-    localStorage.getItem("token") ||
-    "";
+  const token = getAuthToken() || "";
   return {
     Authorization: `Bearer ${token}`,
     "Content-Type": "application/json",

@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { API_BASE_URL } from "@/lib/api-config";
+import { getAuthToken } from "@/lib/auth-utils";
 import { useToast } from "@/hooks/use-toast";
 import {
   Download,
@@ -61,11 +62,7 @@ function startOfIsoWeekLocal(d: Date) {
 }
 
 function authHeaders() {
-  const token =
-    localStorage.getItem("superAdminToken") ||
-    localStorage.getItem("authToken") ||
-    localStorage.getItem("token") ||
-    "";
+  const token = getAuthToken() || "";
   return {
     Authorization: `Bearer ${token}`,
     "Content-Type": "application/json",

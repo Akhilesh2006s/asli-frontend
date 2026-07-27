@@ -680,3 +680,33 @@ body.dashboard-no-scrollbar::-webkit-scrollbar {
     transform: none !important;
   }
 }
+
+/* Super Admin sidebar — thin, soft scrollbar */
+.super-admin-sidebar-nav {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.45) transparent;
+}
+
+.super-admin-sidebar-nav::-webkit-scrollbar {
+  width: 6px;
+}
+
+.super-admin-sidebar-nav::-webkit-scrollbar-track {
+  background: transparent;
+  margin: 4px 0;
+}
+
+.super-admin-sidebar-nav::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.4);
+  border-radius: 999px;
+}
+
+.super-admin-sidebar-nav::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.65);
+}
+
+.super-admin-sidebar-nav::-webkit-scrollbar-button {
+  display: none;
+  height: 0;
+  width: 0;
+}

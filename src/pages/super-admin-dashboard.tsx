@@ -22,8 +22,6 @@ const SubscriptionManagement = lazy(() => import("@/components/super-admin/subsc
 const ProductsManagement = lazy(() => import("@/components/super-admin/products-management"));
 const BoardsManagement = lazy(() => import("@/components/super-admin/boards-management"));
 const TrialMembersManagement = lazy(() => import("@/components/super-admin/trial-members-management"));
-const AuditLogsPanel = lazy(() => import("@/components/super-admin/audit-logs-panel"));
-const ImpactReportsPanel = lazy(() => import("@/components/super-admin/impact-reports-panel"));
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -844,9 +842,9 @@ export default function SuperAdminDashboard() {
     </Suspense>
   );
 
-  const renderAnalyticsContent = () => (
+  const renderAnalyticsContent = (initialTab?: "overview" | "impact" | "audit" | "ai") => (
     <Suspense fallback={lazySectionFallback}>
-      <CombinedSuperAdminAnalytics />
+      <CombinedSuperAdminAnalytics initialTab={initialTab} />
     </Suspense>
   );
 
@@ -1039,17 +1037,15 @@ export default function SuperAdminDashboard() {
           </Suspense>
         );
       case 'audit-logs':
-        return (
-          <Suspense fallback={lazySectionFallback}>
-            <AuditLogsPanel />
-          </Suspense>
-        );
+        return renderAnalyticsContent('audit');
       case 'impact-reports':
-        return (
-          <Suspense fallback={lazySectionFallback}>
-            <ImpactReportsPanel />
-          </Suspense>
-        );
+        return renderAnalyticsContent('impact');
+      case 'analytics':
+        return renderAnalyticsContent('overview');
+      case 'board-comparison':
+        return renderBoardComparisonContent();
+      case 'ai-analytics':
+        return renderAnalyticsContent('ai');
       case 'subjects-and-content':
         return (
           <Suspense fallback={lazySectionFallback}>
@@ -1100,12 +1096,6 @@ export default function SuperAdminDashboard() {
         );
       case 'vidya-ai':
         return renderVidyaAIContent();
-      case 'analytics':
-        return renderAnalyticsContent();
-      case 'board-comparison':
-        return renderBoardComparisonContent();
-      case 'ai-analytics':
-        return renderAnalyticsContent();
       case 'ai-tool-generations':
         return (
           <Suspense fallback={lazySectionFallback}>

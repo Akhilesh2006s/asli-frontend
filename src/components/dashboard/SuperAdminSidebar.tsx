@@ -21,8 +21,6 @@ import {
   CreditCardIcon,
   Radio,
   Timer,
-  ScrollText,
-  FileBarChart,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -40,32 +38,32 @@ interface SuperAdminSidebarProps {
   onLogout: () => void;
 }
 
+const ANALYTICS_VIEWS = new Set(["analytics", "ai-analytics", "audit-logs", "impact-reports"]);
+
 export function SuperAdminSidebar({ currentView, onViewChange, user, onLogout }: SuperAdminSidebarProps) {
   const useDrawerNav = useSuperAdminDrawerNav();
   const [mobileOpen, setMobileOpen] = useState(false);
   const menuItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: BarChart3Icon },
-    { id: 'board', label: 'Board Management', icon: Users2 },
-    { id: 'admins', label: 'School Management', icon: Shield },
-    { id: 'products', label: 'Products', icon: Layers },
-    { id: 'trial-members', label: 'Trial Members', icon: Timer },
-    { id: 'audit-logs', label: 'Audit Logs', icon: ScrollText },
-    { id: 'impact-reports', label: 'Impact Reports', icon: FileBarChart },
-    { id: 'subjects-and-content', label: 'Subject & Content', icon: LayoutList },
-    { id: 'edu-ott-live', label: 'Edu OTT Live', icon: Radio },
-    { id: 'exams', label: 'Exam Management', icon: FileTextIcon },
-    { id: 'iq-rank-boost', label: 'IQ/Rank Boost Activities', icon: TrophyIcon },
-    { id: 'calendar', label: 'School Calendar', icon: Calendar },
-    { id: 'vidya-ai', label: 'Vidya AI', icon: Sparkles },
-    { id: 'ai-tool-generations', label: 'AI Tool Data', icon: FolderTree },
-    { id: 'ai-tool-duplicates', label: 'Duplicates', icon: Copy },
-    { id: 'ai-tool-topics', label: 'AI Tool Topics', icon: CircleDot },
-    { id: 'ai-generator', label: 'AI Generator', icon: Sparkles },
-    { id: 'book-knowledge-base', label: 'Book Knowledge Base', icon: BookOpen },
-    { id: 'book-based-generator', label: 'Book-Based Generator', icon: BookOpen },
-    { id: 'analytics', label: 'Analytics', icon: BarChartIcon },
-    { id: 'subscriptions', label: 'Subscriptions', icon: CreditCardIcon },
-    { id: 'settings', label: 'Settings', icon: SettingsIcon },
+    { id: "dashboard", label: "Dashboard", icon: BarChart3Icon },
+    { id: "board", label: "Board Management", icon: Users2 },
+    { id: "admins", label: "School Management", icon: Shield },
+    { id: "products", label: "Products", icon: Layers },
+    { id: "trial-members", label: "Trial Members", icon: Timer },
+    { id: "subjects-and-content", label: "Subject & Content", icon: LayoutList },
+    { id: "edu-ott-live", label: "Edu OTT Live", icon: Radio },
+    { id: "exams", label: "Exam Management", icon: FileTextIcon },
+    { id: "iq-rank-boost", label: "IQ/Rank Boost Activities", icon: TrophyIcon },
+    { id: "calendar", label: "School Calendar", icon: Calendar },
+    { id: "vidya-ai", label: "Vidya AI", icon: Sparkles },
+    { id: "ai-tool-generations", label: "AI Tool Data", icon: FolderTree },
+    { id: "ai-tool-duplicates", label: "Duplicates", icon: Copy },
+    { id: "ai-tool-topics", label: "AI Tool Topics", icon: CircleDot },
+    { id: "ai-generator", label: "AI Generator", icon: Sparkles },
+    { id: "book-knowledge-base", label: "Book Knowledge Base", icon: BookOpen },
+    { id: "book-based-generator", label: "Book-Based Generator", icon: BookOpen },
+    { id: "analytics", label: "Analytics", icon: BarChartIcon },
+    { id: "subscriptions", label: "Subscriptions", icon: CreditCardIcon },
+    { id: "settings", label: "Settings", icon: SettingsIcon },
   ];
 
   const mobileNavItems = menuItems.slice(0, 5);
@@ -74,7 +72,7 @@ export function SuperAdminSidebar({ currentView, onViewChange, user, onLogout }:
     const Icon = item.icon;
     const isActive =
       currentView === item.id ||
-      (item.id === 'analytics' && currentView === 'ai-analytics');
+      (item.id === "analytics" && ANALYTICS_VIEWS.has(currentView));
 
     return (
       <button
@@ -87,18 +85,27 @@ export function SuperAdminSidebar({ currentView, onViewChange, user, onLogout }:
         title={compact ? item.label : undefined}
         className={cn(
           "w-full flex items-center gap-2 lg:gap-3 rounded-lg transition-colors text-left",
-          compact ? "justify-center px-2 py-2 lg:justify-start lg:px-4 lg:py-3 mx-1 lg:mx-2" : "items-start gap-3 px-4 py-3",
+          compact
+            ? "justify-center px-2 py-2 lg:justify-start lg:px-4 lg:py-3 mx-1 lg:mx-2"
+            : "items-start gap-3 px-4 py-3",
           "text-xs sm:text-sm font-medium",
           isActive
             ? "bg-white text-orange-600 shadow-md"
-            : "text-white hover:bg-orange-600/50"
+            : "text-white hover:bg-orange-600/50",
         )}
       >
-        <Icon className={cn("flex-shrink-0", compact ? "w-4 h-4 lg:w-5 lg:h-5" : "mt-0.5 h-4 w-4 sm:h-5 sm:w-5")} />
-        <span className={cn(
-          "min-w-0 leading-snug break-words",
-          compact ? "hidden lg:block flex-1 truncate" : "flex-1"
-        )}>
+        <Icon
+          className={cn(
+            "flex-shrink-0",
+            compact ? "w-4 h-4 lg:w-5 lg:h-5" : "mt-0.5 h-4 w-4 sm:h-5 sm:w-5",
+          )}
+        />
+        <span
+          className={cn(
+            "min-w-0 leading-snug break-words",
+            compact ? "hidden lg:block flex-1 truncate" : "flex-1",
+          )}
+        >
           {item.label}
         </span>
       </button>
@@ -108,10 +115,12 @@ export function SuperAdminSidebar({ currentView, onViewChange, user, onLogout }:
   const sidebarContent = (
     <div className="flex h-full min-h-0 flex-col">
       <div className="shrink-0 p-3 sm:p-4 lg:p-6 pb-2">
-        <div className={cn(
-          "flex items-center mb-4 lg:mb-6",
-          useDrawerNav ? "space-x-3" : "justify-center lg:justify-start lg:space-x-3"
-        )}>
+        <div
+          className={cn(
+            "flex items-center mb-4 lg:mb-6",
+            useDrawerNav ? "space-x-3" : "justify-center lg:justify-start lg:space-x-3",
+          )}
+        >
           <GraduationCapIcon className="h-5 w-5 lg:h-8 lg:w-8 text-white shrink-0" />
           <div className={cn(!useDrawerNav && "hidden lg:block")}>
             <h2 className="text-sm sm:text-base lg:text-lg font-bold text-white">Aslilearn AI</h2>
@@ -120,20 +129,24 @@ export function SuperAdminSidebar({ currentView, onViewChange, user, onLogout }:
         </div>
       </div>
 
-      <nav className="min-h-0 flex-1 space-y-1 overflow-y-auto px-0 pb-2">
+      <nav className="super-admin-sidebar-nav min-h-0 flex-1 space-y-1 overflow-y-auto overflow-x-hidden px-0 pb-2">
         {menuItems.map((item) => renderNavButton(item, !useDrawerNav))}
       </nav>
 
       <div className="shrink-0 mt-auto p-3 sm:p-4 lg:p-6 border-t border-orange-300/50 space-y-3 bg-orange-500/40">
-        <div className={cn(
-          "flex items-center space-x-3",
-          !useDrawerNav && "justify-center lg:justify-start"
-        )}>
+        <div
+          className={cn(
+            "flex items-center space-x-3",
+            !useDrawerNav && "justify-center lg:justify-start",
+          )}
+        >
           <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center shrink-0">
             <CrownIcon className="h-4 w-4 text-white" />
           </div>
           <div className={cn(!useDrawerNav && "hidden lg:block")}>
-            <p className="text-xs sm:text-sm font-medium text-white">{user?.fullName || 'Super Admin'}</p>
+            <p className="text-xs sm:text-sm font-medium text-white">
+              {user?.fullName || "Super Admin"}
+            </p>
             <p className="text-xs text-orange-100/90">Super Administrator</p>
           </div>
         </div>
@@ -146,7 +159,7 @@ export function SuperAdminSidebar({ currentView, onViewChange, user, onLogout }:
           className={cn(
             "w-full flex items-center rounded-lg transition-colors text-white border border-white/35 hover:bg-red-600/45 hover:border-red-200/50",
             "px-3 py-2 lg:px-4 lg:py-3 text-xs sm:text-sm font-medium",
-            !useDrawerNav && "justify-center lg:justify-start"
+            !useDrawerNav && "justify-center lg:justify-start",
           )}
         >
           <LogOut className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0 lg:mr-3" />
@@ -164,7 +177,9 @@ export function SuperAdminSidebar({ currentView, onViewChange, user, onLogout }:
             <div className="flex items-center space-x-2 min-w-0">
               <GraduationCapIcon className="h-5 w-5 text-white shrink-0" />
               <div className="min-w-0">
-                <h2 className="text-xs sm:text-sm font-bold text-white leading-none truncate">Aslilearn AI</h2>
+                <h2 className="text-xs sm:text-sm font-bold text-white leading-none truncate">
+                  Aslilearn AI
+                </h2>
                 <p className="text-micro text-orange-100/90">Super Admin</p>
               </div>
             </div>
@@ -204,7 +219,9 @@ export function SuperAdminSidebar({ currentView, onViewChange, user, onLogout }:
         <div className="sm:hidden fixed bottom-0 left-0 right-0 z-50 bg-background border-t flex justify-around py-2 pb-[env(safe-area-inset-bottom,0px)]">
           {mobileNavItems.map((item) => {
             const Icon = item.icon;
-            const isActive = currentView === item.id;
+            const isActive =
+              currentView === item.id ||
+              (item.id === "analytics" && ANALYTICS_VIEWS.has(currentView));
             return (
               <button
                 key={item.id}
@@ -212,11 +229,13 @@ export function SuperAdminSidebar({ currentView, onViewChange, user, onLogout }:
                 onClick={() => onViewChange(item.id as SuperAdminView)}
                 className={cn(
                   "flex flex-col items-center gap-0.5 px-2 py-1 min-w-0",
-                  isActive ? "text-orange-600" : "text-muted-foreground"
+                  isActive ? "text-orange-600" : "text-muted-foreground",
                 )}
               >
                 <Icon className="w-5 h-5 shrink-0" />
-                <span className="text-micro truncate max-w-[4.5rem]">{item.label.split(' ')[0]}</span>
+                <span className="text-micro truncate max-w-[4.5rem]">
+                  {item.label.split(" ")[0]}
+                </span>
               </button>
             );
           })}
@@ -231,7 +250,7 @@ export function SuperAdminSidebar({ currentView, onViewChange, user, onLogout }:
         "super-admin-sidebar hidden sm:flex flex-col transition-all duration-300",
         "sm:w-[60px] lg:w-64 sm:min-w-[60px] lg:min-w-[16rem] lg:max-w-[16rem]",
         "bg-gradient-to-b from-orange-400 to-orange-500 shadow-sm border-r border-orange-300",
-        "h-screen fixed top-0 left-0 overflow-hidden z-20"
+        "h-screen fixed top-0 left-0 overflow-hidden z-20",
       )}
     >
       {sidebarContent}

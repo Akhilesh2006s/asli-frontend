@@ -14,7 +14,6 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { API_BASE_URL } from "@/lib/api-config";
-import { ImpactReportsPanel } from "@/components/super-admin/impact-reports-panel";
 
 export type SchoolSummary = {
   id: string;
@@ -136,8 +135,6 @@ export default function SuperAdminAnalyticsDashboard({ onSelectSchool }: SuperAd
           </p>
         </div>
       </div>
-
-      <ImpactReportsPanel />
 
       {/* Individual / B2C trials & conversions */}
       <Card className="border-emerald-100 shadow-sm">

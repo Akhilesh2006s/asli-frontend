@@ -1,16 +1,37 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import SuperAdminAnalyticsDashboard from './super-admin-analytics';
 import DetailedAIAnalyticsDashboard from './detailed-ai-analytics';
-import { BarChart3, BrainCircuit } from 'lucide-react';
+import ImpactReportsPanel from '@/components/super-admin/impact-reports-panel';
+import AuditLogsPanel from '@/components/super-admin/audit-logs-panel';
+import { BarChart3, BrainCircuit, FileBarChart, ScrollText } from 'lucide-react';
+
+export type AnalyticsMainTab = 'overview' | 'impact' | 'audit' | 'ai';
+
+type Props = {
+  /** Open a specific Analytics sub-tab (from legacy sidebar deep links). */
+  initialTab?: AnalyticsMainTab;
+};
+
+function tabFromLegacyView(view?: string): AnalyticsMainTab {
+  if (view === 'impact-reports' || view === 'impact') return 'impact';
+  if (view === 'audit-logs' || view === 'audit') return 'audit';
+  if (view === 'ai-analytics' || view === 'ai') return 'ai';
+  return 'overview';
+}
 
 /**
- * Single Analytics area: platform overview (schools) + exam / AI insights.
- * Choosing a school on the overview opens the AI tab scoped to that school.
+ * Single Analytics area: platform overview, impact reports, audit logs, exam/AI insights.
  */
-export default function CombinedSuperAdminAnalytics() {
-  const [mainTab, setMainTab] = useState<'overview' | 'ai'>('overview');
+export default function CombinedSuperAdminAnalytics({ initialTab }: Props) {
+  const [mainTab, setMainTab] = useState<AnalyticsMainTab>(() =>
+    tabFromLegacyView(initialTab),
+  );
   const [focusAdminId, setFocusAdminId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (initialTab) setMainTab(tabFromLegacyView(initialTab));
+  }, [initialTab]);
 
   const handleSelectSchool = (admin: { id: string; name: string; email: string }) => {
     setFocusAdminId(admin.id);
@@ -25,22 +46,38 @@ export default function CombinedSuperAdminAnalytics() {
     <div className="space-y-4">
       <Tabs
         value={mainTab}
-        onValueChange={(v) => setMainTab(v as 'overview' | 'ai')}
+        onValueChange={(v) => setMainTab(v as AnalyticsMainTab)}
         className="w-full"
       >
-        <TabsList className="grid w-full max-w-2xl grid-cols-1 sm:grid-cols-2 h-auto gap-1">
+        <TabsList className="grid h-auto w-full max-w-4xl grid-cols-2 gap-1 sm:grid-cols-4">
           <TabsTrigger value="overview" className="gap-2 py-2.5">
             <BarChart3 className="h-3 w-3 sm:h-4 sm:w-4" />
-            Platform &amp; B2C overview
+            Overview
+          </TabsTrigger>
+          <TabsTrigger value="impact" className="gap-2 py-2.5">
+            <FileBarChart className="h-3 w-3 sm:h-4 sm:w-4" />
+            Impact Reports
+          </TabsTrigger>
+          <TabsTrigger value="audit" className="gap-2 py-2.5">
+            <ScrollText className="h-3 w-3 sm:h-4 sm:w-4" />
+            Audit Logs
           </TabsTrigger>
           <TabsTrigger value="ai" className="gap-2 py-2.5">
             <BrainCircuit className="h-3 w-3 sm:h-4 sm:w-4" />
-            Exam &amp; AI insights
+            Exam &amp; AI
           </TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="mt-6 focus-visible:outline-none">
           <SuperAdminAnalyticsDashboard onSelectSchool={handleSelectSchool} />
+        </TabsContent>
+
+        <TabsContent value="impact" className="mt-6 focus-visible:outline-none">
+          <ImpactReportsPanel />
+        </TabsContent>
+
+        <TabsContent value="audit" className="mt-6 focus-visible:outline-none">
+          <AuditLogsPanel />
         </TabsContent>
 
         <TabsContent value="ai" className="mt-6 focus-visible:outline-none">

@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { API_BASE_URL } from "@/lib/api-config";
+import { getAuthToken } from "@/lib/auth-utils";
 import { useToast } from "@/hooks/use-toast";
 import {
   Download,
@@ -56,12 +57,7 @@ function startOfIsoWeekLocal(d: Date) {
 }
 
 function authToken() {
-  return (
-    localStorage.getItem("authToken") ||
-    localStorage.getItem("adminToken") ||
-    localStorage.getItem("token") ||
-    ""
-  );
+  return getAuthToken() || "";
 }
 
 export function SchoolImpactReportCard() {
