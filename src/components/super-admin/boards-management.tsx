@@ -21,6 +21,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { API_BASE_URL } from '@/lib/api-config';
+import { PRODUCT_IIT } from '@/lib/products';
 import { useToast } from '@/hooks/use-toast';
 import { GraduationCap, Loader2, Pencil, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -33,6 +34,7 @@ export type BoardRow = {
   name: string;
   description?: string;
   kind: BoardKind;
+  product?: string;
   isActive?: boolean;
 };
 
@@ -69,6 +71,7 @@ export default function BoardsManagement() {
     name: '',
     description: '',
     kind: 'state' as BoardKind,
+    product: '',
   });
 
   const reload = useCallback(async () => {
@@ -96,7 +99,7 @@ export default function BoardsManagement() {
   }, [reload]);
 
   const openAdd = () => {
-    setForm({ code: '', name: '', description: '', kind: 'state' });
+    setForm({ code: '', name: '', description: '', kind: 'state', product: '' });
     setAddOpen(true);
   };
 
@@ -107,6 +110,7 @@ export default function BoardsManagement() {
       name: row.name || '',
       description: row.description || '',
       kind: (row.kind as BoardKind) || 'curriculum',
+      product: row.product || '',
     });
     setEditOpen(true);
   };
@@ -128,6 +132,7 @@ export default function BoardsManagement() {
           name,
           description: form.description.trim(),
           kind: form.kind,
+          product: form.product,
         }),
       });
       const json = await res.json();
@@ -164,6 +169,7 @@ export default function BoardsManagement() {
             name,
             description: form.description.trim(),
             kind: form.kind,
+            product: form.product,
             isActive: true,
           }),
         }
@@ -327,9 +333,9 @@ function BoardFormFields({
   setForm,
   codeEditable,
 }: {
-  form: { code: string; name: string; description: string; kind: BoardKind };
+  form: { code: string; name: string; description: string; kind: BoardKind; product: string };
   setForm: Dispatch<
-    SetStateAction<{ code: string; name: string; description: string; kind: BoardKind }>
+    SetStateAction<{ code: string; name: string; description: string; kind: BoardKind; product: string }>
   >;
   codeEditable: boolean;
 }) {
@@ -364,7 +370,13 @@ function BoardFormFields({
         <Label>Board type</Label>
         <Select
           value={form.kind}
-          onValueChange={(v) => setForm((f) => ({ ...f, kind: v as BoardKind }))}
+          onValueChange={(v) =>
+            setForm((f) => ({
+              ...f,
+              kind: v as BoardKind,
+              product: v === 'iit' ? (f.product || PRODUCT_IIT) : f.product,
+            }))
+          }
         >
           <SelectTrigger>
             <SelectValue />
@@ -380,6 +392,26 @@ function BoardFormFields({
         <p className="text-xs text-slate-500">
           Type only groups the board for school assign filters. Content is always per board code —
           create CBSE, ICSE, IB as separate boards if you want them separate.
+        </p>
+      </div>
+      <div className="space-y-1.5">
+        <Label>Linked product</Label>
+        <Select
+          value={form.product || 'NONE'}
+          onValueChange={(value) =>
+            setForm((f) => ({ ...f, product: value === 'NONE' ? '' : value }))
+          }
+        >
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="NONE">No linked product</SelectItem>
+            <SelectItem value={PRODUCT_IIT}>IIT</SelectItem>
+          </SelectContent>
+        </Select>
+        <p className="text-xs text-slate-500">
+          When a board is linked to a product, that board inherits that product&apos;s categories in AI Tool Topics.
         </p>
       </div>
       <div className="space-y-1.5">
@@ -425,6 +457,11 @@ function BoardTable({
               <Badge variant="outline" className="text-[10px]">
                 {kindLabel(row.kind)}
               </Badge>
+              {row.product ? (
+                <Badge variant="outline" className="text-[10px]">
+                  Product: {row.product}
+                </Badge>
+              ) : null}
             </div>
             {row.description ? (
               <p className="mt-0.5 text-xs text-slate-500 line-clamp-2">{row.description}</p>

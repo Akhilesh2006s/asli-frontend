@@ -15,7 +15,7 @@ import { formatIitCategoryLabel } from '@/lib/products';
 const NATURAL_COLLATOR = new Intl.Collator('en', { numeric: true, sensitivity: 'base' });
 const GENERAL_CATEGORY = '';
 
-type Board = { code: string; name: string };
+type Board = { code: string; name: string; product?: string };
 type ProductCategoryOption = { code: string; label: string };
 type TopicHierarchyTree = Record<string, Record<string, Record<string, string[]>>>;
 type TopicRow = {
@@ -179,6 +179,7 @@ export default function AiToolTopicsManagement() {
       const mapped = data.map((b: any) => ({
         code: String(b.code || b.id || b.name),
         name: String(b.name || b.code || b.id),
+        product: String(b.product || '').toUpperCase().trim(),
       }));
       setBoards(mapped);
       if (mapped.length > 0) {
@@ -304,7 +305,13 @@ export default function AiToolTopicsManagement() {
   ) => {
     try {
       const baseUrl = `${API_BASE_URL}/api/super-admin/ai-tool-topics/options`;
-      const categoriesUrl = `${API_BASE_URL}/api/super-admin/product-categories`;
+      const boardMeta = boards.find(
+        (item) => String(item.code).toUpperCase() === String(boardValue).toUpperCase(),
+      );
+      const linkedProduct = String(boardMeta?.product || '').toUpperCase().trim();
+      const categoriesUrl = linkedProduct
+        ? `${API_BASE_URL}/api/super-admin/product-categories?product=${encodeURIComponent(linkedProduct)}`
+        : '';
       const classesParams = new URLSearchParams();
       if (boardValue) {
         classesParams.set('board', boardValue);
@@ -316,7 +323,7 @@ export default function AiToolTopicsManagement() {
       if (classLabelValue) subjectsParams.set('classLabel', classLabelValue);
 
       const [categoriesRes, classesRes, subjectsRes] = await Promise.all([
-        boardValue
+        boardValue && categoriesUrl
           ? fetch(categoriesUrl, { headers: authHeaders() })
           : Promise.resolve(null),
         boardValue
@@ -380,7 +387,7 @@ export default function AiToolTopicsManagement() {
     }
     void fetchDialogOptions(form.board, form.productCategory || '', form.classLabel);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isDialogOpen, form.board, form.productCategory, form.classLabel]);
+  }, [isDialogOpen, form.board, form.productCategory, form.classLabel, boards]);
 
   useEffect(() => {
     fetchRows();

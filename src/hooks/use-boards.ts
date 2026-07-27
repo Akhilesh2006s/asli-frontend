@@ -8,6 +8,7 @@ export type BoardOption = {
   name: string;
   description?: string;
   kind: BoardKind;
+  product?: string;
   isActive?: boolean;
 };
 
@@ -47,6 +48,7 @@ export function useBoards(options?: { includeInactive?: boolean }) {
         name: String(b.name || b.code || '').trim(),
         description: b.description || '',
         kind: ((b.kind || 'curriculum') as BoardKind),
+        product: String(b.product || '').toUpperCase().trim(),
         isActive: b.isActive !== false,
       }));
       setBoards(rows.filter((b: BoardOption) => b.code));
@@ -54,17 +56,18 @@ export function useBoards(options?: { includeInactive?: boolean }) {
       // Keep page usable if boards API is down (e.g. backend not redeployed yet).
       setError(e instanceof Error ? e.message : 'Failed to load boards');
       setBoards([
-        { code: 'CBSE', name: 'CBSE', kind: 'curriculum', isActive: true },
-        { code: 'STATE', name: 'State Board (generic)', kind: 'state', isActive: true },
-        { code: 'SSC', name: 'SSC', kind: 'curriculum', isActive: true },
-        { code: 'ICSE', name: 'ICSE', kind: 'curriculum', isActive: true },
-        { code: 'IB', name: 'IB', kind: 'curriculum', isActive: true },
-        { code: 'CAMBRIDGE', name: 'Cambridge', kind: 'curriculum', isActive: true },
-        { code: 'IIT', name: 'IIT', kind: 'iit', isActive: true },
+        { code: 'CBSE', name: 'CBSE', kind: 'curriculum', product: '', isActive: true },
+        { code: 'STATE', name: 'State Board (generic)', kind: 'state', product: '', isActive: true },
+        { code: 'SSC', name: 'SSC', kind: 'curriculum', product: '', isActive: true },
+        { code: 'ICSE', name: 'ICSE', kind: 'curriculum', product: '', isActive: true },
+        { code: 'IB', name: 'IB', kind: 'curriculum', product: '', isActive: true },
+        { code: 'CAMBRIDGE', name: 'Cambridge', kind: 'curriculum', product: '', isActive: true },
+        { code: 'IIT', name: 'IIT', kind: 'iit', product: 'IIT', isActive: true },
         {
           code: 'ASLI_EXCLUSIVE_SCHOOLS',
           name: 'Asli Exclusive Schools',
           kind: 'curriculum',
+          product: '',
           isActive: true,
         },
       ]);
