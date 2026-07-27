@@ -1,4 +1,4 @@
-import { Suspense, lazy, useState, useEffect } from "react";
+import { Suspense, lazy, useState, useEffect, type FormEvent } from "react";
 import { motion } from "framer-motion";
 import SuperAdminSidebar from "@/components/dashboard/SuperAdminSidebar";
 import type { SuperAdminView } from "@/lib/super-admin-views";
@@ -41,11 +41,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { BellIcon, UsersIcon, Users2, TrendingUpIcon, BookIcon, UserPlusIcon, BookPlusIcon, SettingsIcon, DownloadIcon, HomeIcon, CrownIcon, BarChart3Icon, ArrowUpRightIcon, ArrowDownRightIcon, StarIcon, TargetIcon, BrainIcon, ZapIcon, AlertTriangleIcon, TrendingDownIcon, RefreshCw, Sparkles, MessageSquare, Clock, Plus, Monitor, Grid3x3, Shield, Search, Camera, PieChart, User, Download, Circle, Square, Bot, UploadIcon, BrainCircuitIcon, AlertTriangle } from "lucide-react";
+import { BellIcon, UsersIcon, Users2, TrendingUpIcon, BookIcon, UserPlusIcon, BookPlusIcon, SettingsIcon, DownloadIcon, HomeIcon, CrownIcon, BarChart3Icon, ArrowUpRightIcon, ArrowDownRightIcon, StarIcon, TargetIcon, BrainIcon, ZapIcon, AlertTriangleIcon, TrendingDownIcon, RefreshCw, Sparkles, MessageSquare, Clock, Plus, Monitor, Grid3x3, Shield, Search, Camera, PieChart, User, Download, Circle, Square, Bot, UploadIcon, BrainCircuitIcon, AlertTriangle, KeyRound, Loader2 } from "lucide-react";
 import { LineChart, Line, PieChart as RechartsPieChart, Pie, Cell, ResponsiveContainer, AreaChart, Area } from "recharts";
 import { useToast } from "@/hooks/use-toast";
 import { API_BASE_URL } from "@/lib/api-config";
-import { clearAuthData } from "@/lib/auth-utils";
+import { clearAuthData, getAuthToken } from "@/lib/auth-utils";
 import { cn } from "@/lib/utils";
 import { InteractiveBackground, FloatingParticles } from "@/components/background/InteractiveBackground";
 import { useSuperAdminDrawerNav } from "@/hooks/use-mobile";
@@ -56,6 +56,7 @@ import {
   readPersistedSuperAdminView,
 } from "@/lib/super-admin-nav";
 import { VidyaAnalyticsCard } from "@/components/super-admin/VidyaAnalyticsCard";
+import { Input } from "@/components/ui/input";
 
 const lazySectionFallback = (
   <div className="rounded-xl border border-orange-100 bg-white p-4 sm:p-6 lg:p-8 shadow-sm">
@@ -106,6 +107,12 @@ export default function SuperAdminDashboard() {
   const [vidyaExplainDepth, setVidyaExplainDepth] = useState<
     "concise" | "balanced" | "detailed"
   >("balanced");
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  });
+  const [changingPassword, setChangingPassword] = useState(false);
 
   const VIDYA_PREFS_KEY = "superAdminVidyaPrefs";
 
@@ -860,16 +867,127 @@ export default function SuperAdminDashboard() {
     </Suspense>
   );
 
+  const handleChangePassword = async (e: FormEvent) => {
+    e.preventDefault();
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      toast({
+        title: "Passwords do not match",
+        description: "New password and confirmation must be the same.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setChangingPassword(true);
+    try {
+      const token = getAuthToken() || localStorage.getItem("authToken");
+      const res = await fetch(`${API_BASE_URL}/api/super-admin/change-password`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(passwordForm),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok || !json?.success) {
+        throw new Error(json?.message || "Failed to change password");
+      }
+      setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
+      toast({
+        title: "Password updated",
+        description: "Your super admin password was changed successfully.",
+      });
+    } catch (err: unknown) {
+      toast({
+        title: "Could not update password",
+        description: err instanceof Error ? err.message : "Try again",
+        variant: "destructive",
+      });
+    } finally {
+      setChangingPassword(false);
+    }
+  };
+
   const renderSettingsContent = () => (
     <div className="space-y-3 sm:space-y-4 lg:space-y-6">
       <h2 className="text-xl sm:text-2xl font-bold">System Settings</h2>
+
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+            <KeyRound className="h-5 w-5 text-orange-500" />
+            Change password
+          </CardTitle>
+          <p className="text-sm text-slate-600">
+            Update the password for your logged-in super admin account.
+          </p>
+        </CardHeader>
+        <CardContent className="p-3 sm:p-4 lg:p-6 pt-0">
+          <form onSubmit={handleChangePassword} className="mx-auto max-w-md space-y-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="sa-current-password">Current password</Label>
+              <Input
+                id="sa-current-password"
+                type="password"
+                autoComplete="current-password"
+                value={passwordForm.currentPassword}
+                onChange={(e) =>
+                  setPasswordForm((p) => ({ ...p, currentPassword: e.target.value }))
+                }
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="sa-new-password">New password</Label>
+              <Input
+                id="sa-new-password"
+                type="password"
+                autoComplete="new-password"
+                value={passwordForm.newPassword}
+                onChange={(e) =>
+                  setPasswordForm((p) => ({ ...p, newPassword: e.target.value }))
+                }
+              />
+              <p className="text-xs text-slate-500">At least 8 characters</p>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="sa-confirm-password">Confirm new password</Label>
+              <Input
+                id="sa-confirm-password"
+                type="password"
+                autoComplete="new-password"
+                value={passwordForm.confirmPassword}
+                onChange={(e) =>
+                  setPasswordForm((p) => ({ ...p, confirmPassword: e.target.value }))
+                }
+              />
+            </div>
+            <Button
+              type="submit"
+              disabled={
+                changingPassword ||
+                !passwordForm.currentPassword ||
+                !passwordForm.newPassword ||
+                !passwordForm.confirmPassword
+              }
+              className="gap-2"
+            >
+              {changingPassword ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <KeyRound className="h-4 w-4" />
+              )}
+              {changingPassword ? "Updating…" : "Update password"}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
       
       <Card>
         <CardContent className="p-3 sm:p-4 lg:p-6">
           <div className="text-center py-4 sm:py-6 lg:py-8">
             <SettingsIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2">Settings</h3>
-            <p className="text-gray-600 mb-4">Configure system settings and preferences</p>
+            <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2">Shortcuts</h3>
+            <p className="text-gray-600 mb-4">Quick links to main modules</p>
             <Button
               type="button"
               variant="secondary"

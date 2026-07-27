@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { RefreshCw, Search, ScrollText } from "lucide-react";
+import { RefreshCw, Search, ScrollText, ChevronLeft, ChevronRight } from "lucide-react";
 import { API_BASE_URL } from "@/lib/api-config";
 import { getAuthToken } from "@/lib/auth-utils";
 import { useToast } from "@/hooks/use-toast";
@@ -24,6 +24,30 @@ type AuditItem = {
   meta?: Record<string, unknown>;
   source?: string;
 };
+
+type DateMode = "all" | "weekly" | "custom";
+
+function toInputDate(d: Date) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+function startOfIsoWeekLocal(d: Date) {
+  const date = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const day = date.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  date.setDate(date.getDate() + diff);
+  return date;
+}
+
+function endOfIsoWeekLocal(weekStartYmd: string) {
+  const [y, m, d] = weekStartYmd.split("-").map(Number);
+  const date = new Date(y, m - 1, d);
+  date.setDate(date.getDate() + 6);
+  return toInputDate(date);
+}
 
 function authHeaders() {
   const token = getAuthToken() || "";
@@ -51,6 +75,10 @@ export default function AuditLogsPanel() {
   const [q, setQ] = useState("");
   const [action, setAction] = useState("");
   const [actor, setActor] = useState("");
+  const [dateMode, setDateMode] = useState<DateMode>("all");
+  const [weekStart, setWeekStart] = useState(() => toInputDate(startOfIsoWeekLocal(new Date())));
+  const [fromDate, setFromDate] = useState(() => toInputDate(new Date()));
+  const [toDate, setToDate] = useState(() => toInputDate(new Date()));
   const [expanded, setExpanded] = useState<string | null>(null);
 
   const load = useCallback(
@@ -64,6 +92,15 @@ export default function AuditLogsPanel() {
         if (q.trim()) params.set("q", q.trim());
         if (action.trim()) params.set("action", action.trim());
         if (actor.trim()) params.set("actor", actor.trim());
+
+        if (dateMode === "weekly") {
+          const start = toInputDate(startOfIsoWeekLocal(new Date(`${weekStart}T12:00:00`)));
+          params.set("from", start);
+          params.set("to", endOfIsoWeekLocal(start));
+        } else if (dateMode === "custom") {
+          if (fromDate) params.set("from", fromDate);
+          if (toDate) params.set("to", toDate);
+        }
 
         const res = await fetch(`${API_BASE_URL}/api/super-admin/audit-logs?${params}`, {
           headers: authHeaders(),
@@ -86,13 +123,19 @@ export default function AuditLogsPanel() {
         setLoading(false);
       }
     },
-    [page, q, action, actor, toast],
+    [page, q, action, actor, dateMode, weekStart, fromDate, toDate, toast],
   );
 
   useEffect(() => {
     void load(1);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const shiftWeek = (delta: number) => {
+    const d = new Date(`${weekStart}T12:00:00`);
+    d.setDate(d.getDate() + delta * 7);
+    setWeekStart(toInputDate(startOfIsoWeekLocal(d)));
+  };
 
   return (
     <div className="space-y-4">
@@ -103,8 +146,10 @@ export default function AuditLogsPanel() {
             Audit logs
           </CardTitle>
           <p className="text-sm text-slate-600">
-            Every create / update / delete API action is stored with who, when, path, and status.
-            Logs start from when this feature was deployed (older deletions are not backfilled).
+            Every API call is stored with who, when, path, and status — including logins,
+            reads, creates, updates, and deletes. Logs start from when this feature was
+            deployed (older activity is not backfilled). High-noise paths (health checks,
+            live streams) are excluded.
           </p>
         </CardHeader>
         <CardContent className="space-y-3">
@@ -137,6 +182,86 @@ export default function AuditLogsPanel() {
               />
             </div>
           </div>
+
+          <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-3 space-y-3">
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                size="sm"
+                variant={dateMode === "all" ? "default" : "outline"}
+                onClick={() => setDateMode("all")}
+              >
+                All time
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant={dateMode === "weekly" ? "default" : "outline"}
+                onClick={() => setDateMode("weekly")}
+              >
+                Weekly
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant={dateMode === "custom" ? "default" : "outline"}
+                onClick={() => setDateMode("custom")}
+              >
+                Day to day
+              </Button>
+            </div>
+
+            {dateMode === "weekly" ? (
+              <div className="flex flex-wrap items-end gap-3">
+                <div className="space-y-1">
+                  <Label htmlFor="audit-week">Week of (any day in that week)</Label>
+                  <Input
+                    id="audit-week"
+                    type="date"
+                    value={weekStart}
+                    onChange={(e) => setWeekStart(e.target.value)}
+                    className="w-[180px] bg-white"
+                  />
+                </div>
+                <div className="flex gap-1">
+                  <Button type="button" size="sm" variant="outline" onClick={() => shiftWeek(-1)}>
+                    <ChevronLeft className="h-4 w-4" />
+                    Prev week
+                  </Button>
+                  <Button type="button" size="sm" variant="outline" onClick={() => shiftWeek(1)}>
+                    Next week
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            ) : null}
+
+            {dateMode === "custom" ? (
+              <div className="flex flex-wrap items-end gap-3">
+                <div className="space-y-1">
+                  <Label htmlFor="audit-from">From</Label>
+                  <Input
+                    id="audit-from"
+                    type="date"
+                    value={fromDate}
+                    onChange={(e) => setFromDate(e.target.value)}
+                    className="w-[160px] bg-white"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="audit-to">To</Label>
+                  <Input
+                    id="audit-to"
+                    type="date"
+                    value={toDate}
+                    onChange={(e) => setToDate(e.target.value)}
+                    className="w-[160px] bg-white"
+                  />
+                </div>
+              </div>
+            ) : null}
+          </div>
+
           <div className="flex flex-wrap items-center gap-2">
             <Button
               type="button"
