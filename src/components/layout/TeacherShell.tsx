@@ -86,7 +86,7 @@ export function TeacherShell({
       }
     } finally {
       clearAuthData();
-      setLocation("/signin");
+      window.location.replace("/signin");
     }
   };
 

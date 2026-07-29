@@ -41,6 +41,7 @@ export function ProtectedRoute({
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
+          credentials: "include",
         });
         if (!res.ok) {
           clearAuthData();
@@ -77,16 +78,16 @@ export function ProtectedRoute({
 
   if (state === "deny") {
     const token = getAuthToken();
-    if (!token) return <Redirect to={loginPath} />;
+    if (!token) return <Redirect to={loginPath} replace />;
     // Authenticated but wrong role — send to a safe home
     const user = getUser();
     const role = String(user?.role || "").toLowerCase();
-    if (role === "super-admin") return <Redirect to="/super-admin/dashboard" />;
-    if (role === "admin") return <Redirect to="/admin/dashboard" />;
-    if (role === "teacher") return <Redirect to="/teacher/dashboard" />;
-    if (role === "student") return <Redirect to="/dashboard" />;
+    if (role === "super-admin") return <Redirect to="/super-admin/dashboard" replace />;
+    if (role === "admin") return <Redirect to="/admin/dashboard" replace />;
+    if (role === "teacher") return <Redirect to="/teacher/dashboard" replace />;
+    if (role === "student") return <Redirect to="/dashboard" replace />;
     clearAuthData();
-    return <Redirect to={loginPath} />;
+    return <Redirect to={loginPath} replace />;
   }
 
   return <>{children}</>;

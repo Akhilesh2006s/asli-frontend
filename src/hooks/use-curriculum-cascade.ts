@@ -8,7 +8,7 @@ import {
   setCurriculumResponseCache,
 } from '@/lib/curriculum-response-cache';
 import { compareClassLabels, sortClassLabelsAscending } from '@/lib/super-admin-curriculum-classes';
-import { mergePreservingPrimaryOrder } from '@/lib/curriculum-chapter-sort';
+import { mergePreservingPrimaryOrder, sortChapterWiseLabels } from '@/lib/curriculum-chapter-sort';
 import {
   CURRICULUM_TAXONOMY_CHANGED_EVENT,
   getCurriculumTaxonomyRevision,
@@ -260,7 +260,9 @@ export function useCurriculumCascade(
         if (cancelled) return;
         const curriculumTopics = rowsToNames((data as { data?: CurriculumRow[] }).data);
         const managedTopics = (managed as { data?: { topics?: string[] } })?.data?.topics || [];
-        setTopics(mergePreservingPrimaryOrder(managedTopics, curriculumTopics));
+        setTopics(
+          sortChapterWiseLabels(mergePreservingPrimaryOrder(managedTopics, curriculumTopics)),
+        );
       } catch {
         if (!cancelled) setTopics([]);
       } finally {
@@ -306,7 +308,11 @@ export function useCurriculumCascade(
         if (cancelled) return;
         const curriculumSubtopics = rowsToNames((data as { data?: CurriculumRow[] }).data);
         const managedSubtopics = (managed as { data?: { subTopics?: string[] } })?.data?.subTopics || [];
-        setSubtopics(mergePreservingPrimaryOrder(managedSubtopics, curriculumSubtopics));
+        setSubtopics(
+          sortChapterWiseLabels(
+            mergePreservingPrimaryOrder(managedSubtopics, curriculumSubtopics),
+          ),
+        );
       } catch {
         if (!cancelled) setSubtopics([]);
       } finally {

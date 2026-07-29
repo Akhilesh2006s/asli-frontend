@@ -1264,7 +1264,7 @@ export default function SuperAdminDashboard() {
 
   const handleLogout = () => {
     clearAuthData();
-    window.location.href = '/auth/login';
+    window.location.replace('/signin');
   };
 
   return (

@@ -282,6 +282,30 @@ const MULTI_SUBTOPIC_TOOLS = new Set([
   "smart-qa-practice-generator",
   "quick-assignment-builder",
 ]);
+
+/** Tools that accept an explicit "how many questions" count. */
+const QUESTION_COUNT_TOOLS = new Set([
+  "worksheet-mcq-generator",
+  "smart-qa-practice-generator",
+  "mock-test-builder",
+  "exam-question-paper-generator",
+  "homework-creator",
+]);
+
+const QUESTION_COUNT_MIN = 1;
+const QUESTION_COUNT_MAX = 40;
+
+function sanitizeQuestionCountInput(raw: string): string | null {
+  if (raw === "") return "";
+  if (!/^\d{0,2}$/.test(raw)) return null;
+  return raw;
+}
+
+function parseQuestionCount(raw: string): number {
+  const n = Number(String(raw || "").trim());
+  if (!Number.isFinite(n)) return 10;
+  return Math.min(QUESTION_COUNT_MAX, Math.max(QUESTION_COUNT_MIN, Math.floor(n)));
+}
 type GroupedClass = { className: string; boardName?: string; subjects: GroupedSubject[] };
 type GroupedTool = { toolName: string; toolSlug: string; classes: GroupedClass[] };
 
@@ -433,13 +457,15 @@ export default function SuperAdminAiGenerator() {
   const buildExtraParams = () => {
     const payload: Record<string, any> = {};
     if (productCategory) payload.productCategory = productCategory;
+    if (QUESTION_COUNT_TOOLS.has(selectedTool as ToolId)) {
+      payload.questionCount = parseQuestionCount(questionCount);
+      payload.numberOfQuestions = payload.questionCount;
+    }
     if (selectedTool === "worksheet-mcq-generator") {
       payload.questionType = questionType;
-      payload.questionCount = Number(questionCount) || 10;
     }
     if (selectedTool === "smart-qa-practice-generator") {
       payload.questionType = questionType;
-      payload.questionCount = Number(questionCount) || 10;
       payload.difficulty = difficulty;
     }
     if (
@@ -1286,20 +1312,34 @@ export default function SuperAdminAiGenerator() {
             </div>
           ) : null}
 
+          {QUESTION_COUNT_TOOLS.has(selectedTool as ToolId) ? (
+            <div>
+              <Label>Number of questions</Label>
+              <Input
+                type="number"
+                min={QUESTION_COUNT_MIN}
+                max={QUESTION_COUNT_MAX}
+                placeholder={`e.g. 10 (${QUESTION_COUNT_MIN}–${QUESTION_COUNT_MAX})`}
+                value={questionCount}
+                onChange={(e) => {
+                  const next = sanitizeQuestionCountInput(e.target.value);
+                  if (next !== null) setQuestionCount(next);
+                }}
+              />
+              <p className="mt-1 text-xs text-slate-500">
+                Each generated paper will contain exactly this many questions.
+              </p>
+            </div>
+          ) : null}
+
           {selectedTool === "smart-qa-practice-generator" ? (
-            <>
-              <div>
-                <Label>Question Count</Label>
-                <Input value={questionCount} onChange={(e) => setQuestionCount(e.target.value)} />
-              </div>
-              <div>
-                <Label>Difficulty</Label>
-                <Select value={difficulty} onValueChange={setDifficulty}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>{["easy", "medium", "hard"].map((d) => <SelectItem key={d} value={d}>{d}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
-            </>
+            <div>
+              <Label>Difficulty</Label>
+              <Select value={difficulty} onValueChange={setDifficulty}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>{["easy", "medium", "hard"].map((d) => <SelectItem key={d} value={d}>{d}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
           ) : null}
 
           {(selectedTool === "homework-creator" ||

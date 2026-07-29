@@ -118,13 +118,13 @@ export default function Navigation() {
       // Clear all authentication data
       clearAuthData();
       
-      // Redirect to login page
-      setLocation('/signin');
+      // Hard replace so Forward cannot reopen the previous dashboard session
+      window.location.replace('/signin');
     } catch (error) {
       console.error('Logout error:', error);
       // Clear storage and redirect even on error
       clearAuthData();
-      setLocation('/signin');
+      window.location.replace('/signin');
     } finally {
       setIsLoggingOut(false);
     }

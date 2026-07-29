@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
 import { BookOpen, CheckCircle2, ExternalLink, FileText, FolderTree, IndianRupee, Loader2, Sparkles } from "lucide-react";
 import { GeneratorRecordsPanel } from "@/components/super-admin/generator-records-panel";
 import { GenerationRecordCountField } from "@/components/super-admin/generation-record-count-field";
@@ -151,6 +152,30 @@ const MULTI_SUBTOPIC_TOOLS = new Set([
   "quick-assignment-builder",
 ]);
 
+/** Tools that accept an explicit "how many questions" count. */
+const QUESTION_COUNT_TOOLS = new Set([
+  "worksheet-mcq-generator",
+  "smart-qa-practice-generator",
+  "mock-test-builder",
+  "exam-question-paper-generator",
+  "homework-creator",
+]);
+
+const QUESTION_COUNT_MIN = 1;
+const QUESTION_COUNT_MAX = 40;
+
+function sanitizeQuestionCountInput(raw: string): string | null {
+  if (raw === "") return "";
+  if (!/^\d{0,2}$/.test(raw)) return null;
+  return raw;
+}
+
+function parseQuestionCount(raw: string): number {
+  const n = Number(String(raw || "").trim());
+  if (!Number.isFinite(n)) return 10;
+  return Math.min(QUESTION_COUNT_MAX, Math.max(QUESTION_COUNT_MIN, Math.floor(n)));
+}
+
 type BookBasedGeneratorProps = {
   onOpenBookKnowledge?: () => void;
   onOpenAiToolData?: () => void;
@@ -173,6 +198,7 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
   const [useBookKnowledge, setUseBookKnowledge] = useState(true);
   const [qualityTier, setQualityTier] = useState<GenerationQualityTierId>(DEFAULT_GENERATION_QUALITY_TIER);
   const [generationRecordCount, setGenerationRecordCount] = useState("");
+  const [questionCount, setQuestionCount] = useState("10");
   const [books, setBooks] = useState<BookOption[]>([]);
   const [booksLoading, setBooksLoading] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -461,6 +487,14 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
     useBookKnowledge,
     qualityTier,
     async: true,
+    ...(QUESTION_COUNT_TOOLS.has(selectedTool)
+      ? {
+          extraParams: {
+            questionCount: parseQuestionCount(questionCount),
+            numberOfQuestions: parseQuestionCount(questionCount),
+          },
+        }
+      : {}),
     ...(forceUnlock ? { forceUnlock: true } : {}),
   });
 
@@ -1077,7 +1111,29 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
               ) : null}
             </div>
           ) : null}
-          <div className="sm:col-span-2 lg:col-span-3 rounded-xl border border-violet-200 bg-violet-50/60 p-4">
+          <div className="sm:col-span-2 lg:col-span-3 rounded-xl border border-violet-200 bg-violet-50/60 p-4 space-y-4">
+            {selectedTool && QUESTION_COUNT_TOOLS.has(selectedTool) ? (
+              <div className="max-w-xs space-y-1.5">
+                <Label htmlFor="book-question-count">Number of questions</Label>
+                <Input
+                  id="book-question-count"
+                  type="number"
+                  min={QUESTION_COUNT_MIN}
+                  max={QUESTION_COUNT_MAX}
+                  placeholder={`e.g. 10 (${QUESTION_COUNT_MIN}–${QUESTION_COUNT_MAX})`}
+                  value={questionCount}
+                  onChange={(e) => {
+                    const next = sanitizeQuestionCountInput(e.target.value);
+                    if (next !== null) setQuestionCount(next);
+                  }}
+                  disabled={isGenerating}
+                  className="bg-white"
+                />
+                <p className="text-xs text-slate-500">
+                  Each generated paper will contain exactly this many questions.
+                </p>
+              </div>
+            ) : null}
             <GenerationRecordCountField
               id="book-generation-count"
               value={generationRecordCount}

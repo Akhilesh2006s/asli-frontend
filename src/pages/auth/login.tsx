@@ -9,7 +9,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Eye, EyeOff, Mail, Lock, ArrowLeft, Sparkles, Zap, BookOpen, GraduationCap } from 'lucide-react';
 import { Link } from 'wouter';
 import { API_BASE_URL } from '@/lib/api-config';
-import { setAuthToken, setUser } from '@/lib/auth-utils';
+import { setAuthToken, setUser, getAuthToken, clearAuthData } from '@/lib/auth-utils';
 import { prepareClientForNewLogin } from '@/lib/client-cache-reset';
 import { fetchDashboardBootstrap } from '@/lib/dashboard-bootstrap';
 
@@ -38,6 +38,27 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // Browser Back to sign-in must end the session; otherwise Forward restores the dashboard
+  // still authenticated without entering credentials again.
+  useEffect(() => {
+    const token = getAuthToken();
+    if (!token) return;
+
+    // Clear local auth immediately (before async logout finishes).
+    clearAuthData();
+
+    void fetch(`${API_BASE_URL}/api/auth/logout`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+    }).catch(() => {
+      /* ignore — local clear is enough for the Forward bug */
+    });
+  }, []);
 
   // Short intro on first visit only (~0.8s); returning users see the form immediately
   useEffect(() => {
@@ -142,17 +163,19 @@ const Login = () => {
           localStorage.setItem('userRole', data.user.role || '');
           localStorage.setItem('userEmail', data.user.email || '');
         }
+        // replace: true so browser Back from dashboard does not return to a half-logged-in login form
+        const go = (path: string) => setLocation(path, { replace: true });
         if (data.user?.role === 'super-admin') {
-          setLocation('/super-admin/dashboard');
+          go('/super-admin/dashboard');
         } else if (data.user?.paymentRequired && data.user?.isIndividualAccount) {
-          setLocation('/auth/subscribe');
+          go('/auth/subscribe');
         } else if (data.user?.role === 'admin') {
-          setLocation('/admin/dashboard');
+          go('/admin/dashboard');
         } else if (data.user?.role === 'teacher') {
-          setLocation('/teacher/dashboard');
+          go('/teacher/dashboard');
         } else {
           void fetchDashboardBootstrap({ force: true });
-          setLocation('/dashboard');
+          go('/dashboard');
         }
       } else {
         // Real API error (wrong password, DB reconnecting, etc.). Never label as network.

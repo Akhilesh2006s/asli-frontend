@@ -11,6 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Edit, Plus, Search, Trash2, X } from 'lucide-react';
 import { notifyCurriculumTaxonomyChanged } from '@/lib/curriculum-taxonomy-refresh';
 import { formatIitCategoryLabel } from '@/lib/products';
+import { sortChapterWiseLabels } from '@/lib/curriculum-chapter-sort';
 
 const NATURAL_COLLATOR = new Intl.Collator('en', { numeric: true, sensitivity: 'base' });
 const GENERAL_CATEGORY = '';
@@ -300,12 +301,17 @@ export default function AiToolTopicsManagement() {
 
   const hierarchyTopics = useMemo(() => {
     if (!hierarchyTree || !selectedClass || !selectedSubject) return [];
-    return Object.keys(hierarchyTree[selectedClass]?.[selectedSubject] || {});
+    // Always chapter-wise (1,2,…10,11) — Object.keys / DB sortOrder alone shows 1,11,2 and jumps on delete.
+    return sortChapterWiseLabels(
+      Object.keys(hierarchyTree[selectedClass]?.[selectedSubject] || {}),
+    );
   }, [hierarchyTree, selectedClass, selectedSubject]);
 
   const hierarchySubTopics = useMemo(() => {
     if (!hierarchyTree || !selectedClass || !selectedSubject || !selectedTopic) return [];
-    return hierarchyTree[selectedClass]?.[selectedSubject]?.[selectedTopic] || [];
+    return sortNatural(
+      hierarchyTree[selectedClass]?.[selectedSubject]?.[selectedTopic] || [],
+    );
   }, [hierarchyTree, selectedClass, selectedSubject, selectedTopic]);
 
   const fetchDialogOptions = async (
