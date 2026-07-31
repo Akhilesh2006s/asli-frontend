@@ -134,8 +134,8 @@
       padding-left: 3rem;
     }
   }
-  .relative > .absolute.left-4 ~ input {
-    padding-left: 3.25rem;
+    .relative > .absolute.left-4 ~ input {
+      padding-left: 3.25rem;
   }
 }
 
@@ -166,7 +166,7 @@
     overflow-x: clip;
     min-height: 100vh;
   }
-
+  
   /* Product-wide readability contract. Legacy pages still use Tailwind's
      compact text helpers; keep them readable on shared screens without
      requiring every feature page to be rewritten. */

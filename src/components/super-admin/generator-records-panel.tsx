@@ -35,7 +35,7 @@ import { cn } from "@/lib/utils";
 
 function formatSubtopicGroupLabel(name: string) {
   const raw = String(name || "").trim();
-  if (!raw) return "Whole chapter";
+  if (!raw || /^whole\s*chapter$/i.test(raw)) return "Whole chapter";
   if (isSingleSubtopicLabel(raw)) return displaySubtopicLabel(raw) || raw;
   return "Whole chapter";
 }

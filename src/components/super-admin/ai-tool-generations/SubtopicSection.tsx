@@ -37,7 +37,9 @@ function SubtopicLeafRow({
           <ListTree className="h-3.5 w-3.5 shrink-0 text-amber-600" />
           <span className="text-slate-500 text-xs font-medium uppercase tracking-wide">Subtopic</span>
           <span className="font-medium text-slate-900 truncate">
-            {s.value === "" ? "(None)" : s.value}
+            {s.value === "" || /^whole\s*chapter$/i.test(String(s.value))
+              ? "Whole chapter"
+              : s.value}
           </span>
         </span>
         <span className="flex items-center gap-2 shrink-0">
