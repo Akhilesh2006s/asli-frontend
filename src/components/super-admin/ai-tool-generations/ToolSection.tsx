@@ -98,7 +98,7 @@ export function ToolSection({
         </CollapsibleTrigger>
         <CollapsibleContent>
           <div className="px-4 pb-4 md:px-5 md:pb-5 pt-0 border-t border-slate-100/80 bg-slate-50/40 space-y-4">
-            <ClassSection toolName={tool.value} board={board} />
+            <ClassSection key={`${tool.value}:${board || "all"}`} toolName={tool.value} board={board} />
           </div>
         </CollapsibleContent>
       </Collapsible>

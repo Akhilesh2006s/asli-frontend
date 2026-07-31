@@ -27,6 +27,10 @@ function SubjectRow({
   const [topics, setTopics] = useState<BranchItem[] | null>(null);
 
   useEffect(() => {
+    setTopics(null);
+  }, [board, toolName, classLabel, subject]);
+
+  useEffect(() => {
     if (!open || topics !== null) return;
     (async () => {
       setLoading(true);
@@ -95,6 +99,10 @@ export function SubjectSection({
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [subjects, setSubjects] = useState<BranchItem[] | null>(null);
+
+  useEffect(() => {
+    setSubjects(null);
+  }, [board, toolName, classLabel]);
 
   useEffect(() => {
     if (!open || subjects !== null) return;

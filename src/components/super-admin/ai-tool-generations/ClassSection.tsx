@@ -16,6 +16,10 @@ export function ClassSection({ toolName, board }: { toolName: string; board?: st
   const [classes, setClasses] = useState<BranchItem[] | null>(null);
 
   useEffect(() => {
+    setClasses(null);
+  }, [board, toolName]);
+
+  useEffect(() => {
     if (!open || classes !== null) return;
     (async () => {
       setLoading(true);
