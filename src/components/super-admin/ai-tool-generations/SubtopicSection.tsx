@@ -89,7 +89,8 @@ export function SubtopicSection({
   const [subs, setSubs] = useState<BranchItem[] | null>(null);
 
   useEffect(() => {
-    if (!open || subs !== null) return;
+    if (!open) return;
+    let cancelled = false;
     (async () => {
       setLoading(true);
       try {
@@ -100,12 +101,15 @@ export function SubtopicSection({
           subject,
           topic,
         });
-        setSubs(r.data.items || []);
+        if (!cancelled) setSubs(r.data.items || []);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     })();
-  }, [open, subs, toolName, classLabel, subject, topic, board]);
+    return () => {
+      cancelled = true;
+    };
+  }, [open, toolName, classLabel, subject, topic, board]);
 
   return (
     <div className="rounded-xl border border-slate-200/90 bg-white shadow-sm overflow-hidden">
