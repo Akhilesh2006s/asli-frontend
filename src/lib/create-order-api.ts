@@ -1,9 +1,10 @@
 import { API_BASE_URL } from '@/lib/api-config';
 import type { CreateOrderState, SelectedProduct } from '@/components/CreateOrder/types';
 import { ACADEMIC_YEAR } from '@/components/CreateOrder/types';
+import { getAuthToken } from '@/lib/auth-utils';
 
 function authHeaders(): Record<string, string> {
-  const token = localStorage.getItem('authToken');
+  const token = getAuthToken();
   return token
     ? { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
     : { 'Content-Type': 'application/json' };
@@ -218,7 +219,7 @@ export async function deleteOrder(id: string): Promise<{ success: boolean; messa
 }
 
 export async function uploadOrderDocument(file: File): Promise<{ url: string; name: string }> {
-  const token = localStorage.getItem('authToken');
+  const token = getAuthToken();
   const formData = new FormData();
   formData.append('document', file);
 

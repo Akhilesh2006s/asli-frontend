@@ -9,6 +9,7 @@ import { API_BASE_URL } from '@/lib/api-config';
 import { normalizeAndFormatExamDisplayText } from '@/lib/exam-text-normalize';
 import AdvancedPerformanceDashboard from '@/components/analytics/AdvancedPerformanceDashboard';
 import AiReportTab from '@/components/exam-analysis/AiReportTab';
+import { getAuthToken } from '@/lib/auth-utils';
 import {
   WeakSubjectResourcesCard,
   type WeakSubjectContentMap,
@@ -1150,7 +1151,7 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
       }
 
       try {
-        const token = localStorage.getItem('authToken');
+        const token = getAuthToken();
         const resultRowId = normalizeMongoId((result as ExamResult & { _id?: unknown })._id);
         const rid =
           resultRowId !== '' ? `?resultId=${encodeURIComponent(resultRowId)}` : '';
@@ -1222,7 +1223,7 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
       const timeoutMs = 120_000;
       const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);
       try {
-        const token = localStorage.getItem('authToken');
+        const token = getAuthToken();
         const response = await fetch(`${API_BASE_URL}/api/student/exam-results/ai-analysis`, {
           method: 'POST',
           headers: {
@@ -1443,7 +1444,7 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
       setWeakSubjectContent(null);
       return;
     }
-    const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
+    const token = typeof window !== 'undefined' ? getAuthToken() : null;
     const controller = new AbortController();
 
     async function fetchWeakContent() {

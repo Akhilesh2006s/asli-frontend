@@ -3,6 +3,7 @@ import { Badge } from '@/components/ui/badge';
 import { BookMarked, Loader2 } from 'lucide-react';
 import { API_BASE_URL } from '@/lib/api-config';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { getAuthToken } from '@/lib/auth-utils';
 
 type ClassRef = {
   classNumber?: string;
@@ -49,7 +50,7 @@ export function StudentTeacherDiaryFeed() {
     let cancelled = false;
     (async () => {
       try {
-        const token = localStorage.getItem('authToken');
+        const token = getAuthToken();
         const res = await fetch(`${API_BASE_URL}/api/student/teacher-work-diary?limit=20`, {
           headers: { Authorization: `Bearer ${token}` },
         });

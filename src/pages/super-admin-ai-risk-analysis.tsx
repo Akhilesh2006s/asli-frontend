@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { getAuthToken } from '@/lib/auth-utils';
 import {
   Select,
   SelectContent,
@@ -69,7 +70,7 @@ export default function SuperAdminAIRiskAnalysis() {
   const fetchStudents = async () => {
     setIsLoading(true);
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const response = await fetch(`${API_BASE_URL}/api/super-admin/users`, {
         headers: {
           'Authorization': `Bearer ${token}`,

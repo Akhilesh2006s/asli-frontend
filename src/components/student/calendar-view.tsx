@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { getAuthToken } from '@/lib/auth-utils';
 import {
   Dialog,
   DialogContent,
@@ -95,7 +96,7 @@ export default function CalendarView({
 
   const fetchExistingSubmission = async (homeworkId: string) => {
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const response = await fetch(`${API_BASE_URL}/api/student/homework-submission/${homeworkId}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -143,7 +144,7 @@ export default function CalendarView({
 
     setIsSubmitting(true);
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const formData = new FormData();
       formData.append('file', submissionFile);
       const uploadResponse = await fetch(`${API_BASE_URL}/api/upload`, {

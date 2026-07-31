@@ -3,7 +3,7 @@ import { Link, useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { API_BASE_URL } from '@/lib/api-config';
-import { clearAuthData } from '@/lib/auth-utils';
+import { clearAuthData, getAuthToken } from '@/lib/auth-utils';
 import { INDIVIDUAL_TRIAL_DAYS } from '@/lib/individual-signup';
 import { CreditCard, Clock, LogOut } from 'lucide-react';
 
@@ -24,7 +24,7 @@ export default function SubscribePage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem('authToken');
+    const token = getAuthToken();
     if (!token) {
       setLocation('/auth/login');
       return;

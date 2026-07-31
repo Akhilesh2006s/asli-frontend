@@ -16,7 +16,7 @@ import {
 import StudentShell from "@/components/layout/StudentShell";
 import TeacherShell from "@/components/layout/TeacherShell";
 import { API_BASE_URL } from '@/lib/api-config';
-import { getUser } from '@/lib/auth-utils';
+import { getUser, getAuthToken } from '@/lib/auth-utils';
 import { EduOTTVideoCard, EduOTTSubjectBadges } from '@/components/eduott/EduOTTVideoCard';
 import type { EduOTTVideoCardItem } from '@/components/eduott/EduOTTVideoCard';
 import { EduOTTVideoPlayerDialog } from '@/components/eduott/EduOTTVideoPlayerDialog';
@@ -88,7 +88,7 @@ interface LiveSession {
 }
 
 function authHeaders(): HeadersInit {
-  const token = localStorage.getItem('authToken');
+  const token = getAuthToken();
   return {
     Authorization: `Bearer ${token}`,
     'Content-Type': 'application/json',
@@ -225,8 +225,7 @@ export default function EduOTT() {
   useEffect(() => {
     let cancelled = false;
     async function loadCatalog() {
-      const token = localStorage.getItem('authToken');
-      if (!token) return;
+      const token = getAuthToken();
 
       try {
         const [vRes, sRes] = await Promise.all([
@@ -280,11 +279,7 @@ export default function EduOTT() {
         } else {
           setIsRefreshingVideos(true);
         }
-        const token = localStorage.getItem('authToken');
-        if (!token) {
-          setLoading(false);
-          return;
-        }
+        const token = getAuthToken();
 
         const response = await fetch(
           buildVideosUrl(selectedClass, selectedSubject),
@@ -332,11 +327,7 @@ export default function EduOTT() {
         } else {
           setIsRefreshingSessions(true);
         }
-        const token = localStorage.getItem('authToken');
-        if (!token) {
-          setLoadingSessions(false);
-          return;
-        }
+        const token = getAuthToken();
 
         const response = await fetch(
           buildStreamsUrl(selectedClass, selectedSubject),

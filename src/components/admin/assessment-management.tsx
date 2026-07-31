@@ -10,7 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
 import { API_BASE_URL } from '@/lib/api-config';
 import { useConfirm } from '@/hooks/use-confirm';
-import { 
+import { getAuthToken } from '@/lib/auth-utils';
+import {
   Plus, 
   Edit, 
   Trash2, 
@@ -85,7 +86,7 @@ const AssessmentManagement = () => {
 
   const fetchSubjects = async () => {
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const response = await fetch(`${API_BASE_URL}/api/subjects`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -103,7 +104,7 @@ const AssessmentManagement = () => {
 
   const fetchAssessments = async () => {
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const response = await fetch(`${API_BASE_URL}/api/admin/assessments`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -126,7 +127,7 @@ const AssessmentManagement = () => {
 
   const handleCreateAssessment = async () => {
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const response = await fetch(`${API_BASE_URL}/api/admin/assessments`, {
         method: 'POST',
         headers: {
@@ -159,9 +160,11 @@ const AssessmentManagement = () => {
 
   const handleEditAssessment = async (assessment: Assessment) => {
     try {
-      const response = await fetch(`/api/assessments/${assessment.id}`, {
+      const token = getAuthToken();
+      const response = await fetch(`${API_BASE_URL}/api/assessments/${assessment.id}`, {
           method: 'PUT',
         headers: {
+          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(assessment),
@@ -187,8 +190,12 @@ const AssessmentManagement = () => {
     });
     if (!ok) return;
     try {
-      const response = await fetch(`/api/assessments/${assessmentId}`, {
+      const token = getAuthToken();
+      const response = await fetch(`${API_BASE_URL}/api/assessments/${assessmentId}`, {
         method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
       });
 
       if (response.ok) {
@@ -201,9 +208,11 @@ const AssessmentManagement = () => {
 
   const toggleAssessmentStatus = async (assessment: Assessment) => {
     try {
-      const response = await fetch(`/api/assessments/${assessment.id}/toggle`, {
+      const token = getAuthToken();
+      const response = await fetch(`${API_BASE_URL}/api/assessments/${assessment.id}/toggle`, {
         method: 'PATCH',
         headers: {
+          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ isActive: !assessment.isActive }),

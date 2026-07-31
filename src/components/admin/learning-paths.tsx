@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Label } from '@/components/ui/label';
+import { getAuthToken } from '@/lib/auth-utils';
 import {
   Select,
   SelectContent,
@@ -84,8 +85,7 @@ export default function AdminLearningPaths() {
   useEffect(() => {
     const loadProgram = async () => {
       try {
-        const token = localStorage.getItem('authToken');
-        if (!token) return;
+        const token = getAuthToken();
         const res = await fetch(`${API_BASE_URL}/api/auth/me`, {
           headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         });
@@ -155,7 +155,7 @@ export default function AdminLearningPaths() {
   const fetchSubjects = async () => {
     try {
       setIsLoading(true);
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const response = await fetch(`${API_BASE_URL}/api/admin/subjects`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -184,7 +184,7 @@ export default function AdminLearningPaths() {
   const fetchSubjectsWithContent = async () => {
     try {
       setIsLoadingContent(true);
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
 
       // One request for all Asli Prep content (same source Super Admin uses), then group by subject.
       // This avoids missing paths when the catalog has more content than per-subject calls surface.

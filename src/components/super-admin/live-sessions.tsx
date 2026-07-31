@@ -15,6 +15,7 @@ import { API_BASE_URL } from '@/lib/api-config';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
+import { getAuthToken } from '@/lib/auth-utils';
 
 type SchoolOption = {
   id: string;
@@ -143,7 +144,7 @@ export default function LiveSessions() {
   }, []);
 
   const authHeaders = () => {
-    const token = localStorage.getItem('authToken');
+    const token = getAuthToken();
     return {
       Authorization: `Bearer ${token}`,
       'Content-Type': 'application/json',

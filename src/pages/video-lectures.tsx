@@ -9,7 +9,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import Navigation from "@/components/navigation";
 import VideoPlayer from "@/components/video-player";
 import VideoModal from "@/components/video-modal";
-import { 
+import { getAuthToken } from '@/lib/auth-utils';
+import {
   Play, 
   Search, 
   Filter, 
@@ -114,7 +115,7 @@ export default function VideoLectures() {
   const { data: videos = [], isLoading: videosLoading } = useQuery<VideoLecture[]>({
     queryKey: ["/api/student/videos"],
     queryFn: async () => {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const response = await fetch(`${API_BASE_URL}/api/student/videos`, {
         headers: {
           'Authorization': `Bearer ${token}`,

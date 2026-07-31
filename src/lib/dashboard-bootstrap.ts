@@ -47,7 +47,6 @@ export async function fetchDashboardBootstrap(options: {
   force?: boolean;
 } = {}): Promise<DashboardBootstrapPayload | null> {
   const token = getAuthToken();
-  if (!token) return null;
 
   if (!options.force && cached && Date.now() - cachedAt < BOOTSTRAP_CACHE_MS) {
     return cached;
@@ -58,7 +57,7 @@ export async function fetchDashboardBootstrap(options: {
     try {
       const res = await fetch(`${API_BASE_URL}/api/student/dashboard-bootstrap`, {
         headers: {
-          Authorization: `Bearer ${token}`,
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
           'Content-Type': 'application/json',
         },
       });

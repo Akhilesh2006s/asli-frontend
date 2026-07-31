@@ -2,26 +2,7 @@ import { Suspense, lazy, useState, useEffect, type FormEvent } from "react";
 import { motion } from "framer-motion";
 import SuperAdminSidebar from "@/components/dashboard/SuperAdminSidebar";
 import type { SuperAdminView } from "@/lib/super-admin-views";
-const AdminManagement = lazy(() => import("@/components/admin/AdminManagement"));
-const CombinedSuperAdminAnalytics = lazy(() => import("./combined-super-admin-analytics"));
-const BoardComparisonCharts = lazy(() => import("@/components/admin/board-comparison-charts"));
-const SubjectManagement = lazy(() => import("@/components/super-admin/subject-management"));
-const SubjectContentManagement = lazy(() => import("@/components/super-admin/subject-content-management"));
-const ExamManagement = lazy(() => import("@/components/super-admin/exam-management"));
-const IQRankBoostActivities = lazy(() => import("@/components/super-admin/iq-rank-boost-activities"));
-const SuperAdminCalendar = lazy(() => import("@/components/super-admin/super-admin-calendar"));
-const AIChat = lazy(() => import("@/components/ai-chat"));
-const AiToolGenerationsPanel = lazy(() => import("@/components/super-admin/ai-tool-generations/AiToolGenerationsPanel"));
-const AiToolDuplicatesPanel = lazy(() => import("@/components/super-admin/ai-tool-duplicates-panel"));
-const AiToolTopicsManagement = lazy(() => import("@/components/super-admin/ai-tool-topics-management"));
-const SuperAdminAiGenerator = lazy(() => import("@/components/super-admin/ai-generator"));
-const BookKnowledgeBase = lazy(() => import("@/components/super-admin/book-knowledge-base"));
-const BookBasedGenerator = lazy(() => import("@/components/super-admin/book-based-generator"));
-const LiveSessions = lazy(() => import("@/components/super-admin/live-sessions"));
-const SubscriptionManagement = lazy(() => import("@/components/super-admin/subscription-management"));
-const ProductsManagement = lazy(() => import("@/components/super-admin/products-management"));
-const BoardsManagement = lazy(() => import("@/components/super-admin/boards-management"));
-const TrialMembersManagement = lazy(() => import("@/components/super-admin/trial-members-management"));
+import { clearAuthData, getAuthToken } from "@/lib/auth-utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -45,7 +26,6 @@ import { BellIcon, UsersIcon, Users2, TrendingUpIcon, BookIcon, UserPlusIcon, Bo
 import { LineChart, Line, PieChart as RechartsPieChart, Pie, Cell, ResponsiveContainer, AreaChart, Area } from "recharts";
 import { useToast } from "@/hooks/use-toast";
 import { API_BASE_URL } from "@/lib/api-config";
-import { clearAuthData, getAuthToken } from "@/lib/auth-utils";
 import { cn } from "@/lib/utils";
 import { InteractiveBackground, FloatingParticles } from "@/components/background/InteractiveBackground";
 import { useSuperAdminDrawerNav } from "@/hooks/use-mobile";
@@ -57,6 +37,26 @@ import {
 } from "@/lib/super-admin-nav";
 import { VidyaAnalyticsCard } from "@/components/super-admin/VidyaAnalyticsCard";
 import { Input } from "@/components/ui/input";
+const AdminManagement = lazy(() => import("@/components/admin/AdminManagement"));
+const CombinedSuperAdminAnalytics = lazy(() => import("./combined-super-admin-analytics"));
+const BoardComparisonCharts = lazy(() => import("@/components/admin/board-comparison-charts"));
+const SubjectManagement = lazy(() => import("@/components/super-admin/subject-management"));
+const SubjectContentManagement = lazy(() => import("@/components/super-admin/subject-content-management"));
+const ExamManagement = lazy(() => import("@/components/super-admin/exam-management"));
+const IQRankBoostActivities = lazy(() => import("@/components/super-admin/iq-rank-boost-activities"));
+const SuperAdminCalendar = lazy(() => import("@/components/super-admin/super-admin-calendar"));
+const AIChat = lazy(() => import("@/components/ai-chat"));
+const AiToolGenerationsPanel = lazy(() => import("@/components/super-admin/ai-tool-generations/AiToolGenerationsPanel"));
+const AiToolDuplicatesPanel = lazy(() => import("@/components/super-admin/ai-tool-duplicates-panel"));
+const AiToolTopicsManagement = lazy(() => import("@/components/super-admin/ai-tool-topics-management"));
+const SuperAdminAiGenerator = lazy(() => import("@/components/super-admin/ai-generator"));
+const BookKnowledgeBase = lazy(() => import("@/components/super-admin/book-knowledge-base"));
+const BookBasedGenerator = lazy(() => import("@/components/super-admin/book-based-generator"));
+const LiveSessions = lazy(() => import("@/components/super-admin/live-sessions"));
+const SubscriptionManagement = lazy(() => import("@/components/super-admin/subscription-management"));
+const ProductsManagement = lazy(() => import("@/components/super-admin/products-management"));
+const BoardsManagement = lazy(() => import("@/components/super-admin/boards-management"));
+const TrialMembersManagement = lazy(() => import("@/components/super-admin/trial-members-management"));
 
 const lazySectionFallback = (
   <div className="rounded-xl border border-orange-100 bg-white p-4 sm:p-6 lg:p-8 shadow-sm">
@@ -142,12 +142,13 @@ export default function SuperAdminDashboard() {
 
     const fetchDashboardStats = async () => {
       try {
-        const token = localStorage.getItem('authToken');
+        const token = getAuthToken();
         const response = await fetch(`${API_BASE_URL}/api/super-admin/dashboard/stats`, {
           headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
         });
 
         if (response.ok) {
@@ -216,12 +217,13 @@ export default function SuperAdminDashboard() {
   const fetchRealtimeAnalytics = async () => {
     setIsLoadingAnalytics(true);
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const response = await fetch(`${API_BASE_URL}/api/super-admin/analytics/realtime`, {
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
       });
 
       if (response.ok) {
@@ -245,13 +247,14 @@ export default function SuperAdminDashboard() {
     setIsLoadingBoard(true);
     setBoardError(null);
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       console.log('📊 Fetching board dashboard for:', boardCode);
       const response = await fetch(`${API_BASE_URL}/api/super-admin/boards/${boardCode}/dashboard`, {
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
       });
 
       console.log('Board dashboard response status:', response.status);
@@ -879,13 +882,14 @@ export default function SuperAdminDashboard() {
     }
     setChangingPassword(true);
     try {
-      const token = getAuthToken() || localStorage.getItem("authToken");
+      const token = getAuthToken();
       const res = await fetch(`${API_BASE_URL}/api/super-admin/change-password`, {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${token}`,
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
           "Content-Type": "application/json",
         },
+        credentials: "include",
         body: JSON.stringify(passwordForm),
       });
       const json = await res.json().catch(() => ({}));

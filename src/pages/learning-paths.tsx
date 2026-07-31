@@ -44,7 +44,7 @@ import {
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useState, useEffect } from "react";
 import { API_BASE_URL } from "@/lib/api-config";
-import { getUser } from "@/lib/auth-utils";
+import { getUser, getAuthToken } from '@/lib/auth-utils';
 import PdfPreviewPanel from "@/components/shared/PdfPreviewPanel";
 import VidyaAIFloatingAssistant from "@/components/student/VidyaAIFloatingAssistant";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -138,17 +138,7 @@ export default function LearningPaths() {
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const token = localStorage.getItem('authToken');
-        if (!token) {
-          console.log('No auth token found');
-          setUser({ 
-            fullName: "Student", 
-            email: "student@example.com", 
-            age: 18, 
-            educationStream: "JEE" 
-          });
-          return;
-        }
+        const token = getAuthToken();
 
         const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
           headers: {
@@ -204,7 +194,7 @@ export default function LearningPaths() {
         setIsLoadingSubjects(true);
         
         // Fetch subjects from student endpoint (gets board-specific subjects)
-        const token = localStorage.getItem('authToken');
+        const token = getAuthToken();
         const subjectsResponse = await fetch(`${API_BASE_URL}${apiRoot()}/subjects`, {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -275,7 +265,7 @@ export default function LearningPaths() {
                   try {
                     const videosResponse = await fetch(`${API_BASE_URL}${apiRoot()}/videos?subject=${encodeURIComponent(subjectId)}`, {
                       headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+                        'Authorization': `Bearer ${getAuthToken()}`,
                         'Content-Type': 'application/json',
                       }
                     });
@@ -294,7 +284,7 @@ export default function LearningPaths() {
                   try {
                     const assessmentsResponse = await fetch(`${API_BASE_URL}${apiRoot()}/assessments?subject=${encodeURIComponent(subjectId)}`, {
                       headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+                        'Authorization': `Bearer ${getAuthToken()}`,
                         'Content-Type': 'application/json',
                       }
                     });
@@ -508,7 +498,7 @@ export default function LearningPaths() {
       }
       try {
         setIsLoadingQuizzes(true);
-        const token = localStorage.getItem('authToken');
+        const token = getAuthToken();
         const response = await fetch(`${API_BASE_URL}/api/student/quizzes`, {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -539,7 +529,7 @@ export default function LearningPaths() {
     const fetchContentCounts = async () => {
       try {
         setIsLoadingContentCounts(true);
-        const token = localStorage.getItem('authToken');
+        const token = getAuthToken();
         
         // Fetch all content to count by type
         const response = await fetch(`${API_BASE_URL}${apiRoot()}/asli-prep-content`, {
@@ -693,7 +683,11 @@ export default function LearningPaths() {
               <div className="col-span-full text-center py-12">
                 <BookOpen className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                 <h3 className="text-base sm:text-lg font-semibold text-gray-600 mb-2">No Subjects Available</h3>
-                <p className="text-gray-500">Check back later for new learning content.</p>
+                <p className="text-gray-500 max-w-md mx-auto">
+                  {isTeacher
+                    ? 'We could not match curriculum subjects for your class yet. Confirm Class 6–12 and board on signup, or ask your school admin to assign subjects.'
+                    : 'Check back later for new learning content.'}
+                </p>
               </div>
             ) : (
               subjects.map((subject: any) => {

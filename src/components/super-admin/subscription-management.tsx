@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { getAuthToken } from '@/lib/auth-utils';
 import {
   Table,
   TableBody,
@@ -173,7 +174,7 @@ export default function SubscriptionManagement() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const res = await fetch(`${API_BASE_URL}/api/super-admin/subscriptions`, {
         headers: {
           Authorization: `Bearer ${token}`,

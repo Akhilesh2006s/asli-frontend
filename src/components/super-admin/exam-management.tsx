@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { getAuthToken } from '@/lib/auth-utils';
 import {
   Select,
   SelectContent,
@@ -409,7 +410,7 @@ export default function ExamManagement() {
   const fetchQuestions = async (examId: string) => {
     setIsLoadingQuestions(true);
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const response = await fetch(`${API_BASE_URL}/api/super-admin/exams/${examId}/questions`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -455,7 +456,7 @@ export default function ExamManagement() {
     const questionId = String(question._id);
     setSavingQuestionId(questionId);
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const response = await fetch(
         `${API_BASE_URL}/api/super-admin/exams/${selectedExam._id}/questions/${questionId}`,
         {
@@ -504,7 +505,7 @@ export default function ExamManagement() {
     if (!selectedExam?._id || orderedIds.length === 0) return;
     setIsReorderingQuestions(true);
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const response = await fetch(
         `${API_BASE_URL}/api/super-admin/exams/${selectedExam._id}/questions/reorder`,
         {
@@ -706,7 +707,7 @@ export default function ExamManagement() {
     setQuestionCsvUploadResults(null);
     
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const formData = new FormData();
       formData.append('file', questionCsvFile);
       formData.append('allowDuplicates', allowDuplicateQuestionsInCsv ? 'true' : 'false');
@@ -833,7 +834,7 @@ export default function ExamManagement() {
     setPdfQuestionRows([]);
     setPdfPreviewPage(1);
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const controller = new AbortController();
       const timeoutId = window.setTimeout(() => controller.abort(), 120000);
       const form = new FormData();
@@ -935,7 +936,7 @@ export default function ExamManagement() {
     if (!shouldUpload) return;
     setIsUploadingExtractedQuestions(true);
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const headers = ['questionText', 'questionType', 'subject', 'marks', 'option1', 'option2', 'option3', 'option4', 'correctAnswer', 'explanation'];
       const sanitizeCsvCell = (v: unknown) =>
         String(v ?? '')
@@ -1063,7 +1064,7 @@ export default function ExamManagement() {
   const handleDeleteQuestion = async () => {
     if (!selectedExam || !pendingDeleteQuestion) return;
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       let res = await fetch(
         `${API_BASE_URL}/api/super-admin/exams/${selectedExam._id}/questions/${pendingDeleteQuestion.id}`,
         {
@@ -1121,7 +1122,7 @@ export default function ExamManagement() {
 
     setIsDeletingAllQuestions(true);
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       let res = await fetch(`${API_BASE_URL}/api/super-admin/exams/${selectedExam._id}/questions`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
@@ -1428,7 +1429,7 @@ export default function ExamManagement() {
 
     setIsAddingQuestion(true);
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const headers = {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
@@ -1519,7 +1520,7 @@ export default function ExamManagement() {
     setQuestionImageFile(file);
     setIsUploadingQuestionImage(true);
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const formData = new FormData();
       formData.append('image', file);
 
@@ -1561,7 +1562,7 @@ export default function ExamManagement() {
   const fetchSchools = async () => {
     setIsLoadingSchools(true);
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const response = await fetch(`${API_BASE_URL}/api/super-admin/admins`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -1598,7 +1599,7 @@ export default function ExamManagement() {
   const fetchExams = async () => {
     setIsLoading(true);
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       let url = `${API_BASE_URL}/api/super-admin/exams`;
       
       console.log('🌐 Fetching exams from:', url);
@@ -1708,7 +1709,7 @@ export default function ExamManagement() {
 
     setIsCreating(true);
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const normalizedSubjects = Array.from(
         new Set(
           formData.subjects
@@ -1886,7 +1887,7 @@ export default function ExamManagement() {
     setCsvUploadResults(null);
     
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const formData = new FormData();
       formData.append('file', csvFile);
 
@@ -1952,7 +1953,7 @@ export default function ExamManagement() {
     }
 
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const response = await fetch(`${API_BASE_URL}/api/super-admin/exams/${examId}`, {
         method: 'DELETE',
         headers: {

@@ -1,3 +1,4 @@
+import { getAuthToken } from '@/lib/auth-utils';
 /**
  * Study Time Tracker Utility
  * Tracks study time using timestamps and ignores time when app is in background
@@ -17,7 +18,7 @@ export function getLocalIsoDateKey(date: Date = new Date()): string {
 function getStorageKey(): string {
   // Try to get user ID from JWT token
   try {
-    const token = localStorage.getItem('authToken');
+    const token = getAuthToken();
     if (token) {
       // Decode JWT to get user ID (simple base64 decode, no verification needed for storage key)
       const payload = JSON.parse(atob(token.split('.')[1]));

@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useLocation } from 'wouter';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { getAuthToken } from '@/lib/auth-utils';
 import {
   Dialog,
   DialogContent,
@@ -171,7 +172,7 @@ export default function AdaptiveRecommendations(_props: AdaptiveRecommendationsP
     try {
       setLoading(true);
       setError(null);
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       if (!token) {
         setCards([]);
         setError('Sign in to load adaptive recommendations.');

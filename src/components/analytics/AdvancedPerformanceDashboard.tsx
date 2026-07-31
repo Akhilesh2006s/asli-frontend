@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent } from '@/components/ui/chart';
+import { getAuthToken } from '@/lib/auth-utils';
 import {
   Bar,
   BarChart,
@@ -114,7 +115,7 @@ export default function AdvancedPerformanceDashboard({ examId }: Props) {
       setIsLoading(true);
       setError('');
       try {
-        const token = localStorage.getItem('authToken');
+        const token = getAuthToken();
         const response = await fetch(`${API_BASE_URL}/api/student/exam/${examId}/advanced-analytics`, {
           headers: {
             Authorization: `Bearer ${token}`,

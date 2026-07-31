@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useLocation } from 'wouter';
 import { API_BASE_URL } from '@/lib/api-config';
+import { getAuthToken } from '@/lib/auth-utils';
 
 const SKIP_PATHS = [
   '/auth/login',
@@ -25,7 +26,7 @@ export function IndividualTrialGate({ children }: { children: React.ReactNode })
     let cancelled = false;
 
     const run = async () => {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       if (!token) {
         if (!cancelled) setReady(true);
         return;
@@ -65,7 +66,7 @@ export function IndividualTrialGate({ children }: { children: React.ReactNode })
     };
   }, [location, setLocation]);
 
-  if (!ready && localStorage.getItem('authToken')) {
+  if (!ready && getAuthToken()) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-50 text-sm text-slate-600">
         Loading…

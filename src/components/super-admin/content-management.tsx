@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Upload, Video, FileText, File, X, Trash2, Edit, Play, Eye, Plus, Calendar, Grid3x3, ChevronDown, ChevronUp, BookOpen, GraduationCap, ExternalLink } from 'lucide-react';
 import { API_BASE_URL } from '@/lib/api-config';
 import { useToast } from '@/hooks/use-toast';
+import { getAuthToken } from '@/lib/auth-utils';
 
 interface Content {
   _id: string;
@@ -94,7 +95,7 @@ export default function ContentManagement() {
   const getSubjectsForBoard = async (boardCode: string, options: { silent?: boolean } = {}) => {
     const { silent = false } = options;
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const url = `${API_BASE_URL}/api/super-admin/boards/${boardCode}/subjects`;
       console.log('🌐 Fetching subjects from:', url);
       
@@ -223,7 +224,7 @@ export default function ContentManagement() {
   const fetchContents = async () => {
     setIsLoading(true);
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const url = `${API_BASE_URL}/api/super-admin/boards/${selectedBoard}/content`;
       console.log('🌐 Fetching content from:', url);
       
@@ -339,7 +340,7 @@ export default function ContentManagement() {
     }
 
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       
       // Prepare the request body with all required data
       const baseRequestBody: any = {
@@ -484,7 +485,7 @@ export default function ContentManagement() {
 
     setIsDeleting(contentId);
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const response = await fetch(`${API_BASE_URL}/api/super-admin/content/${contentId}`, {
         method: 'DELETE',
         headers: {
@@ -626,7 +627,7 @@ export default function ContentManagement() {
 
     setIsDeletingAll(true);
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       
       // Use bulk delete endpoint for better performance
       const boardParam = selectedBoard === 'ALL_BOARDS' ? '' : `?board=${selectedBoard}`;
@@ -1433,7 +1434,7 @@ export default function ContentManagement() {
                           setUploadedFileUrl(null);
                           setUploadedFileName(null);
 
-                          const token = localStorage.getItem('authToken');
+                          const token = getAuthToken();
                           const formDataUpload = new FormData();
                           formDataUpload.append('file', file);
 

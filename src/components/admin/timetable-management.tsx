@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { getAuthToken } from '@/lib/auth-utils';
 import {
   format, startOfWeek, eachDayOfInterval, addWeeks, subWeeks,
   addDays, isSameDay, parseISO, isValid,
@@ -216,7 +217,7 @@ export default function TimetableManagement() {
   const importCsv = useImportTimetableCSV();
 
   useEffect(() => {
-    const token = localStorage.getItem('authToken');
+    const token = getAuthToken();
     const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
     Promise.all([
       fetch(`${API_BASE_URL}/api/admin/classes`, { headers }).then((r) => r.json()),

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useLocation } from 'wouter';
 import { API_BASE_URL } from '@/lib/api-config';
+import { getAuthToken } from '@/lib/auth-utils';
 import {
   Dialog,
   DialogContent,
@@ -33,8 +34,7 @@ export function TrialLoginQuizPrompt() {
     let cancelled = false;
 
     const run = async () => {
-      const token = localStorage.getItem('authToken');
-      if (!token) return;
+      const token = getAuthToken();
 
       const pathOnly = location.split('?')[0];
       if (SKIP_PREFIXES.some((p) => pathOnly === p || pathOnly.startsWith(p))) return;

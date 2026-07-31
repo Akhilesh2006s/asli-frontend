@@ -8,7 +8,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { 
+import { getAuthToken } from '@/lib/auth-utils';
+import {
   Brain, 
   Trophy, 
   Target, 
@@ -95,7 +96,7 @@ export default function IQRankBoostActivities() {
   const fetchActivities = async () => {
     try {
       setIsLoading(true);
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const response = await fetch(`${API_BASE_URL}/api/super-admin/iq-rank-activities`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -120,7 +121,7 @@ export default function IQRankBoostActivities() {
 
   const fetchSubjects = async () => {
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const url = `${API_BASE_URL}/api/super-admin/subjects`;
       console.log('🌐 Fetching subjects from:', url);
       
@@ -152,7 +153,7 @@ export default function IQRankBoostActivities() {
 
   const fetchBoards = async () => {
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const url = `${API_BASE_URL}/api/super-admin/boards`;
       console.log('🌐 Fetching boards from:', url);
       
@@ -184,7 +185,7 @@ export default function IQRankBoostActivities() {
 
   const handleCreate = async () => {
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const response = await fetch(`${API_BASE_URL}/api/super-admin/iq-rank-activities`, {
         method: 'POST',
         headers: {
@@ -223,7 +224,7 @@ export default function IQRankBoostActivities() {
     if (!selectedActivity) return;
 
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const response = await fetch(`${API_BASE_URL}/api/super-admin/iq-rank-activities/${selectedActivity._id}`, {
         method: 'PUT',
         headers: {
@@ -263,7 +264,7 @@ export default function IQRankBoostActivities() {
     if (!confirm('Are you sure you want to delete this activity?')) return;
 
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const response = await fetch(`${API_BASE_URL}/api/super-admin/iq-rank-activities/${id}`, {
         method: 'DELETE',
         headers: {

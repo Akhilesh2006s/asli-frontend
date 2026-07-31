@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { getAuthToken } from '@/lib/auth-utils';
 import {
   Dialog,
   DialogContent,
@@ -186,7 +187,7 @@ export default function SuperAdminCalendar({ onNavigateToExams }: SuperAdminCale
     const month = monthKey(currentDate);
     try {
       setIsLoadingEvents(true);
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const params = new URLSearchParams({ month });
       if (selectedSchoolId && selectedSchoolId !== 'all') {
         params.set('schoolId', selectedSchoolId);
@@ -222,7 +223,7 @@ export default function SuperAdminCalendar({ onNavigateToExams }: SuperAdminCale
   const fetchAdmins = async () => {
     try {
       setIsLoading(true);
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const response = await fetch(`${API_BASE_URL}/api/super-admin/admins`, {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -431,7 +432,7 @@ export default function SuperAdminCalendar({ onNavigateToExams }: SuperAdminCale
     }
     setIsSavingCustom(true);
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const [yy, mm, dd] = quickAddForm.date.split('-').map(Number);
       const [startHour, startMinute] = quickAddForm.startTime.split(':').map(Number);
       const [endHour, endMinute] = quickAddForm.endTime.split(':').map(Number);

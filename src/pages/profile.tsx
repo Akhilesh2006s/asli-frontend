@@ -7,7 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import StudentShell from "@/components/layout/StudentShell";
-import { 
+import { getAuthToken } from '@/lib/auth-utils';
+import {
   User, 
   Settings, 
   TrendingUp,
@@ -50,12 +51,7 @@ export default function Profile() {
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const token = localStorage.getItem('authToken');
-        if (!token) {
-          setUser(null);
-          setIsLoading(false);
-          return;
-        }
+        const token = getAuthToken();
 
         const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
           headers: {
@@ -84,7 +80,7 @@ export default function Profile() {
   // Exam results, rankings, streak, and learning progress for overview stats
   useEffect(() => {
     const fetchOverviewData = async () => {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       if (!token) {
         setExamResults([]);
         setRankings([]);

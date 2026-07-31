@@ -12,6 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { extractClassNumberFromSubjectName } from '@/lib/subject-names';
 import { sanitizeTopicStrings } from '@/lib/vidya-subjects';
+import { getAuthToken } from '@/lib/auth-utils';
 
 interface QuestionGeneratorProps {
   classNumber: number;
@@ -54,7 +55,7 @@ export default function QuestionGenerator({ classNumber, onBack }: QuestionGener
   const fetchSubjectsForClass = async () => {
     try {
       setIsLoadingSubjects(true);
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       
       const response = await fetch(`${API_BASE_URL}/api/super-admin/subjects`, {
         headers: {
@@ -107,7 +108,7 @@ export default function QuestionGenerator({ classNumber, onBack }: QuestionGener
 
     try {
       setIsLoadingTopics(true);
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       
       // Fetch topics from content for the selected subject and class
       const response = await fetch(
@@ -161,7 +162,7 @@ export default function QuestionGenerator({ classNumber, onBack }: QuestionGener
       setIsSuccess(false);
       setGeneratedQuestions([]);
 
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const response = await fetch(`${API_BASE_URL}/api/super-admin/iq-rank-activities/generate-questions`, {
         method: 'POST',
         headers: {

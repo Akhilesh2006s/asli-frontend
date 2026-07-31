@@ -13,9 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useConfirm } from '@/hooks/use-confirm';
 import { cn } from '@/lib/utils';
 import { formatSeatUsage, seatUsageHint, useAccountSeats } from '@/hooks/use-account-seats';
-
-const STUDENT_FORM_FIELD_CLASS =
-  'border border-sky-300 bg-sky-50 text-sky-950 shadow-sm placeholder:text-sky-500 focus-visible:border-sky-500 focus-visible:ring-2 focus-visible:ring-sky-400/35';
+import { getAuthToken } from '@/lib/auth-utils';
 import { 
   Users, 
   Plus, 
@@ -43,6 +41,9 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import { StudentRiskAnalysisModal } from './StudentRiskAnalysisModal';
+
+const STUDENT_FORM_FIELD_CLASS =
+  'border border-sky-300 bg-sky-50 text-sky-950 shadow-sm placeholder:text-sky-500 focus-visible:border-sky-500 focus-visible:ring-2 focus-visible:ring-sky-400/35';
 interface Student {
   id: string;
   name: string;
@@ -171,7 +172,7 @@ const UserManagement = () => {
 
   const fetchClasses = async () => {
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const response = await fetch(`${API_BASE_URL}/api/admin/classes`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -190,7 +191,7 @@ const UserManagement = () => {
 
   const fetchStudents = async () => {
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const response = await fetch(`${API_BASE_URL}/api/admin/students`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -257,7 +258,7 @@ const UserManagement = () => {
     }
 
     try {
-        const token = localStorage.getItem('authToken');
+        const token = getAuthToken();
         const response = await fetch(`${API_BASE_URL}/api/admin/students`, {
           method: 'POST',
           headers: { 
@@ -316,7 +317,7 @@ const UserManagement = () => {
       console.log('Upload endpoint:', `${API_BASE_URL}/api/admin/students/upload`);
     
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       if (!token) {
         notify('You are not authenticated. Please log in again.');
         setIsUploading(false);
@@ -465,7 +466,7 @@ const UserManagement = () => {
       const response = await fetch(`${API_BASE_URL}/api/admin/students/${studentId}`, {
         method: 'DELETE',
         headers: { 
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+          'Authorization': `Bearer ${getAuthToken()}`,
           'Content-Type': 'application/json' 
         }
       });
@@ -510,7 +511,7 @@ const UserManagement = () => {
     }
     
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const response = await fetch(`${API_BASE_URL}/api/admin/students/${selectedStudentForEdit.id}`, {
         method: 'PUT',
         headers: { 
@@ -555,7 +556,7 @@ const UserManagement = () => {
 
   const handleDeleteAllStudents = async () => {
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const response = await fetch(`${API_BASE_URL}/api/admin/users/delete-all`, {
         method: 'DELETE',
         headers: {
@@ -1615,7 +1616,7 @@ const UserManagement = () => {
                     onClick={async () => {
                       if (selectedStudentForClass) {
                         try {
-                          const token = localStorage.getItem('authToken');
+                          const token = getAuthToken();
                           const response = await fetch(`${API_BASE_URL}/api/admin/students/${selectedStudentForClass.id}/assign-class`, {
                             method: 'POST',
                             headers: {

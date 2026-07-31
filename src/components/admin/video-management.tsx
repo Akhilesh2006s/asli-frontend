@@ -10,7 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
 import { API_BASE_URL } from '@/lib/api-config';
 import { useConfirm } from '@/hooks/use-confirm';
-import { 
+import { getAuthToken } from '@/lib/auth-utils';
+import {
   Plus, 
   Edit, 
   Trash2, 
@@ -78,7 +79,7 @@ const VideoManagement = () => {
 
   const fetchSubjects = async () => {
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const response = await fetch(`${API_BASE_URL}/api/subjects`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -96,7 +97,7 @@ const VideoManagement = () => {
 
   const fetchVideos = async () => {
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const response = await fetch(`${API_BASE_URL}/api/admin/videos`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -120,7 +121,7 @@ const VideoManagement = () => {
 
   const handleCreateVideo = async () => {
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const response = await fetch(`${API_BASE_URL}/api/admin/videos`, {
         method: 'POST',
         headers: {
@@ -152,7 +153,7 @@ const VideoManagement = () => {
 
   const handleEditVideo = async (video: Video) => {
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const response = await fetch(`${API_BASE_URL}/api/admin/videos/${video.id}`, {
         method: 'PUT',
         headers: {
@@ -181,7 +182,7 @@ const VideoManagement = () => {
     });
     if (!ok) return;
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const response = await fetch(`${API_BASE_URL}/api/admin/videos/${videoId}`, {
         method: 'DELETE',
         headers: {
@@ -199,7 +200,7 @@ const VideoManagement = () => {
 
   const toggleVideoStatus = async (video: Video) => {
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const response = await fetch(`${API_BASE_URL}/api/admin/videos/${video.id}/toggle`, {
         method: 'PATCH',
         headers: {

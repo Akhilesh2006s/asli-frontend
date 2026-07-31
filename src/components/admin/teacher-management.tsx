@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { API_BASE_URL } from '@/lib/api-config';
+import { getAuthToken } from '@/lib/auth-utils';
 import {
   formatSubjectDisplayLabel,
   normalizeSubjectDisplayKey,
@@ -384,7 +385,7 @@ const TeacherManagement = () => {
 
   const fetchTeachers = async () => {
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const response = await fetch(`${API_BASE_URL}/api/admin/teachers`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -460,7 +461,7 @@ const TeacherManagement = () => {
 
   const fetchSubjects = async () => {
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const response = await fetch(`${API_BASE_URL}/api/admin/subjects`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -507,7 +508,7 @@ const TeacherManagement = () => {
 
   const fetchClasses = async () => {
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const response = await fetch(`${API_BASE_URL}/api/admin/classes`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -572,7 +573,7 @@ const TeacherManagement = () => {
     }
     
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const response = await fetch(`${API_BASE_URL}/api/admin/teachers`, {
         method: 'POST',
         headers: { 
@@ -615,7 +616,7 @@ const TeacherManagement = () => {
     if (!editingTeacher) return;
 
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       if (!token) {
         notify('Authentication token not found. Please log in again.');
         return;
@@ -654,7 +655,7 @@ const TeacherManagement = () => {
     });
     if (!ok) return;
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       if (!token) {
         notify('Authentication token not found. Please log in again.', 'destructive');
         return;
@@ -693,7 +694,7 @@ const TeacherManagement = () => {
     if (!ok) return;
     setIsBulkDeleting(true);
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       if (!token) {
         notify('Authentication token not found. Please log in again.');
         return;
@@ -741,7 +742,7 @@ const TeacherManagement = () => {
     console.log('Upload endpoint:', `${API_BASE_URL}/api/admin/teachers/upload`);
     
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       if (!token) {
         notify('You are not authenticated. Please log in again.');
         setIsUploading(false);
@@ -849,7 +850,7 @@ Jane Smith,jane.smith@school.edu,TeacherPass2,1234567891,Science,MSc in Chemistr
     console.log('Assigning classes:', { teacherId, classIds });
 
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       if (!token) {
         notify('Authentication token not found. Please log in again.');
         return;
@@ -916,7 +917,7 @@ Jane Smith,jane.smith@school.edu,TeacherPass2,1234567891,Science,MSc in Chemistr
     console.log('Subject IDs details:', subjectIds);
 
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       if (!token) {
         notify('Authentication token not found. Please log in again.');
         return;
@@ -961,7 +962,7 @@ Jane Smith,jane.smith@school.edu,TeacherPass2,1234567891,Science,MSc in Chemistr
         for (let attempt = 1; attempt <= 3; attempt++) {
           await delay(600); // give backend time to persist
           try {
-            const token2 = localStorage.getItem('authToken');
+            const token2 = getAuthToken();
             const resp2 = await fetch(`${API_BASE_URL}/api/admin/teachers`, {
               headers: {
                 'Authorization': `Bearer ${token2}`,

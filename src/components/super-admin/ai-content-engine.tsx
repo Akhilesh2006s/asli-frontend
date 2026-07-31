@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { API_BASE_URL } from "@/lib/api-config";
 import { cn } from "@/lib/utils";
 import { toCurriculumSelectRows, type CurriculumSelectRow } from "@/lib/vidya-subjects";
+import { getAuthToken } from '@/lib/auth-utils';
 import {
   filterSubjectRowsForAiTool,
   isLanguageExcludedTool,
@@ -3421,9 +3422,7 @@ export default function AIContentEngine() {
 
   const authHeaders = (): Record<string, string> => {
     const token =
-      localStorage.getItem("authToken") ||
-      localStorage.getItem("superAdminToken") ||
-      localStorage.getItem("token");
+      getAuthToken();
     return token ? { Authorization: `Bearer ${token}` } : {};
   };
 

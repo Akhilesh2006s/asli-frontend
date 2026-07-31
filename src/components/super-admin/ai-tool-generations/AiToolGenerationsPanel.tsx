@@ -7,6 +7,7 @@ import { API_BASE_URL } from "@/lib/api-config";
 import { fetchBootstrap, fetchSectionGapSummaries } from "./api";
 import type { BranchItem, ToolSectionGapSummary } from "./api";
 import { ToolSection } from "./ToolSection";
+import { getAuthToken } from '@/lib/auth-utils';
 
 const TOOL_LABELS: Record<string, string> = {
   "activity-project-generator": "Activity & Project Generator",
@@ -55,8 +56,8 @@ export default function AiToolGenerationsPanel() {
           fetch(`${API_BASE_URL}/api/super-admin/ai-tool-topics/options`, {
             headers: {
               "Content-Type": "application/json",
-              ...(localStorage.getItem("authToken")
-                ? { Authorization: `Bearer ${localStorage.getItem("authToken")}` }
+              ...(getAuthToken()
+                ? { Authorization: `Bearer ${getAuthToken()}` }
                 : {}),
             },
           }).then((r) => (r.ok ? r.json() : Promise.resolve({ data: { boards: [] } }))),

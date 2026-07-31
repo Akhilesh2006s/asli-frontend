@@ -6,7 +6,8 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
 import StudentShell from "@/components/layout/StudentShell";
-import { 
+import { getAuthToken } from '@/lib/auth-utils';
+import {
   Clock, 
   CheckCircle, 
   AlertCircle,
@@ -86,7 +87,7 @@ export default function QuizPage() {
   const fetchQuiz = async () => {
     try {
       setIsLoading(true);
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const url = `${API_BASE_URL}/api/student/quizzes/${params?.id}`;
       console.log('Fetching quiz from:', url);
       
@@ -185,7 +186,7 @@ export default function QuizPage() {
 
     // Save quiz attempt
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       await fetch(`${API_BASE_URL}/api/student/quizzes/${quiz._id}/submit`, {
         method: 'POST',
         headers: {

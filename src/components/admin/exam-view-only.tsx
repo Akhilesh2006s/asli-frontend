@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Eye, BarChart3, Filter, Download, TrendingUp, Users, Clock, Calendar, BookOpen } from 'lucide-react';
 import { API_BASE_URL } from '@/lib/api-config';
 import { useToast } from '@/hooks/use-toast';
+import { getAuthToken } from '@/lib/auth-utils';
 import {
   CLASS_FILTER_OPTIONS,
   examIncludesClass,
@@ -214,7 +215,7 @@ export default function ExamViewOnly() {
 
   const fetchExams = async () => {
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const response = await fetch(`${API_BASE_URL}/api/admin/exams/viewable`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -238,7 +239,7 @@ export default function ExamViewOnly() {
   const fetchExamResults = async (examId: string) => {
     setIsLoadingResults(true);
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const queryParams = new URLSearchParams();
       queryParams.append('examId', String(examId));
       if (filters.classNumber) queryParams.append('classNumber', filters.classNumber);
@@ -278,7 +279,7 @@ export default function ExamViewOnly() {
   const fetchAnalytics = async (examId: string) => {
     setIsLoadingAnalytics(true);
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const qs = new URLSearchParams();
       if (filters.classNumber) qs.set('classNumber', filters.classNumber);
       const suffix = qs.toString() ? `?${qs.toString()}` : '';

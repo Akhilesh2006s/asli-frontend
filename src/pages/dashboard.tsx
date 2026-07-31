@@ -98,7 +98,7 @@ import { buildExamCalendarEntries, buildSchoolEventCalendarEntries } from '@/lib
 import { buildTimetableCalendarEntries } from '@/lib/timetable-calendar-entries';
 import { useTimetableEntries } from '@/hooks/useTimetable';
 import { format, startOfMonth, endOfMonth, startOfWeek, addDays, parseISO } from 'date-fns';
-import { getUser as getStoredUser, getStudentDisplayName } from '@/lib/auth-utils';
+import { getUser as getStoredUser, getStudentDisplayName, getAuthToken } from '@/lib/auth-utils';
 import StudentShell from '@/components/layout/StudentShell';
 import StatCard from '@/components/dashboard/StatCard';
 import { fetchAuthUser, peekCachedAuthUser } from '@/lib/auth-session';
@@ -317,7 +317,7 @@ export default function Dashboard() {
       try {
         const videosRes = await fetch(`${API_BASE_URL}/api/student/videos`, {
           headers: {
-            Authorization: `Bearer ${localStorage.getItem('authToken')}`,
+            Authorization: `Bearer ${getAuthToken()}`,
             'Content-Type': 'application/json',
           },
         });
@@ -348,8 +348,7 @@ export default function Dashboard() {
   // Save overall progress to database
   const saveOverallProgressToDB = async (progress: number) => {
     try {
-      const token = localStorage.getItem('authToken');
-      if (!token) return;
+      const token = getAuthToken();
       
       const response = await fetch(`${API_BASE_URL}/api/student/overall-progress`, {
         method: 'POST',
@@ -391,11 +390,7 @@ export default function Dashboard() {
     let cancelled = false;
 
     const applyBootstrap = async () => {
-      const token = localStorage.getItem('authToken');
-      if (!token) {
-        setIsLoadingUser(false);
-        return;
-      }
+      const token = getAuthToken();
 
       const cached = peekCachedAuthUser();
       if (cached && !cancelled) {
@@ -572,8 +567,7 @@ export default function Dashboard() {
     let cancelled = false;
     (async () => {
       try {
-        const token = localStorage.getItem('authToken');
-        if (!token) return;
+        const token = getAuthToken();
         const response = await fetch(
           `${API_BASE_URL}/api/student/calendar/events?month=${calendarMonthKey}`,
           {
@@ -606,11 +600,7 @@ export default function Dashboard() {
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
-        const token = localStorage.getItem('authToken');
-        if (!token) {
-          setIsLoadingDashboard(false);
-          return;
-        }
+        const token = getAuthToken();
 
         // Fetch exam results to calculate learning progress
         const [examsRes, resultsRes] = await Promise.all([
@@ -646,7 +636,7 @@ export default function Dashboard() {
         let subjectNameMap = new Map<string, string>(); // Maps subject keys (maths, physics, etc.) to actual names
         let subjectsList: any[] = [];
         try {
-          const token = localStorage.getItem('authToken');
+          const token = getAuthToken();
           if (token) {
             const subjectsResponse = await fetch(`${API_BASE_URL}/api/student/subjects`, {
               headers: {
@@ -731,7 +721,7 @@ export default function Dashboard() {
         // Get all subjects assigned to the student
         let learningPathProgress: Map<string, number> = new Map();
         try {
-          const token = localStorage.getItem('authToken');
+          const token = getAuthToken();
           if (token && subjectsList.length > 0) {
             // Get progress for each subject from localStorage and content count
             for (const subject of subjectsList) {
@@ -866,8 +856,7 @@ export default function Dashboard() {
     const timer = window.setTimeout(async () => {
       if (bootstrapAppliedRef.current) return;
       try {
-        const token = localStorage.getItem('authToken');
-        if (!token) return;
+        const token = getAuthToken();
 
         const response = await fetch(`${API_BASE_URL}/api/student/asli-prep-content`, {
           headers: {
@@ -973,7 +962,7 @@ export default function Dashboard() {
         try {
           const { today } = getDisplayedStudyTime();
           const dateKey = getLocalIsoDateKey();
-          const token = localStorage.getItem('authToken');
+          const token = getAuthToken();
           if (token && today > 0) {
             await fetch(`${API_BASE_URL}/api/student/session-time`, {
               method: 'POST',
@@ -1003,7 +992,7 @@ export default function Dashboard() {
 
     const refreshSessionTime = async () => {
       try {
-        const token = localStorage.getItem('authToken');
+        const token = getAuthToken();
         if (token) {
           const response = await fetch(`${API_BASE_URL}/api/student/session-time`, {
             headers: {
@@ -1105,7 +1094,7 @@ export default function Dashboard() {
       // Save final session time before unmounting
       const finalTimes = trackingStarted ? getDisplayedStudyTime() : updateStudyTime();
       const dateKey = getLocalIsoDateKey();
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       if (token && finalTimes.today > 0) {
         fetch(`${API_BASE_URL}/api/student/session-time`, {
           method: 'POST',
@@ -1131,12 +1120,7 @@ export default function Dashboard() {
     const fetchScheduleItems = async () => {
       try {
         setIsLoadingSchedule(true);
-        const token = localStorage.getItem('authToken');
-        
-        if (!token) {
-          setIsLoadingSchedule(false);
-          return;
-        }
+        const token = getAuthToken();
 
         // Fetch all content
         const contentResponse = await fetch(`${API_BASE_URL}/api/student/asli-prep-content`, {
@@ -1362,7 +1346,7 @@ export default function Dashboard() {
     subjectId: string,
     dates: ChapterCompletedDates
   ) => {
-    const token = localStorage.getItem('authToken');
+    const token = getAuthToken();
     if (!token || !subjectId) return;
     try {
       await fetch(`${API_BASE_URL}/api/student/video-chapter-progress`, {
@@ -1420,7 +1404,7 @@ export default function Dashboard() {
     }
 
     if (!isQuiz && isVideoContentType(item.type)) {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       if (token) {
         fetch(`${API_BASE_URL}/api/student/content-progress`, {
           method: 'POST',
@@ -1491,7 +1475,7 @@ export default function Dashboard() {
     try {
       setIsSubmittingHomework(true);
       setHomeworkSubmitError('');
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       if (!token) {
         setHomeworkSubmitError('Please login again and retry.');
         return;
@@ -1610,8 +1594,7 @@ export default function Dashboard() {
     const fetchRemarks = async () => {
       try {
         setIsLoadingRemarks(true);
-        const token = localStorage.getItem('authToken');
-        if (!token) return;
+        const token = getAuthToken();
 
         const response = await fetch(`${API_BASE_URL}/api/student/remarks`, {
           headers: {
@@ -1639,8 +1622,7 @@ export default function Dashboard() {
     const fetchHomeworkSubmissions = async () => {
       try {
         setIsLoadingSubmissions(true);
-        const token = localStorage.getItem('authToken');
-        if (!token) return;
+        const token = getAuthToken();
 
         const response = await fetch(`${API_BASE_URL}/api/student/homework-submissions`, {
           headers: {
@@ -1668,8 +1650,7 @@ export default function Dashboard() {
     const fetchRiskAnalysisReports = async () => {
       try {
         setIsLoadingReports(true);
-        const token = localStorage.getItem('authToken');
-        if (!token) return;
+        const token = getAuthToken();
 
         const response = await fetch(`${API_BASE_URL}/api/student/risk-analysis-reports`, {
           headers: {
@@ -2464,7 +2445,7 @@ export default function Dashboard() {
                           size="sm"
                           onClick={async () => {
                             try {
-                              const token = localStorage.getItem('authToken');
+                              const token = getAuthToken();
                               const response = await fetch(
                                 `${API_BASE_URL}/api/student/risk-analysis-reports/${report._id}/download`,
                                 {

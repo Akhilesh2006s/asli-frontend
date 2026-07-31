@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { getAuthToken } from '@/lib/auth-utils';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -110,7 +111,7 @@ export default function SubjectContent() {
   // Load completed content from database
   const loadCompletedContentFromDB = async (subjectId: string) => {
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const response = await fetch(`${API_BASE_URL}/api/student/learning-progress?subjectId=${subjectId}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -185,7 +186,7 @@ export default function SubjectContent() {
 
     // Save to database
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const response = await fetch(`${API_BASE_URL}/api/student/content-progress`, {
         method: 'POST',
         headers: {
@@ -218,19 +219,19 @@ export default function SubjectContent() {
       const [subjectResponse, videosResponse, contentsResponse] = await Promise.all([
         fetch(`${API_BASE_URL}/api/subjects/${subjectId}`, {
           headers: {
-            'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+            'Authorization': `Bearer ${getAuthToken()}`,
             'Content-Type': 'application/json',
           }
         }),
         fetch(`${API_BASE_URL}/api/student/videos?subject=${encodeURIComponent(subjectId)}`, {
           headers: {
-            'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+            'Authorization': `Bearer ${getAuthToken()}`,
             'Content-Type': 'application/json',
           }
         }),
         fetch(`${API_BASE_URL}/api/student/asli-prep-content?subject=${encodeURIComponent(subjectId)}`, {
           headers: {
-            'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+            'Authorization': `Bearer ${getAuthToken()}`,
             'Content-Type': 'application/json',
           }
         })

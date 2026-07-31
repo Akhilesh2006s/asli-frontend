@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft, Sparkles, Download, Copy, Check, FileText, FileSpreadsheet, Loader2, RotateCcw, Share2 } from 'lucide-react';
 import { API_BASE_URL } from '@/lib/api-config';
+import { getAuthToken } from '@/lib/auth-utils';
 import {
   isAiToolApiFailureInline,
   isAiToolClientValidationError,
@@ -394,11 +395,10 @@ export default function TeacherToolPage() {
   useEffect(() => {
     const fetchTeacherBoard = async () => {
       try {
-        const token = localStorage.getItem('authToken');
-        if (!token) return;
+        const token = getAuthToken();
         const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
           headers: {
-            Authorization: `Bearer ${token}`,
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
             'Content-Type': 'application/json',
           },
         });
@@ -421,11 +421,10 @@ export default function TeacherToolPage() {
 
     const fetchAssignedSubjects = async () => {
       try {
-        const token = localStorage.getItem('authToken');
-        if (!token) return;
+        const token = getAuthToken();
         const response = await fetch(`${API_BASE_URL}/api/teacher/subjects`, {
           headers: {
-            Authorization: `Bearer ${token}`,
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
             'Content-Type': 'application/json',
           },
         });
@@ -512,10 +511,10 @@ export default function TeacherToolPage() {
       if (toolType === 'report-card-generator') {
         setIsLoadingStudents(true);
         try {
-          const token = localStorage.getItem('authToken');
+          const token = getAuthToken();
           const response = await fetch(`${API_BASE_URL}/api/teacher/students`, {
             headers: {
-              'Authorization': `Bearer ${token}`,
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
               'Content-Type': 'application/json'
             }
           });
@@ -703,7 +702,7 @@ export default function TeacherToolPage() {
       ]);
 
       if (toolsNeedingFiltering.has(toolType)) {
-        const token = localStorage.getItem('authToken');
+        const token = getAuthToken();
         const run = async () => {
           const filtered: string[] = [];
           for (const topic of topics) {
@@ -712,7 +711,7 @@ export default function TeacherToolPage() {
                 `${API_BASE_URL}/api/teacher/ai/available-content?classNumber=${classNumber}&subject=${encodeURIComponent(subjectValue)}&topic=${encodeURIComponent(topic)}`,
                 {
                   headers: {
-                    Authorization: `Bearer ${token}`,
+                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
                     'Content-Type': 'application/json',
                   },
                 },
@@ -869,11 +868,7 @@ export default function TeacherToolPage() {
     setFallbackEmptyMessage('');
     setIsFallbackContent(false);
     try {
-      const token = localStorage.getItem('authToken');
-      if (!token) {
-        showInlineOutputMessage('Please sign in again.');
-        return;
-      }
+      const token = getAuthToken();
 
       const selectedClass = mapGradeLevelForIitBoard(selectedBoard, formParams.gradeLevel);
       const selectedSubject = formParams.subject || formParams.subjects;
@@ -915,7 +910,7 @@ export default function TeacherToolPage() {
       const response = await fetch(`${API_BASE_URL}/api/teacher/ai/generate-content`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
           'Content-Type': 'application/json'
         },
         body: JSON.stringify(requestBody)
@@ -979,12 +974,11 @@ export default function TeacherToolPage() {
           toolType: String(toolType || ''),
           board: String(selectedBoard || formParams.board || ''),
         });
-        const token = localStorage.getItem('authToken');
-        if (!token) throw new Error('Please sign in again.');
+        const token = getAuthToken();
 
         const fallbackRes = await fetch(`${API_BASE_URL}/api/teacher/ai/generated-content?${params.toString()}`, {
           headers: {
-            'Authorization': `Bearer ${token}`,
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
             'Content-Type': 'application/json',
           },
         });

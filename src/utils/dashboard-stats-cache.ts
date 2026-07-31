@@ -1,3 +1,4 @@
+import { getAuthToken, getUserIdFromAuthToken } from '@/lib/auth-utils';
 export type DashboardStatsCache = {
   studyTimeToday: number;
   studyTimeThisWeek: number;
@@ -9,11 +10,13 @@ export type DashboardStatsCache = {
 
 function getCacheKey(): string | null {
   try {
-    const token = localStorage.getItem('authToken');
+    const userId = getUserIdFromAuthToken();
+    if (userId) return `dashboard_stats_${userId}`;
+    const token = getAuthToken();
     if (!token) return null;
     const payload = JSON.parse(atob(token.split('.')[1]));
-    const userId = payload.userId || payload.id || payload._id;
-    return userId ? `dashboard_stats_${userId}` : null;
+    const id = payload.userId || payload.id || payload._id;
+    return id ? `dashboard_stats_${id}` : null;
   } catch {
     return null;
   }

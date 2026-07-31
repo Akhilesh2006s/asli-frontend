@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
+import { getAuthToken } from '@/lib/auth-utils';
 import {
   Dialog,
   DialogContent,
@@ -35,8 +36,7 @@ export function EduOTTLiveSessionDialog({
     if (!open || !session?._id) return;
     if (joinedRef.current === session._id) return;
 
-    const token = localStorage.getItem('authToken');
-    if (!token) return;
+    const token = getAuthToken();
 
     joinedRef.current = session._id;
     fetch(`${API_BASE_URL}/api/streams/${session._id}/join`, {

@@ -2,14 +2,15 @@ import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { API_BASE_URL, apiFetch } from "@/lib/api-config";
+import { getAuthToken } from "@/lib/auth-utils";
+import { isLikelyMongoObjectId } from "@/lib/vidya-subjects";
+import { ChatMessageContent } from "./ChatMessageContent";
 import type {
   AIChatContext,
   UseVidyaChatResult,
   VidyaChatRole,
   Message,
 } from "./types";
-import { isLikelyMongoObjectId } from "@/lib/vidya-subjects";
-import { ChatMessageContent } from "./ChatMessageContent";
 
 const CONTROL_ASSISTANT_QUICK_QUESTIONS = [
   "How many students are there in the application?",
@@ -133,7 +134,7 @@ export function useVidyaChat({
   const { data: sessions, isLoading: sessionsLoading, refetch } = useQuery({
     queryKey: ["/api/users", userId, "chat-sessions"],
     queryFn: async () => {
-      const token = localStorage.getItem("authToken");
+      const token = getAuthToken();
       const response = await fetch(`${API_BASE_URL}/api/users/${userId}/chat-sessions`, {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -150,7 +151,7 @@ export function useVidyaChat({
   const { data: controlHistory, isLoading: controlHistoryLoading } = useQuery({
     queryKey: ["vidya-control-history", userId],
     queryFn: async () => {
-      const token = localStorage.getItem("authToken");
+      const token = getAuthToken();
       const response = await fetch(`${API_BASE_URL}/api/vidya/control/history?limit=50`, {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -230,7 +231,7 @@ export function useVidyaChat({
 
   const sendMessageMutation = useMutation({
     mutationFn: async (data: { message: string; context?: AIChatContext }) => {
-      const token = localStorage.getItem("authToken");
+      const token = getAuthToken();
       const userMessage: Message = {
         role: "user",
         content: data.message,
@@ -401,7 +402,7 @@ export function useVidyaChat({
 
   const analyzeImageMutation = useMutation({
     mutationFn: async (data: { image: string; context?: string }) => {
-      const token = localStorage.getItem("authToken");
+      const token = getAuthToken();
       const response = await fetch(`${API_BASE_URL}/api/ai-chat/analyze-image`, {
         method: "POST",
         headers: {
@@ -485,7 +486,7 @@ export function useVidyaChat({
   const clearChatMutation = useMutation({
     mutationFn: async () => {
       if (!isDatabaseBackedAssistant) return { success: true };
-      const token = localStorage.getItem("authToken");
+      const token = getAuthToken();
       const response = await fetch(`${API_BASE_URL}/api/vidya/control/history`, {
         method: "DELETE",
         headers: {

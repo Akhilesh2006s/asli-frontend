@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useRoute, useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
+import { getAuthToken } from '@/lib/auth-utils';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -67,7 +68,7 @@ export default function TeacherSubjectContent() {
 
   const fetchTeacherClasses = async () => {
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const response = await fetch(`${API_BASE_URL}/api/teacher/classes`, {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -90,7 +91,7 @@ export default function TeacherSubjectContent() {
     try {
       setLoading(true);
       setLoadingContents(true);
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
 
       const subjectResponse = await fetch(`${API_BASE_URL}/api/subjects/${subjectId}`, {
         headers: {

@@ -1,8 +1,9 @@
 import { API_BASE_URL } from '@/lib/api-config';
 import type { ProductBundle } from '@/components/CreateOrder/types';
+import { getAuthToken } from '@/lib/auth-utils';
 
 function authHeaders(): Record<string, string> {
-  const token = localStorage.getItem('authToken');
+  const token = getAuthToken();
   return token
     ? { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
     : { 'Content-Type': 'application/json' };

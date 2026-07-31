@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Trophy, Award, TrendingUp, BarChart3, Medal, Crown } from 'lucide-react';
 import { API_BASE_URL } from '@/lib/api-config';
+import { getAuthToken } from '@/lib/auth-utils';
 
 interface StudentRanking {
   resultId?: string;
@@ -29,7 +30,7 @@ export default function StudentRanking() {
   const fetchStudentRanking = async () => {
     setIsLoading(true);
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       
       // Get all rankings from backend
       const rankingsResponse = await fetch(`${API_BASE_URL}/api/student/rankings`, {

@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiFetch, API_BASE_URL } from '@/lib/api-config';
 import type { TimetableEntry, TimetableFilters } from '@/types/timetable';
+import { getAuthToken } from '@/lib/auth-utils';
 
 function buildQueryString(filters: TimetableFilters): string {
   const params = new URLSearchParams();
@@ -108,7 +109,7 @@ export function useImportTimetableCSV() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ file, mode }: { file: File; mode?: 'import' | 'replace' | 'merge' }) => {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const formData = new FormData();
       formData.append('file', file);
       if (mode) formData.append('mode', mode);
@@ -126,7 +127,7 @@ export function useImportTimetableCSV() {
 export function useValidateTimetableCSV() {
   return useMutation({
     mutationFn: async (file: File) => {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const formData = new FormData();
       formData.append('file', file);
       const res = await fetch(`${API_BASE_URL}/api/timetable/validate/csv`, {
@@ -154,7 +155,7 @@ export function useCopyPreviousWeek() {
 }
 
 export async function downloadTimetableTemplate() {
-  const token = localStorage.getItem('authToken');
+  const token = getAuthToken();
   const res = await fetch(`${API_BASE_URL}/api/timetable/template/csv`, {
     headers: token ? { Authorization: `Bearer ${token}` } : {},
   });
@@ -168,7 +169,7 @@ export async function downloadTimetableTemplate() {
 }
 
 export async function exportTimetableCSV(filters: TimetableFilters = {}) {
-  const token = localStorage.getItem('authToken');
+  const token = getAuthToken();
   const res = await fetch(`${API_BASE_URL}/api/timetable/export/csv${buildQueryString(filters)}`, {
     headers: token ? { Authorization: `Bearer ${token}` } : {},
   });

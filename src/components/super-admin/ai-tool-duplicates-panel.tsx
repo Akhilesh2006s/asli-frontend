@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { getAuthToken } from '@/lib/auth-utils';
 import {
   Select,
   SelectContent,
@@ -78,7 +79,7 @@ type FullRecordView = {
 };
 
 function authHeaders(): HeadersInit {
-  const token = localStorage.getItem("authToken");
+  const token = getAuthToken();
   return {
     "Content-Type": "application/json",
     ...(token ? { Authorization: `Bearer ${token}` } : {}),

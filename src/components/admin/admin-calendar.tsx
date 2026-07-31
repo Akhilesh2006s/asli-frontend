@@ -10,7 +10,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { useConfirm } from '@/hooks/use-confirm';
 import { API_BASE_URL } from '@/lib/api-config';
-import { 
+import { getAuthToken } from '@/lib/auth-utils';
+import {
   ChevronLeft, 
   ChevronRight, 
   Plus, 
@@ -66,7 +67,7 @@ export default function AdminCalendar() {
   const fetchEvents = async () => {
     try {
       setIsLoading(true);
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const [eventsResponse, examsResponse] = await Promise.all([
         fetch(`${API_BASE_URL}/api/admin/events`, {
           headers: {
@@ -253,7 +254,7 @@ export default function AdminCalendar() {
     }
 
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const formData = new FormData();
       formData.append('name', eventForm.name);
       formData.append('date', eventForm.date);
@@ -327,7 +328,7 @@ export default function AdminCalendar() {
     }
 
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const response = await fetch(`${API_BASE_URL}/api/admin/events/${event._id || event.id}`, {
         method: 'DELETE',
         headers: {

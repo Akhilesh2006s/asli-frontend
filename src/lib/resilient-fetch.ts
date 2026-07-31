@@ -58,6 +58,7 @@ export async function resilientFetch(
 
     try {
       const res = await fetch(input, {
+        credentials: "include",
         ...init,
         signal: controller?.signal ?? init.signal,
       });

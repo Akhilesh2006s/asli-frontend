@@ -6,7 +6,8 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
-import { 
+import { getAuthToken } from '@/lib/auth-utils';
+import {
   ArrowLeft, 
   ArrowRight, 
   CheckCircle2,
@@ -61,7 +62,7 @@ export default function IQRankBoostQuiz() {
   const fetchQuestions = async () => {
     try {
       setIsLoading(true);
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
 
       // Fetch questions for this quiz - backend automatically filters by student's class
       const questionsResponse = await fetch(
@@ -168,7 +169,7 @@ export default function IQRankBoostQuiz() {
 
     // Save result to backend
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const subjectId = questions.length > 0 && questions[0].subject 
         ? (typeof questions[0].subject === 'object' ? questions[0].subject._id : questions[0].subject)
         : null;

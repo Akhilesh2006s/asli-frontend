@@ -16,6 +16,7 @@ import { useCurriculumCascade } from "@/hooks/use-curriculum-cascade";
 import { useProductCategories } from "@/hooks/use-product-categories";
 import { formatIitCategoryLabel, normalizeIitCategory } from "@/lib/products";
 import { cn } from "@/lib/utils";
+import { getAuthToken } from '@/lib/auth-utils';
 import {
   BOOK_BASED_STUDENT_TOOLS,
   BOOK_BASED_TEACHER_TOOLS,
@@ -281,7 +282,7 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
   }, [bookGroupFilter, bookGroups]);
 
   const authHeaders = (): Record<string, string> => {
-    const token = localStorage.getItem("authToken") || localStorage.getItem("superAdminToken") || localStorage.getItem("token");
+    const token = getAuthToken();
     return token ? { Authorization: `Bearer ${token}` } : {};
   };
 

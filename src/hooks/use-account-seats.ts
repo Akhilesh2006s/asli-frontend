@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { API_BASE_URL } from "@/lib/api-config";
+import { getAuthToken } from '@/lib/auth-utils';
 
 export type AccountSeatUsage = {
   usedStudents: number;
@@ -41,7 +42,7 @@ export function useAccountSeats() {
 
   const refresh = useCallback(async () => {
     try {
-      const token = localStorage.getItem("authToken");
+      const token = getAuthToken();
       if (!token) {
         setSeats(emptySeats);
         return;

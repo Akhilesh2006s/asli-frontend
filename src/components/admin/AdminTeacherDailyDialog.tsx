@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { getAuthToken } from '@/lib/auth-utils';
 import {
   Dialog,
   DialogContent,
@@ -127,7 +128,7 @@ export function AdminTeacherDailyDialog({
     if (!teacherId) return;
     setLoading(true);
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const res = await fetch(
         `${API_BASE_URL}/api/admin/teacher-work-diary?teacherId=${encodeURIComponent(teacherId)}&limit=40`,
         { headers: { Authorization: `Bearer ${token}` } }

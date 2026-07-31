@@ -11,7 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { API_BASE_URL } from '@/lib/api-config';
-import { 
+import { getAuthToken } from '@/lib/auth-utils';
+import {
   BookOpen, 
   Plus, 
   Search, 
@@ -176,7 +177,7 @@ const TeacherDashboard = () => {
         return;
       }
       
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -218,7 +219,7 @@ const TeacherDashboard = () => {
 
   const fetchQuizzes = async () => {
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const response = await fetch(`${API_BASE_URL}/api/teacher/quizzes`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -241,7 +242,7 @@ const TeacherDashboard = () => {
 
   const fetchVideos = async () => {
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const response = await fetch(`${API_BASE_URL}/api/teacher/videos`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -264,7 +265,7 @@ const TeacherDashboard = () => {
 
   const fetchAssessments = async () => {
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const response = await fetch(`${API_BASE_URL}/api/teacher/assessments`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -287,7 +288,7 @@ const TeacherDashboard = () => {
 
   const handleLogout = async () => {
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       await fetch(`${API_BASE_URL}/api/auth/logout`, {
         method: 'POST',
         headers: {
@@ -306,7 +307,7 @@ const TeacherDashboard = () => {
   const handleCreateQuiz = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const response = await fetch(`${API_BASE_URL}/api/teacher/quizzes`, {
         method: 'POST',
         headers: {
@@ -343,7 +344,7 @@ const TeacherDashboard = () => {
   const handleCreateVideo = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const response = await fetch(`${API_BASE_URL}/api/teacher/videos`, {
         method: 'POST',
         headers: {
@@ -411,7 +412,7 @@ const TeacherDashboard = () => {
 
   const handleCreateAssessment = async () => {
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const response = await fetch(`${API_BASE_URL}/api/teacher/assessments`, {
         method: 'POST',
         headers: {

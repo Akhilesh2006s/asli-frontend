@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Loader2, RefreshCw } from "lucide-react";
 import { API_BASE_URL } from "@/lib/api-config";
 import { useToast } from "@/hooks/use-toast";
+import { getAuthToken } from '@/lib/auth-utils';
 
 type DuplicateAuditData = {
   totalRecords: number;
@@ -54,9 +55,7 @@ type AnalyticsData = {
 
 function authHeaders(): Record<string, string> {
   const token =
-    localStorage.getItem("authToken") ||
-    localStorage.getItem("superAdminToken") ||
-    localStorage.getItem("token");
+    getAuthToken();
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 

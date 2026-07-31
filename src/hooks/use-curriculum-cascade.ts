@@ -70,7 +70,7 @@ async function fetchCurriculum(path: string, auth: string | null) {
   }
   const res = await resilientFetch(`${API_BASE_URL}${path}`, {
     headers: {
-      Authorization: auth ? `Bearer ${auth}` : '',
+      ...(auth ? { Authorization: `Bearer ${auth}` } : {}),
       'Content-Type': 'application/json',
     },
     timeoutMs: 45_000,
@@ -112,7 +112,7 @@ async function fetchManagedTopicTaxonomy(
     }
     const res = await resilientFetch(`${API_BASE_URL}${path}`, {
       headers: {
-        Authorization: auth ? `Bearer ${auth}` : '',
+        ...(auth ? { Authorization: `Bearer ${auth}` } : {}),
         'Content-Type': 'application/json',
       },
       timeoutMs: 45_000,

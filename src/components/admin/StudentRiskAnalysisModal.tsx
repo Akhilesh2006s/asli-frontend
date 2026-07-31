@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { getAuthToken } from '@/lib/auth-utils';
 import {
   Dialog,
   DialogContent,
@@ -101,7 +102,7 @@ export function StudentRiskAnalysisModal({
     setNoExamData(false);
 
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const endpoint = isSuperAdmin 
         ? `${API_BASE_URL}/api/super-admin/ai/student-risk-analysis`
         : `${API_BASE_URL}/api/admin/ai/student-risk-analysis`;
@@ -490,7 +491,7 @@ export function StudentRiskAnalysisModal({
                   if (!analysisData) return;
                   setIsDownloading(true);
                   try {
-                    const token = localStorage.getItem('authToken');
+                    const token = getAuthToken();
                     const endpoint = isSuperAdmin 
                       ? `${API_BASE_URL}/api/super-admin/ai/student-risk-analysis/download-send`
                       : `${API_BASE_URL}/api/admin/ai/student-risk-analysis/download-send`;

@@ -12,6 +12,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { UsersIcon, UserPlusIcon, EditIcon, TrashIcon, CrownIcon, GraduationCapIcon, BookOpenIcon, SearchIcon, Loader2, XIcon, EyeIcon, Eye, EyeOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { API_BASE_URL } from "@/lib/api-config";
+import { getAuthToken } from "@/lib/auth-utils";
 import { cn } from "@/lib/utils";
 import { formatIitCategoryLabel, normalizeIitCategories } from "@/lib/products";
 import { useProductCategories } from "@/hooks/use-product-categories";
@@ -488,15 +489,13 @@ export default function AdminManagement() {
   };
 
   const uploadSchoolLogo = async (file: File): Promise<string | null> => {
-    const token = localStorage.getItem('authToken');
+    const token = getAuthToken();
     const formData = new FormData();
     formData.append('logo', file);
 
     const response = await fetch(`${API_BASE_URL}/api/super-admin/admins/upload-logo`, {
       method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      },
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
       body: formData
     });
 
@@ -512,10 +511,10 @@ export default function AdminManagement() {
   useEffect(() => {
     const fetchAdmins = async () => {
       try {
-        const token = localStorage.getItem('authToken');
+        const token = getAuthToken();
         const response = await fetch(`${API_BASE_URL}/api/super-admin/admins`, {
           headers: {
-            'Authorization': `Bearer ${token}`,
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
             'Content-Type': 'application/json'
           }
         });
@@ -608,7 +607,7 @@ export default function AdminManagement() {
 
     setIsAddingAdmin(true);
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       
       const payload = {
         name: newAdmin.name,
@@ -739,7 +738,7 @@ export default function AdminManagement() {
 
     setIsSavingPassword(true);
     try {
-      const token = localStorage.getItem("authToken");
+      const token = getAuthToken();
       const response = await fetch(
         `${API_BASE_URL}/api/super-admin/admins/${editingAdmin.id}`,
         {
@@ -865,7 +864,7 @@ export default function AdminManagement() {
 
     setIsUpdatingAdmin(true);
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const response = await fetch(`${API_BASE_URL}/api/super-admin/admins/${editingAdmin.id}`, {
         method: 'PUT',
         headers: {
@@ -986,7 +985,7 @@ export default function AdminManagement() {
 
     setIsDeletingAdmin(true);
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const response = await fetch(`${API_BASE_URL}/api/super-admin/admins/${deleteId}`, {
         method: 'DELETE',
         headers: {

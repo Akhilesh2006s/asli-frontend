@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { getAuthToken } from '@/lib/auth-utils';
 import {
   Select,
   SelectContent,
@@ -86,7 +87,7 @@ export function TeacherWorkDiaryPanel({ className }: { className?: string }) {
   const loadClasses = useCallback(async () => {
     setLoadingClasses(true);
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const res = await fetch(`${API_BASE_URL}/api/teacher/classes`, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -119,7 +120,7 @@ export function TeacherWorkDiaryPanel({ className }: { className?: string }) {
     setLoading(true);
     setError(null);
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const res = await fetch(`${API_BASE_URL}/api/teacher/work-diary?limit=40`, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -147,7 +148,7 @@ export function TeacherWorkDiaryPanel({ className }: { className?: string }) {
     setSaving(true);
     setError(null);
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const res = await fetch(`${API_BASE_URL}/api/teacher/work-diary`, {
         method: 'POST',
         headers: {
@@ -179,7 +180,7 @@ export function TeacherWorkDiaryPanel({ className }: { className?: string }) {
   const handleDelete = async (id: string) => {
     if (!window.confirm('Remove this diary entry?')) return;
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       await fetch(`${API_BASE_URL}/api/teacher/work-diary/${id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },

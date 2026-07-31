@@ -13,7 +13,8 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { API_BASE_URL } from '@/lib/api-config';
 import { useToast } from '@/hooks/use-toast';
 import { useConfirm } from '@/hooks/use-confirm';
-import { 
+import { getAuthToken } from '@/lib/auth-utils';
+import {
   Plus, 
   Edit, 
   Trash2, 
@@ -112,7 +113,7 @@ const ExamManagement = () => {
   const checkAuthAndFetchExams = async () => {
     try {
       // Check if user is authenticated
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const authResponse = await fetch(`${API_BASE_URL}/api/auth/me`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -143,7 +144,7 @@ const ExamManagement = () => {
 
   const fetchExams = async () => {
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const response = await fetch(`${API_BASE_URL}/api/admin/exams`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -167,7 +168,7 @@ const ExamManagement = () => {
   const fetchQuestions = async (examId: string) => {
     try {
       console.log('Fetching questions for exam ID:', examId);
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const response = await fetch(`${API_BASE_URL}/api/admin/exams/${examId}/questions`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -196,7 +197,7 @@ const ExamManagement = () => {
 
   const handleCreateExam = async () => {
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const response = await fetch(`${API_BASE_URL}/api/admin/exams`, {
         method: 'POST',
         headers: { 
@@ -220,7 +221,7 @@ const ExamManagement = () => {
     if (!editingExam) return;
 
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const response = await fetch(`${API_BASE_URL}/api/admin/exams/${editingExam._id}`, {
         method: 'PUT',
         headers: { 
@@ -251,7 +252,7 @@ const ExamManagement = () => {
     if (!ok) return;
 
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const response = await fetch(`${API_BASE_URL}/api/admin/exams/${examId}`, {
         method: 'DELETE',
         headers: {
@@ -298,7 +299,7 @@ const ExamManagement = () => {
       console.log('Creating question for exam:', selectedExam._id);
       console.log('Question data:', questionData);
       
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const response = await fetch(`${API_BASE_URL}/api/admin/exams/${selectedExam._id}/questions`, {
         method: 'POST',
         headers: { 
@@ -343,7 +344,7 @@ const ExamManagement = () => {
     }
 
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const response = await fetch(`${API_BASE_URL}/api/admin/questions/${editingQuestion._id}`, {
         method: 'PUT',
         headers: { 
@@ -374,7 +375,7 @@ const ExamManagement = () => {
     if (!ok) return;
 
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const response = await fetch(`${API_BASE_URL}/api/admin/questions/${questionId}`, {
         method: 'DELETE',
         headers: {
@@ -395,7 +396,7 @@ const ExamManagement = () => {
     formData.append('image', file);
 
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const response = await fetch(`${API_BASE_URL}/api/admin/upload-question-image`, {
         method: 'POST',
         headers: {

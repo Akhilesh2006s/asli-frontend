@@ -3,6 +3,7 @@ import * as pdfjs from 'pdfjs-dist';
 import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 import { ExternalLink, Loader2, Maximize2, Minimize2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { getAuthToken } from '@/lib/auth-utils';
 import {
   getEmbeddedPdfIframeSrc,
   getPdfContentPreviewProxyUrl,
@@ -102,9 +103,7 @@ async function fetchPdfBytes(fileUrl: string, title?: string): Promise<Uint8Arra
   const candidates = buildPdfFetchCandidates(fileUrl, title);
   const token =
     typeof window !== 'undefined'
-      ? localStorage.getItem('authToken') ||
-        localStorage.getItem('superAdminToken') ||
-        localStorage.getItem('token') ||
+      ? getAuthToken() ||
         ''
       : '';
 
@@ -145,9 +144,7 @@ type PdfDocumentInit = {
 function buildPdfDocumentInit(source: PdfSource): PdfDocumentInit {
   const token =
     typeof window !== 'undefined'
-      ? localStorage.getItem('authToken') ||
-        localStorage.getItem('superAdminToken') ||
-        localStorage.getItem('token') ||
+      ? getAuthToken() ||
         ''
       : '';
   const base: PdfDocumentInit = {

@@ -13,7 +13,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { API_BASE_URL, apiFetch } from '@/lib/api-config';
 import { useToast } from '@/hooks/use-toast';
 import { useConfirm } from '@/hooks/use-confirm';
-import { 
+import { getAuthToken } from '@/lib/auth-utils';
+import {
   GraduationCap, 
   Users, 
   BookOpen, 
@@ -258,7 +259,7 @@ const ClassDashboard = () => {
 
   const fetchSubjects = async () => {
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const response = await fetch(`${API_BASE_URL}/api/admin/subjects`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -302,7 +303,7 @@ const ClassDashboard = () => {
 
   const fetchStudents = async () => {
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const response = await fetch(`${API_BASE_URL}/api/admin/users`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -336,7 +337,7 @@ const ClassDashboard = () => {
     setStudentAnalysis(null); // Reset previous analysis
     
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const studentId = student.id;
       
       if (!studentId) {
@@ -383,7 +384,7 @@ const ClassDashboard = () => {
 
   const fetchClasses = async () => {
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const response = await fetch(`${API_BASE_URL}/api/admin/classes`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -481,7 +482,7 @@ const ClassDashboard = () => {
     }
     
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const response = await fetch(`${API_BASE_URL}/api/admin/classes`, {
         method: 'POST',
         headers: { 
@@ -526,7 +527,7 @@ const ClassDashboard = () => {
   const handleDeleteClass = async (classId: string) => {
     setIsDeletingClass(true);
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const response = await fetch(`${API_BASE_URL}/api/admin/classes/${classId}`, {
         method: 'DELETE',
         headers: {
@@ -567,7 +568,7 @@ const ClassDashboard = () => {
   const handleDeleteAllClasses = async () => {
     setIsDeletingAll(true);
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const response = await fetch(`${API_BASE_URL}/api/admin/classes/delete-all`, {
         method: 'DELETE',
         headers: {
@@ -657,7 +658,7 @@ const ClassDashboard = () => {
         section: c.section
       })));
       
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const response = await fetch(`${API_BASE_URL}/api/admin/classes/promote`, {
         method: 'POST',
         headers: {

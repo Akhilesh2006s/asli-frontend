@@ -27,7 +27,7 @@ import { useLocation, useSearch } from "wouter";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { API_BASE_URL } from "@/lib/api-config";
 import { collectVidyaSubjectLabels } from "@/lib/vidya-subjects";
-import { getStudentDisplayName } from "@/lib/auth-utils";
+import { getStudentDisplayName, getAuthToken } from '@/lib/auth-utils';
 import { isAiToolVisibleForSubjects } from "@/lib/ai-tool-subject-rules";
 import { isVidyaEnabledForUser } from "@/lib/vidya-access";
 import { vidyaPastelTone } from "@/lib/vidya-pastel-tones";
@@ -136,13 +136,7 @@ export default function AITutor() {
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const token = localStorage.getItem('authToken');
-        if (!token) {
-          console.log('No auth token found');
-          setUser(null);
-          setIsLoadingUser(false);
-          return;
-        }
+        const token = getAuthToken();
 
         const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
           headers: {
@@ -192,8 +186,7 @@ export default function AITutor() {
   useEffect(() => {
     const fetchSubjects = async () => {
       try {
-        const token = localStorage.getItem('authToken');
-        if (!token) return;
+        const token = getAuthToken();
 
         const response = await fetch(`${API_BASE_URL}/api/student/subjects`, {
           headers: {
@@ -222,8 +215,7 @@ export default function AITutor() {
   useEffect(() => {
     const fetchSubjectProgress = async () => {
       try {
-        const token = localStorage.getItem('authToken');
-        if (!token) return;
+        const token = getAuthToken();
 
         const [resultsRes] = await Promise.all([
           fetch(`${API_BASE_URL}/api/student/exam-results`, {
@@ -295,7 +287,7 @@ export default function AITutor() {
   const { data: chatSessions = [], isLoading: sessionsLoading } = useQuery<any[]>({
     queryKey: ["/api/users", userId, "chat-sessions"],
     queryFn: async () => {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       if (!token) return [];
       
       const response = await fetch(`${API_BASE_URL}/api/users/${userId}/chat-sessions`, {

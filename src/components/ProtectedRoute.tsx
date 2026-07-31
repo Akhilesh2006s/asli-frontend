@@ -1,7 +1,14 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Redirect } from "wouter";
 import { API_BASE_URL } from "@/lib/api-config";
-import { getAuthToken, getUser, clearAuthData } from "@/lib/auth-utils";
+import {
+  getAuthToken,
+  getUser,
+  clearAuthData,
+  isAuthenticated,
+  setUser,
+  setAuthToken,
+} from "@/lib/auth-utils";
 
 type Role = "student" | "teacher" | "admin" | "super-admin";
 
@@ -14,9 +21,7 @@ type ProtectedRouteProps = {
 };
 
 /**
- * Client route guard: requires a token and optionally a role.
- * Verifies identity via /api/auth/me before rendering protected UI (except when
- * cached user already matches and we only need a soft check for students).
+ * Client route guard: verifies identity via /api/auth/me (cookie or Bearer).
  */
 export function ProtectedRoute({
   children,
@@ -29,18 +34,15 @@ export function ProtectedRoute({
     let cancelled = false;
 
     const run = async () => {
-      const token = getAuthToken();
-      if (!token) {
-        if (!cancelled) setState("deny");
-        return;
-      }
-
       try {
+        const token = getAuthToken();
+        const headers: Record<string, string> = {
+          "Content-Type": "application/json",
+        };
+        if (token) headers.Authorization = `Bearer ${token}`;
+
         const res = await fetch(`${API_BASE_URL}/api/auth/me`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
+          headers,
           credentials: "include",
         });
         if (!res.ok) {
@@ -50,6 +52,8 @@ export function ProtectedRoute({
         }
         const data = await res.json();
         const user = data?.user || getUser();
+        if (user) setUser(user);
+        if (data?.token) setAuthToken(data.token);
         const role = String(user?.role || "").toLowerCase() as Role;
 
         if (roles && roles.length > 0 && !roles.includes(role)) {
@@ -77,9 +81,7 @@ export function ProtectedRoute({
   }
 
   if (state === "deny") {
-    const token = getAuthToken();
-    if (!token) return <Redirect to={loginPath} replace />;
-    // Authenticated but wrong role — send to a safe home
+    if (!isAuthenticated() && !getAuthToken()) return <Redirect to={loginPath} replace />;
     const user = getUser();
     const role = String(user?.role || "").toLowerCase();
     if (role === "super-admin") return <Redirect to="/super-admin/dashboard" replace />;

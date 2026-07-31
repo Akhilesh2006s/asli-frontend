@@ -15,6 +15,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { API_BASE_URL } from '@/lib/api-config';
+import { getAuthToken } from '@/lib/auth-utils';
 import {
   isAiToolApiFailureInline,
   isAiToolClientValidationError,
@@ -782,15 +783,11 @@ export default function StudentToolPage() {
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const token = localStorage.getItem('authToken');
-        if (!token) {
-          setIsLoadingUser(false);
-          return;
-        }
+        const token = getAuthToken();
 
         const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
           headers: {
-            'Authorization': `Bearer ${token}`,
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
             'Content-Type': 'application/json'
           }
         });
@@ -1013,11 +1010,7 @@ export default function StudentToolPage() {
     setResponseMeta(null);
     setFallbackEmptyMessage('');
     try {
-      const token = localStorage.getItem('authToken');
-      if (!token) {
-        showInlineOutputMessage('Please sign in again.');
-        return;
-      }
+      const token = getAuthToken();
 
       const teacherTools = [
         'worksheet-mcq-generator',
@@ -1082,7 +1075,7 @@ export default function StudentToolPage() {
         const response = await fetch(`${API_BASE_URL}/api/teacher/ai/generate-content`, {
           method: 'POST',
           headers: {
-            Authorization: `Bearer ${token}`,
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
             'Content-Type': 'application/json',
           },
           body: JSON.stringify(requestBody),
@@ -1151,7 +1144,7 @@ export default function StudentToolPage() {
         const response = await fetch(`${API_BASE_URL}/api/student/ai/tool`, {
           method: 'POST',
           headers: {
-            Authorization: `Bearer ${token}`,
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
             'Content-Type': 'application/json',
           },
           body: JSON.stringify(requestBody),
@@ -1224,12 +1217,12 @@ export default function StudentToolPage() {
             toolType: String(apiToolType || ''),
             board: String(selectedBoard || formParams.board || ''),
           });
-          const token = localStorage.getItem('authToken');
+          const token = getAuthToken();
           const fallbackRes = await fetch(
             `${API_BASE_URL}/api/teacher/ai/generated-content?${params.toString()}`,
             {
               headers: {
-                Authorization: `Bearer ${token}`,
+                ...(token ? { Authorization: `Bearer ${token}` } : {}),
                 'Content-Type': 'application/json',
               },
             },

@@ -1,4 +1,5 @@
 import { viewerPayloadFromRecord } from '@/lib/resolve-ai-structured-content';
+import { sanitizeAiDisplayText } from '@/lib/sanitize-ai-display-text';
 
 export type ConceptBreakdownTerm = { term: string; definition: string };
 
@@ -13,8 +14,6 @@ export type ConceptBreakdownContent = {
   higherOrderThinkingPrompt: string;
   quickRevisionSummary: string;
 };
-
-import { sanitizeAiDisplayText } from '@/lib/sanitize-ai-display-text';
 
 function cleanText(value: unknown): string {
   return sanitizeAiDisplayText(value);

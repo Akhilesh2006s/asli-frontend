@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { getAuthToken } from '@/lib/auth-utils';
 import {
   Dialog,
   DialogContent,
@@ -22,9 +23,7 @@ import { cn } from '@/lib/utils';
 
 function authHeaders(): HeadersInit {
   const token =
-    localStorage.getItem('authToken') ||
-    localStorage.getItem('superAdminToken') ||
-    localStorage.getItem('token');
+    getAuthToken();
   return token
     ? { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
     : { 'Content-Type': 'application/json' };

@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Plus, BookOpen, Trash2, Edit, AlertCircle } from 'lucide-react';
 import { API_BASE_URL } from '@/lib/api-config';
 import { useToast } from '@/hooks/use-toast';
+import { getAuthToken } from '@/lib/auth-utils';
 
 interface Subject {
   _id: string;
@@ -53,7 +54,7 @@ export default function SubjectManagement() {
   const fetchSubjects = async () => {
     setIsLoading(true);
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const response = await fetch(`${API_BASE_URL}/api/super-admin/boards/${selectedBoard}/subjects`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -92,7 +93,7 @@ export default function SubjectManagement() {
     }
 
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       
       // Build request body, only including fields with values
       // Use formData.board to ensure we use the board selected in the form
@@ -234,7 +235,7 @@ export default function SubjectManagement() {
 
     setIsDeleting(subjectId);
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const response = await fetch(`${API_BASE_URL}/api/super-admin/subjects/${subjectId}`, {
         method: 'DELETE',
         headers: {

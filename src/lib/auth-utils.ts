@@ -1,24 +1,63 @@
 /**
- * Authentication Utilities
- * Centralized functions for managing authentication state
- *
- * Canonical token key: `authToken`. Legacy `superAdminToken` / `token` are
- * migrated into authToken on read and cleared on logout (P2.28).
+ * Authentication Utilities — cookie-first web sessions.
+ * Access + refresh JWTs are NOT stored in localStorage (XSS).
+ * Backend httpOnly cookies (aslilearn_token / aslilearn_refresh) are authoritative.
+ * Mobile continues to use SecureStore + Bearer independently.
  */
 
 import { clearClientCachesOnLogout } from './client-cache-reset';
 
 const AUTH_TOKEN_KEY = 'authToken';
+const REFRESH_TOKEN_KEY = 'refreshToken';
 const LEGACY_TOKEN_KEYS = ['superAdminToken', 'token'] as const;
+const SESSION_FLAG_KEY = 'aslilearn_session';
+
+/** In-memory access token for same-tab iframe ?token= fallback only (not persisted). */
+let memoryAccessToken: string | null = null;
+
+function safeSessionGet(key: string): string | null {
+  try {
+    return sessionStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+function safeSessionSet(key: string, value: string): void {
+  try {
+    sessionStorage.setItem(key, value);
+  } catch {
+    /* ignore */
+  }
+}
+
+function safeSessionRemove(key: string): void {
+  try {
+    sessionStorage.removeItem(key);
+  } catch {
+    /* ignore */
+  }
+}
+
+/** Strip any legacy JWTs from durable storage. */
+function scrubPersistedTokens(): void {
+  try {
+    localStorage.removeItem(AUTH_TOKEN_KEY);
+    localStorage.removeItem(REFRESH_TOKEN_KEY);
+    for (const k of LEGACY_TOKEN_KEYS) localStorage.removeItem(k);
+  } catch {
+    /* ignore */
+  }
+}
 
 /**
- * Clears all authentication-related data from localStorage
- * This should be called on logout to ensure complete cleanup
+ * Clears all authentication-related client state (logout).
  */
 export const clearAuthData = () => {
   clearClientCachesOnLogout();
-  localStorage.removeItem(AUTH_TOKEN_KEY);
-  for (const k of LEGACY_TOKEN_KEYS) localStorage.removeItem(k);
+  memoryAccessToken = null;
+  scrubPersistedTokens();
+  safeSessionRemove(SESSION_FLAG_KEY);
 
   localStorage.removeItem('user');
   localStorage.removeItem('userRole');
@@ -35,30 +74,50 @@ export const clearAuthData = () => {
 };
 
 /**
- * Gets the authentication token from localStorage (migrates legacy keys).
+ * Returns in-memory access token only (never localStorage).
+ * Prefer credentials: 'include' so httpOnly cookies authenticate the API.
  */
 export const getAuthToken = (): string | null => {
-  const primary = localStorage.getItem(AUTH_TOKEN_KEY);
-  if (primary) return primary;
-  for (const k of LEGACY_TOKEN_KEYS) {
-    const legacy = localStorage.getItem(k);
-    if (legacy) {
-      localStorage.setItem(AUTH_TOKEN_KEY, legacy);
-      localStorage.removeItem(k);
-      return legacy;
-    }
-  }
-  return null;
+  scrubPersistedTokens();
+  return memoryAccessToken;
 };
 
 /**
- * Read `userId` / `id` from the JWT payload (no signature verify).
- * Used for React Query keys when `/api/auth/me` has not populated `user._id` yet.
+ * JSON API headers for cookie-first auth.
+ * Omit Authorization when there is no memory JWT — httpOnly cookies still authenticate
+ * when fetch uses credentials: 'include' (see auth-fetch-interceptor).
+ */
+export function authJsonHeaders(extra?: Record<string, string>): HeadersInit {
+  const token = getAuthToken();
+  return {
+    'Content-Type': 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...(extra || {}),
+  };
+}
+
+/**
+ * Authorization-only headers (e.g. FormData uploads — do not set Content-Type).
+ */
+export function authBearerHeaders(extra?: Record<string, string>): HeadersInit {
+  const token = getAuthToken();
+  return {
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...(extra || {}),
+  };
+}
+
+/**
+ * Read `userId` / `id` from the in-memory JWT payload (no signature verify).
  */
 export const getUserIdFromAuthToken = (): string | null => {
   if (typeof window === 'undefined') return null;
   const token = getAuthToken();
-  if (!token) return null;
+  if (!token) {
+    const user = getUser();
+    const id = user?._id || user?.id;
+    return id != null && String(id).trim() !== '' ? String(id) : null;
+  }
   try {
     const body = token.split('.')[1];
     if (!body) return null;
@@ -78,20 +137,59 @@ export const getUserIdFromAuthToken = (): string | null => {
 };
 
 /**
- * Sets the authentication token in localStorage (canonical key only).
- * Backend also sets an httpOnly cookie for XSS-resistant session use.
+ * Establish web session after login. Tokens go to httpOnly cookies (server);
+ * we only keep a non-secret session flag + optional memory access for iframes.
  */
-export const setAuthToken = (token: string): void => {
-  localStorage.setItem(AUTH_TOKEN_KEY, token);
-  for (const k of LEGACY_TOKEN_KEYS) localStorage.removeItem(k);
+export const setAuthToken = (token: string, _refreshToken?: string | null): void => {
+  scrubPersistedTokens();
+  memoryAccessToken = token || null;
+  safeSessionSet(SESSION_FLAG_KEY, '1');
+};
+
+export const getRefreshToken = (): string | null => {
+  // Refresh lives in httpOnly cookie only for web.
+  return null;
 };
 
 /**
- * Checks if user is authenticated (has a token)
+ * Exchange refresh cookie for a new access token.
+ */
+export const refreshAccessToken = async (apiBaseUrl: string): Promise<string | null> => {
+  try {
+    const res = await fetch(`${apiBaseUrl}/api/auth/refresh`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({}),
+    });
+    if (!res.ok) {
+      clearAuthData();
+      return null;
+    }
+    const data = await res.json();
+    const next = data.accessToken || data.token;
+    if (next) setAuthToken(next, null);
+    else safeSessionSet(SESSION_FLAG_KEY, '1');
+    return next || null;
+  } catch {
+    return null;
+  }
+};
+
+/**
+ * Checks if user appears authenticated (session flag, cached user, or memory token).
+ * Cookie presence cannot be read from JS — ProtectedRoute verifies via /api/auth/me.
  */
 export const isAuthenticated = (): boolean => {
-  return !!getAuthToken();
+  return (
+    safeSessionGet(SESSION_FLAG_KEY) === '1' ||
+    !!memoryAccessToken ||
+    !!getUser()
+  );
 };
+
+/** Alias for cookie-first session checks (memory JWT may be null). */
+export const hasAuthSession = (): boolean => isAuthenticated();
 
 /**
  * Gets user data from localStorage
@@ -107,10 +205,11 @@ export const getUser = (): any | null => {
 };
 
 /**
- * Sets user data in localStorage
+ * Sets user data from localStorage
  */
 export const setUser = (user: any): void => {
   localStorage.setItem('user', JSON.stringify(user));
+  safeSessionSet(SESSION_FLAG_KEY, '1');
 };
 
 type StudentUserLike = { fullName?: string; name?: string; email?: string } | null | undefined;

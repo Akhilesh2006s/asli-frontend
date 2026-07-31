@@ -60,10 +60,6 @@ export function TeacherSettingsPanel() {
 
   const loadProfile = useCallback(async () => {
     const token = getAuthToken();
-    if (!token) {
-      setLoading(false);
-      return;
-    }
     setLoading(true);
     try {
       const res = await fetch(`${API_BASE_URL}/api/teacher/me`, {
@@ -114,7 +110,6 @@ export function TeacherSettingsPanel() {
   const handleSaveDetails = async (e: React.FormEvent) => {
     e.preventDefault();
     const token = getAuthToken();
-    if (!token) return;
     setSaving(true);
     try {
       const res = await fetch(`${API_BASE_URL}/api/teacher/me`, {
@@ -183,7 +178,6 @@ export function TeacherSettingsPanel() {
       return;
     }
     const token = getAuthToken();
-    if (!token) return;
     setChangingPassword(true);
     try {
       const res = await fetch(`${API_BASE_URL}/api/teacher/change-password`, {

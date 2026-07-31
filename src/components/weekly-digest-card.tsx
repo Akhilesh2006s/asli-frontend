@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { API_BASE_URL } from "@/lib/api-config";
 import { FileText, Loader2, RefreshCw } from "lucide-react";
+import { getAuthToken } from '@/lib/auth-utils';
 
 type Digest = {
   title?: string;
@@ -25,7 +26,7 @@ export function WeeklyDigestCard({ apiBase }: { apiBase: "/api/teacher" | "/api/
     try {
       const q = build ? "?build=1" : "";
       const res = await fetch(`${API_BASE_URL}${apiBase}/weekly-digest${q}`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem("authToken") || ""}` },
+        headers: { Authorization: `Bearer ${getAuthToken() || ""}` },
       });
       const json = await res.json();
       if (res.ok) setDigest(json.data || null);

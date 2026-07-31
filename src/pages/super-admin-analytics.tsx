@@ -2,7 +2,8 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { 
+import { getAuthToken } from '@/lib/auth-utils';
+import {
   BarChart3Icon, 
   UsersIcon, 
   TrendingUpIcon, 
@@ -50,7 +51,7 @@ export default function SuperAdminAnalyticsDashboard({ onSelectSchool }: SuperAd
 
   const fetchAnalytics = async () => {
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const [adminsResponse, statsResponse, analyticsResponse] = await Promise.all([
         fetch(`${API_BASE_URL}/api/super-admin/admins`, {
           headers: {

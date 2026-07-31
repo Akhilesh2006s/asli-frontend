@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { getAuthToken } from '@/lib/auth-utils';
 import {
   Table,
   TableBody,
@@ -44,9 +45,7 @@ type Summary = {
 
 function authHeaders(): HeadersInit {
   const token =
-    localStorage.getItem('authToken') ||
-    localStorage.getItem('superAdminToken') ||
-    localStorage.getItem('token');
+    getAuthToken();
   return token
     ? { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
     : { 'Content-Type': 'application/json' };

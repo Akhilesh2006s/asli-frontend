@@ -1,3 +1,5 @@
+import { getAuthToken } from "@/lib/auth-utils";
+
 // API config
 // - Development: use local/non-SSL backend if needed
 // - Production: MUST use HTTPS API endpoint (no mixed content)
@@ -81,12 +83,7 @@ export function normalizeContentFileUrl(fileUrl: string): string {
 
 function readAuthToken(): string {
   if (typeof window === "undefined") return "";
-  return (
-    localStorage.getItem("authToken") ||
-    localStorage.getItem("superAdminToken") ||
-    localStorage.getItem("token") ||
-    ""
-  );
+  return getAuthToken() || "";
 }
 
 /**
@@ -206,14 +203,7 @@ export const apiFetch = async (endpoint: string, options: RequestInit = {}) => {
     ? endpoint
     : `${API_BASE_URL}${endpoint.startsWith("/") ? endpoint : "/" + endpoint}`;
 
-  // Prefer canonical authToken; fall back to legacy keys once during migration (P2.28).
-  const token =
-    typeof window !== "undefined"
-      ? localStorage.getItem("authToken") ||
-        localStorage.getItem("superAdminToken") ||
-        localStorage.getItem("token") ||
-        ""
-      : "";
+  const token = typeof window !== "undefined" ? getAuthToken() || "" : "";
 
   const headers = {
     "Content-Type": "application/json",

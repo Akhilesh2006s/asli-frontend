@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { getAuthToken } from '@/lib/auth-utils';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -47,13 +48,6 @@ import {
 } from "@/components/mock-test-viewer";
 import { GeneratorRecordViewer } from "@/components/super-admin/generator-record-viewer";
 import { displaySubtopicLabel, isSingleSubtopicLabel } from "@/lib/curriculum-subtopic-display";
-
-function formatSubtopicGroupLabel(name: string) {
-  const raw = String(name || "").trim();
-  if (!raw) return "Whole chapter";
-  if (isSingleSubtopicLabel(raw)) return displaySubtopicLabel(raw) || raw;
-  return "Whole chapter";
-}
 import {
   SmartStudyGuideViewer,
   studyGuideViewerPayloadFromRecord,
@@ -128,6 +122,13 @@ import {
   GENERATION_QUALITY_TIERS,
   type GenerationQualityTierId,
 } from "@/lib/generation-quality-tier";
+
+function formatSubtopicGroupLabel(name: string) {
+  const raw = String(name || "").trim();
+  if (!raw) return "Whole chapter";
+  if (isSingleSubtopicLabel(raw)) return displaySubtopicLabel(raw) || raw;
+  return "Whole chapter";
+}
 
 const MAX_GENERATION_BATCH_SIZE = GENERATION_RECORD_COUNT_MAX;
 /** Parallel workers — each picks the latest avoid-list before calling Gemini. */
@@ -407,7 +408,7 @@ export default function SuperAdminAiGenerator() {
 
   const currentTool = useMemo(() => TOOLS.find((t) => t.id === selectedTool), [selectedTool]);
   const authHeaders = (): Record<string, string> => {
-    const token = localStorage.getItem("authToken") || localStorage.getItem("superAdminToken") || localStorage.getItem("token");
+    const token = getAuthToken();
     return token ? { Authorization: `Bearer ${token}` } : {};
   };
 

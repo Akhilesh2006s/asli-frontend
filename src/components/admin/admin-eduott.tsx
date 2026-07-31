@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsTrigger } from '@/components/ui/tabs';
+import { getAuthToken } from '@/lib/auth-utils';
 import {
   Select,
   SelectContent,
@@ -110,11 +111,7 @@ export default function AdminEduOTT() {
     const fetchVideos = async () => {
       try {
         setLoading(true);
-        const token = localStorage.getItem('authToken');
-        if (!token) {
-          setLoading(false);
-          return;
-        }
+        const token = getAuthToken();
 
         const response = await fetch(
           `${API_BASE_URL}/api/admin/asli-prep-content?type=Video&surface=eduott`,
@@ -205,11 +202,7 @@ export default function AdminEduOTT() {
     const fetchLiveSessions = async () => {
       try {
         setLoadingSessions(true);
-        const token = localStorage.getItem('authToken');
-        if (!token) {
-          setLoadingSessions(false);
-          return;
-        }
+        const token = getAuthToken();
 
         const response = await fetch(`${API_BASE_URL}/api/admin/streams`, {
           headers: {

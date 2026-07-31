@@ -3,7 +3,7 @@
  */
 
 import { API_BASE_URL } from '@/lib/api-config';
-import { getAuthToken, getUser, setUser } from '@/lib/auth-utils';
+import { getAuthToken, getUser, setUser, isAuthenticated } from '@/lib/auth-utils';
 
 const AUTH_CACHE_MS = 90_000;
 
@@ -24,12 +24,15 @@ export function invalidateAuthSessionCache(): void {
 
 /**
  * Fetch current user once; reuse cache and coalesce parallel calls.
+ * Uses httpOnly cookie when Bearer is absent.
  */
 export async function fetchAuthUser(options: { force?: boolean } = {}): Promise<unknown | null> {
-  const token = getAuthToken();
-  if (!token) {
-    invalidateAuthSessionCache();
-    return null;
+  if (!getAuthToken() && !isAuthenticated() && !getUser()) {
+    // Still attempt cookie session once when forced
+    if (!options.force) {
+      invalidateAuthSessionCache();
+      return null;
+    }
   }
 
   if (!options.force && cachedUser && Date.now() - cachedAt < AUTH_CACHE_MS) {
@@ -42,11 +45,15 @@ export async function fetchAuthUser(options: { force?: boolean } = {}): Promise<
 
   inflight = (async () => {
     try {
+      const token = getAuthToken();
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      if (token) headers.Authorization = `Bearer ${token}`;
+
       const res = await fetch(`${API_BASE_URL}/api/auth/me`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
+        headers,
+        credentials: 'include',
       });
       if (!res.ok) {
         if (res.status === 401) invalidateAuthSessionCache();

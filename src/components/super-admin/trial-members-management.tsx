@@ -22,6 +22,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { API_BASE_URL } from '@/lib/api-config';
+import { getAuthToken } from '@/lib/auth-utils';
 import { useToast } from '@/hooks/use-toast';
 import { formatIitCategoryLabel } from '@/lib/products';
 import {
@@ -92,10 +93,7 @@ const COMMON_AI_TOOLS = [
 ];
 
 function authHeaders(): HeadersInit {
-  const token =
-    localStorage.getItem('authToken') ||
-    localStorage.getItem('superAdminToken') ||
-    localStorage.getItem('token');
+  const token = getAuthToken();
   return token
     ? { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
     : { 'Content-Type': 'application/json' };

@@ -31,17 +31,15 @@ export function TeacherShell({
 
   // Refresh school name/logo from /api/auth/me — login cache is often missing schoolLogo.
   useEffect(() => {
-    const token = getAuthToken();
-    if (!token) return;
-
     let cancelled = false;
     (async () => {
       try {
+        const token = getAuthToken();
+        const headers: Record<string, string> = { "Content-Type": "application/json" };
+        if (token) headers.Authorization = `Bearer ${token}`;
         const res = await fetch(`${API_BASE_URL}/api/auth/me`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
+          headers,
+          credentials: "include",
         });
         if (!res.ok || cancelled) return;
         const data = await res.json();
@@ -76,14 +74,15 @@ export function TeacherShell({
   const handleLogout = async () => {
     try {
       const token = getAuthToken();
-      if (token) {
-        await fetch(`${API_BASE_URL}/api/auth/logout`, {
-          method: "POST",
-          headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-        }).catch(() => {
-          /* still clear local state if the API call fails */
-        });
-      }
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      if (token) headers.Authorization = `Bearer ${token}`;
+      await fetch(`${API_BASE_URL}/api/auth/logout`, {
+        method: "POST",
+        headers,
+        credentials: "include",
+      }).catch(() => {
+        /* still clear local state if the API call fails */
+      });
     } finally {
       clearAuthData();
       window.location.replace("/signin");

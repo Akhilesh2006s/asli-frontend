@@ -3,6 +3,7 @@ import { useRoute, useLocation, useSearch } from 'wouter';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { getAuthToken } from '@/lib/auth-utils';
 import {
   Dialog,
   DialogContent,
@@ -66,7 +67,7 @@ export default function AdminSubjectContent() {
     try {
       setLoading(true);
       setLoadingContents(true);
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const subjectIds = Array.from(new Set([subjectId, ...mergeSubjectIds]));
 
       const subjectResponse = await fetch(`${API_BASE_URL}/api/subjects/${subjectId}`, {

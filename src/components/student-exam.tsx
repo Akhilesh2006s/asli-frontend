@@ -8,7 +8,8 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { 
+import { getAuthToken } from '@/lib/auth-utils';
+import {
   Clock, 
   CheckCircle, 
   XCircle, 
@@ -91,7 +92,7 @@ export default function StudentExam({ examId, onComplete, onExit }: StudentExamP
     queryFn: async () => {
       const response = await fetch(`${API_BASE_URL}/api/student/exams/${examId}`, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+          'Authorization': `Bearer ${getAuthToken()}`,
           'Content-Type': 'application/json'
         }
       });
@@ -260,7 +261,7 @@ export default function StudentExam({ examId, onComplete, onExit }: StudentExamP
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+          'Authorization': `Bearer ${getAuthToken()}`
         },
         credentials: 'include',
         body: JSON.stringify(localResult)

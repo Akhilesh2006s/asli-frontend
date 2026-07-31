@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { API_BASE_URL } from "@/lib/api-config";
-import { 
+import { getAuthToken } from '@/lib/auth-utils';
+import {
   BrainIcon, 
   TrendingUpIcon, 
   AlertTriangleIcon, 
@@ -90,7 +91,7 @@ export default function AIAnalyticsDashboard() {
   const analyzeWithAI = async () => {
     setIsAnalyzing(true);
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       
       // Call our backend AI service
       const response = await fetch(`${API_BASE_URL}/api/ai/analytics`, {

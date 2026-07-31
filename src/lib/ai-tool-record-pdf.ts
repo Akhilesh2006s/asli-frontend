@@ -1,10 +1,9 @@
 import { API_BASE_URL } from "@/lib/api-config";
+import { getAuthToken } from '@/lib/auth-utils';
 
 function authHeaders(): Record<string, string> {
   const token =
-    localStorage.getItem("authToken") ||
-    localStorage.getItem("superAdminToken") ||
-    localStorage.getItem("token");
+    getAuthToken();
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 

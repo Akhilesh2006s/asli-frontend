@@ -7,7 +7,8 @@ import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { API_BASE_URL } from "@/lib/api-config";
-import { 
+import { getAuthToken } from '@/lib/auth-utils';
+import {
   BrainIcon, 
   TrendingUpIcon, 
   AlertTriangleIcon, 
@@ -219,7 +220,7 @@ export default function DetailedAIAnalyticsDashboard({
   const fetchDetailedAnalytics = async () => {
     setIsLoading(true);
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const response = await fetch(`${API_BASE_URL}/api/ai/detailed-analytics`, {
         headers: { 
           'Authorization': `Bearer ${token}`,
@@ -261,7 +262,7 @@ export default function DetailedAIAnalyticsDashboard({
 
   const fetchAdmins = async () => {
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const response = await fetch(`${API_BASE_URL}/api/super-admin/admins`, {
         headers: {
           'Authorization': `Bearer ${token}`,

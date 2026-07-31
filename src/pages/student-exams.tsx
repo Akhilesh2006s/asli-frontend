@@ -39,7 +39,7 @@ import {
 } from '@/lib/exam-classes';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { dedupeStudentExamResults } from '@/lib/dedupe-exam-results';
-import { getUserIdFromAuthToken } from '@/lib/auth-utils';
+import { getUserIdFromAuthToken, getAuthToken } from '@/lib/auth-utils';
 
 /** Accent schemes for exam cards — full colored border + tinted meta icons */
 const EXAM_CARD_SCHEMES = [
@@ -292,21 +292,13 @@ export default function StudentExams() {
     const checkAuth = async () => {
       try {
         console.log('🔍 Student Exams: Starting authentication check...');
-        const token = localStorage.getItem('authToken');
-        console.log('🔍 Student Exams: Token found:', !!token);
-        if (!token) {
-          console.log('❌ Student Exams: No auth token found - redirecting to signin');
-          console.log('⏳ Student Exams: Waiting 3 seconds before redirect to see debug messages...');
-          setTimeout(() => {
-            setLocation('/signin');
-          }, 3000);
-          return;
-        }
+        const token = getAuthToken();
+        console.log('🔍 Student Exams: Memory token:', !!token, '(cookies may still authenticate)');
 
         console.log('🔍 Student Exams: Making auth request to backend...');
         const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
           headers: {
-            'Authorization': `Bearer ${token}`,
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
             'Content-Type': 'application/json',
           }
         });
@@ -352,7 +344,7 @@ export default function StudentExams() {
     queryKey: ['/api/student/exams', effectiveStudentId],
     queryFn: async () => {
       console.log('🔍 Student Exams: Fetching student exams...');
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       console.log('🔍 Student Exams: Token for exams API:', !!token);
       const response = await fetch(`${API_BASE_URL}/api/student/exams`, {
         headers: {
@@ -455,7 +447,7 @@ export default function StudentExams() {
     queryKey: ['/api/assessments', effectiveStudentId],
     queryFn: async () => {
       console.log('🔍 Student Exams: Fetching assessments...');
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       console.log('🔍 Student Exams: Token for assessments API:', !!token);
       const response = await fetch(`${API_BASE_URL}/api/assessments`, {
         headers: {
@@ -486,7 +478,7 @@ export default function StudentExams() {
     queryKey: ['/api/student/exam-results', effectiveStudentId],
     queryFn: async () => {
       console.log('🔍 Student Exams: Fetching exam results...');
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       console.log('🔍 Student Exams: Token for results API:', !!token);
       const response = await fetch(`${API_BASE_URL}/api/student/exam-results`, {
         headers: {
@@ -637,7 +629,7 @@ export default function StudentExams() {
 
     try {
       setStartingExamId(exam._id);
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const response = await fetch(`${API_BASE_URL}/api/student/exams/${exam._id}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -1345,7 +1337,7 @@ export default function StudentExams() {
                             let reviewResult = displayResult;
                             let reviewedQuestions: any[] = [];
                             try {
-                              const token = localStorage.getItem('authToken');
+                              const token = getAuthToken();
                               const reviewQs =
                                 displayResult._id != null && String(displayResult._id).trim() !== ''
                                   ? `?resultId=${encodeURIComponent(String(displayResult._id))}`

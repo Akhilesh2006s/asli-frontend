@@ -1,4 +1,5 @@
 import { API_BASE_URL } from "@/lib/api-config";
+import { getAuthToken } from "@/lib/auth-utils";
 import type { PdfRecord } from "./pdf-utils";
 import { resilientFetch } from "@/lib/resilient-fetch";
 export type { PdfRecord };
@@ -6,7 +7,7 @@ export type { PdfRecord };
 const BRANCH_FETCH_TIMEOUT_MS = 45_000;
 
 function authHeaders(): HeadersInit {
-  const token = localStorage.getItem("authToken");
+  const token = getAuthToken() || "";
   return {
     "Content-Type": "application/json",
     ...(token ? { Authorization: `Bearer ${token}` } : {}),

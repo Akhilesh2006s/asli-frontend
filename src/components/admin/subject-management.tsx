@@ -13,9 +13,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { API_BASE_URL } from '@/lib/api-config';
 import { useToast } from '@/hooks/use-toast';
 import { useConfirm } from '@/hooks/use-confirm';
-/** Visible fields on white dialogs (default inputs are too faint). */
-const SUBJECT_FORM_FIELD_CLASS =
-  'border border-sky-300 bg-sky-50 text-sky-950 shadow-sm placeholder:text-sky-500 focus-visible:border-sky-500 focus-visible:ring-2 focus-visible:ring-sky-400/35';
+import { getAuthToken } from '@/lib/auth-utils';
 import { 
   BookOpen, 
   Plus, 
@@ -28,6 +26,9 @@ import {
   CheckCircle,
   XCircle
 } from 'lucide-react';
+/** Visible fields on white dialogs (default inputs are too faint). */
+const SUBJECT_FORM_FIELD_CLASS =
+  'border border-sky-300 bg-sky-50 text-sky-950 shadow-sm placeholder:text-sky-500 focus-visible:border-sky-500 focus-visible:ring-2 focus-visible:ring-sky-400/35';
 
 interface ClassOption {
   id: string;
@@ -102,7 +103,7 @@ const SubjectManagement = () => {
 
   const fetchSubjects = async () => {
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const response = await fetch(`${API_BASE_URL}/api/admin/subjects`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -175,7 +176,7 @@ const SubjectManagement = () => {
 
   const fetchClasses = async () => {
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const response = await fetch(`${API_BASE_URL}/api/admin/classes`, {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -201,7 +202,7 @@ const SubjectManagement = () => {
 
   const fetchTeachers = async () => {
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const response = await fetch(`${API_BASE_URL}/api/admin/teachers`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -247,7 +248,7 @@ const SubjectManagement = () => {
   const handleAddSubject = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const response = await fetch(`${API_BASE_URL}/api/admin/subjects`, {
         method: 'POST',
         headers: { 
@@ -294,7 +295,7 @@ const SubjectManagement = () => {
         method: 'PUT',
         headers: { 
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+          'Authorization': `Bearer ${getAuthToken()}`
         },
         body: JSON.stringify({
           name: editingSubject.name,
@@ -341,7 +342,7 @@ const SubjectManagement = () => {
       const response = await fetch(`${API_BASE_URL}/api/admin/subjects/${subjectId}`, {
         method: 'DELETE',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+          'Authorization': `Bearer ${getAuthToken()}`
         }
       });
 

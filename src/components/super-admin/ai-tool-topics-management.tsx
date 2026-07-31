@@ -12,6 +12,7 @@ import { Edit, Plus, Search, Trash2, X } from 'lucide-react';
 import { notifyCurriculumTaxonomyChanged } from '@/lib/curriculum-taxonomy-refresh';
 import { formatIitCategoryLabel } from '@/lib/products';
 import { sortChapterWiseLabels } from '@/lib/curriculum-chapter-sort';
+import { getAuthToken } from '@/lib/auth-utils';
 
 const NATURAL_COLLATOR = new Intl.Collator('en', { numeric: true, sensitivity: 'base' });
 const GENERAL_CATEGORY = '';
@@ -45,9 +46,7 @@ type DialogMode = 'create' | 'edit' | 'addSubTopic';
 
 function authHeaders() {
   const token =
-    localStorage.getItem('authToken') ||
-    localStorage.getItem('superAdminToken') ||
-    localStorage.getItem('token');
+    getAuthToken();
   return {
     'Content-Type': 'application/json',
     ...(token ? { Authorization: `Bearer ${token}` } : {}),

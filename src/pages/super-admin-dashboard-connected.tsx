@@ -12,7 +12,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { useToast } from "@/hooks/use-toast";
 import { API_BASE_URL } from "@/lib/api-config";
 import { VidyaAnalyticsCard } from "@/components/super-admin/VidyaAnalyticsCard";
-import { 
+import { getAuthToken } from '@/lib/auth-utils';
+import {
   BellIcon, 
   LogOutIcon, 
   UsersIcon, 
@@ -66,7 +67,7 @@ export default function SuperAdminDashboard() {
   // Check authentication on component mount
   useEffect(() => {
     const superAdminUser = localStorage.getItem('superAdminUser');
-    const superAdminToken = localStorage.getItem('superAdminToken');
+    const superAdminToken = getAuthToken();
     
     if (superAdminUser && superAdminToken) {
       setUser(JSON.parse(superAdminUser));

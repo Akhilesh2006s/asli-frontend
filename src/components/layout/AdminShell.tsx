@@ -30,17 +30,14 @@ export function AdminShell({
   }, []);
 
   useEffect(() => {
-    const token = getAuthToken();
-    if (!token) return;
-
     let cancelled = false;
     (async () => {
       try {
+        const token = getAuthToken();
+        const headers: Record<string, string> = { "Content-Type": "application/json" };
+        if (token) headers.Authorization = `Bearer ${token}`;
         const res = await fetch(`${API_BASE_URL}/api/auth/me`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
+          headers,
           credentials: "include",
         });
         if (!res.ok || cancelled) return;
@@ -76,15 +73,15 @@ export function AdminShell({
   const handleLogout = async () => {
     try {
       const token = getAuthToken();
-      if (token) {
-        await fetch(`${API_BASE_URL}/api/auth/logout`, {
-          method: "POST",
-          headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-          credentials: "include",
-        }).catch(() => {
-          /* still clear local state */
-        });
-      }
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      if (token) headers.Authorization = `Bearer ${token}`;
+      await fetch(`${API_BASE_URL}/api/auth/logout`, {
+        method: "POST",
+        headers,
+        credentials: "include",
+      }).catch(() => {
+        /* still clear local state */
+      });
     } finally {
       clearAuthData();
       setLocation("/signin");

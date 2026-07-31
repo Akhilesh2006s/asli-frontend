@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
+import { getAuthToken } from '@/lib/auth-utils';
 import {
   Dialog,
   DialogContent,
@@ -113,9 +114,7 @@ export default function BookKnowledgeBase() {
 
   const authHeaders = (): Record<string, string> => {
     const token =
-      localStorage.getItem("authToken") ||
-      localStorage.getItem("superAdminToken") ||
-      localStorage.getItem("token");
+      getAuthToken();
     return token ? { Authorization: `Bearer ${token}` } : {};
   };
 

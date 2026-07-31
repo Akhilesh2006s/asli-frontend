@@ -1,6 +1,7 @@
 // @ts-nocheck
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { API_BASE_URL } from '@/lib/api-config';
+import { getAuthToken } from '@/lib/auth-utils';
 import TeacherShell from '@/components/layout/TeacherShell';
 import StatCard from '@/components/dashboard/StatCard';
 import { WeeklyDigestCard } from '@/components/weekly-digest-card';
@@ -545,12 +546,11 @@ const TeacherDashboard = () => {
   // Fetch teacher user data for chat
   const fetchTeacherUser = async () => {
     try {
-      const token = localStorage.getItem('authToken');
-      if (!token) return;
+      const token = getAuthToken();
 
       const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
         headers: {
-          'Authorization': `Bearer ${token}`,
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
           'Content-Type': 'application/json'
         }
       });
@@ -663,7 +663,7 @@ const TeacherDashboard = () => {
   const fetchHomeworkSubmissions = async () => {
     setIsLoadingSubmissions(true);
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const response = await fetch(`${API_BASE_URL}/api/teacher/homework-submissions`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -702,16 +702,12 @@ const TeacherDashboard = () => {
       
       try {
         setIsLoadingEduott(true);
-        const token = localStorage.getItem('authToken');
-        if (!token) {
-          setIsLoadingEduott(false);
-          return;
-        }
+        const token = getAuthToken();
 
         // Fetch video content from Content model (filtered by teacher's assigned subjects and type=Video)
         const response = await fetch(`${API_BASE_URL}/api/teacher/asli-prep-content?type=Video`, {
           headers: {
-            'Authorization': `Bearer ${token}`,
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
             'Content-Type': 'application/json',
           }
         });
@@ -814,15 +810,11 @@ const TeacherDashboard = () => {
 
       try {
         setIsLoadingLiveSessions(true);
-        const token = localStorage.getItem('authToken');
-        if (!token) {
-          setLiveSessions([]);
-          return;
-        }
+        const token = getAuthToken();
 
         const response = await fetch(`${API_BASE_URL}/api/teacher/streams`, {
           headers: {
-            Authorization: `Bearer ${token}`,
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
             'Content-Type': 'application/json',
           },
         });
@@ -849,10 +841,12 @@ const TeacherDashboard = () => {
   useEffect(() => {
     const loadProgram = async () => {
       try {
-        const token = localStorage.getItem('authToken');
-        if (!token) return;
+        const token = getAuthToken();
         const res = await fetch(`${API_BASE_URL}/api/auth/me`, {
-          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+          headers: {
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            'Content-Type': 'application/json',
+          },
         });
         if (res.ok) {
           const data = await res.json();
@@ -898,7 +892,7 @@ const TeacherDashboard = () => {
     if (!confirm(`Are you sure you want to delete "${video.title}"?`)) return;
 
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const response = await fetch(`${API_BASE_URL}/api/videos/${video.id}`, {
         method: 'DELETE',
         headers: {
@@ -925,7 +919,7 @@ const TeacherDashboard = () => {
     setIsCreatingVideo(true);
 
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       console.log('Creating video with data:', videoForm);
       console.log('Using token:', token ? 'Token present' : 'No token');
       
@@ -966,19 +960,6 @@ const TeacherDashboard = () => {
 
       console.log('Response status:', response.status);
       console.log('Response ok:', response.ok);
-
-      // If API failed, try test endpoint
-      if (!response.ok) {
-        try {
-          response = await fetch(`${API_BASE_URL}/api/test-video-simple`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-          });
-        } catch (e) {
-          // continue to mock fallback below
-        }
-      }
 
       if (response && response.ok) {
         const result = await response.json();
@@ -1028,7 +1009,7 @@ const TeacherDashboard = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+          'Authorization': `Bearer ${getAuthToken()}`
         },
         body: JSON.stringify(lessonPlanForm)
       });
@@ -1058,7 +1039,7 @@ const TeacherDashboard = () => {
     setGeneratedQuiz(null);
 
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       
       // Step 1: Generate quiz using Gemini API
       const generateResponse = await fetch(`${API_BASE_URL}/api/teacher/ai/test-questions`, {
@@ -1261,7 +1242,7 @@ const TeacherDashboard = () => {
       const formData = new FormData();
       formData.append('file', file);
       
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const response = await fetch(`${API_BASE_URL}/api/upload`, {
         method: 'POST',
         headers: {
@@ -1312,7 +1293,7 @@ const TeacherDashboard = () => {
         fileUrl = await handleHomeworkFileUpload(selectedHomeworkFile);
       }
 
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const response = await fetch(`${API_BASE_URL}/api/teacher/homework`, {
         method: 'POST',
         headers: {
@@ -1372,7 +1353,7 @@ const TeacherDashboard = () => {
 
     setIsSavingQuiz(true);
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       
       // Find the subject ID from teacherSubjects
       const selectedSubject = teacherSubjects.find((s: any) => 
@@ -1493,7 +1474,7 @@ const TeacherDashboard = () => {
       const response = await fetch(`${API_BASE_URL}/api/teacher/grade-work`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+          'Authorization': `Bearer ${getAuthToken()}`
         },
         body: formData
       });
@@ -1516,7 +1497,7 @@ const TeacherDashboard = () => {
 
   const fetchTrackProgressRemarks = async () => {
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const headers = {
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
@@ -1697,7 +1678,7 @@ const TeacherDashboard = () => {
           })),
         };
 
-        const token = localStorage.getItem('authToken');
+        const token = getAuthToken();
         const response = await fetch(`${API_BASE_URL}/api/teacher/students/progress-ai-insights`, {
           method: 'POST',
           headers: {
@@ -1757,7 +1738,7 @@ const TeacherDashboard = () => {
   // Fetch student performance data
   const fetchStudentPerformance = async () => {
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const response = await fetch(`${API_BASE_URL}/api/teacher/students/performance`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -1829,20 +1810,15 @@ const TeacherDashboard = () => {
   const fetchTeacherData = async (retryCount = 0) => {
     const maxRetries = 2;
     try {
-      const token = localStorage.getItem('authToken');
-      if (!token) {
-        console.error('No auth token found');
-        setIsLoading(false);
-        return;
-      }
+      const token = getAuthToken();
 
       console.log(`[Mobile Debug] Fetching teacher data (attempt ${retryCount + 1}/${maxRetries + 1})...`);
       console.log(`[Mobile Debug] API URL: ${API_BASE_URL}/api/teacher/dashboard`);
-      console.log(`[Mobile Debug] Token present: ${token ? 'Yes' : 'No'}`);
+      console.log(`[Mobile Debug] Token present: ${token ? 'Yes' : 'No (cookie session)'}`);
       
       const response = await fetch(`${API_BASE_URL}/api/teacher/dashboard`, {
         headers: {
-          'Authorization': `Bearer ${token}`,
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
           'Content-Type': 'application/json'
         }
       });
@@ -1990,7 +1966,7 @@ const TeacherDashboard = () => {
           } else {
             // Try to extract from token
             try {
-              const token = localStorage.getItem('authToken');
+              const token = getAuthToken();
               if (token) {
                 const payload = JSON.parse(atob(token.split('.')[1]));
                 setTeacherId(payload.userId || payload.id || '');
@@ -3023,7 +2999,7 @@ const TeacherDashboard = () => {
                               
                               setIsSubmittingRemark(true);
                               try {
-                                const token = localStorage.getItem('authToken');
+                                const token = getAuthToken();
                                 const response = await fetch(
                                   `${API_BASE_URL}/api/teacher/students/${selectedStudentForRemark.id || selectedStudentForRemark._id}/remarks`,
                                   {

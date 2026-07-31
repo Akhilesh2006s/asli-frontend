@@ -39,24 +39,36 @@ const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Browser Back to sign-in must end the session; otherwise Forward restores the dashboard
-  // still authenticated without entering credentials again.
+  // Browser Back to sign-in: clear local client state so Forward cannot restore a
+  // "logged in" dashboard without credentials. Do NOT call /logout on every visit —
+  // that revoked the httpOnly refresh cookie and kicked active sessions (including
+  // when another tab/user opened /signin, or when Bearer null caused a bounce here).
   useEffect(() => {
+    let navType = "";
+    try {
+      const nav = performance.getEntriesByType("navigation")[0] as
+        | PerformanceNavigationTiming
+        | undefined;
+      navType = nav?.type || "";
+    } catch {
+      /* ignore */
+    }
+
+    if (navType !== "back_forward") return;
+
     const token = getAuthToken();
+    clearAuthData();
     if (!token) return;
 
-    // Clear local auth immediately (before async logout finishes).
-    clearAuthData();
-
     void fetch(`${API_BASE_URL}/api/auth/logout`, {
-      method: 'POST',
+      method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
-      credentials: 'include',
+      credentials: "include",
     }).catch(() => {
-      /* ignore — local clear is enough for the Forward bug */
+      /* local clear is enough */
     });
   }, []);
 
@@ -156,7 +168,7 @@ const Login = () => {
         prepareClientForNewLogin();
 
         if (data.token) {
-          setAuthToken(data.token);
+          setAuthToken(data.token, data.refreshToken);
         }
         if (data.user) {
           setUser(data.user);

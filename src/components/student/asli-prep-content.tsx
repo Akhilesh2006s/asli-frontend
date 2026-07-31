@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Play, FileText, File, Image, Video, Download, Search, Filter, BookOpen, ExternalLink } from 'lucide-react';
 import { API_BASE_URL } from '@/lib/api-config';
 import PdfPreviewPanel from '@/components/shared/PdfPreviewPanel';
+import { getAuthToken } from '@/lib/auth-utils';
 import {
   filterContentsBySchoolProgram,
   getAllowedContentTypes,
@@ -58,7 +59,7 @@ export default function AsliPrepContent() {
 
   const fetchSubjects = async () => {
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const userResponse = await fetch(`${API_BASE_URL}/api/auth/me`, {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -92,7 +93,7 @@ export default function AsliPrepContent() {
   const fetchContents = async () => {
     setIsLoading(true);
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const queryParams = new URLSearchParams();
       if (filters.subject && filters.subject !== 'all') queryParams.append('subject', filters.subject);
       if (filters.type && filters.type !== 'all') queryParams.append('type', filters.type);

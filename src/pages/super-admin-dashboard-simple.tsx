@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
+import { getAuthToken } from '@/lib/auth-utils';
 
 export default function SuperAdminDashboard() {
   const [isLoading, setIsLoading] = useState(true);
@@ -9,7 +10,7 @@ export default function SuperAdminDashboard() {
 
   useEffect(() => {
     // Check if user is authenticated
-    const token = localStorage.getItem('authToken');
+    const token = getAuthToken();
     if (!token) {
       window.location.href = '/signin';
     } else {

@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { BarChart3, TrendingUp, Users, Award, Download } from 'lucide-react';
 import { API_BASE_URL } from '@/lib/api-config';
+import { getAuthToken } from '@/lib/auth-utils';
 
 interface BoardAnalytics {
   board: string;
@@ -50,7 +51,7 @@ export default function BoardComparisonCharts() {
   const fetchBoardAnalytics = async () => {
     setIsLoading(true);
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       
       // Fetch all boards analytics using comparison endpoint
       const comparisonResponse = await fetch(`${API_BASE_URL}/api/super-admin/boards/analytics/comparison`, {
@@ -245,8 +246,7 @@ export default function BoardComparisonCharts() {
   };
 
   const prefetchExportData = async () => {
-    const token = localStorage.getItem('authToken');
-    if (!token) return;
+    const token = getAuthToken();
 
     const dataTypes = ['students', 'attempts', 'scores', 'participation'];
     await Promise.all(

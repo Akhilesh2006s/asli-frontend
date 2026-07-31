@@ -9,7 +9,7 @@ import StatCard from '@/components/dashboard/StatCard';
 import { API_BASE_URL } from '@/lib/api-config';
 import { formatSeatUsage } from '@/hooks/use-account-seats';
 import { AtRiskStudentsPanel } from '@/components/admin/AtRiskStudentsPanel';
-const SchoolImpactReportCard = lazy(() => import('@/components/admin/school-impact-report-card'));
+import { getAuthToken } from '@/lib/auth-utils';
 import {
   BookOpen,
   Users,
@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { useLocation, useSearch } from 'wouter';
 import VidyaAIFloatingAssistant from '@/components/student/VidyaAIFloatingAssistant';
+const SchoolImpactReportCard = lazy(() => import('@/components/admin/school-impact-report-card'));
 const UserManagement = lazy(() => import('@/components/admin/user-management'));
 const ClassDashboard = lazy(() => import('@/components/admin/class-dashboard'));
 const TeacherManagement = lazy(() => import('@/components/admin/teacher-management'));
@@ -65,21 +66,15 @@ const AdminDashboard = () => {
   const [userData, setUserData] = useState<any>(null);
   const [adminId, setAdminId] = useState<string | null>(null);
 
-
   // Check authentication on component mount
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const token = localStorage.getItem('authToken');
-        if (!token) {
-          console.log('No auth token found');
-          window.location.href = '/signin';
-          return;
-        }
+        const token = getAuthToken();
 
         const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
           headers: {
-            'Authorization': `Bearer ${token}`,
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
             'Content-Type': 'application/json'
           }
         });
@@ -178,11 +173,7 @@ const AdminDashboard = () => {
     
     try {
       setIsLoadingAnalytics(true);
-      const token = localStorage.getItem('authToken');
-      if (!token) {
-        setIsLoadingAnalytics(false);
-        return;
-      }
+      const token = getAuthToken();
 
       const response = await fetch(`${API_BASE_URL}/api/admin/students/analytics`, {
         headers: { 'Authorization': `Bearer ${token}` }
@@ -205,16 +196,14 @@ const AdminDashboard = () => {
   const fetchAdminStats = useCallback(async () => {
     try {
       setIsLoadingStats(true);
-      const token = localStorage.getItem('authToken');
-      if (!token) {
-        console.log('No auth token found for admin stats');
-        setIsLoadingStats(false);
-        return;
-      }
+      const token = getAuthToken();
 
       // Fetch admin dashboard stats from the dedicated endpoint
       const statsRes = await fetch(`${API_BASE_URL}/api/admin/dashboard/stats`, {
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          'Content-Type': 'application/json',
+        }
       });
       
       if (!statsRes.ok) {

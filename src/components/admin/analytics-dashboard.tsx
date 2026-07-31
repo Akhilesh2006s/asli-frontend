@@ -5,7 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { API_BASE_URL } from '@/lib/api-config';
 import { SchoolImpactReportCard } from '@/components/admin/school-impact-report-card';
-import { 
+import { getAuthToken } from '@/lib/auth-utils';
+import {
   TrendingUp, 
   Users, 
   Video, 
@@ -79,7 +80,7 @@ const AnalyticsDashboard = () => {
   const fetchAnalytics = async () => {
     try {
       setIsLoading(true);
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const response = await fetch(`${API_BASE_URL}/api/admin/analytics`, {
         headers: {
           'Authorization': `Bearer ${token}`,

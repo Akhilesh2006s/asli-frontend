@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { API_BASE_URL } from '@/lib/api-config';
+import { getAuthToken } from '@/lib/auth-utils';
 import {
   IIT_CATEGORIES,
   formatIitCategoryLabel,
@@ -8,9 +9,7 @@ import {
 
 function authHeaders(): HeadersInit {
   const token =
-    localStorage.getItem('authToken') ||
-    localStorage.getItem('superAdminToken') ||
-    localStorage.getItem('token');
+    getAuthToken();
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 

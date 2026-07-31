@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { API_BASE_URL } from "@/lib/api-config";
 import { useToast } from "@/hooks/use-toast";
 import { queueSuperAdminViewRestore } from "@/lib/super-admin-nav";
+import { getAuthToken } from '@/lib/auth-utils';
 
 const SUPER_ADMIN_DASHBOARD_HREF = "/super-admin/dashboard";
 
@@ -123,7 +124,7 @@ export default function SuperAdminSchoolDetail() {
     const load = async () => {
       setLoading(true);
       try {
-        const token = localStorage.getItem("authToken");
+        const token = getAuthToken();
         const res = await fetch(`${API_BASE_URL}/api/super-admin/admins/${id}/school-detail`, {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -168,7 +169,7 @@ export default function SuperAdminSchoolDetail() {
     if (!id) return;
     setSavingSeats(true);
     try {
-      const token = localStorage.getItem("authToken");
+      const token = getAuthToken();
       const res = await fetch(`${API_BASE_URL}/api/super-admin/admins/${id}/account-seats`, {
         method: "PUT",
         headers: {

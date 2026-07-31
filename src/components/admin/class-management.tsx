@@ -8,7 +8,8 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { API_BASE_URL } from '@/lib/api-config';
-import { 
+import { getAuthToken } from '@/lib/auth-utils';
+import {
   GraduationCap, 
   Plus, 
   Search, 
@@ -59,7 +60,7 @@ const ClassManagement = () => {
 
   const fetchClasses = async () => {
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const response = await fetch(`${API_BASE_URL}/api/admin/classes`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -96,7 +97,7 @@ const ClassManagement = () => {
   const handleAddClass = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const response = await fetch(`${API_BASE_URL}/api/admin/classes`, {
         method: 'POST',
         headers: { 

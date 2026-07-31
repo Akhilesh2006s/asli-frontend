@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { getAuthToken } from '@/lib/auth-utils';
 import {
   Dialog,
   DialogContent,
@@ -548,7 +549,7 @@ async function renderPdfPageToDataUrl(pdf: pdfjs.PDFDocumentProxy): Promise<stri
 
 async function loadPdfBytesForThumbnail(fetchUrl: string): Promise<ArrayBuffer> {
   const isStaticUpload = /\/uploads\//i.test(fetchUrl);
-  const token = localStorage.getItem('authToken') || '';
+  const token = getAuthToken() || '';
   const res = await fetch(fetchUrl, {
     method: 'GET',
     credentials: isStaticUpload ? 'omit' : 'include',
@@ -1150,7 +1151,7 @@ export default function SubjectContentManagement() {
   const fetchSubjects = async () => {
     setIsLoadingSubjects(true);
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const response = await fetch(
         `${API_BASE_URL}/api/super-admin/subjects?includeInactive=true`,
         {
@@ -1211,7 +1212,7 @@ export default function SubjectContentManagement() {
   const fetchContents = async () => {
     setIsLoadingContents(true);
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const headers = {
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
@@ -1357,7 +1358,7 @@ export default function SubjectContentManagement() {
 
     setDeletingClassLabel(label);
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       let deletedSubjects = 0;
       let deletedContents = 0;
       let lastError = '';
@@ -1503,7 +1504,7 @@ export default function SubjectContentManagement() {
 
     setIsSavingSubject(true);
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const storedName = `${newSubjectName.trim()}_${selectedClassNumber}`;
       const body: Record<string, string> = {
         name: storedName,
@@ -1608,7 +1609,7 @@ export default function SubjectContentManagement() {
 
     setIsSavingSubject(true);
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const storedName = `${editSubjectName.trim()}_${selectedClassNumber}`;
       const cat = normalizeIitCategory(editSubjectProductCategory) || '';
       const response = await fetch(
@@ -1694,7 +1695,7 @@ export default function SubjectContentManagement() {
 
     setDeletingSubjectId(subjectId);
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const response = await fetch(
         `${API_BASE_URL}/api/super-admin/subjects/${subjectId}`,
         {
@@ -1950,7 +1951,7 @@ export default function SubjectContentManagement() {
 
     setIsSavingContent(true);
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const classForPayload =
         selectedClassNumber ||
         (editingItem
@@ -2106,7 +2107,7 @@ export default function SubjectContentManagement() {
 
     setIsUploadingFile(true);
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const formData = new FormData();
       // Append non-file fields first so multipart parsers often populate req.body before the file part.
       formData.append('contentType', contentForm.type);
@@ -2197,7 +2198,7 @@ export default function SubjectContentManagement() {
     if (!window.confirm('Delete this content item?')) return;
     setDeletingContentId(contentId);
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const response = await fetch(
         `${API_BASE_URL}/api/super-admin/content/${contentId}`,
         {

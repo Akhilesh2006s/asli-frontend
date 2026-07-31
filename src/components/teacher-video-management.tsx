@@ -9,7 +9,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
 import { API_BASE_URL } from '@/lib/api-config';
-import { 
+import { getAuthToken } from '@/lib/auth-utils';
+import {
   Plus, 
   Edit, 
   Trash2, 
@@ -76,7 +77,7 @@ const TeacherVideoManagement = () => {
 
   const fetchSubjects = async () => {
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const response = await fetch(`${API_BASE_URL}/api/teacher/subjects`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -94,7 +95,7 @@ const TeacherVideoManagement = () => {
 
   const fetchVideos = async () => {
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       const response = await fetch(`${API_BASE_URL}/api/teacher/videos`, {
         headers: {
           'Authorization': `Bearer ${token}`,

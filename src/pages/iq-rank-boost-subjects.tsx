@@ -7,6 +7,7 @@ import StudentShell from "@/components/layout/StudentShell";
 import { Link } from 'wouter';
 import { API_BASE_URL } from '@/lib/api-config';
 import { Skeleton } from '@/components/ui/skeleton';
+import { getAuthToken } from '@/lib/auth-utils';
 
 interface Quiz {
   _id: string;
@@ -48,7 +49,7 @@ export default function IQRankBoostSubjects() {
   const fetchStudentClassAndQuizzes = async () => {
     try {
       setIsLoading(true);
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       
       // Fetch quizzes - backend will automatically detect student's class
       const quizzesResponse = await fetch(

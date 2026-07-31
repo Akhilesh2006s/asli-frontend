@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { format, isValid, parseISO } from 'date-fns';
+import { getAuthToken } from '@/lib/auth-utils';
 import {
   Dialog,
   DialogContent,
@@ -91,8 +92,7 @@ export function TeacherDashboardSchedule({
 
   const fetchExternalEvents = useCallback(async () => {
     try {
-      const token = localStorage.getItem('authToken');
-      if (!token) return;
+      const token = getAuthToken();
 
       const response = await fetch(`${API_BASE_URL}/api/teacher/calendar/events?month=${monthKey}`, {
         headers: {

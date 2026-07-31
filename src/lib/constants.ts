@@ -1,3 +1,4 @@
+import { getAuthToken } from '@/lib/auth-utils';
 // API Configuration - Import from api-config for centralized management
 export { API_BASE_URL } from './api-config';
 
@@ -6,7 +7,7 @@ export const apiCall = async (endpoint: string, options: RequestInit = {}) => {
   const url = endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${endpoint}`;
   
   // Get JWT token from localStorage
-  const token = localStorage.getItem('authToken');
+  const token = getAuthToken();
   
   return fetch(url, {
     headers: {
