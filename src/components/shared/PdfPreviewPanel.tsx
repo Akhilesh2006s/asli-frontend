@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import * as pdfjs from 'pdfjs-dist';
 import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
-import { ExternalLink, Loader2 } from 'lucide-react';
+import { ExternalLink, Loader2, Maximize2, Minimize2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   getEmbeddedPdfIframeSrc,
@@ -28,6 +28,8 @@ interface PdfPreviewPanelProps {
    * fill = stretch to parent (legacy wide preview).
    */
   variant?: 'book' | 'fill';
+  /** Show a browser fullscreen toggle for the preview panel. */
+  allowFullscreen?: boolean;
 }
 
 /** ~A4 width at screen density — keeps PDF pages readable like a book page. */
@@ -374,6 +376,7 @@ export default function PdfPreviewPanel({
   className = '',
   showOpenInNewTab = false,
   variant = 'book',
+  allowFullscreen = true,
 }: PdfPreviewPanelProps) {
   const isBookLayout = variant !== 'fill';
   const prefersCanvasPreview = useCanvasPdfPreview();
@@ -398,6 +401,8 @@ export default function PdfPreviewPanel({
     (isBookLayout || !detectDigitalBoard());
   const containerRef = useRef<HTMLDivElement>(null);
   const scrollHostRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const pdfDocRef = useRef<pdfjs.PDFDocumentProxy | null>(null);
   const renderingPagesRef = useRef<Set<number>>(new Set());
   const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
@@ -418,6 +423,49 @@ export default function PdfPreviewPanel({
     const target = openTabUrl || forcedProxyUrl || proxyUrl || absoluteUrl;
     if (target) window.open(target, '_blank', 'noopener,noreferrer');
   }, [openTabUrl, forcedProxyUrl, proxyUrl, absoluteUrl]);
+
+  const toggleFullscreen = useCallback(async () => {
+    const el = panelRef.current;
+    if (!el) return;
+    try {
+      if (document.fullscreenElement) {
+        await document.exitFullscreen();
+      } else if (el.requestFullscreen) {
+        await el.requestFullscreen();
+      }
+    } catch {
+      // Browser may deny fullscreen without user gesture or policy.
+    }
+  }, []);
+
+  useEffect(() => {
+    const onFsChange = () => {
+      setIsFullscreen(Boolean(document.fullscreenElement));
+    };
+    document.addEventListener('fullscreenchange', onFsChange);
+    return () => document.removeEventListener('fullscreenchange', onFsChange);
+  }, []);
+
+  const toolbar = (allowFullscreen || showOpenInNewTab) ? (
+    <div className="flex flex-wrap items-center justify-end gap-2 shrink-0 pb-1">
+      {allowFullscreen ? (
+        <Button type="button" variant="outline" size="sm" onClick={() => void toggleFullscreen()}>
+          {isFullscreen ? (
+            <Minimize2 className="mr-2 h-4 w-4" />
+          ) : (
+            <Maximize2 className="mr-2 h-4 w-4" />
+          )}
+          {isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
+        </Button>
+      ) : null}
+      {showOpenInNewTab ? (
+        <Button type="button" variant="outline" size="sm" onClick={openInNewTab}>
+          <ExternalLink className="mr-2 h-4 w-4" />
+          Open in new tab
+        </Button>
+      ) : null}
+    </div>
+  ) : null;
 
   const updateContainerSize = useCallback(() => {
     const el = containerRef.current;
@@ -746,15 +794,8 @@ export default function PdfPreviewPanel({
   /** Desktop mouse/trackpad — embedded PDF iframe (never on touch tablets / book mode). */
   if (!useCanvasRendering && inlineIframeSupported) {
     return (
-      <div className={`flex h-full min-h-0 flex-1 flex-col ${className}`}>
-        {showOpenInNewTab ? (
-          <div className="flex flex-wrap items-center justify-end gap-2 shrink-0 pb-1">
-            <Button type="button" variant="outline" size="sm" onClick={openInNewTab}>
-              <ExternalLink className="mr-2 h-4 w-4" />
-              Open in new tab
-            </Button>
-          </div>
-        ) : null}
+      <div ref={panelRef} className={`flex h-full min-h-0 flex-1 flex-col bg-white ${className}`}>
+        {toolbar}
         <div
           className={`flex min-h-0 flex-1 justify-center overflow-hidden p-2 sm:p-3 ${
             isBookLayout ? 'bg-stone-300/70' : ''
@@ -777,16 +818,30 @@ export default function PdfPreviewPanel({
 
   /** Book / touch — scroll through full pages (no clipped FitH iframe). */
   return (
-    <div className={`flex h-full min-h-0 flex-1 flex-col ${className}`}>
-      {showOpenInNewTab ? (
+    <div ref={panelRef} className={`flex h-full min-h-0 flex-1 flex-col bg-white ${className}`}>
+      {toolbar || showOpenInNewTab ? (
         <div className="flex flex-wrap items-center justify-between gap-2 shrink-0 pb-1">
           <p className="text-[11px] text-stone-500 sm:text-xs">
             Scroll to turn pages · pinch to zoom
           </p>
-          <Button type="button" variant="outline" size="sm" onClick={openInNewTab}>
-            <ExternalLink className="mr-2 h-4 w-4" />
-            Open in new tab
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            {allowFullscreen ? (
+              <Button type="button" variant="outline" size="sm" onClick={() => void toggleFullscreen()}>
+                {isFullscreen ? (
+                  <Minimize2 className="mr-2 h-4 w-4" />
+                ) : (
+                  <Maximize2 className="mr-2 h-4 w-4" />
+                )}
+                {isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
+              </Button>
+            ) : null}
+            {showOpenInNewTab ? (
+              <Button type="button" variant="outline" size="sm" onClick={openInNewTab}>
+                <ExternalLink className="mr-2 h-4 w-4" />
+                Open in new tab
+              </Button>
+            ) : null}
+          </div>
         </div>
       ) : null}
 

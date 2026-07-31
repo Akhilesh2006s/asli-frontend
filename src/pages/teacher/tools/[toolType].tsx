@@ -1663,9 +1663,8 @@ export default function TeacherToolPage() {
                             handleInputChange(field.name, '');
                           } else if (field.name === 'productCategory') {
                             const next = value === 'NONE' ? '' : value;
+                            // Soft reset: keep class; clear subject/topic cascade only
                             handleInputChange(field.name, next);
-                            // Reset class → subject → topic cascade when track changes
-                            handleInputChange('gradeLevel', '');
                             handleInputChange('subject', '');
                             handleInputChange('subjects', '');
                             handleInputChange('topic', '');

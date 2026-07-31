@@ -96,6 +96,7 @@ export function TeacherShell({
       orgName={branding?.schoolName || "AsliLearn AI"}
       orgSubtitle="Teacher Portal"
       orgLogoUrl={branding?.schoolLogo || undefined}
+      homeHref="/teacher/dashboard"
       user={{ name, role: "Teacher" }}
       onLogout={handleLogout}
       showUpgrade={false}

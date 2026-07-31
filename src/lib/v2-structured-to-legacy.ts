@@ -106,10 +106,64 @@ export function mapV2StructuredToLegacy(toolSlug: string, v2: unknown): Dict | n
     };
   }
 
+  if (slug === 'concept-mastery-helper') {
+    const conceptRow = {
+      concept_name: title,
+      simple_definition: str(core.definition),
+      why_important: str(core.overview),
+      step_by_step_explanation: list(core.explanation),
+      explanation: list(core.explanation),
+      lesson: list(core.explanation).join('\n') || str(core.definition),
+      examples: list(core.examples),
+      real_example: list(core.examples)[0] || '',
+      key_points: list(core.keyPoints),
+      formulae: list(core.formulae),
+    };
+    return {
+      ...pedagogy,
+      title,
+      ...conceptRow,
+      concepts: [conceptRow],
+    };
+  }
+
+  if (slug === 'short-notes-summaries-maker') {
+    return {
+      ...pedagogy,
+      title,
+      short_note_summary: str(core.explanation || core.definition || core.overview),
+      key_points_to_remember: list(core.keyPoints),
+      key_points: list(core.keyPoints),
+      examples: list(core.examples),
+      example: list(core.examples)[0] || str(core.definition),
+    };
+  }
+
+  if (slug === 'homework-creator') {
+    const sections = mapQuestionSections(core);
+    const questions = sections.flatMap((s) => s.questions);
+    return {
+      ...pedagogy,
+      title,
+      homework_title: title,
+      instructions: str(core.instructions),
+      sections,
+      questions,
+      practice_questions: questions,
+      answer_key: arr(assessment.answerKey)
+        .map((a) => {
+          const n = str(a.q || a.n);
+          const ans = str(a.answer);
+          return ans ? `${n ? `Q${n}. ` : ''}${ans}` : '';
+        })
+        .filter(Boolean)
+        .join('\n'),
+    };
+  }
+
   if (
     [
       'worksheet-mcq-generator',
-      'homework-creator',
       'mock-test-builder',
       'exam-question-paper-generator',
       'smart-qa-practice-generator',

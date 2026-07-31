@@ -102,6 +102,7 @@ import { getUser as getStoredUser, getStudentDisplayName } from '@/lib/auth-util
 import StudentShell from '@/components/layout/StudentShell';
 import StatCard from '@/components/dashboard/StatCard';
 import { fetchAuthUser, peekCachedAuthUser } from '@/lib/auth-session';
+import VidyaAIFloatingAssistant from '@/components/student/VidyaAIFloatingAssistant';
 import { fetchDashboardBootstrap } from '@/lib/dashboard-bootstrap';
 import {
   getTodayStudyTime,
@@ -3034,6 +3035,7 @@ export default function Dashboard() {
         onClose={handleCloseVideoModal}
         video={selectedVideo}
       />
+      {vidyaEnabled && !isMobile ? <VidyaAIFloatingAssistant /> : null}
     </StudentShell>
   );
 }

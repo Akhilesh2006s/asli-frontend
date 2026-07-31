@@ -12,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Checkbox } from '@/components/ui/checkbox';
 import { API_BASE_URL, apiFetch } from '@/lib/api-config';
 import { useToast } from '@/hooks/use-toast';
+import { useConfirm } from '@/hooks/use-confirm';
 import { 
   GraduationCap, 
   Users, 
@@ -113,6 +114,7 @@ const subjectRowMatchesStoredId = (row: Subject, storedId: string) => {
 
 const ClassDashboard = () => {
   const { toast } = useToast();
+  const { confirm, ConfirmDialog } = useConfirm();
   const { seats } = useAccountSeats();
   const [classes, setClasses] = useState<Class[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
@@ -122,6 +124,8 @@ const ClassDashboard = () => {
   const [isAddStudentDialogOpen, setIsAddStudentDialogOpen] = useState(false);
   const [isDeleteAllDialogOpen, setIsDeleteAllDialogOpen] = useState(false);
   const [isDeletingAll, setIsDeletingAll] = useState(false);
+  const [pendingDeleteClassId, setPendingDeleteClassId] = useState<string | null>(null);
+  const [isDeletingClass, setIsDeletingClass] = useState(false);
   const [selectedClass, setSelectedClass] = useState<Class | null>(null);
   const [expandedClassId, setExpandedClassId] = useState<string | null>(null);
   const [expandedTeachersClassId, setExpandedTeachersClassId] = useState<string | null>(null);
@@ -457,16 +461,22 @@ const ClassDashboard = () => {
       : newClass.section.trim();
 
     if (!newClass.classNumber || !sectionValue) {
-      alert(
-        isCustomSection
+      toast({
+        title: 'Missing fields',
+        description: isCustomSection
           ? 'Please fill in Class Number and enter a section letter.'
-          : 'Please fill in all required fields: Class Number and Section.'
-      );
+          : 'Please fill in all required fields: Class Number and Section.',
+        variant: 'destructive',
+      });
       return;
     }
 
     if (isCustomSection && !/^[A-Z0-9]{1,3}$/i.test(sectionValue)) {
-      alert('Section must be 1–3 letters or numbers (e.g. D, E1).');
+      toast({
+        title: 'Invalid section',
+        description: 'Section must be 1–3 letters or numbers (e.g. D, E1).',
+        variant: 'destructive',
+      });
       return;
     }
     
@@ -514,10 +524,7 @@ const ClassDashboard = () => {
   };
 
   const handleDeleteClass = async (classId: string) => {
-    if (!confirm('Are you sure you want to delete this class? This action cannot be undone.')) {
-      return;
-    }
-
+    setIsDeletingClass(true);
     try {
       const token = localStorage.getItem('authToken');
       const response = await fetch(`${API_BASE_URL}/api/admin/classes/${classId}`, {
@@ -531,6 +538,7 @@ const ClassDashboard = () => {
       const responseData = await response.json();
 
       if (response.ok && responseData.success !== false) {
+        setPendingDeleteClassId(null);
         fetchClasses();
         toast({
           title: 'Success',
@@ -551,6 +559,8 @@ const ClassDashboard = () => {
         description: 'Failed to delete class. Please try again.',
         variant: 'destructive'
       });
+    } finally {
+      setIsDeletingClass(false);
     }
   };
 
@@ -627,7 +637,13 @@ const ClassDashboard = () => {
       return `Class ${c.classNumber}${c.section ? c.section : ''} → ${willBeFinished ? 'Finished Academic Career' : `Class ${nextClassNum}${c.section ? c.section : ''}`}`;
     }).join('\n');
 
-    if (!confirm(`Are you sure you want to promote the following ${classIds.length} class(es)?\n\n${promotionDetails}\n\nThis action cannot be undone.`)) {
+    const ok = await confirm({
+      title: `Promote ${classIds.length} class(es)?`,
+      description: `${promotionDetails}\n\nThis action cannot be undone.`,
+      confirmLabel: 'Promote',
+      destructive: true,
+    });
+    if (!ok) {
       return;
     }
 
@@ -1032,6 +1048,34 @@ const ClassDashboard = () => {
                       </AlertDialogContent>
                     </AlertDialog>
                   )}
+                  <AlertDialog
+                    open={Boolean(pendingDeleteClassId)}
+                    onOpenChange={(open) => {
+                      if (!open && !isDeletingClass) setPendingDeleteClassId(null);
+                    }}
+                  >
+                    <AlertDialogContent className="bg-white">
+                      <AlertDialogHeader>
+                        <AlertDialogTitle className="flex items-center gap-2">
+                          <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5 text-red-500" />
+                          Delete this class?
+                        </AlertDialogTitle>
+                        <AlertDialogDescription className="text-gray-600">
+                          This action cannot be undone.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel disabled={isDeletingClass}>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={() => pendingDeleteClassId && void handleDeleteClass(pendingDeleteClassId)}
+                          disabled={isDeletingClass || !pendingDeleteClassId}
+                          className="bg-red-600 hover:bg-red-700"
+                        >
+                          {isDeletingClass ? 'Deleting...' : 'Delete Class'}
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                   <Button 
                     onClick={() => setIsAddClassDialogOpen(true)}
                     className="flex-1 sm:flex-none bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700 text-white rounded-xl"
@@ -1292,7 +1336,7 @@ const ClassDashboard = () => {
                       className="border-red-200 text-red-700 hover:bg-red-50"
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleDeleteClass(classItem.id);
+                        setPendingDeleteClassId(classItem.id);
                       }}
                     >
                       <Trash2 className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
@@ -1916,6 +1960,7 @@ const ClassDashboard = () => {
             isSuperAdmin={false}
           />
         )}
+        {ConfirmDialog}
     </div>
   );
 };

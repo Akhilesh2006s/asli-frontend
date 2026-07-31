@@ -1093,55 +1093,48 @@ export default function SuperAdminAiGenerator() {
       <>
       <Card>
         <CardHeader>
-          <CardTitle>Available Tools</CardTitle>
+          <CardTitle>Select tool</CardTitle>
+          <p className="text-sm text-slate-600">
+            Choose a student or teacher generator, then set curriculum scope below.
+          </p>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Student</p>
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-              {studentTools.map((tool) => (
-                <button
-                  key={tool.id}
-                  onClick={() => handleToolSelect(tool.id)}
-                  className={`rounded-xl border p-4 text-left transition ${selectedTool === tool.id ? "border-orange-400 bg-orange-50" : "bg-white hover:bg-slate-50"}`}
-                >
-                  <div className="flex items-start gap-3">
-                    <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-orange-100 text-orange-600">
-                      <Sparkles className="h-3 w-3 sm:h-4 sm:w-4" />
-                    </span>
-                    <div>
-                      <p className="font-semibold text-xs sm:text-sm">{tool.name}</p>
-                      <p className="text-xs text-slate-600 mt-1">{tool.description}</p>
-                    </div>
-                  </div>
-                </button>
-              ))}
-            </div>
+        <CardContent className="space-y-3">
+          <div className="max-w-xl space-y-1.5">
+            <Label>Available tools</Label>
+            <Select
+              value={selectedTool || undefined}
+              onValueChange={(id) => handleToolSelect(id as ToolId)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Pick a tool…" />
+              </SelectTrigger>
+              <SelectContent className="max-h-80">
+                <div className="px-2 py-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  Student
+                </div>
+                {studentTools.map((tool) => (
+                  <SelectItem key={tool.id} value={tool.id}>
+                    {tool.name}
+                  </SelectItem>
+                ))}
+                <div className="mt-1 px-2 py-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  Teacher
+                </div>
+                {teacherTools.map((tool) => (
+                  <SelectItem key={tool.id} value={tool.id}>
+                    {TEACHER_TOOL_LABELS[tool.id] || tool.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
-          <div>
-            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Teacher</p>
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-              {teacherTools.map((tool) => (
-                <button
-                  key={tool.id}
-                  onClick={() => handleToolSelect(tool.id)}
-                  className={`rounded-xl border p-4 text-left transition ${selectedTool === tool.id ? "border-orange-400 bg-orange-50" : "bg-white hover:bg-slate-50"}`}
-                >
-                  <div className="flex items-start gap-3">
-                    <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-orange-100 text-orange-600">
-                      <Sparkles className="h-3 w-3 sm:h-4 sm:w-4" />
-                    </span>
-                    <div>
-                      <p className="font-semibold text-xs sm:text-sm">
-                        {TEACHER_TOOL_LABELS[tool.id] || tool.name}
-                      </p>
-                      <p className="text-xs text-slate-600 mt-1">{tool.description}</p>
-                    </div>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
+          {currentTool ? (
+            <p className="text-sm text-slate-600 rounded-lg border border-orange-100 bg-orange-50/60 px-3 py-2">
+              <span className="font-medium text-slate-900">{currentTool.name}</span>
+              {" — "}
+              {currentTool.description}
+            </p>
+          ) : null}
         </CardContent>
       </Card>
 

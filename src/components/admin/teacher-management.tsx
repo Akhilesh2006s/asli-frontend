@@ -37,6 +37,8 @@ import {
 import { AdminTeacherDailyDialog } from '@/components/admin/AdminTeacherDailyDialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import { formatSeatUsage, seatUsageHint, useAccountSeats } from '@/hooks/use-account-seats';
+import { useToast } from '@/hooks/use-toast';
+import { useConfirm } from '@/hooks/use-confirm';
 
 interface AssignedClassSummary {
   id: string;
@@ -333,6 +335,15 @@ function getTeacherInitials(fullName?: string): string {
 }
 
 const TeacherManagement = () => {
+  const { toast } = useToast();
+  const { confirm, ConfirmDialog } = useConfirm();
+  const notify = (message: string, variant: 'default' | 'destructive' = 'default') => {
+    toast({
+      title: variant === 'destructive' ? 'Error' : 'Notice',
+      description: message,
+      variant,
+    });
+  };
   const { seats, refresh: refreshSeats } = useAccountSeats();
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
@@ -551,12 +562,12 @@ const TeacherManagement = () => {
     
     // Validate required fields
     if (!newTeacher.fullName || !newTeacher.email || !newTeacher.password || !newTeacher.department || newTeacher.subjects.length === 0) {
-      alert('Please fill in all required fields: Name, Email, Password, Department, and at least one subject.');
+      notify('Please fill in all required fields: Name, Email, Password, Department, and at least one subject.');
       return;
     }
 
     if (newTeacher.password.length < 6) {
-      alert('Password must be at least 6 characters long.');
+      notify('Password must be at least 6 characters long.');
       return;
     }
     
@@ -577,7 +588,7 @@ const TeacherManagement = () => {
       } catch (jsonError) {
         const text = await response.text();
         console.error('Failed to parse JSON response:', text);
-        alert(`Failed to add teacher: Server returned invalid response. Status: ${response.status}`);
+        notify(`Failed to add teacher: Server returned invalid response. Status: ${response.status}`);
         return;
       }
       
@@ -586,16 +597,16 @@ const TeacherManagement = () => {
         setShowNewTeacherPassword(false);
         setIsAddDialogOpen(false);
         fetchTeachers();
-        alert('Teacher added successfully!');
+        notify('Teacher added successfully!');
       } else {
         const errorMsg = responseData.message || responseData.error || 'Unknown error occurred';
         console.error('Error response:', responseData);
-        alert(`Failed to add teacher: ${errorMsg}`);
+        notify(`Failed to add teacher: ${errorMsg}`);
       }
     } catch (error: any) {
       console.error('Failed to add teacher:', error);
       const errorMsg = error.message || 'Network error. Please check your connection and try again.';
-      alert(`Failed to add teacher: ${errorMsg}`);
+      notify(`Failed to add teacher: ${errorMsg}`);
     }
   };
 
@@ -606,7 +617,7 @@ const TeacherManagement = () => {
     try {
       const token = localStorage.getItem('authToken');
       if (!token) {
-        alert('Authentication token not found. Please log in again.');
+        notify('Authentication token not found. Please log in again.');
         return;
       }
 
@@ -623,63 +634,68 @@ const TeacherManagement = () => {
         setEditingTeacher(null);
         setIsEditDialogOpen(false);
         fetchTeachers();
-        alert('Teacher updated successfully!');
+        notify('Teacher updated successfully!');
       } else {
         const errorData = await response.json();
-        alert(`Failed to update teacher: ${errorData.message || 'Unknown error'}`);
+        notify(`Failed to update teacher: ${errorData.message || 'Unknown error'}`);
       }
     } catch (error) {
       console.error('Failed to update teacher:', error);
-      alert('Failed to update teacher. Please try again.');
+      notify('Failed to update teacher. Please try again.');
     }
   };
 
   const handleDeleteTeacher = async (teacherId: string, teacherName: string) => {
-    if (window.confirm(`Are you sure you want to delete ${teacherName}? This action cannot be undone.`)) {
-      try {
-        const token = localStorage.getItem('authToken');
-        if (!token) {
-          alert('Authentication token not found. Please log in again.');
-          return;
-        }
-
-        const response = await fetch(`${API_BASE_URL}/api/admin/teachers/${teacherId}`, {
-          method: 'DELETE',
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-
-        if (response.ok) {
-          setSelectedTeacherIds((prev) => prev.filter((id) => id !== teacherId));
-          fetchTeachers();
-          alert(`${teacherName} has been deleted successfully.`);
-        } else {
-          const errorData = await response.json();
-          alert(`Failed to delete teacher: ${errorData.message || 'Unknown error'}`);
-        }
-      } catch (error) {
-        console.error('Failed to delete teacher:', error);
-        alert('Failed to delete teacher. Please try again.');
+    const ok = await confirm({
+      title: `Delete ${teacherName}?`,
+      description: 'This action cannot be undone.',
+      confirmLabel: 'Delete',
+      destructive: true,
+    });
+    if (!ok) return;
+    try {
+      const token = localStorage.getItem('authToken');
+      if (!token) {
+        notify('Authentication token not found. Please log in again.', 'destructive');
+        return;
       }
+
+      const response = await fetch(`${API_BASE_URL}/api/admin/teachers/${teacherId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        setSelectedTeacherIds((prev) => prev.filter((id) => id !== teacherId));
+        fetchTeachers();
+        notify(`${teacherName} has been deleted successfully.`);
+      } else {
+        const errorData = await response.json();
+        notify(`Failed to delete teacher: ${errorData.message || 'Unknown error'}`, 'destructive');
+      }
+    } catch (error) {
+      console.error('Failed to delete teacher:', error);
+      notify('Failed to delete teacher. Please try again.', 'destructive');
     }
   };
 
   const handleBulkDeleteTeachers = async () => {
     if (selectedTeacherIds.length === 0) return;
     const count = selectedTeacherIds.length;
-    if (
-      !window.confirm(
-        `Delete ${count} selected teacher${count !== 1 ? 's' : ''}? This action cannot be undone.`,
-      )
-    ) {
-      return;
-    }
+    const ok = await confirm({
+      title: `Delete ${count} selected teacher${count !== 1 ? 's' : ''}?`,
+      description: 'This action cannot be undone.',
+      confirmLabel: 'Delete',
+      destructive: true,
+    });
+    if (!ok) return;
     setIsBulkDeleting(true);
     try {
       const token = localStorage.getItem('authToken');
       if (!token) {
-        alert('Authentication token not found. Please log in again.');
+        notify('Authentication token not found. Please log in again.');
         return;
       }
       const response = await fetch(`${API_BASE_URL}/api/admin/teachers/bulk-delete`, {
@@ -697,10 +713,10 @@ const TeacherManagement = () => {
       const deleted = Number(data.deletedCount ?? count);
       setSelectedTeacherIds([]);
       await fetchTeachers();
-      alert(`Deleted ${deleted} teacher${deleted !== 1 ? 's' : ''} successfully.`);
+      notify(`Deleted ${deleted} teacher${deleted !== 1 ? 's' : ''} successfully.`);
     } catch (error) {
       console.error('Bulk delete teachers failed:', error);
-      alert(error instanceof Error ? error.message : 'Failed to delete selected teachers.');
+      notify(error instanceof Error ? error.message : 'Failed to delete selected teachers.');
     } finally {
       setIsBulkDeleting(false);
     }
@@ -727,7 +743,7 @@ const TeacherManagement = () => {
     try {
       const token = localStorage.getItem('authToken');
       if (!token) {
-        alert('You are not authenticated. Please log in again.');
+        notify('You are not authenticated. Please log in again.');
         setIsUploading(false);
         return;
       }
@@ -768,7 +784,7 @@ const TeacherManagement = () => {
           }
         }
         
-        alert(message);
+        notify(message);
       } else {
         let errorData;
         try {
@@ -785,7 +801,7 @@ const TeacherManagement = () => {
         const errorMessage = errorData.message || 'Unknown error';
         const errorHint = errorData.hint ? `\n\nHint: ${errorData.hint}` : '';
         const fullError = errorData.error ? `${errorMessage}\n\nError details: ${errorData.error}${errorHint}` : `${errorMessage}${errorHint}`;
-        alert(`Failed to upload CSV: ${fullError}`);
+        notify(`Failed to upload CSV: ${fullError}`);
       }
     } catch (error) {
       console.error('Failed to upload CSV:', error);
@@ -802,7 +818,7 @@ const TeacherManagement = () => {
         errorMessage = error.message;
       }
       
-      alert(`Failed to upload CSV: ${errorMessage}\n\nPlease check:\n1. Your admin account has a board assigned\n2. The CSV file format is correct\n3. Your internet connection is stable\n4. The backend server is running at ${API_BASE_URL}`);
+      notify(`Failed to upload CSV: ${errorMessage}\n\nPlease check:\n1. Your admin account has a board assigned\n2. The CSV file format is correct\n3. Your internet connection is stable\n4. The backend server is running at ${API_BASE_URL}`);
     } finally {
       setIsUploading(false);
     }
@@ -826,7 +842,7 @@ Jane Smith,jane.smith@school.edu,TeacherPass2,1234567891,Science,MSc in Chemistr
 
   const handleAssignClasses = async (teacherId: string, classIds: string[]) => {
     if (!teacherId) {
-      alert('Invalid teacher ID');
+      notify('Invalid teacher ID');
       return;
     }
 
@@ -835,7 +851,7 @@ Jane Smith,jane.smith@school.edu,TeacherPass2,1234567891,Science,MSc in Chemistr
     try {
       const token = localStorage.getItem('authToken');
       if (!token) {
-        alert('Authentication token not found. Please log in again.');
+        notify('Authentication token not found. Please log in again.');
         return;
       }
 
@@ -879,19 +895,19 @@ Jane Smith,jane.smith@school.edu,TeacherPass2,1234567891,Science,MSc in Chemistr
         setIsAssignClassDialogOpen(false);
         setAssigningClassTeacher(null);
         setSelectedClasses([]);
-        alert('Classes assigned successfully!');
+        notify('Classes assigned successfully!');
       } else {
-        alert(`Failed to assign classes: ${responseData.message || 'Unknown error'}`);
+        notify(`Failed to assign classes: ${responseData.message || 'Unknown error'}`);
       }
     } catch (error) {
       console.error('Failed to assign classes:', error);
-      alert('Failed to assign classes. Please try again.');
+      notify('Failed to assign classes. Please try again.');
     }
   };
 
   const handleAssignSubjects = async (teacherId: string, subjectIds: string[]) => {
     if (!teacherId) {
-      alert('Invalid teacher ID');
+      notify('Invalid teacher ID');
       return;
     }
 
@@ -902,7 +918,7 @@ Jane Smith,jane.smith@school.edu,TeacherPass2,1234567891,Science,MSc in Chemistr
     try {
       const token = localStorage.getItem('authToken');
       if (!token) {
-        alert('Authentication token not found. Please log in again.');
+        notify('Authentication token not found. Please log in again.');
         return;
       }
 
@@ -985,14 +1001,14 @@ Jane Smith,jane.smith@school.edu,TeacherPass2,1234567891,Science,MSc in Chemistr
           console.warn('Server did not confirm assignment yet; keeping optimistic UI state.');
         }
 
-        alert('Subjects assigned successfully!');
+        notify('Subjects assigned successfully!');
       } else {
         console.error('Assignment failed:', responseData);
-        alert(`Failed to assign subjects: ${responseData.message || 'Unknown error'}`);
+        notify(`Failed to assign subjects: ${responseData.message || 'Unknown error'}`);
       }
     } catch (error) {
       console.error('Failed to assign subjects:', error);
-      alert('Failed to assign subjects. Please try again.');
+      notify('Failed to assign subjects. Please try again.');
     }
   };
 
@@ -1037,7 +1053,7 @@ Jane Smith,jane.smith@school.edu,TeacherPass2,1234567891,Science,MSc in Chemistr
   const handleAssignClassDialogSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!assigningClassTeacher) {
-      alert('Invalid teacher selected');
+      notify('Invalid teacher selected');
       return;
     }
 
@@ -1049,21 +1065,21 @@ Jane Smith,jane.smith@school.edu,TeacherPass2,1234567891,Science,MSc in Chemistr
       console.log('Teacher ID for assignment:', teacherId);
 
       if (!teacherId) {
-        alert('Invalid teacher ID');
+        notify('Invalid teacher ID');
         return;
       }
 
       await handleAssignClasses(teacherId, selectedClasses);
     } catch (error) {
       console.error('Failed to assign classes:', error);
-      alert('Failed to assign classes. Please try again.');
+      notify('Failed to assign classes. Please try again.');
     }
   };
 
   const handleAssignDialogSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!assigningTeacher) {
-      alert('Invalid teacher selected');
+      notify('Invalid teacher selected');
       return;
     }
 
@@ -1073,7 +1089,7 @@ Jane Smith,jane.smith@school.edu,TeacherPass2,1234567891,Science,MSc in Chemistr
     // Use _id if id is not available (backend returns _id)
     const teacherId = assigningTeacher.id || (assigningTeacher as any)._id;
     if (!teacherId) {
-      alert('Invalid teacher ID');
+      notify('Invalid teacher ID');
       return;
     }
 
@@ -1095,7 +1111,7 @@ Jane Smith,jane.smith@school.edu,TeacherPass2,1234567891,Science,MSc in Chemistr
       setSelectedSubjects([]);
     } catch (error) {
       console.error('Failed to assign subjects:', error);
-      alert('Failed to assign subjects. Please try again.');
+      notify('Failed to assign subjects. Please try again.');
     }
   };
 
@@ -1242,7 +1258,7 @@ Jane Smith,jane.smith@school.edu,TeacherPass2,1234567891,Science,MSc in Chemistr
                 placeholder="Search teachers..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="px-0 pl-12 sm:pl-12 w-full sm:w-64 border-orange-200 focus:border-orange-400 bg-white/80 rounded-xl"
+                className="pl-10 w-full sm:w-64 border-orange-200 focus:border-orange-400 bg-white/80 rounded-xl"
               />
             </div>
             <Button variant="outline" className="border-orange-200 text-orange-700 hover:bg-orange-50 rounded-xl">
@@ -1250,7 +1266,7 @@ Jane Smith,jane.smith@school.edu,TeacherPass2,1234567891,Science,MSc in Chemistr
               Filter
             </Button>
             {sortedFilteredTeachers.length > 0 ? (
-              <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer select-none">
+              <label className="flex w-full sm:w-auto shrink-0 items-center gap-2 rounded-xl border border-orange-100 bg-white/80 px-3 py-2 text-sm text-gray-700 cursor-pointer select-none">
                 <Checkbox
                   checked={allVisibleSelected}
                   onCheckedChange={() => toggleSelectAllVisible()}
@@ -1921,6 +1937,7 @@ Jane Smith,jane.smith@school.edu,TeacherPass2,1234567891,Science,MSc in Chemistr
               : []
           }
         />
+        {ConfirmDialog}
       </div>
     </div>
   );

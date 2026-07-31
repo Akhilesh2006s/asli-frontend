@@ -710,3 +710,11 @@ body.dashboard-no-scrollbar::-webkit-scrollbar {
   height: 0;
   width: 0;
 }
+
+/* Visible text cursor in all editable fields (QA: cursor missing in some dashboards) */
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="button"]):not([type="submit"]):not([type="reset"]),
+textarea,
+[contenteditable="true"] {
+  caret-color: #0f172a;
+  cursor: text;
+}

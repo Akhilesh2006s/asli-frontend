@@ -115,18 +115,25 @@ export function SuperAdminSidebar({ currentView, onViewChange, user, onLogout }:
   const sidebarContent = (
     <div className="flex h-full min-h-0 flex-col">
       <div className="shrink-0 p-3 sm:p-4 lg:p-6 pb-2">
-        <div
+        <button
+          type="button"
+          onClick={() => {
+            onViewChange("dashboard");
+            setMobileOpen(false);
+          }}
           className={cn(
-            "flex items-center mb-4 lg:mb-6",
-            useDrawerNav ? "space-x-3" : "justify-center lg:justify-start lg:space-x-3",
+            "flex w-full items-center mb-4 lg:mb-6 rounded-lg text-left transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60",
+            useDrawerNav ? "space-x-3 px-1 py-1" : "justify-center lg:justify-start lg:space-x-3 px-1 py-1",
           )}
+          aria-label="Go to Super Admin home"
+          title="Home"
         >
           <GraduationCapIcon className="h-5 w-5 lg:h-8 lg:w-8 text-white shrink-0" />
           <div className={cn(!useDrawerNav && "hidden lg:block")}>
             <h2 className="text-sm sm:text-base lg:text-lg font-bold text-white">Aslilearn AI</h2>
             <p className="text-xs text-orange-100/90">Super Admin</p>
           </div>
-        </div>
+        </button>
       </div>
 
       <nav className="super-admin-sidebar-nav min-h-0 flex-1 space-y-1 overflow-y-auto overflow-x-hidden px-0 pb-2">
@@ -165,6 +172,17 @@ export function SuperAdminSidebar({ currentView, onViewChange, user, onLogout }:
           <LogOut className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0 lg:mr-3" />
           <span className={cn(!useDrawerNav && "hidden lg:inline")}>Logout</span>
         </button>
+        <a
+          href="mailto:hello@aslilearn.ai?subject=AsliLearn%20support%20request"
+          className={cn(
+            "w-full flex items-center rounded-lg transition-colors text-white/95 border border-white/25 hover:bg-white/15",
+            "px-3 py-2 lg:px-4 lg:py-2.5 text-xs sm:text-sm font-medium",
+            !useDrawerNav && "justify-center lg:justify-start",
+          )}
+        >
+          <span className={cn(!useDrawerNav && "hidden lg:inline")}>Contact Support</span>
+          <span className={cn(useDrawerNav ? "hidden" : "lg:hidden")}>?</span>
+        </a>
       </div>
     </div>
   );
@@ -174,7 +192,15 @@ export function SuperAdminSidebar({ currentView, onViewChange, user, onLogout }:
       <>
         <div className="fixed top-0 left-0 right-0 z-30 bg-gradient-to-r from-orange-400 to-orange-500 border-b border-orange-300 shadow-md pt-[env(safe-area-inset-top,0px)]">
           <div className="h-14 px-4 flex items-center justify-between min-h-[3.5rem] gap-2">
-            <div className="flex items-center space-x-2 min-w-0">
+            <button
+              type="button"
+              onClick={() => {
+                onViewChange("dashboard");
+                setMobileOpen(false);
+              }}
+              className="flex items-center space-x-2 min-w-0 rounded-md px-1 py-1 text-left hover:bg-white/10"
+              aria-label="Go to Super Admin home"
+            >
               <GraduationCapIcon className="h-5 w-5 text-white shrink-0" />
               <div className="min-w-0">
                 <h2 className="text-xs sm:text-sm font-bold text-white leading-none truncate">
@@ -182,7 +208,7 @@ export function SuperAdminSidebar({ currentView, onViewChange, user, onLogout }:
                 </h2>
                 <p className="text-micro text-orange-100/90">Super Admin</p>
               </div>
-            </div>
+            </button>
             <div className="flex items-center gap-1 shrink-0">
               <Button
                 variant="ghost"

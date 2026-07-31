@@ -10,9 +10,24 @@ interface AdminChatUIProps {
 
 export function AdminChatUI({ model, className }: AdminChatUIProps) {
   const quickActions = [
-    { label: "Students", icon: Users, tone: "border-sky-200 text-sky-700 hover:bg-sky-50" },
-    { label: "Exams", icon: CalendarDays, tone: "border-teal-200 text-teal-700 hover:bg-teal-50" },
-    { label: "Reports", icon: BarChart3, tone: "border-emerald-200 text-emerald-700 hover:bg-emerald-50" },
+    {
+      label: "Students",
+      icon: Users,
+      tone: "border-sky-200 text-sky-700 hover:bg-sky-50",
+      prompt: "How many students are there in the application?",
+    },
+    {
+      label: "Exams",
+      icon: CalendarDays,
+      tone: "border-teal-200 text-teal-700 hover:bg-teal-50",
+      prompt: "How many exams are scheduled this week?",
+    },
+    {
+      label: "Reports",
+      icon: BarChart3,
+      tone: "border-emerald-200 text-emerald-700 hover:bg-emerald-50",
+      prompt: "Which class has the highest student count?",
+    },
   ];
 
   const turns = Math.max(0, Math.floor(model.displayMessages.length / 2));
@@ -60,7 +75,8 @@ export function AdminChatUI({ model, className }: AdminChatUIProps) {
               <div className="min-w-0">
                 <h3 className="text-base sm:text-lg font-semibold text-slate-900">School AI Assistant</h3>
                 <p className="text-xs sm:text-sm text-slate-600">
-                  School-scoped metrics from your live database — ask counts, exams, attendance proxy, and AI usage.
+                  School-scoped metrics from your live database — counts, exams scheduled, attendance proxy, and AI usage.
+                  This assistant does not provide exam answer keys or solve student papers.
                 </p>
               </div>
             </div>
@@ -88,7 +104,7 @@ export function AdminChatUI({ model, className }: AdminChatUIProps) {
                   variant="outline"
                   size="sm"
                   className={`rounded-lg bg-white ${action.tone}`}
-                  onClick={() => model.onPromptClick(`Show ${action.label.toLowerCase()} overview`)}
+                  onClick={() => model.onPromptClick(action.prompt)}
                 >
                   <Icon className="mr-2 h-3 w-3 sm:h-4 sm:w-4" />
                   {action.label}

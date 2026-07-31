@@ -97,6 +97,7 @@ export function AdminShell({
       orgName={branding?.schoolName || "AsliLearn AI"}
       orgSubtitle="Admin Portal"
       orgLogoUrl={branding?.schoolLogo || undefined}
+      homeHref="/admin/dashboard"
       user={{ name, role: "Admin" }}
       onLogout={handleLogout}
       showUpgrade={false}

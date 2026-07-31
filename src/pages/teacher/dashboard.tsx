@@ -228,6 +228,14 @@ interface Assessment {
 
 
 const TeacherDashboard = () => {
+  const { toast } = useToast();
+  const notify = (message, variant = 'default') => {
+    toast({
+      title: variant === 'destructive' ? 'Error' : 'Notice',
+      description: message,
+      variant,
+    });
+  };
   const [dashboardSubTab, setDashboardSubTab] = useState<
     | 'ai-classes'
     | 'classes'
@@ -485,13 +493,26 @@ const TeacherDashboard = () => {
   // Homework creation form state
   const [isHomeworkModalOpen, setIsHomeworkModalOpen] = useState(false);
   const [isCreatingHomework, setIsCreatingHomework] = useState(false);
+  const localYmd = () => {
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  };
   const [homeworkForm, setHomeworkForm] = useState({
     title: '',
     description: '',
     subject: '',
     classNumber: '',
     topic: '',
-    date: new Date().toISOString().split('T')[0],
+    date: (() => {
+      const d = new Date();
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
+    })(),
     deadline: '',
     fileUrl: ''
   });
@@ -887,14 +908,14 @@ const TeacherDashboard = () => {
 
       if (response.ok) {
         setVideos(prev => prev.filter(v => v.id !== video.id));
-        alert('Video deleted successfully!');
+        notify('Video deleted successfully!');
       } else {
         const error = await response.json().catch(() => ({ message: 'Failed to delete video' }));
-        alert(`Failed to delete video: ${error.message}`);
+        notify(`Failed to delete video: ${error.message}`);
       }
     } catch (error) {
       console.error('Delete video error:', error);
-      alert('Failed to delete video. Please try again.');
+      notify('Failed to delete video. Please try again.');
     }
   };
 
@@ -975,7 +996,7 @@ const TeacherDashboard = () => {
         setVideos(prev => [normalized, ...prev]);
 
         // Show success message first
-        alert('Video created successfully!');
+        notify('Video created successfully!');
 
         // Close modal and reset form without re-fetching to avoid disappearance
         setIsAddVideoModalOpen(false);
@@ -983,11 +1004,11 @@ const TeacherDashboard = () => {
       } else {
         const error = await response.json().catch(() => ({ message: 'Unknown error' }));
         console.log('Video creation error details:', error);
-        alert(`Failed to create video: ${error.message || error.error || 'Server error'}`);
+        notify(`Failed to create video: ${error.message || error.error || 'Server error'}`);
       }
     } catch (error) {
       console.error('Failed to create video:', error);
-      alert(`Failed to create video: ${error.message || 'Please check your internet connection and try again.'}`);
+      notify(`Failed to create video: ${error.message || 'Please check your internet connection and try again.'}`);
     } finally {
       setIsCreatingVideo(false);
     }
@@ -995,7 +1016,7 @@ const TeacherDashboard = () => {
 
   const handleGenerateLessonPlan = async () => {
     if (!lessonPlanForm.subject || !lessonPlanForm.topic || !lessonPlanForm.gradeLevel) {
-      alert('Please fill in all required fields');
+      notify('Please fill in all required fields');
       return;
     }
 
@@ -1017,11 +1038,11 @@ const TeacherDashboard = () => {
         setGeneratedLessonPlan(result.lessonPlan);
       } else {
         const error = await response.json();
-        alert(`Failed to generate lesson plan: ${error.message || 'Unknown error'}`);
+        notify(`Failed to generate lesson plan: ${error.message || 'Unknown error'}`);
       }
     } catch (error) {
       console.error('Failed to generate lesson plan:', error);
-      alert('Failed to generate lesson plan. Please try again.');
+      notify('Failed to generate lesson plan. Please try again.');
     } finally {
       setIsGeneratingLessonPlan(false);
     }
@@ -1029,7 +1050,7 @@ const TeacherDashboard = () => {
 
   const handleGenerateQuiz = async () => {
     if (!quizForm.subject || !quizForm.topic || !quizForm.gradeLevel || !quizForm.questionCount) {
-      alert('Please fill in all required fields');
+      notify('Please fill in all required fields');
       return;
     }
 
@@ -1057,7 +1078,7 @@ const TeacherDashboard = () => {
 
       if (!generateResponse.ok) {
         const error = await generateResponse.json();
-        alert(`Failed to generate quiz: ${error.message || 'Unknown error'}`);
+        notify(`Failed to generate quiz: ${error.message || 'Unknown error'}`);
         setIsGeneratingQuiz(false);
         return;
       }
@@ -1084,7 +1105,7 @@ const TeacherDashboard = () => {
       } catch (parseError) {
         console.error('Failed to parse quiz questions:', parseError);
         console.error('Raw response:', result.data.testQuestions);
-        alert('Failed to parse generated quiz. The AI response may be malformed. Please try again.');
+        notify('Failed to parse generated quiz. The AI response may be malformed. Please try again.');
         setIsGeneratingQuiz(false);
         return;
       }
@@ -1102,7 +1123,7 @@ const TeacherDashboard = () => {
       );
       
       if (!selectedSubject) {
-        alert('Subject not found. Please select a valid subject.');
+        notify('Subject not found. Please select a valid subject.');
         setIsGeneratingQuiz(false);
         return;
       }
@@ -1181,16 +1202,16 @@ const TeacherDashboard = () => {
             });
 
             if (assignResponse.ok) {
-              alert(`Quiz generated and assigned to ${quizForm.assignedClasses.length} class(es) successfully!`);
+              notify(`Quiz generated and assigned to ${quizForm.assignedClasses.length} class(es) successfully!`);
             } else {
-              alert('Quiz generated and saved but failed to assign to classes. You can assign it later.');
+              notify('Quiz generated and saved but failed to assign to classes. You can assign it later.');
             }
           } catch (assignError) {
             console.error('Failed to assign quiz:', assignError);
-            alert('Quiz generated and saved but failed to assign to classes. You can assign it later.');
+            notify('Quiz generated and saved but failed to assign to classes. You can assign it later.');
           }
         } else {
-          alert('Quiz generated and saved successfully!');
+          notify('Quiz generated and saved successfully!');
         }
         
         // Don't clear the generated quiz - keep it visible so user can see it
@@ -1223,11 +1244,11 @@ const TeacherDashboard = () => {
           errorMessage = errorText || 'Failed to parse error response';
           console.error('Failed to parse error response:', errorText);
         }
-        alert(`Quiz generated but failed to save: ${errorMessage}`);
+        notify(`Quiz generated but failed to save: ${errorMessage}`);
       }
     } catch (error) {
       console.error('Failed to generate quiz:', error);
-      alert('Failed to generate quiz. Please try again.');
+      notify('Failed to generate quiz. Please try again.');
     } finally {
       setIsGeneratingQuiz(false);
     }
@@ -1268,12 +1289,17 @@ const TeacherDashboard = () => {
     e.preventDefault();
     
     if (!homeworkForm.title || !homeworkForm.subject || !homeworkForm.date || !homeworkForm.deadline) {
-      alert('Please fill in all required fields');
+      notify('Please fill in all required fields');
+      return;
+    }
+
+    if (homeworkForm.deadline < homeworkForm.date) {
+      notify('Deadline must be on or after the homework date');
       return;
     }
 
     if (!homeworkForm.fileUrl && !selectedHomeworkFile) {
-      alert('Please provide a file URL or upload a file');
+      notify('Please provide a file URL or upload a file');
       return;
     }
 
@@ -1308,7 +1334,7 @@ const TeacherDashboard = () => {
       if (response.ok) {
         const data = await response.json();
         if (data.success) {
-          alert('Homework created successfully!');
+          notify('Homework created successfully!');
           setIsHomeworkModalOpen(false);
           setHomeworkForm({
             title: '',
@@ -1316,7 +1342,7 @@ const TeacherDashboard = () => {
             subject: '',
             classNumber: '',
             topic: '',
-            date: new Date().toISOString().split('T')[0],
+            date: localYmd(),
             deadline: '',
             fileUrl: ''
           });
@@ -1324,15 +1350,15 @@ const TeacherDashboard = () => {
           // Refresh homework submissions
           fetchHomeworkSubmissions();
         } else {
-          alert(data.message || 'Failed to create homework');
+          notify(data.message || 'Failed to create homework');
         }
       } else {
         const error = await response.json();
-        alert(error.message || 'Failed to create homework');
+        notify(error.message || 'Failed to create homework');
       }
     } catch (error) {
       console.error('Create homework error:', error);
-      alert('Failed to create homework. Please try again.');
+      notify('Failed to create homework. Please try again.');
     } finally {
       setIsCreatingHomework(false);
     }
@@ -1340,7 +1366,7 @@ const TeacherDashboard = () => {
 
   const handleSaveQuiz = async () => {
     if (!generatedQuiz || !generatedQuiz.parsedQuestions) {
-      alert('No quiz to save. Please generate a quiz first.');
+      notify('No quiz to save. Please generate a quiz first.');
       return;
     }
 
@@ -1354,7 +1380,7 @@ const TeacherDashboard = () => {
       );
       
       if (!selectedSubject) {
-        alert('Subject not found. Please select a valid subject.');
+        notify('Subject not found. Please select a valid subject.');
         setIsSavingQuiz(false);
         return;
       }
@@ -1413,16 +1439,16 @@ const TeacherDashboard = () => {
             });
 
             if (assignResponse.ok) {
-              alert(`Quiz saved and assigned to ${quizForm.assignedClasses.length} class(es) successfully!`);
+              notify(`Quiz saved and assigned to ${quizForm.assignedClasses.length} class(es) successfully!`);
             } else {
-              alert('Quiz saved but failed to assign to classes. You can assign it later.');
+              notify('Quiz saved but failed to assign to classes. You can assign it later.');
             }
           } catch (assignError) {
             console.error('Failed to assign quiz:', assignError);
-            alert('Quiz saved but failed to assign to classes. You can assign it later.');
+            notify('Quiz saved but failed to assign to classes. You can assign it later.');
           }
         } else {
-          alert('Quiz saved successfully!');
+          notify('Quiz saved successfully!');
         }
         
         setGeneratedQuiz(null);
@@ -1436,11 +1462,11 @@ const TeacherDashboard = () => {
         });
       } else {
         const error = await response.json();
-        alert(`Failed to save quiz: ${error.message || 'Unknown error'}`);
+        notify(`Failed to save quiz: ${error.message || 'Unknown error'}`);
       }
     } catch (error) {
       console.error('Failed to save quiz:', error);
-      alert('Failed to save quiz. Please try again.');
+      notify('Failed to save quiz. Please try again.');
     } finally {
       setIsSavingQuiz(false);
     }
@@ -1448,7 +1474,7 @@ const TeacherDashboard = () => {
 
   const handleGradeWork = async () => {
     if (!gradingForm.studentWork && !gradingForm.uploadedFile) {
-      alert('Please provide student work or upload a file');
+      notify('Please provide student work or upload a file');
       return;
     }
 
@@ -1477,11 +1503,11 @@ const TeacherDashboard = () => {
         setGradingResult(result.grading || result.result || 'Grading completed successfully');
       } else {
         const error = await response.json();
-        alert(`Failed to grade work: ${error.message || 'Unknown error'}`);
+        notify(`Failed to grade work: ${error.message || 'Unknown error'}`);
       }
     } catch (error) {
       console.error('Failed to grade work:', error);
-      alert('Failed to grade work. Please try again.');
+      notify('Failed to grade work. Please try again.');
     } finally {
       setIsGrading(false);
     }
@@ -3026,13 +3052,13 @@ const TeacherDashboard = () => {
                                   if (studentsSubTab === 'track-progress') {
                                     fetchAiProgressInsights(trackProgressFilteredStudents);
                                   }
-                                  alert('Remark added successfully!');
+                                  notify('Remark added successfully!');
                                 } else {
-                                  alert(data.message || 'Failed to add remark');
+                                  notify(data.message || 'Failed to add remark');
                                 }
                               } catch (error) {
                                 console.error('Error adding remark:', error);
-                                alert('Failed to add remark. Please try again.');
+                                notify('Failed to add remark. Please try again.');
                               } finally {
                                 setIsSubmittingRemark(false);
                               }
@@ -4226,7 +4252,7 @@ const TeacherDashboard = () => {
                     subject: '',
                     classNumber: '',
                     topic: '',
-                    date: new Date().toISOString().split('T')[0],
+                    date: localYmd(),
                     deadline: '',
                     fileUrl: ''
                   });

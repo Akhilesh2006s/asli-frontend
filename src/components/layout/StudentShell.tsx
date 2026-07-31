@@ -106,6 +106,7 @@ export function StudentShell({
       orgName={branding?.schoolName || "AsliLearn AI"}
       orgSubtitle="Student Portal"
       orgLogoUrl={branding?.schoolLogo || undefined}
+      homeHref="/dashboard"
       user={{ name: getStudentDisplayName(user) || "Student", role: "Student" }}
       onLogout={handleLogout}
       showUpgrade

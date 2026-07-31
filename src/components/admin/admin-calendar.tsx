@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
+import { useConfirm } from '@/hooks/use-confirm';
 import { API_BASE_URL } from '@/lib/api-config';
 import { 
   ChevronLeft, 
@@ -38,6 +39,7 @@ interface Event {
 
 export default function AdminCalendar() {
   const { toast } = useToast();
+  const { confirm, ConfirmDialog } = useConfirm();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [events, setEvents] = useState<Event[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
@@ -209,17 +211,20 @@ export default function AdminCalendar() {
   const handleDateClick = (date: Date) => {
     // Normalize date to local timezone to avoid timezone issues
     const normalizedDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    if (normalizedDate < todayStart) {
+      toast({
+        title: "Past date",
+        description: "You can view past days, but new events can only be added for today or future dates.",
+        variant: "destructive",
+      });
+      return;
+    }
     const year = normalizedDate.getFullYear();
     const month = String(normalizedDate.getMonth() + 1).padStart(2, '0');
     const day = String(normalizedDate.getDate()).padStart(2, '0');
     const dateString = `${year}-${month}-${day}`;
-    
-    console.log('Date clicked:', {
-      originalDate: date,
-      normalizedDate: normalizedDate,
-      dateString: dateString,
-      dayOfMonth: date.getDate()
-    });
     
     setSelectedDate(normalizedDate);
     setEventForm({
@@ -298,7 +303,26 @@ export default function AdminCalendar() {
 
   // Handle delete event
   const handleDeleteEvent = async (event: Event) => {
-    if (!confirm('Are you sure you want to delete this event?')) {
+    const eventDay = new Date(event.date);
+    eventDay.setHours(0, 0, 0, 0);
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    if (eventDay < todayStart) {
+      toast({
+        title: "Locked",
+        description: "Past events cannot be deleted.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const ok = await confirm({
+      title: 'Delete this event?',
+      description: 'This action cannot be undone.',
+      confirmLabel: 'Delete',
+      destructive: true,
+    });
+    if (!ok) {
       return;
     }
 
@@ -338,6 +362,18 @@ export default function AdminCalendar() {
   const handleEditEvent = (event: Event, e?: React.MouseEvent) => {
     if (e && typeof e.stopPropagation === 'function') {
       e.stopPropagation();
+    }
+    const eventDay = new Date(event.date);
+    eventDay.setHours(0, 0, 0, 0);
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    if (eventDay < todayStart) {
+      toast({
+        title: "Locked",
+        description: "Past events cannot be edited.",
+        variant: "destructive",
+      });
+      return;
     }
     setEditingEvent(event);
     setIsEditMode(true);
@@ -764,6 +800,20 @@ export default function AdminCalendar() {
                 </div>
               )}
               {selectedEvent.type !== 'exam' ? (
+                (() => {
+                  const eventDay = new Date(selectedEvent.date);
+                  eventDay.setHours(0, 0, 0, 0);
+                  const todayStart = new Date();
+                  todayStart.setHours(0, 0, 0, 0);
+                  const isPastEvent = eventDay < todayStart;
+                  if (isPastEvent) {
+                    return (
+                      <p className="text-sm text-slate-500 text-right">
+                        Past events are locked (view only).
+                      </p>
+                    );
+                  }
+                  return (
                 <div className="flex justify-end space-x-2">
                   <Button
                     variant="outline"
@@ -786,11 +836,14 @@ export default function AdminCalendar() {
                     Delete
                   </Button>
                 </div>
+                  );
+                })()
               ) : null}
             </div>
           )}
         </DialogContent>
       </Dialog>
+      {ConfirmDialog}
     </div>
   );
 }

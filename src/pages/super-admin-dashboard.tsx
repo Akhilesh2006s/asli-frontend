@@ -983,19 +983,40 @@ export default function SuperAdminDashboard() {
       </Card>
       
       <Card>
-        <CardContent className="p-3 sm:p-4 lg:p-6">
-          <div className="text-center py-4 sm:py-6 lg:py-8">
-            <SettingsIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2">Shortcuts</h3>
-            <p className="text-gray-600 mb-4">Quick links to main modules</p>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base sm:text-lg">Shortcuts</CardTitle>
+          <p className="text-sm text-slate-600">Jump to the modules you use most.</p>
+        </CardHeader>
+        <CardContent className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3 p-3 sm:p-4 lg:p-6 pt-0">
+          {[
+            { label: "Analytics", view: "analytics" as const },
+            { label: "Subjects & content", view: "subjects-and-content" as const },
+            { label: "Exams", view: "exams" as const },
+            { label: "Subscriptions", view: "subscriptions" as const },
+            { label: "Vidya AI", view: "vidya-ai" as const },
+            { label: "Calendar", view: "calendar" as const },
+          ].map((item) => (
             <Button
+              key={item.view}
               type="button"
-              variant="secondary"
-              onClick={() => setSystemSettingsOpen(true)}
+              variant="outline"
+              className="justify-start"
+              onClick={() => setCurrentView(item.view)}
             >
-              Open Settings
+              {item.label}
             </Button>
-          </div>
+          ))}
+          <Button
+            type="button"
+            variant="secondary"
+            className="justify-start sm:col-span-2 lg:col-span-3"
+            onClick={() => setSystemSettingsOpen(true)}
+          >
+            Open system dialog
+          </Button>
+          <p className="sm:col-span-2 lg:col-span-3 text-xs text-slate-500">
+            Appearance stays light-only for consistent school demos. Dark mode is not enabled yet.
+          </p>
         </CardContent>
       </Card>
     </div>
@@ -1005,27 +1026,51 @@ export default function SuperAdminDashboard() {
     const quickActions = [
       {
         title: "View AI Usage Reports",
-        description: "Review adoption and query patterns by school",
+        description: "Open Analytics → Exam & AI usage across schools",
         icon: BarChart3Icon,
-        prompt: "Show AI usage statistics across schools",
+        run: () => setCurrentView("analytics"),
       },
       {
         title: "Monitor Active Sessions",
-        description: "Track live AI conversations across organizations",
+        description: "Ask Vidya about live AI conversation spikes",
         icon: Monitor,
-        prompt: "Monitor active AI sessions and highlight spikes",
+        run: () => {
+          document.getElementById("super-admin-vidya-chat")?.scrollIntoView({ behavior: "smooth", block: "start" });
+          window.setTimeout(() => {
+            window.dispatchEvent(
+              new CustomEvent("vidya-chat-prefill", {
+                detail: {
+                  role: "super_admin",
+                  message: "Monitor active AI sessions and highlight spikes across schools",
+                },
+              }),
+            );
+          }, 150);
+        },
       },
       {
         title: "Configure AI Models",
-        description: "Tune model behavior and global response controls",
+        description: "Open Vidya AI preferences and response depth",
         icon: BrainCircuitIcon,
-        prompt: "Configure model behavior and recommended guardrails",
+        run: () => setVidyaSettingsOpen(true),
       },
       {
         title: "Risk & Compliance Insights",
-        description: "Audit policy exceptions and moderation signals",
+        description: "Ask Vidya about anomalies and compliance risks",
         icon: Shield,
-        prompt: "Detect anomalies in AI responses and compliance risks",
+        run: () => {
+          document.getElementById("super-admin-vidya-chat")?.scrollIntoView({ behavior: "smooth", block: "start" });
+          window.setTimeout(() => {
+            window.dispatchEvent(
+              new CustomEvent("vidya-chat-prefill", {
+                detail: {
+                  role: "super_admin",
+                  message: "Detect anomalies in AI responses and compliance risks",
+                },
+              }),
+            );
+          }, 150);
+        },
       },
     ];
 
@@ -1049,16 +1094,7 @@ export default function SuperAdminDashboard() {
               <Card
                 key={action.title}
                 className="cursor-pointer border-slate-200 bg-white shadow-sm transition-shadow hover:shadow-md"
-                onClick={() =>
-                  window.dispatchEvent(
-                    new CustomEvent("vidya-chat-prefill", {
-                      detail: {
-                        role: "super_admin",
-                        message: action.prompt,
-                      },
-                    })
-                  )
-                }
+                onClick={() => action.run()}
               >
                 <CardContent className="p-4">
                   <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-orange-100 to-orange-200 flex items-center justify-center mb-3">
@@ -1072,59 +1108,21 @@ export default function SuperAdminDashboard() {
           })}
         </div>
 
-        <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_320px] gap-3 sm:p-4 lg:p-6 items-start">
-          <div className="w-full rounded-2xl bg-[#F5F7FA] border border-slate-200 shadow-[0_20px_40px_-30px_rgba(15,23,42,0.8)] p-2">
-            <Suspense fallback={lazySectionFallback}>
-              <AIChat
-                userId="super-admin"
-                context={{}}
-                promptVariant="super-admin"
-                className="w-full h-[640px]"
-              />
-            </Suspense>
+        <div id="super-admin-vidya-chat" className="w-full rounded-2xl bg-[#F5F7FA] border border-slate-200 shadow-[0_20px_40px_-30px_rgba(15,23,42,0.8)] p-2">
+          <div className="mb-2 flex flex-wrap items-center justify-between gap-2 px-2 pt-2">
+            <p className="text-sm font-medium text-slate-700">Vidya chat</p>
+            <Button type="button" variant="outline" size="sm" onClick={() => setVidyaSettingsOpen(true)}>
+              Vidya preferences
+            </Button>
           </div>
-
-          <Card className="border-slate-200 shadow-sm bg-white">
-            <CardHeader className="pb-3 border-b border-slate-100">
-              <CardTitle className="text-sm sm:text-base font-semibold text-slate-900 flex items-center gap-2">
-                <Grid3x3 className="w-3 h-3 sm:w-4 sm:h-4 text-orange-500" />
-                AI Operations Panel
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-4 space-y-4">
-              <div className="p-3 rounded-lg border border-slate-200 bg-slate-50">
-                <p className="text-xs uppercase tracking-wide text-slate-500">AI Status</p>
-                <div className="mt-1 flex items-center justify-between">
-                  <span className="text-xs sm:text-sm font-medium text-slate-800">Inference Service</span>
-                  <Badge className="bg-green-100 text-green-700 hover:bg-green-100">Online</Badge>
-                </div>
-              </div>
-
-              <div className="p-3 rounded-lg border border-slate-200 bg-slate-50">
-                <p className="text-xs uppercase tracking-wide text-slate-500">Model Version</p>
-                <div className="mt-1 flex items-center justify-between">
-                  <span className="text-xs sm:text-sm font-medium text-slate-800">Primary Model</span>
-                  <span className="text-xs sm:text-sm text-slate-600">v3.2.1</span>
-                </div>
-              </div>
-
-              <div className="p-3 rounded-lg border border-slate-200 bg-slate-50">
-                <p className="text-xs uppercase tracking-wide text-slate-500">Active Requests</p>
-                <div className="mt-1 flex items-center justify-between">
-                  <span className="text-xs sm:text-sm font-medium text-slate-800">Current Queue</span>
-                  <span className="text-xs sm:text-sm font-semibold text-orange-600">124</span>
-                </div>
-              </div>
-
-              <Button
-                type="button"
-                className="w-full bg-gradient-to-r from-orange-400 to-orange-500 hover:from-orange-500 hover:to-orange-600"
-                onClick={() => setVidyaSettingsOpen(true)}
-              >
-                Open System Controls
-              </Button>
-            </CardContent>
-          </Card>
+          <Suspense fallback={lazySectionFallback}>
+            <AIChat
+              userId="super-admin"
+              context={{}}
+              promptVariant="super-admin"
+              className="w-full h-[640px]"
+            />
+          </Suspense>
         </div>
       </div>
     );

@@ -2384,34 +2384,29 @@ export default function ExamManagement() {
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div>
-                  <Label htmlFor="classSearch">Assigned Classes *</Label>
-                  <Input
-                    id="classSearch"
-                    value={classModalSearch}
-                    onChange={(e) => setClassModalSearch(e.target.value)}
-                    placeholder="Search class..."
-                  />
-                  <div className="mt-2 max-h-32 overflow-y-auto rounded-md border bg-white p-2 space-y-2">
-                    {CLASS_OPTIONS.filter((cls) => `Class ${cls}`.toLowerCase().includes(classModalSearch.toLowerCase())).map((cls) => (
-                      <label key={cls} className="flex items-center gap-2 text-xs sm:text-sm">
-                        <input
-                          type="checkbox"
-                          checked={formData.assignedClasses.includes(cls)}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              const next = [...formData.assignedClasses, cls];
-                              setFormData({ ...formData, assignedClasses: next, classNumber: next[0] || '' });
-                            } else {
-                              const next = formData.assignedClasses.filter((c) => c !== cls);
-                              setFormData({ ...formData, assignedClasses: next, classNumber: next[0] || '' });
-                            }
-                          }}
-                          className="h-3 w-3 sm:h-4 sm:w-4 rounded border border-gray-400 accent-orange-500"
-                        />
-                        <span>{`Class ${cls}`}</span>
-                      </label>
-                    ))}
-                  </div>
+                  <Label htmlFor="exam-class-select">Assigned Classes *</Label>
+                  <Select
+                    onValueChange={(cls) => {
+                      if (!cls || formData.assignedClasses.includes(cls)) return;
+                      const next = [...formData.assignedClasses, cls];
+                      setFormData({ ...formData, assignedClasses: next, classNumber: next[0] || '' });
+                    }}
+                  >
+                    <SelectTrigger id="exam-class-select" className="mt-1">
+                      <SelectValue placeholder="Add a class from the list…" />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-64">
+                      {CLASS_OPTIONS.map((cls) => (
+                        <SelectItem
+                          key={cls}
+                          value={cls}
+                          disabled={formData.assignedClasses.includes(cls)}
+                        >
+                          {`Class ${cls}`}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <div className="mt-2 flex flex-wrap gap-2">
                     {formData.assignedClasses.map((cls) => (
                       <Badge key={cls} className="bg-sky-100 text-sky-700 font-semibold rounded-full">
@@ -2779,7 +2774,7 @@ export default function ExamManagement() {
                                   }}
                                 >
                                   <FileQuestion className="mr-1 h-3.5 w-3.5 shrink-0" />
-                                  <span className="whitespace-nowrap">Manage Questions</span>
+                                  <span className="truncate">Questions</span>
                                 </Button>
                                 <Button
                                   type="button"

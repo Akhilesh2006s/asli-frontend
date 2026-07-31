@@ -1095,14 +1095,33 @@ export default function Homepage() {
               hello@aslilearn.ai
             </a>
             <div className="mt-4 flex gap-2">
-              {[Facebook, Instagram, Linkedin].map((Icon, i) => (
-                <span
-                  key={i}
-                  className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white/80"
-                >
-                  <Icon className="h-4 w-4" />
-                </span>
-              ))}
+              <a
+                href="https://www.facebook.com/profile.php?id=61573366977048"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white/80 transition-colors hover:bg-white/20 hover:text-white"
+                aria-label="AsliLearn on Facebook"
+              >
+                <Facebook className="h-4 w-4" />
+              </a>
+              <a
+                href="https://www.instagram.com/aslilearnai"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white/80 transition-colors hover:bg-white/20 hover:text-white"
+                aria-label="AsliLearn on Instagram"
+              >
+                <Instagram className="h-4 w-4" />
+              </a>
+              <a
+                href="https://www.linkedin.com/company/asli-learn"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white/80 transition-colors hover:bg-white/20 hover:text-white"
+                aria-label="AsliLearn on LinkedIn"
+              >
+                <Linkedin className="h-4 w-4" />
+              </a>
             </div>
           </div>
 

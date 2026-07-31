@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
+import { useConfirm } from '@/hooks/use-confirm';
 import { 
   Plus, 
   Edit, 
@@ -40,6 +41,7 @@ interface Quiz {
 }
 
 const QuizManagement = () => {
+  const { confirm, ConfirmDialog } = useConfirm();
   const [quizzes, setQuizzes] = useState<Quiz[]>([]);
   const [subjects, setSubjects] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -179,18 +181,23 @@ const QuizManagement = () => {
   };
 
   const handleDeleteQuiz = async (quizId: string) => {
-    if (confirm('Are you sure you want to delete this quiz?')) {
-      try {
-        const response = await fetch(`/api/quizzes/${quizId}`, {
-          method: 'DELETE',
-        });
+    const ok = await confirm({
+      title: 'Delete this quiz?',
+      description: 'This action cannot be undone.',
+      confirmLabel: 'Delete',
+      destructive: true,
+    });
+    if (!ok) return;
+    try {
+      const response = await fetch(`/api/quizzes/${quizId}`, {
+        method: 'DELETE',
+      });
 
-        if (response.ok) {
-          setQuizzes(quizzes.filter(q => q.id !== quizId));
-        }
-      } catch (error) {
-        console.error('Failed to delete quiz:', error);
+      if (response.ok) {
+        setQuizzes(quizzes.filter(q => q.id !== quizId));
       }
+    } catch (error) {
+      console.error('Failed to delete quiz:', error);
     }
   };
 
@@ -537,6 +544,7 @@ const QuizManagement = () => {
           )}
         </DialogContent>
       </Dialog>
+      {ConfirmDialog}
     </div>
   );
 };

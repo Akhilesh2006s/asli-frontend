@@ -11,6 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { API_BASE_URL } from '@/lib/api-config';
+import { useToast } from '@/hooks/use-toast';
+import { useConfirm } from '@/hooks/use-confirm';
 /** Visible fields on white dialogs (default inputs are too faint). */
 const SUBJECT_FORM_FIELD_CLASS =
   'border border-sky-300 bg-sky-50 text-sky-950 shadow-sm placeholder:text-sky-500 focus-visible:border-sky-500 focus-visible:ring-2 focus-visible:ring-sky-400/35';
@@ -69,6 +71,8 @@ function subjectTeachersList(subject: Subject): { id: string; fullName: string; 
 }
 
 const SubjectManagement = () => {
+  const { toast } = useToast();
+  const { confirm, ConfirmDialog } = useConfirm();
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [classes, setClasses] = useState<ClassOption[]>([]);
   const [teachers, setTeachers] = useState<Teacher[]>([]);
@@ -262,14 +266,22 @@ const SubjectManagement = () => {
         setNewSubject({ name: '', description: '', teacherId: '', classIds: [] });
         setIsAddDialogOpen(false);
         fetchSubjects();
-        alert('Subject added successfully!');
+        toast({ title: 'Success', description: 'Subject added successfully!' });
       } else {
         const errorData = await response.json();
-        alert(`Failed to add subject: ${errorData.message || 'Unknown error'}`);
+        toast({
+          title: 'Error',
+          description: errorData.message || 'Failed to add subject',
+          variant: 'destructive',
+        });
       }
     } catch (error) {
       console.error('Failed to add subject:', error);
-      alert('Failed to add subject. Please try again.');
+      toast({
+        title: 'Error',
+        description: 'Failed to add subject. Please try again.',
+        variant: 'destructive',
+      });
     }
   };
 
@@ -296,39 +308,62 @@ const SubjectManagement = () => {
         setEditingSubject(null);
         setIsEditDialogOpen(false);
         fetchSubjects();
-        alert('Subject updated successfully!');
+        toast({ title: 'Success', description: 'Subject updated successfully!' });
       } else {
         const errorData = await response.json();
-        alert(`Failed to update subject: ${errorData.message || 'Unknown error'}`);
+        toast({
+          title: 'Error',
+          description: errorData.message || 'Failed to update subject',
+          variant: 'destructive',
+        });
       }
     } catch (error) {
       console.error('Failed to update subject:', error);
-      alert('Failed to update subject. Please try again.');
+      toast({
+        title: 'Error',
+        description: 'Failed to update subject. Please try again.',
+        variant: 'destructive',
+      });
     }
   };
 
   const handleDeleteSubject = async (subjectId: string, subjectName: string) => {
-    if (window.confirm(`Are you sure you want to delete ${subjectName}? This action cannot be undone.`)) {
-      try {
-        const response = await fetch(`${API_BASE_URL}/api/admin/subjects/${subjectId}`, {
-          method: 'DELETE',
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-          }
-        });
-
-        if (response.ok) {
-          setSubjects((prev) => prev.filter((s) => s.id !== subjectId));
-          fetchSubjects();
-          alert(`${subjectName} has been deleted successfully.`);
-        } else {
-          const errorData = await response.json();
-          alert(`Failed to delete subject: ${errorData.message || 'Unknown error'}`);
+    const ok = await confirm({
+      title: `Delete ${subjectName}?`,
+      description: 'This action cannot be undone.',
+      confirmLabel: 'Delete',
+      destructive: true,
+    });
+    if (!ok) {
+      return;
+    }
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/admin/subjects/${subjectId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
         }
-      } catch (error) {
-        console.error('Failed to delete subject:', error);
-        alert('Failed to delete subject. Please try again.');
+      });
+
+      if (response.ok) {
+        setSubjects((prev) => prev.filter((s) => s.id !== subjectId));
+        fetchSubjects();
+        toast({ title: 'Success', description: `${subjectName} has been deleted successfully.` });
+      } else {
+        const errorData = await response.json();
+        toast({
+          title: 'Error',
+          description: errorData.message || 'Failed to delete subject',
+          variant: 'destructive',
+        });
       }
+    } catch (error) {
+      console.error('Failed to delete subject:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to delete subject. Please try again.',
+        variant: 'destructive',
+      });
     }
   };
 
@@ -879,6 +914,7 @@ const SubjectManagement = () => {
           )}
         </DialogContent>
       </Dialog>
+      {ConfirmDialog}
     </div>
   );
 };

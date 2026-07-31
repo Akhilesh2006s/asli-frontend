@@ -440,9 +440,39 @@ export function useVidyaChat({
   });
 
   const sendSpecificMessage = (text: string) => {
-    if (!text.trim() || sendMessageMutation.isPending) return;
+    if (!text.trim()) return;
+    const trimmed = text.trim();
+    if (isDatabaseBackedAssistant && role === "admin") {
+      const asksExamAnswers =
+        /\b(answer\s*key|exam\s+answers?|solved?\s+paper|marking\s+scheme|give\s+me\s+the\s+answers?)\b/i.test(
+          trimmed,
+        );
+      if (asksExamAnswers) {
+        setLocalMessages((prev) => [
+          ...prev,
+          {
+            role: "user",
+            content: trimmed,
+            timestamp: new Date(),
+          },
+          {
+            role: "assistant",
+            content:
+              "I can report exam **counts and schedules** for your school, but I can’t provide answer keys or solve exam papers. Try: “How many exams are scheduled this week?”",
+            timestamp: new Date(),
+          },
+        ]);
+        setMessage("");
+        return;
+      }
+    }
+    if (sendMessageMutation.isPending) {
+      // Don't drop the request — put it in the composer so the user can send when ready.
+      setMessage(trimmed);
+      return;
+    }
     sendMessageMutation.mutate({
-      message: text.trim(),
+      message: trimmed,
       context: {
         ...context,
         currentSubject: selectedSubjectRef.current || context?.currentSubject || "General Study",

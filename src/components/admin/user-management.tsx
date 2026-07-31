@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { API_BASE_URL } from '@/lib/api-config';
 import { useToast } from '@/hooks/use-toast';
+import { useConfirm } from '@/hooks/use-confirm';
 import { cn } from '@/lib/utils';
 import { formatSeatUsage, seatUsageHint, useAccountSeats } from '@/hooks/use-account-seats';
 
@@ -116,6 +117,14 @@ const mapApiUserToStudent = (user: any): Student => {
 
 const UserManagement = () => {
   const { toast } = useToast();
+  const { confirm, ConfirmDialog } = useConfirm();
+  const notify = (message: string, variant: 'default' | 'destructive' = 'default') => {
+    toast({
+      title: variant === 'destructive' ? 'Error' : 'Notice',
+      description: message,
+      variant,
+    });
+  };
   const { seats, refresh: refreshSeats } = useAccountSeats();
   const [students, setStudents] = useState<Student[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -239,11 +248,11 @@ const UserManagement = () => {
     
     // Validate required fields
     if (!newStudent.name || !newStudent.email || !newStudent.classNumber || !newStudent.section) {
-      alert('Please fill in Full Name, Email, Class Number, and Section.');
+      notify('Please fill in Full Name, Email, Class Number, and Section.');
       return;
     }
     if (!newStudent.password.trim() || newStudent.password.trim().length < 6) {
-      alert('Password is required and must be at least 6 characters.');
+      notify('Password is required and must be at least 6 characters.');
       return;
     }
 
@@ -271,7 +280,7 @@ const UserManagement = () => {
       } catch (jsonError) {
         const text = await response.text();
         console.error('Failed to parse JSON response:', text);
-        alert(`Failed to add student: Server returned invalid response. Status: ${response.status}`);
+        notify(`Failed to add student: Server returned invalid response. Status: ${response.status}`);
         return;
       }
       
@@ -282,16 +291,16 @@ const UserManagement = () => {
         setIsAddDialogOpen(false);
         fetchStudents();
         fetchClasses();
-        alert('Student added successfully with the password you entered.');
+        notify('Student added successfully with the password you entered.');
       } else {
         const errorMsg = responseData.message || responseData.error || 'Unknown error occurred';
         console.error('Error response:', responseData);
-        alert(`Failed to add student: ${errorMsg}`);
+        notify(`Failed to add student: ${errorMsg}`);
       }
     } catch (error: any) {
       console.error('Failed to add student:', error);
       const errorMsg = error.message || 'Network error. Please check your connection and try again.';
-      alert(`Failed to add student: ${errorMsg}`);
+      notify(`Failed to add student: ${errorMsg}`);
     }
   };
 
@@ -309,7 +318,7 @@ const UserManagement = () => {
     try {
       const token = localStorage.getItem('authToken');
       if (!token) {
-        alert('You are not authenticated. Please log in again.');
+        notify('You are not authenticated. Please log in again.');
         setIsUploading(false);
         return;
       }
@@ -445,27 +454,32 @@ const UserManagement = () => {
   };
 
   const handleDeleteStudent = async (studentId: string, studentName: string) => {
-    if (window.confirm(`Are you sure you want to delete ${studentName}? This action cannot be undone.`)) {
-      try {
-        const response = await fetch(`${API_BASE_URL}/api/admin/students/${studentId}`, {
-          method: 'DELETE',
-          headers: { 
-            'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
-            'Content-Type': 'application/json' 
-          }
-        });
-
-        if (response.ok) {
-          fetchStudents();
-          alert(`${studentName} has been deleted successfully.`);
-        } else {
-          const errorData = await response.json();
-          alert(`Failed to delete student: ${errorData.message || 'Unknown error'}`);
+    const ok = await confirm({
+      title: `Delete ${studentName}?`,
+      description: 'This action cannot be undone.',
+      confirmLabel: 'Delete',
+      destructive: true,
+    });
+    if (!ok) return;
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/admin/students/${studentId}`, {
+        method: 'DELETE',
+        headers: { 
+          'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+          'Content-Type': 'application/json' 
         }
-      } catch (error) {
-        console.error('Failed to delete student:', error);
-        alert('Failed to delete student. Please try again.');
+      });
+
+      if (response.ok) {
+        fetchStudents();
+        notify(`${studentName} has been deleted successfully.`);
+      } else {
+        const errorData = await response.json();
+        notify(`Failed to delete student: ${errorData.message || 'Unknown error'}`, 'destructive');
       }
+    } catch (error) {
+      console.error('Failed to delete student:', error);
+      notify('Failed to delete student. Please try again.', 'destructive');
     }
   };
 
@@ -554,14 +568,14 @@ const UserManagement = () => {
         setStudents([]);
         setIsDeleteAllDialogOpen(false);
         setDeleteAllConfirmStep(1);
-        alert('All students have been deleted successfully!');
+        notify('All students have been deleted successfully!');
       } else {
         const errorData = await response.json();
-        alert(`Failed to delete all students: ${errorData.message || 'Unknown error'}`);
+        notify(`Failed to delete all students: ${errorData.message || 'Unknown error'}`);
       }
     } catch (error) {
       console.error('Failed to delete all students:', error);
-      alert('Failed to delete all students. Please try again.');
+      notify('Failed to delete all students. Please try again.');
     }
   };
 
@@ -1617,13 +1631,13 @@ const UserManagement = () => {
                             setIsAssignClassDialogOpen(false);
                             setSelectedStudentForClass(null);
                             await Promise.all([fetchStudents(), fetchClasses()]);
-                            alert('Class assigned successfully!');
+                            notify('Class assigned successfully!');
                           } else {
-                            alert(`Failed to assign class: ${responseData.message || 'Unknown error'}`);
+                            notify(`Failed to assign class: ${responseData.message || 'Unknown error'}`);
                           }
                         } catch (error) {
                           console.error('Failed to assign class:', error);
-                          alert('Failed to assign class. Please try again.');
+                          notify('Failed to assign class. Please try again.');
                         }
                       }
                     }}
@@ -1769,6 +1783,7 @@ const UserManagement = () => {
           isSuperAdmin={false}
         />
       )}
+      {ConfirmDialog}
     </div>
   );
 };

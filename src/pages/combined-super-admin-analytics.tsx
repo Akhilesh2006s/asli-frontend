@@ -43,13 +43,19 @@ export default function CombinedSuperAdminAnalytics({ initialTab }: Props) {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="flex max-h-[calc(100vh-6rem)] flex-col space-y-4 overflow-hidden">
+      <div className="shrink-0 space-y-1">
+        <h2 className="text-xl font-bold text-slate-900 sm:text-2xl">Analytics</h2>
+        <p className="text-sm text-slate-600">
+          Overview, impact reports, audit logs, and exam/AI insights.
+        </p>
+      </div>
       <Tabs
         value={mainTab}
         onValueChange={(v) => setMainTab(v as AnalyticsMainTab)}
-        className="w-full"
+        className="flex min-h-0 flex-1 flex-col overflow-hidden"
       >
-        <TabsList className="grid h-auto w-full max-w-4xl grid-cols-2 gap-1 sm:grid-cols-4">
+        <TabsList className="sticky top-0 z-10 grid h-auto w-full max-w-4xl shrink-0 grid-cols-2 gap-1 bg-gray-50/95 py-1 backdrop-blur sm:grid-cols-4">
           <TabsTrigger value="overview" className="gap-2 py-2.5">
             <BarChart3 className="h-3 w-3 sm:h-4 sm:w-4" />
             Overview
@@ -68,6 +74,7 @@ export default function CombinedSuperAdminAnalytics({ initialTab }: Props) {
           </TabsTrigger>
         </TabsList>
 
+        <div className="min-h-0 flex-1 overflow-y-auto pr-1">
         <TabsContent value="overview" className="mt-6 focus-visible:outline-none">
           <SuperAdminAnalyticsDashboard onSelectSchool={handleSelectSchool} />
         </TabsContent>
@@ -86,6 +93,7 @@ export default function CombinedSuperAdminAnalytics({ initialTab }: Props) {
             onClearSchoolFocus={handleClearSchoolFocus}
           />
         </TabsContent>
+        </div>
       </Tabs>
     </div>
   );

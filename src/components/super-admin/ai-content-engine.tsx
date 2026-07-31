@@ -4425,7 +4425,7 @@ export default function AIContentEngine() {
           )}
 
           {mismatchDetails && (
-            <div className="md:col-span-2 lg:col-span-4 rounded-md bg-amber-50 border border-amber-300 px-3 py-2 text-xs text-amber-900 space-y-1">
+            <div className="md:col-span-2 lg:col-span-4 rounded-md bg-amber-50 border border-amber-300 px-3 py-2 text-xs text-amber-900 space-y-2">
               <p className="font-semibold">PDF mismatch detected:</p>
               {mismatchDetails.selectedSubject ? (
                 <p>
@@ -4448,7 +4448,76 @@ export default function AIContentEngine() {
                   | Detected: <strong>{mismatchDetails.detectedTool || "Unknown"}</strong>
                 </p>
               ) : null}
-              <p>Please upload a PDF that matches your selected subject and topic.</p>
+              <div className="flex flex-wrap gap-2 pt-1">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="secondary"
+                  className="h-8"
+                  onClick={() => {
+                    const detectedSubject = String(mismatchDetails.detectedSubject || "").trim();
+                    const detectedTopic = String(mismatchDetails.detectedTopic || "").trim();
+                    const detectedTool = String(mismatchDetails.detectedTool || "").trim();
+                    let applied = false;
+                    if (detectedSubject) {
+                      const subjectMatch = subjectRows.find(
+                        (row) =>
+                          String(row.value).localeCompare(detectedSubject, undefined, {
+                            sensitivity: "base",
+                          }) === 0 ||
+                          String(row.label).localeCompare(detectedSubject, undefined, {
+                            sensitivity: "base",
+                          }) === 0,
+                      );
+                      if (subjectMatch) {
+                        setSubject(String(subjectMatch.value));
+                        applied = true;
+                      } else {
+                        setSubject(detectedSubject);
+                        applied = true;
+                      }
+                    }
+                    if (detectedTopic) {
+                      const topicMatch = topicRows.find(
+                        (row) =>
+                          String(row.value).localeCompare(detectedTopic, undefined, {
+                            sensitivity: "base",
+                          }) === 0 ||
+                          String(row.label).localeCompare(detectedTopic, undefined, {
+                            sensitivity: "base",
+                          }) === 0,
+                      );
+                      if (topicMatch) {
+                        setTopic(String(topicMatch.value));
+                        applied = true;
+                      } else {
+                        setTopic(detectedTopic);
+                        applied = true;
+                      }
+                    }
+                    if (detectedTool) {
+                      setToolType(detectedTool);
+                      applied = true;
+                    }
+                    if (applied) {
+                      setMismatchDetails(null);
+                      toast({
+                        title: "Curriculum mapped",
+                        description: "Applied detected subject/topic from the PDF. Re-upload to generate with the new mapping.",
+                      });
+                    } else {
+                      toast({
+                        title: "Could not map",
+                        description: "Detected values were empty or could not be applied.",
+                        variant: "destructive",
+                      });
+                    }
+                  }}
+                >
+                  Use detected curriculum
+                </Button>
+              </div>
+              <p>Or upload a PDF that already matches your selected subject and topic.</p>
             </div>
           )}
 

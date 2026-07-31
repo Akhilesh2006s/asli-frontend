@@ -230,9 +230,14 @@ export default function AdminLearningPaths() {
         const asliPrepContent = (bySubjectId.get(subjectId) || [])
           .slice()
           .sort((a: any, b: any) => {
+            const titleA = String(a?.title || a?.name || '').trim();
+            const titleB = String(b?.title || b?.name || '').trim();
+            if (titleA && titleB) {
+              return titleA.localeCompare(titleB, undefined, { numeric: true, sensitivity: 'base' });
+            }
             const ta = a?.createdAt ? new Date(a.createdAt).getTime() : 0;
             const tb = b?.createdAt ? new Date(b.createdAt).getTime() : 0;
-            return tb - ta;
+            return ta - tb;
           });
         consumedIds.add(subjectId);
         merged.push({
@@ -253,9 +258,14 @@ export default function AdminLearningPaths() {
         const activeItems = items.filter((item) => isActiveCatalogContent(item));
         if (activeItems.length === 0) return;
         const sorted = activeItems.slice().sort((a: any, b: any) => {
+          const titleA = String(a?.title || a?.name || '').trim();
+          const titleB = String(b?.title || b?.name || '').trim();
+          if (titleA && titleB) {
+            return titleA.localeCompare(titleB, undefined, { numeric: true, sensitivity: 'base' });
+          }
           const ta = a?.createdAt ? new Date(a.createdAt).getTime() : 0;
           const tb = b?.createdAt ? new Date(b.createdAt).getTime() : 0;
-          return tb - ta;
+          return ta - tb;
         });
         const first = sorted[0];
         const populated = first?.subject;

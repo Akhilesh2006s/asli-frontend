@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { resolveActiveNavId, type NavItem } from "@/lib/app-nav";
+import { ContactSupportLink } from "@/components/ContactSupportLink";
 
 const COLLAPSE_KEY = "asli:shell:collapsed";
 
@@ -38,6 +39,8 @@ export interface AppShellProps {
   orgName: string;
   orgSubtitle?: string;
   orgLogoUrl?: string;
+  /** Clicking the product logo navigates here (role home). */
+  homeHref?: string;
   /** Renders the premium upsell block above the sidebar footer. */
   showUpgrade?: boolean;
   onUpgrade?: () => void;
@@ -93,6 +96,7 @@ function SidebarBody({
   orgName,
   orgSubtitle,
   orgLogoUrl,
+  homeHref = "/",
   showUpgrade,
   onUpgrade,
   onNavigate,
@@ -104,6 +108,7 @@ function SidebarBody({
   orgName: string;
   orgSubtitle?: string;
   orgLogoUrl?: string;
+  homeHref?: string;
   showUpgrade?: boolean;
   onUpgrade?: () => void;
   onNavigate?: () => void;
@@ -111,8 +116,17 @@ function SidebarBody({
 }) {
   return (
     <div className="flex h-full flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground">
-      {/* Product brand — the school name lives in the topbar, per the design */}
-      <div className={cn("flex items-center gap-3 px-5 py-6", collapsed && "justify-center px-0")}>
+      {/* Product brand — click returns to role home */}
+      <Link
+        href={homeHref}
+        onClick={onNavigate}
+        className={cn(
+          "flex items-center gap-3 px-5 py-6 transition-colors hover:bg-sidebar-accent/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring",
+          collapsed && "justify-center px-0",
+        )}
+        aria-label="Go to home"
+        title="Home"
+      >
         <img
           src="/logo.jpg"
           alt=""
@@ -126,7 +140,7 @@ function SidebarBody({
             <p className="truncate text-xs text-sidebar-foreground">AI-Powered Learning</p>
           </div>
         )}
-      </div>
+      </Link>
 
       {/* Nav */}
       <nav aria-label="Main" className={cn("flex-1 space-y-1.5 overflow-y-auto px-3 pb-4", collapsed && "px-2")}>
@@ -158,9 +172,9 @@ function SidebarBody({
         </div>
       )}
 
-      {/* Collapse toggle (desktop only) */}
-      {onToggleCollapse && (
-        <div className="border-t border-sidebar-border p-3">
+      {/* Collapse toggle (desktop only) + support */}
+      <div className="border-t border-sidebar-border p-3">
+        {onToggleCollapse && (
           <button
             type="button"
             onClick={onToggleCollapse}
@@ -178,15 +192,24 @@ function SidebarBody({
             />
             {!collapsed && <span>Collapse</span>}
           </button>
-          {!collapsed && (
-            <p className="mt-3 text-center text-micro leading-relaxed text-sidebar-foreground">
-              © {new Date().getFullYear()} AsliLearn AI
-              <br />
-              All rights reserved
-            </p>
-          )}
+        )}
+        {!collapsed && (
+          <p className="mt-3 text-center text-micro leading-relaxed text-sidebar-foreground">
+            © {new Date().getFullYear()} AsliLearn AI
+            <br />
+            All rights reserved
+          </p>
+        )}
+        <div className={cn("mt-2", collapsed && "flex justify-center")}>
+          <ContactSupportLink
+            compact={collapsed}
+            className={cn(
+              "w-full justify-center border-sidebar-border bg-transparent text-sidebar-foreground shadow-none hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+              collapsed && "w-auto px-2",
+            )}
+          />
         </div>
-      )}
+      </div>
     </div>
   );
 }
@@ -199,6 +222,7 @@ export function AppShell({
   orgName,
   orgSubtitle,
   orgLogoUrl,
+  homeHref = "/",
   showUpgrade = false,
   onUpgrade,
   onLogout,
@@ -288,6 +312,7 @@ export function AppShell({
           orgName={orgName}
           orgSubtitle={orgSubtitle}
           orgLogoUrl={orgLogoUrl}
+          homeHref={homeHref}
           showUpgrade={showUpgrade}
           onUpgrade={onUpgrade}
           onToggleCollapse={toggleCollapse}
@@ -305,6 +330,7 @@ export function AppShell({
             orgName={orgName}
             orgSubtitle={orgSubtitle}
             orgLogoUrl={orgLogoUrl}
+            homeHref={homeHref}
             showUpgrade={showUpgrade}
             onUpgrade={onUpgrade}
             onNavigate={() => setMobileOpen(false)}
@@ -334,7 +360,11 @@ export function AppShell({
           </button>
 
           {/* School identity — left of the topbar, matching the design */}
-          <div className="flex min-w-0 flex-1 items-center gap-3 overflow-hidden pr-2">
+          <Link
+            href={homeHref}
+            className="flex min-w-0 flex-1 items-center gap-3 overflow-hidden pr-2 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            aria-label="Go to dashboard home"
+          >
             <span className="relative isolate z-0 flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-border bg-indigo-blue-50 sm:h-11 sm:w-11">
               {orgLogoUrl && !logoFailed ? (
                 <img
@@ -355,7 +385,7 @@ export function AppShell({
                 <p className="truncate text-xs text-muted-foreground sm:text-sm">{orgSubtitle}</p>
               )}
             </div>
-          </div>
+          </Link>
 
           {/* Search — only when a handler is provided */}
           {onSearch ? (

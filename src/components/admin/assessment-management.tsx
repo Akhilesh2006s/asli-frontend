@@ -9,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
 import { API_BASE_URL } from '@/lib/api-config';
+import { useConfirm } from '@/hooks/use-confirm';
 import { 
   Plus, 
   Edit, 
@@ -52,6 +53,7 @@ interface Assessment {
 }
 
 const AssessmentManagement = () => {
+  const { confirm, ConfirmDialog } = useConfirm();
   const [assessments, setAssessments] = useState<Assessment[]>([]);
   const [subjects, setSubjects] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -177,18 +179,23 @@ const AssessmentManagement = () => {
   };
 
   const handleDeleteAssessment = async (assessmentId: string) => {
-    if (confirm('Are you sure you want to delete this assessment?')) {
-      try {
-        const response = await fetch(`/api/assessments/${assessmentId}`, {
-          method: 'DELETE',
-        });
+    const ok = await confirm({
+      title: 'Delete this assessment?',
+      description: 'This action cannot be undone.',
+      confirmLabel: 'Delete',
+      destructive: true,
+    });
+    if (!ok) return;
+    try {
+      const response = await fetch(`/api/assessments/${assessmentId}`, {
+        method: 'DELETE',
+      });
 
-        if (response.ok) {
-          setAssessments(assessments.filter(a => a.id !== assessmentId));
-        }
-      } catch (error) {
-        console.error('Failed to delete assessment:', error);
+      if (response.ok) {
+        setAssessments(assessments.filter(a => a.id !== assessmentId));
       }
+    } catch (error) {
+      console.error('Failed to delete assessment:', error);
     }
   };
 
@@ -681,6 +688,7 @@ const AssessmentManagement = () => {
       )}
         </DialogContent>
       </Dialog>
+      {ConfirmDialog}
     </div>
   );
 };

@@ -202,9 +202,9 @@ export default function SubscriptionManagement() {
 
   return (
     <OrderCatalogProvider>
-    <div className="space-y-6">
+    <div className="flex max-h-[calc(100vh-6rem)] flex-col space-y-4 overflow-hidden">
       {/* Page header */}
-      <div className={cn('relative overflow-hidden p-5 sm:p-6', orderPageHero)}>
+      <div className={cn('relative shrink-0 overflow-hidden p-5 sm:p-6', orderPageHero)}>
         <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-orange-500 via-amber-500 to-orange-400" />
         <div className="relative flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
@@ -256,8 +256,8 @@ export default function SubscriptionManagement() {
       </div>
 
       {/* Tabs */}
-      <Tabs value={mainTab} onValueChange={setMainTab} className="w-full">
-        <TabsList className="inline-flex h-auto w-full max-w-none flex-wrap justify-start gap-1 rounded-xl bg-slate-100/80 p-1 sm:w-auto">
+      <Tabs value={mainTab} onValueChange={setMainTab} className="flex min-h-0 flex-1 flex-col overflow-hidden">
+        <TabsList className="sticky top-0 z-10 inline-flex h-auto w-full max-w-none shrink-0 flex-wrap justify-start gap-1 rounded-xl bg-slate-100/80 p-1 sm:w-auto">
           <TabsTrigger value="school-orders" className={cn('gap-2 rounded-lg', orderTabActive)}>
             <ShoppingBag className="h-4 w-4" />
             School Orders
@@ -292,6 +292,7 @@ export default function SubscriptionManagement() {
           </TabsTrigger>
         </TabsList>
 
+        <div className="min-h-0 flex-1 overflow-y-auto pr-1">
         <TabsContent value="school-orders" className="mt-5 focus-visible:outline-none">
           <OrderListPanel
             refreshKey={orderRefreshKey}
@@ -480,6 +481,7 @@ export default function SubscriptionManagement() {
             </p>
           )}
         </TabsContent>
+        </div>
       </Tabs>
 
       <CreateOrderModal

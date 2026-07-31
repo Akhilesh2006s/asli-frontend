@@ -11,6 +11,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { API_BASE_URL } from '@/lib/api-config';
+import { useToast } from '@/hooks/use-toast';
+import { useConfirm } from '@/hooks/use-confirm';
 import { 
   Plus, 
   Edit, 
@@ -58,6 +60,15 @@ interface Question {
 }
 
 const ExamManagement = () => {
+  const { toast } = useToast();
+  const { confirm, ConfirmDialog } = useConfirm();
+  const notify = (message: string, variant: 'default' | 'destructive' = 'default') => {
+    toast({
+      title: variant === 'destructive' ? 'Error' : 'Notice',
+      description: message,
+      variant,
+    });
+  };
   const [exams, setExams] = useState<Exam[]>([]);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -170,16 +181,16 @@ const ExamManagement = () => {
         setQuestions(data.data || data); // Handle both response formats
       } else if (response.status === 401) {
         console.error('Unauthorized - redirecting to login');
-        alert('Session expired. Please login again.');
+        notify('Session expired. Please login again.');
         window.location.href = '/signin';
       } else {
         const errorData = await response.json();
         console.error('Failed to fetch questions:', errorData);
-        alert(`Failed to fetch questions: ${errorData.message || 'Unknown error'}`);
+        notify(`Failed to fetch questions: ${errorData.message || 'Unknown error'}`);
       }
     } catch (error) {
       console.error('Failed to fetch questions:', error);
-      alert('Failed to fetch questions. Please check the console for details.');
+      notify('Failed to fetch questions. Please check the console for details.');
     }
   };
 
@@ -231,7 +242,13 @@ const ExamManagement = () => {
   };
 
   const handleDeleteExam = async (examId: string) => {
-    if (!confirm('Are you sure you want to delete this exam?')) return;
+    const ok = await confirm({
+      title: 'Delete this exam?',
+      description: 'This action cannot be undone.',
+      confirmLabel: 'Delete',
+      destructive: true,
+    });
+    if (!ok) return;
 
     try {
       const token = localStorage.getItem('authToken');
@@ -255,7 +272,7 @@ const ExamManagement = () => {
 
     // Validate that either question text or image is provided
     if (!questionForm.questionText.trim() && !questionForm.questionImage) {
-      alert('Please provide either question text or upload an image.');
+      notify('Please provide either question text or upload an image.');
       return;
     }
 
@@ -300,19 +317,19 @@ const ExamManagement = () => {
         await fetchQuestions(selectedExam._id);
         setIsQuestionDialogOpen(false);
         resetQuestionForm();
-        alert('Question created successfully!');
+        notify('Question created successfully!');
       } else if (response.status === 401) {
         console.error('Unauthorized - redirecting to login');
-        alert('Session expired. Please login again.');
+        notify('Session expired. Please login again.');
         window.location.href = '/signin';
       } else {
         const errorData = await response.json();
         console.error('Failed to create question:', errorData);
-        alert(`Failed to create question: ${errorData.message || 'Unknown error'}`);
+        notify(`Failed to create question: ${errorData.message || 'Unknown error'}`);
       }
     } catch (error) {
       console.error('Failed to create question:', error);
-      alert('Failed to create question. Please check the console for details.');
+      notify('Failed to create question. Please check the console for details.');
     }
   };
 
@@ -321,7 +338,7 @@ const ExamManagement = () => {
 
     // Validate that either question text or image is provided
     if (!questionForm.questionText.trim() && !questionForm.questionImage) {
-      alert('Please provide either question text or upload an image.');
+      notify('Please provide either question text or upload an image.');
       return;
     }
 
@@ -348,7 +365,13 @@ const ExamManagement = () => {
   };
 
   const handleDeleteQuestion = async (questionId: string) => {
-    if (!confirm('Are you sure you want to delete this question?')) return;
+    const ok = await confirm({
+      title: 'Delete this question?',
+      description: 'This action cannot be undone.',
+      confirmLabel: 'Delete',
+      destructive: true,
+    });
+    if (!ok) return;
 
     try {
       const token = localStorage.getItem('authToken');
@@ -1178,6 +1201,7 @@ const ExamManagement = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      {ConfirmDialog}
     </div>
   );
 };

@@ -153,6 +153,13 @@ const marksBadgeClass = (pct: number) =>
 
 export default function ExamViewOnly() {
   const { toast } = useToast();
+  const notify = (message: string, variant: 'default' | 'destructive' = 'default') => {
+    toast({
+      title: variant === 'destructive' ? 'Error' : 'Notice',
+      description: message,
+      variant,
+    });
+  };
   const [exams, setExams] = useState<Exam[]>([]);
   const [selectedExam, setSelectedExam] = useState<Exam | null>(null);
   const [examResults, setExamResults] = useState<ExamResult[]>([]);
@@ -340,14 +347,14 @@ export default function ExamViewOnly() {
 
   const exportToExcel = async () => {
     if (!selectedExam || examResults.length === 0) {
-      alert('No results to export');
+      notify('No results to export');
       return;
     }
 
     setIsExporting(true);
     try {
       const ok = await downloadSchoolPerformanceAnalysisExcel(selectedExam.title, examResults);
-      if (!ok) alert('No results to export');
+      if (!ok) notify('No results to export');
     } catch (error) {
       console.error('Excel export failed:', error);
       toast({

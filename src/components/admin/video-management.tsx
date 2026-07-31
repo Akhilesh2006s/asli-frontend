@@ -9,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
 import { API_BASE_URL } from '@/lib/api-config';
+import { useConfirm } from '@/hooks/use-confirm';
 import { 
   Plus, 
   Edit, 
@@ -48,6 +49,7 @@ interface Video {
 }
 
 const VideoManagement = () => {
+  const { confirm, ConfirmDialog } = useConfirm();
   const [videos, setVideos] = useState<Video[]>([]);
   const [subjects, setSubjects] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -171,22 +173,27 @@ const VideoManagement = () => {
   };
 
   const handleDeleteVideo = async (videoId: string) => {
-    if (confirm('Are you sure you want to delete this video?')) {
-      try {
-        const token = localStorage.getItem('authToken');
-        const response = await fetch(`${API_BASE_URL}/api/admin/videos/${videoId}`, {
-          method: 'DELETE',
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-
-        if (response.ok) {
-          await fetchVideos();
+    const ok = await confirm({
+      title: 'Delete this video?',
+      description: 'This action cannot be undone.',
+      confirmLabel: 'Delete',
+      destructive: true,
+    });
+    if (!ok) return;
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(`${API_BASE_URL}/api/admin/videos/${videoId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
         }
-      } catch (error) {
-        console.error('Failed to delete video:', error);
+      });
+
+      if (response.ok) {
+        await fetchVideos();
       }
+    } catch (error) {
+      console.error('Failed to delete video:', error);
     }
   };
 
@@ -597,6 +604,7 @@ const VideoManagement = () => {
           )}
         </DialogContent>
       </Dialog>
+      {ConfirmDialog}
     </div>
   );
 };

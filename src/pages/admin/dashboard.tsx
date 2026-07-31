@@ -14,7 +14,6 @@ import {
   BookOpen,
   Users,
   BarChart3,
-  Trash2,
   TrendingUp,
   Activity,
   GraduationCap,
@@ -716,52 +715,32 @@ const AdminDashboard = () => {
 
                 <AtRiskStudentsPanel />
 
-                <div className="w-full max-w-5xl mx-auto rounded-2xl bg-gradient-to-b from-sky-50 via-cyan-50 to-teal-50 p-4 border border-white/70 shadow-xl">
-                  <div className="rounded-t-2xl border-b border-sky-100 bg-white/90 px-5 py-4 flex flex-wrap items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <h3 className="text-sm sm:text-base font-semibold text-gray-800">Chat with Vidya AI</h3>
-                      <p className="text-xs text-gray-500 mt-0.5">
-                        Ask about your school&apos;s students, attendance, exams, and performance data.
-                      </p>
-                    </div>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="shrink-0 border-sky-200 text-sky-800 hover:bg-sky-50"
-                      onClick={() =>
-                        window.dispatchEvent(
-                          new CustomEvent("vidya-chat-clear", { detail: { role: "admin" } })
-                        )
-                      }
-                    >
-                      <Trash2 className="mr-2 h-4 w-4" />
-                      Clear Chat
-                    </Button>
-                  </div>
-                  <div className="bg-white/85 rounded-b-2xl border-x border-b border-sky-100 shadow-md" style={{ minHeight: '600px' }}>
-                    {adminId ? (
-                      <Suspense fallback={lazySectionFallback}>
-                        <AIChat
-                          userId={adminId}
-                          className="flex-1 h-full"
-                          promptVariant="admin"
-                          context={{
-                            studentName: userData?.schoolName || userData?.fullName || userData?.email?.split('@')[0] || "Admin",
-                            currentSubject: "Administration",
-                            currentTopic: undefined
-                          }}
-                        />
-                      </Suspense>
-                    ) : (
-                      <div className="flex items-center justify-center h-full min-h-[600px]">
-                        <div className="text-center">
-                          <MessageCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                          <p className="text-gray-600">Loading chat...</p>
-                        </div>
+                <div
+                  id="admin-vidya-chat"
+                  className="w-full max-w-5xl mx-auto rounded-2xl border border-sky-100 bg-white/85 shadow-xl overflow-hidden"
+                  style={{ minHeight: '600px' }}
+                >
+                  {adminId ? (
+                    <Suspense fallback={lazySectionFallback}>
+                      <AIChat
+                        userId={adminId}
+                        className="flex-1 h-full"
+                        promptVariant="admin"
+                        context={{
+                          studentName: userData?.schoolName || userData?.fullName || userData?.email?.split('@')[0] || "Admin",
+                          currentSubject: "Administration",
+                          currentTopic: undefined
+                        }}
+                      />
+                    </Suspense>
+                  ) : (
+                    <div className="flex items-center justify-center h-full min-h-[600px]">
+                      <div className="text-center">
+                        <MessageCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                        <p className="text-gray-600">Loading chat...</p>
                       </div>
-                    )}
-                  </div>
+                    </div>
+                  )}
                 </div>
               </motion.div>
             </div>

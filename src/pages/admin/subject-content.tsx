@@ -14,6 +14,7 @@ import {
   ArrowLeft,
   FileText, 
   Filter,
+  RefreshCw,
   X
 } from 'lucide-react';
 import CalendarView from '@/components/student/calendar-view';
@@ -123,9 +124,14 @@ export default function AdminSubjectContent() {
       }
 
       merged.sort((a, b) => {
+        const titleA = String(a?.title || a?.name || '').trim();
+        const titleB = String(b?.title || b?.name || '').trim();
+        if (titleA && titleB) {
+          return titleA.localeCompare(titleB, undefined, { numeric: true, sensitivity: 'base' });
+        }
         const ta = a?.createdAt ? new Date(a.createdAt).getTime() : 0;
         const tb = b?.createdAt ? new Date(b.createdAt).getTime() : 0;
-        return tb - ta;
+        return ta - tb;
       });
 
       setContents(merged);
@@ -174,13 +180,35 @@ export default function AdminSubjectContent() {
             <ArrowLeft className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
             Back to Learning Paths
           </Button>
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-3">
             <div>
               <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">{subject?.name || 'Subject'}</h1>
               {subject?.description && (
                 <p className="text-gray-600 mt-2">{subject.description}</p>
               )}
             </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                if (!params?.id) return;
+                const q = search.startsWith('?') ? search.slice(1) : search;
+                const mergeParam = new URLSearchParams(q).get('merge');
+                const mergeIds = mergeParam
+                  ? mergeParam
+                      .split(',')
+                      .map((s) => s.trim())
+                      .filter(Boolean)
+                  : [];
+                void fetchSubjectContent(params.id, mergeIds);
+              }}
+              disabled={loadingContents}
+              className="shrink-0"
+            >
+              <RefreshCw className={`mr-2 h-4 w-4 ${loadingContents ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
           </div>
         </div>
 

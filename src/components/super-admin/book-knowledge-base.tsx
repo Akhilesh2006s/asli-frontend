@@ -355,6 +355,15 @@ export default function BookKnowledgeBase() {
   };
 
   const handleDelete = async (id: string) => {
+    const book = books.find((b) => b._id === id);
+    const label = book?.title || "this book";
+    if (
+      !window.confirm(
+        `Remove "${label}" from the Book Knowledge Base?\n\nThis unlinks/deletes the indexed book so Book-Based Generator can no longer use it. Learning-path source files (if any) are not deleted from Subjects & Content.`,
+      )
+    ) {
+      return;
+    }
     setDeletingId(id);
     try {
       const res = await fetch(`${API_BASE_URL}/api/book-knowledge/books/${id}`, {
@@ -363,7 +372,7 @@ export default function BookKnowledgeBase() {
       });
       const json = await res.json();
       if (!res.ok || !json.success) throw new Error(json.message || "Delete failed");
-      toast({ title: "Book deleted" });
+      toast({ title: "Book removed", description: "Unlinked from Book Knowledge Base." });
       await Promise.all([loadBooks(), loadImportableContent()]);
     } catch (e: any) {
       toast({ title: "Delete failed", description: e.message, variant: "destructive" });
@@ -416,8 +425,9 @@ export default function BookKnowledgeBase() {
             <strong>Book-Based Generator</strong>.
           </p>
           <p className="text-xs text-slate-500 mt-1">
-            Indexing cost: PDF parse is free. With <code className="bg-slate-100 px-1 rounded">EMBEDDING_PROVIDER=local</code> (default), chunk embeddings are ₹0.
-            Scanned PDF OCR may use a small Gemini charge. Generation cost is shown on Book-Based Generator after each batch.
+            Indexing: PDF text extract is free. Local embeddings (default) are ₹0. OCR for scanned PDFs uses Gemini
+            Vision at roughly <strong>₹0.15–₹0.40 per page</strong> depending on density (exact total shown after upload when billed).
+            Generation cost is shown on Book-Based Generator after each batch.
           </p>
         </div>
         <Button
@@ -669,12 +679,35 @@ export default function BookKnowledgeBase() {
             </Select>
           </div>
           <div className="space-y-2 md:col-span-2 lg:col-span-1">
-            <Label>File (PDF, DOCX, TXT)</Label>
-            <Input
-              type="file"
-              accept=".pdf,.docx,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"
-              onChange={(e) => setFile(e.target.files?.[0] || null)}
-            />
+            <Label>File (PDF, DOCX, TXT) — click or drag &amp; drop</Label>
+            <div
+              className={cn(
+                "rounded-xl border-2 border-dashed border-violet-200 bg-violet-50/40 p-4 transition-colors",
+                "hover:border-violet-400 hover:bg-violet-50",
+              )}
+              onDragOver={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+              }}
+              onDrop={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const dropped = e.dataTransfer.files?.[0];
+                if (dropped) setFile(dropped);
+              }}
+            >
+              <Input
+                type="file"
+                accept=".pdf,.docx,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"
+                onChange={(e) => setFile(e.target.files?.[0] || null)}
+                className="bg-white"
+              />
+              {file ? (
+                <p className="mt-2 text-xs text-violet-800 truncate">Selected: {file.name}</p>
+              ) : (
+                <p className="mt-2 text-xs text-slate-500">Drop a file here, or use the picker above.</p>
+              )}
+            </div>
           </div>
           <div className="flex items-end">
             <Button
@@ -733,10 +766,12 @@ export default function BookKnowledgeBase() {
                   <Button
                     size="sm"
                     variant="destructive"
+                    title="Unlink / remove from knowledge base"
                     onClick={() => void handleDelete(book._id)}
                     disabled={deletingId === book._id}
                   >
                     {deletingId === book._id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                    <span className="ml-1 hidden sm:inline">Unlink</span>
                   </Button>
                 </div>
               </div>
