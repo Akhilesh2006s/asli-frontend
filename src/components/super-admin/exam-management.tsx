@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { getAuthToken } from '@/lib/auth-utils';
+import { getAuthToken, authBearerHeaders } from '@/lib/auth-utils';
 import {
   Select,
   SelectContent,
@@ -870,16 +870,17 @@ export default function ExamManagement() {
     setPdfQuestionRows([]);
     setPdfPreviewPage(1);
     try {
-      const token = getAuthToken();
       const controller = new AbortController();
       const timeoutId = window.setTimeout(() => controller.abort(), 120000);
       const form = new FormData();
       form.append('file', questionPdfFile);
+      const headers = authBearerHeaders();
       let res: Response;
       try {
         res = await fetch(`${API_BASE_URL}/api/super-admin/exams/${selectedExam._id}/questions/pdf-convert`, {
           method: 'POST',
-          headers: { Authorization: `Bearer ${token}` },
+          headers,
+          credentials: 'include',
           body: form,
           signal: controller.signal,
         });
@@ -887,7 +888,8 @@ export default function ExamManagement() {
         if (res.status === 404) {
           res = await fetch(`${API_BASE_URL}/api/super-admin/protected/exams/${selectedExam._id}/questions/pdf-convert`, {
             method: 'POST',
-            headers: { Authorization: `Bearer ${token}` },
+            headers,
+            credentials: 'include',
             body: form,
             signal: controller.signal,
           });
