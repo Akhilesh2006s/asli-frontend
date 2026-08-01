@@ -61,12 +61,24 @@ type BookOption = {
   board: string;
   class: string;
   subject: string;
+  productCategory?: string;
   topic?: string;
   subtopic?: string;
   chunkCount?: number;
   processingStatus?: string;
   embeddingsCreated?: boolean;
 };
+
+function bookDisplayTitle(book: BookOption): string {
+  const cat = normalizeIitCategory(book.productCategory);
+  const title = String(book.title || "").trim() || "Untitled";
+  if (!cat) return title;
+  const label = formatIitCategoryLabel(cat);
+  if (new RegExp(`\\b${label}\\b`, "i").test(title) || new RegExp(`\\b${cat}\\b`, "i").test(title)) {
+    return title;
+  }
+  return `${title} · ${label}`;
+}
 
 function statusBadge(status?: string, indexed?: boolean) {
   if (indexed || status === "indexed") return <Badge className="bg-emerald-100 text-emerald-800 hover:bg-emerald-100">Ready</Badge>;
@@ -94,8 +106,11 @@ function groupBooksByClass(books: BookOption[]): BookListGroup[] {
   for (const book of books) {
     const board = String(book.board || "Other").trim() || "Other";
     const classLabel = normalizeClassLabel(book.class);
-    const key = `${board}|${classLabel}`;
-    const label = `${board} · ${classLabel}`;
+    const cat = normalizeIitCategory(book.productCategory);
+    const key = `${board}|${classLabel}|${cat || "GENERAL"}`;
+    const label = cat
+      ? `${board} · ${classLabel} · ${formatIitCategoryLabel(cat)}`
+      : `${board} · ${classLabel}`;
     const existing = map.get(key);
     if (existing) {
       existing.books.push(book);
@@ -109,7 +124,9 @@ function groupBooksByClass(books: BookOption[]): BookListGroup[] {
       books: [...group.books].sort((a, b) => {
         const subjectCmp = String(a.subject || "").localeCompare(String(b.subject || ""));
         if (subjectCmp !== 0) return subjectCmp;
-        return String(a.title || "").localeCompare(String(b.title || ""));
+        const catCmp = String(a.productCategory || "").localeCompare(String(b.productCategory || ""));
+        if (catCmp !== 0) return catCmp;
+        return bookDisplayTitle(a).localeCompare(bookDisplayTitle(b));
       }),
     }))
     .sort((a, b) => a.label.localeCompare(b.label));
@@ -120,8 +137,11 @@ function groupBooksBySubject(books: BookOption[]): BookListGroup[] {
   for (const book of books) {
     const board = String(book.board || "Other").trim() || "Other";
     const subject = String(book.subject || "Other").trim() || "Other";
-    const key = `${board}|${subject}`;
-    const label = `${board} · ${subject}`;
+    const cat = normalizeIitCategory(book.productCategory);
+    const key = `${board}|${subject}|${cat || "GENERAL"}`;
+    const label = cat
+      ? `${board} · ${subject} · ${formatIitCategoryLabel(cat)}`
+      : `${board} · ${subject}`;
     const existing = map.get(key);
     if (existing) {
       existing.books.push(book);
@@ -135,7 +155,7 @@ function groupBooksBySubject(books: BookOption[]): BookListGroup[] {
       books: [...group.books].sort((a, b) => {
         const classCmp = normalizeClassLabel(a.class).localeCompare(normalizeClassLabel(b.class));
         if (classCmp !== 0) return classCmp;
-        return String(a.title || "").localeCompare(String(b.title || ""));
+        return bookDisplayTitle(a).localeCompare(bookDisplayTitle(b));
       }),
     }))
     .sort((a, b) => a.label.localeCompare(b.label));
@@ -271,10 +291,13 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
   const [bookGroupMode, setBookGroupMode] = useState<"class" | "subject">("class");
   const [bookGroupFilter, setBookGroupFilter] = useState("__all__");
 
-  const bookGroups = useMemo(
-    () => (bookGroupMode === "class" ? groupBooksByClass(books) : groupBooksBySubject(books)),
-    [books, bookGroupMode],
-  );
+  const bookGroups = useMemo(() => {
+    const track = normalizeIitCategory(productCategory);
+    const scoped = track
+      ? books.filter((b) => normalizeIitCategory(b.productCategory) === track)
+      : books;
+    return bookGroupMode === "class" ? groupBooksByClass(scoped) : groupBooksBySubject(scoped);
+  }, [books, bookGroupMode, productCategory]);
 
   const visibleBookGroups = useMemo(() => {
     if (bookGroupFilter === "__all__") return bookGroups;
@@ -873,13 +896,13 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
                               )}
                             >
                               <div className="flex items-start justify-between gap-2">
-                                <span className="font-medium text-slate-900 line-clamp-2">{b.title}</span>
+                                <span className="font-medium text-slate-900 line-clamp-2">{bookDisplayTitle(b)}</span>
                                 {statusBadge(b.processingStatus, b.embeddingsCreated)}
                               </div>
                               <p className="text-xs text-slate-500 mt-1">
                                 {bookGroupMode === "class"
-                                  ? `${b.subject || "Subject"}${b.chunkCount ? ` · ${b.chunkCount} chunks` : ""}`
-                                  : `${normalizeClassLabel(b.class)}${b.chunkCount ? ` · ${b.chunkCount} chunks` : ""}`}
+                                  ? `${b.subject || "Subject"}${normalizeIitCategory(b.productCategory) ? ` · ${formatIitCategoryLabel(b.productCategory)}` : ""}${b.chunkCount ? ` · ${b.chunkCount} chunks` : ""}`
+                                  : `${normalizeClassLabel(b.class)}${normalizeIitCategory(b.productCategory) ? ` · ${formatIitCategoryLabel(b.productCategory)}` : ""}${b.chunkCount ? ` · ${b.chunkCount} chunks` : ""}`}
                               </p>
                             </button>
                           </li>
@@ -896,7 +919,7 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
             <div className="flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
               <FileText className="h-4 w-4 shrink-0" />
               <span>
-                Selected: <strong>{selectedBook.title}</strong>
+                Selected: <strong>{bookDisplayTitle(selectedBook)}</strong>
                 {bookReady ? " — ready for generation" : " — still indexing; reindex from Book Knowledge Base"}
               </span>
             </div>

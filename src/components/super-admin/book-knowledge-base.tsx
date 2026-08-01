@@ -37,6 +37,7 @@ type BookRow = {
   board: string;
   class: string;
   subject: string;
+  productCategory?: string;
   topic?: string;
   subtopic?: string;
   source: string;
@@ -57,6 +58,7 @@ type ImportableContentRow = {
   board: string;
   classNumber: string;
   subjectName: string;
+  productCategory?: string;
   topic?: string;
   fileUrl: string;
   imported: boolean;
@@ -527,9 +529,17 @@ export default function BookKnowledgeBase() {
                       <p className="font-medium text-slate-900 truncate">{row.title}</p>
                       <p className="text-xs text-slate-500 mt-0.5">
                         {row.type} · {row.board} · Class {row.classNumber || "—"} · {row.subjectName}
+                        {normalizeIitCategory(row.productCategory)
+                          ? ` · ${formatIitCategoryLabel(row.productCategory, iitLabelMap)}`
+                          : ""}
                         {row.topic ? ` · ${row.topic}` : ""}
                       </p>
                       <div className="flex flex-wrap gap-2 mt-2">
+                        {normalizeIitCategory(row.productCategory) ? (
+                          <Badge variant="outline" className="border-violet-300 text-violet-800">
+                            {formatIitCategoryLabel(row.productCategory, iitLabelMap)}
+                          </Badge>
+                        ) : null}
                         {row.imported ? (
                           <>
                             <Badge className="bg-emerald-100 text-emerald-800">Linked</Badge>
@@ -740,11 +750,19 @@ export default function BookKnowledgeBase() {
                   <p className="font-semibold text-slate-900 truncate">{book.title}</p>
                   <p className="text-xs text-slate-500 mt-0.5">
                     {book.board} · {book.class} · {book.subject}
+                    {normalizeIitCategory(book.productCategory)
+                      ? ` · ${formatIitCategoryLabel(book.productCategory, iitLabelMap)}`
+                      : ""}
                     {book.topic ? ` · ${book.topic}` : ""}
                     {book.subtopic ? ` / ${book.subtopic}` : ""} · {book.source}
                   </p>
                   <div className="flex flex-wrap gap-2 mt-2">
                     <Badge className={statusBadge(book.processingStatus)}>{book.processingStatus}</Badge>
+                    {normalizeIitCategory(book.productCategory) ? (
+                      <Badge variant="outline" className="border-violet-300 text-violet-800">
+                        {formatIitCategoryLabel(book.productCategory, iitLabelMap)}
+                      </Badge>
+                    ) : null}
                     {book.contentId && <Badge variant="outline" className="border-emerald-300 text-emerald-700">Learning path</Badge>}
                     <Badge variant="outline">{book.chunkCount || 0} chunks</Badge>
                     <Badge variant="outline">{book.generationStats?.totalGenerations || 0} generations</Badge>

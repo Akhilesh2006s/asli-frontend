@@ -38,14 +38,24 @@ import { getExamClassStrings } from '@/lib/exam-classes';
 import { normalizeAndFormatExamDisplayText } from '@/lib/exam-text-normalize';
 import { Plus, Trash2, Edit, Eye, Calendar, Clock, BookOpen, FileQuestion, X, Upload, Download, School, GraduationCap, Loader2, ChevronUp, ChevronDown, Save } from 'lucide-react';
 
+type ExamSubjectValue =
+  | 'maths'
+  | 'physics'
+  | 'chemistry'
+  | 'biology'
+  | 'science'
+  | 'english'
+  | 'hindi'
+  | 'social_science';
+
 interface Exam {
   _id: string;
   title: string;
   description: string;
   examType: 'weekend' | 'mains' | 'advanced' | 'practice';
   classNumber?: string;
-  subject: 'maths' | 'physics' | 'chemistry' | 'biology';
-  subjects?: Array<'maths' | 'physics' | 'chemistry' | 'biology'>;
+  subject: ExamSubjectValue;
+  subjects?: ExamSubjectValue[];
   maxAttempts: number;
   assignedClasses?: string[];
   board: string;
@@ -60,6 +70,7 @@ interface Exam {
   targetSchools?: Array<{ _id: string; schoolName?: string; fullName?: string; email?: string }>;
   schoolId?: string;
   isSchoolSpecific?: boolean;
+  isAllBoards?: boolean;
   createdAt: string;
   updatedAt?: string;
 }
@@ -69,6 +80,10 @@ const SUBJECT_SECTION_LABELS: Record<string, string> = {
   physics: 'Physics',
   chemistry: 'Chemistry',
   biology: 'Biology',
+  science: 'Science',
+  english: 'English',
+  hindi: 'Hindi',
+  social_science: 'Social Science',
 };
 
 function subjectSectionLabel(subject?: string) {
@@ -187,12 +202,16 @@ const EXAM_SUBJECTS = [
   { value: 'maths', label: 'Mathematics' },
   { value: 'physics', label: 'Physics' },
   { value: 'chemistry', label: 'Chemistry' },
-  { value: 'biology', label: 'Biology' }
+  { value: 'biology', label: 'Biology' },
+  { value: 'science', label: 'Science' },
+  { value: 'english', label: 'English' },
+  { value: 'hindi', label: 'Hindi' },
+  { value: 'social_science', label: 'Social Science' },
 ];
 
 const CLASS_OPTIONS = ['6', '7', '8', '9', '10', '11', '12'];
 
-type FilterType = 'all-schools' | 'specific-schools';
+type FilterType = 'all-schools' | 'specific-schools' | 'all-boards';
 type BulkQuestionUploadMode = 'csv' | 'pdf';
 type PdfQuestionRow = {
   row: number;
@@ -211,10 +230,10 @@ type PdfQuestionRow = {
 /** Canonical subject for PDF rows / upload (no exam default). */
 function normalizePdfRowSubjectSlug(
   raw: string,
-): '' | 'maths' | 'physics' | 'chemistry' | 'biology' {
+): '' | ExamSubjectValue {
   const t = String(raw || '').trim().toLowerCase();
   if (!t) return '';
-  const map: Record<string, 'maths' | 'physics' | 'chemistry' | 'biology'> = {
+  const map: Record<string, ExamSubjectValue> = {
     maths: 'maths',
     mathematics: 'maths',
     math: 'maths',
@@ -222,9 +241,26 @@ function normalizePdfRowSubjectSlug(
     chemistry: 'chemistry',
     biology: 'biology',
     biological: 'biology',
+    science: 'science',
+    english: 'english',
+    hindi: 'hindi',
+    social_science: 'social_science',
+    'social science': 'social_science',
+    sst: 'social_science',
   };
   if (map[t]) return map[t];
-  if (t === 'maths' || t === 'physics' || t === 'chemistry' || t === 'biology') return t;
+  if (
+    t === 'maths' ||
+    t === 'physics' ||
+    t === 'chemistry' ||
+    t === 'biology' ||
+    t === 'science' ||
+    t === 'english' ||
+    t === 'hindi' ||
+    t === 'social_science'
+  ) {
+    return t;
+  }
   return '';
 }
 
@@ -296,8 +332,8 @@ const examDisplayDedupKey = (exam: Exam) => {
 
 const getExamSubjects = (exam: Partial<Exam>) => {
   const fromArray = Array.isArray(exam.subjects) ? exam.subjects : [];
-  const merged = [...fromArray, exam.subject].filter(Boolean) as Array<'maths' | 'physics' | 'chemistry' | 'biology'>;
-  return Array.from(new Set(merged.map((s) => String(s).trim().toLowerCase() as any))).filter(Boolean) as Array<'maths' | 'physics' | 'chemistry' | 'biology'>;
+  const merged = [...fromArray, exam.subject].filter(Boolean) as ExamSubjectValue[];
+  return Array.from(new Set(merged.map((s) => String(s).trim().toLowerCase() as ExamSubjectValue))).filter(Boolean) as ExamSubjectValue[];
 };
 
 const getExamTimestamp = (exam: Partial<Exam>) => {
@@ -362,7 +398,7 @@ export default function ExamManagement() {
     examType: 'mains' as 'mains' | 'advanced' | 'weekend' | 'practice',
     classNumber: '',
     assignedClasses: [] as string[],
-    subjects: ['maths'] as Array<'maths' | 'physics' | 'chemistry' | 'biology'>,
+    subjects: ['maths'] as ExamSubjectValue[],
     maxAttempts: '1',
     board: 'ASLI_EXCLUSIVE_SCHOOLS',
     filterType: 'all-schools' as FilterType,
@@ -1622,8 +1658,8 @@ export default function ExamManagement() {
               ...ex,
               assignedClasses: labels,
               classNumber: labels[0] ?? ex.classNumber ?? '',
-              subject: (normalizedSubjects[0] || ex.subject || 'maths') as 'maths' | 'physics' | 'chemistry' | 'biology',
-              subjects: normalizedSubjects.length > 0 ? normalizedSubjects : [(ex.subject || 'maths') as 'maths' | 'physics' | 'chemistry' | 'biology'],
+              subject: (normalizedSubjects[0] || ex.subject || 'maths') as ExamSubjectValue,
+              subjects: normalizedSubjects.length > 0 ? normalizedSubjects : [(ex.subject || 'maths') as ExamSubjectValue],
             };
           });
 
@@ -1716,7 +1752,7 @@ export default function ExamManagement() {
             .map((s) => String(s).trim().toLowerCase())
             .filter(Boolean)
         )
-      ) as Array<'maths' | 'physics' | 'chemistry' | 'biology'>;
+      ) as ExamSubjectValue[];
 
       // Prepare shared payload fields
       const payload: any = {
@@ -1738,15 +1774,21 @@ export default function ExamManagement() {
       };
       console.log('🧾 Exam save payload:', payload);
 
-      // Add school-specific targeting if selected
+      // Targeting:
+      // - all-schools → every school on THIS exam board (isAllBoards=false)
+      // - all-boards → every board (isAllBoards=true)
+      // - specific-schools → listed school admin ids only
       if (formData.filterType === 'specific-schools' && formData.selectedSchools.length > 0) {
         payload.targetSchools = formData.selectedSchools;
         payload.isSchoolSpecific = true;
         payload.isAllBoards = false;
-      } else if (formData.filterType === 'all-schools') {
-        // All schools can see this exam
+      } else if (formData.filterType === 'all-boards') {
         payload.isSchoolSpecific = false;
         payload.isAllBoards = true;
+        payload.targetSchools = [];
+      } else {
+        payload.isSchoolSpecific = false;
+        payload.isAllBoards = false;
         payload.targetSchools = [];
       }
 
@@ -2134,7 +2176,11 @@ export default function ExamManagement() {
         : ['maths'],
       maxAttempts: String(exam.maxAttempts || 1),
       board: exam.board || 'ASLI_EXCLUSIVE_SCHOOLS',
-      filterType: exam.isSchoolSpecific ? 'specific-schools' : 'all-schools',
+      filterType: exam.isSchoolSpecific
+        ? 'specific-schools'
+        : exam.isAllBoards
+          ? 'all-boards'
+          : 'all-schools',
       selectedSchools: exam.targetSchools?.map((s: any) => s._id || s).filter(Boolean) || [],
       duration: String(exam.duration || ''),
       totalQuestions: String(exam.totalQuestions || ''),
@@ -2211,7 +2257,7 @@ export default function ExamManagement() {
                     {csvFile ? `Selected file: ${csvFile.name}` : 'No file selected yet'}
                   </p>
                   <p className="text-xs text-gray-500 mt-1">
-                    File should contain: title, description, examType, classNumber, subject, maxAttempts, board, duration, totalQuestions, totalMarks, instructions, startDate, endDate, filterType, targetSchools
+                    File should contain: title, description, examType, classNumber, subject, maxAttempts, board, duration, totalQuestions, totalMarks, instructions, startDate, endDate, filterType (all-schools | all-boards | specific-schools), targetSchools
                   </p>
                   <p className="text-xs text-blue-700 mt-1">
                     Tip: upload the original .xlsx file to keep characters like °, ², ³, θ, π, √, Δ, ≤, ≥. Plain CSV exports from Excel drop these.
@@ -2310,8 +2356,9 @@ export default function ExamManagement() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                    <SelectItem value="all-schools">All Schools (All schools can see)</SelectItem>
-                    <SelectItem value="specific-schools">Specific Schools (Only selected schools)</SelectItem>
+                    <SelectItem value="all-schools">All schools on this board</SelectItem>
+                    <SelectItem value="all-boards">All boards (every school)</SelectItem>
+                    <SelectItem value="specific-schools">Specific schools only</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
