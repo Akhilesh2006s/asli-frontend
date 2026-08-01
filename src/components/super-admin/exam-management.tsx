@@ -871,7 +871,7 @@ export default function ExamManagement() {
     setPdfPreviewPage(1);
     try {
       const controller = new AbortController();
-      const timeoutId = window.setTimeout(() => controller.abort(), 120000);
+      const timeoutId = window.setTimeout(() => controller.abort(), 300000);
       const form = new FormData();
       form.append('file', questionPdfFile);
       const headers = authBearerHeaders();
@@ -918,7 +918,7 @@ export default function ExamManagement() {
       });
     } catch (error: any) {
       const message = error?.name === 'AbortError'
-        ? 'Extraction timed out. Please try again with a smaller PDF.'
+        ? 'Extraction timed out. Large papers can take a few minutes — retry, or split the PDF by subject.'
         : error?.message || 'Gemini failed to extract questions.';
       toast({
         title: 'Extraction failed',
