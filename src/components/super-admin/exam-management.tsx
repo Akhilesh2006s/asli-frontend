@@ -36,6 +36,7 @@ import { useToast } from '@/hooks/use-toast';
 import { API_BASE_URL } from '@/lib/api-config';
 import { getExamClassStrings } from '@/lib/exam-classes';
 import { normalizeAndFormatExamDisplayText } from '@/lib/exam-text-normalize';
+import { AuthenticatedUploadImage } from '@/components/AuthenticatedUploadImage';
 import { Plus, Trash2, Edit, Eye, Calendar, Clock, BookOpen, FileQuestion, X, Upload, Download, School, GraduationCap, Loader2, ChevronUp, ChevronDown, Save } from 'lucide-react';
 
 type ExamSubjectValue =
@@ -215,6 +216,7 @@ type FilterType = 'all-schools' | 'specific-schools' | 'all-boards';
 type BulkQuestionUploadMode = 'csv' | 'pdf';
 type PdfQuestionRow = {
   row: number;
+  questionNumber?: number;
   questionText: string;
   questionType: 'mcq' | 'multiple' | 'integer';
   subject: string;
@@ -225,6 +227,12 @@ type PdfQuestionRow = {
   option4: string;
   correctAnswer: string;
   explanation: string;
+  questionImage?: string;
+  passageId?: string;
+  passageText?: string;
+  solvable?: boolean;
+  validationFlags?: string[];
+  validationNote?: string;
 };
 
 /** Canonical subject for PDF rows / upload (no exam default). */
@@ -371,6 +379,13 @@ export default function ExamManagement() {
   const [isDeletingAllQuestions, setIsDeletingAllQuestions] = useState(false);
   const [questionCsvUploadResults, setQuestionCsvUploadResults] = useState<{ success: number; errors: string[] } | null>(null);
   const [pdfQuestionRows, setPdfQuestionRows] = useState<PdfQuestionRow[]>([]);
+  const [pdfAnswerKeyMeta, setPdfAnswerKeyMeta] = useState<{
+    found?: boolean;
+    applied?: boolean;
+    agreedPct?: number | null;
+    conflictCount?: number;
+    reason?: string;
+  } | null>(null);
   const [pdfPreviewPage, setPdfPreviewPage] = useState(1);
   const [pendingDeleteQuestion, setPendingDeleteQuestion] = useState<{ id: string; index: number } | null>(null);
   // Default ON: duplicate rows are uploaded instead of skipped.
@@ -446,12 +461,12 @@ export default function ExamManagement() {
   const fetchQuestions = async (examId: string) => {
     setIsLoadingQuestions(true);
     try {
-      const token = getAuthToken();
       const response = await fetch(`${API_BASE_URL}/api/super-admin/exams/${examId}/questions`, {
+        credentials: 'include',
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
+          ...authBearerHeaders(),
+          'Content-Type': 'application/json',
+        },
       });
 
       if (response.ok) {
@@ -462,10 +477,11 @@ export default function ExamManagement() {
       } else {
         // If endpoint doesn't exist, fetch exam and get questions from there
         const examResponse = await fetch(`${API_BASE_URL}/api/super-admin/exams/${examId}`, {
+          credentials: 'include',
           headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
+            ...authBearerHeaders(),
+            'Content-Type': 'application/json',
+          },
         });
         if (examResponse.ok) {
           const examData = await examResponse.json();
@@ -810,6 +826,7 @@ export default function ExamManagement() {
       .filter(Boolean);
     const options = optionTexts.map((text) => ({ text, isCorrect: false }));
     const type = row.questionType;
+    const imageUrl = String(row.questionImage || '').trim();
     const base = {
       questionText: String(row.questionText || '').trim(),
       questionType: type,
@@ -818,6 +835,17 @@ export default function ExamManagement() {
       negativeMarks: 0,
       explanation: String(row.explanation || '').trim() || undefined,
       board: selectedExam?.board,
+      // Keep relative /uploads/... so student proxy + auth work consistently
+      ...(imageUrl
+        ? {
+            questionImage: imageUrl.startsWith('http')
+              ? imageUrl.replace(API_BASE_URL, '')
+              : imageUrl,
+          }
+        : {}),
+      ...(Number.isFinite(Number(row.questionNumber))
+        ? { displayOrder: Math.floor(Number(row.questionNumber)) }
+        : {}),
     } as any;
 
     if (type === 'integer') {
@@ -868,6 +896,7 @@ export default function ExamManagement() {
     }
     setIsExtractingPdfQuestions(true);
     setPdfQuestionRows([]);
+    setPdfAnswerKeyMeta(null);
     setPdfPreviewPage(1);
     try {
       const controller = new AbortController();
@@ -912,9 +941,21 @@ export default function ExamManagement() {
         throw new Error('No extractable questions found in this PDF. Please try a clearer PDF or different pages.');
       }
       setPdfQuestionRows(rows);
+      const answerKeyMeta = data?.meta?.answerKey || null;
+      setPdfAnswerKeyMeta(answerKeyMeta);
+      const flagged = rows.filter((r: PdfQuestionRow) => r.solvable === false).length;
+      const withImages = rows.filter((r: PdfQuestionRow) => String(r.questionImage || '').trim()).length;
+      const keyUnusable = answerKeyMeta?.found && !answerKeyMeta?.applied;
       toast({
-        title: 'Extraction complete',
-        description: `Extracted ${rows.length} question(s) from PDF. Not saved yet - click "Upload These Questions" to save.`,
+        title: keyUnusable ? 'Extracted — check the answers' : 'Extraction complete',
+        description:
+          `Extracted ${rows.length} question(s)` +
+          (withImages ? `, ${withImages} with figure` : '') +
+          (flagged ? `, ${flagged} need review` : '') +
+          '. ' +
+          (keyUnusable ? `The printed answer key was not used: ${answerKeyMeta?.reason}. ` : '') +
+          'Not saved yet — click Upload These Questions.',
+        variant: keyUnusable ? 'destructive' : undefined,
       });
     } catch (error: any) {
       const message = error?.name === 'AbortError'
@@ -932,19 +973,46 @@ export default function ExamManagement() {
 
   const handleDownloadExtractedCsv = () => {
     if (pdfQuestionRows.length === 0) return;
-    const headers = ['questionText', 'questionType', 'subject', 'marks', 'option1', 'option2', 'option3', 'option4', 'correctAnswer', 'explanation'];
+    const headers = [
+      'questionText',
+      'questionType',
+      'subject',
+      'marks',
+      'option1',
+      'option2',
+      'option3',
+      'option4',
+      'correctAnswer',
+      'explanation',
+      'questionImage',
+      'displayOrder',
+    ];
     const sanitizeCsvCell = (v: unknown) =>
       String(v ?? '')
-        .replace(/\r\n/g, ' ')
-        .replace(/\n/g, ' ')
-        .replace(/\r/g, ' ')
+        .replace(/\r\n/g, '\n')
+        .replace(/\r/g, '\n')
         .replace(/\t/g, ' ')
-        .replace(/\s+/g, ' ')
         .trim();
     const escapeCsv = (v: unknown) => `"${sanitizeCsvCell(v).replace(/"/g, '""')}"`;
-    const body = pdfQuestionRows.map((r) => [
-      r.questionText, r.questionType, r.subject, r.marks, r.option1, r.option2, r.option3, r.option4, r.correctAnswer, r.explanation
-    ].map(escapeCsv).join(','));
+    const body = pdfQuestionRows.map((r, idx) => {
+      const qn = Number(r.questionNumber);
+      return [
+        r.questionText,
+        r.questionType,
+        r.subject,
+        r.marks,
+        r.option1,
+        r.option2,
+        r.option3,
+        r.option4,
+        r.correctAnswer,
+        r.explanation,
+        r.questionImage || '',
+        Number.isFinite(qn) && qn >= 1 ? Math.floor(qn) : idx + 1,
+      ]
+        .map(escapeCsv)
+        .join(',');
+    });
     const csv = [headers.join(','), ...body].join('\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
@@ -969,20 +1037,31 @@ export default function ExamManagement() {
       return;
     }
     const shouldUpload = window.confirm(
-      `Upload ${pdfQuestionRows.length} extracted question(s) to this exam now?\n\nThis will immediately save them to the database.`
+      `Upload ${pdfQuestionRows.length} extracted question(s) to this exam now?\n\nThis will immediately save them to the database (including figures).`
     );
     if (!shouldUpload) return;
     setIsUploadingExtractedQuestions(true);
     try {
-      const token = getAuthToken();
-      const headers = ['questionText', 'questionType', 'subject', 'marks', 'option1', 'option2', 'option3', 'option4', 'correctAnswer', 'explanation'];
+      const headers = [
+        'questionText',
+        'questionType',
+        'subject',
+        'marks',
+        'option1',
+        'option2',
+        'option3',
+        'option4',
+        'correctAnswer',
+        'explanation',
+        'questionImage',
+        'displayOrder',
+        'sectionHeading',
+      ];
       const sanitizeCsvCell = (v: unknown) =>
         String(v ?? '')
-          .replace(/\r\n/g, ' ')
-          .replace(/\n/g, ' ')
-          .replace(/\r/g, ' ')
+          .replace(/\r\n/g, '\n')
+          .replace(/\r/g, '\n')
           .replace(/\t/g, ' ')
-          .replace(/\s+/g, ' ')
           .trim();
       const escapeCsv = (v: unknown) => `"${sanitizeCsvCell(v).replace(/"/g, '""')}"`;
 
@@ -994,6 +1073,16 @@ export default function ExamManagement() {
         if (['msq', 'multiple', 'multipleselect', 'multiselect', 'multiplechoice'].includes(value)) return 'multiple';
         if (['integer', 'numeric', 'number'].includes(value)) return 'integer';
         return 'mcq';
+      };
+
+      const letterToOption = (answer: string, opts: string[]) => {
+        const a = String(answer || '').trim();
+        const letter = a.match(/^([a-dA-D])(?:[\).:]|$)/)?.[1];
+        if (letter) {
+          const idx = letter.toUpperCase().charCodeAt(0) - 65;
+          if (idx >= 0 && idx < opts.length && opts[idx]) return opts[idx];
+        }
+        return a;
       };
 
       const preValidationErrors: string[] = [];
@@ -1008,7 +1097,7 @@ export default function ExamManagement() {
           let questionType = normalizeType(r.questionType);
           const optionValues = [r.option1, r.option2, r.option3, r.option4].map((x) => sanitizeCsvCell(x));
           const nonEmptyOptions = optionValues.filter(Boolean);
-          const correctAnswer = sanitizeCsvCell(r.correctAnswer);
+          let correctAnswer = sanitizeCsvCell(r.correctAnswer);
           const correctAnswerNumber = Number(correctAnswer);
 
           if ((questionType === 'mcq' || questionType === 'multiple') && nonEmptyOptions.length === 0) {
@@ -1020,6 +1109,25 @@ export default function ExamManagement() {
             }
           }
 
+          if (questionType === 'mcq' || questionType === 'multiple') {
+            correctAnswer = letterToOption(correctAnswer, optionValues);
+          }
+
+          const imageUrl = String(r.questionImage || '').trim();
+          const relativeImage = imageUrl
+            ? imageUrl.startsWith('http')
+              ? (() => {
+                  try {
+                    const u = new URL(imageUrl);
+                    return u.pathname.startsWith('/uploads/') ? u.pathname : imageUrl;
+                  } catch {
+                    return imageUrl;
+                  }
+                })()
+              : imageUrl
+            : '';
+
+          const qn = Number(r.questionNumber);
           return {
             questionText,
             questionType,
@@ -1031,6 +1139,9 @@ export default function ExamManagement() {
             option4: questionType === 'integer' ? '' : optionValues[3],
             correctAnswer,
             explanation: sanitizeCsvCell(r.explanation),
+            questionImage: relativeImage,
+            displayOrder: Number.isFinite(qn) && qn >= 1 ? Math.floor(qn) : idx + 1,
+            sectionHeading: subjectSectionLabel(normalizePdfRowSubjectSlug(r.subject)),
           };
         })
         .filter((r): r is NonNullable<typeof r> => Boolean(r));
@@ -1051,6 +1162,9 @@ export default function ExamManagement() {
         r.option4,
         r.correctAnswer,
         r.explanation,
+        r.questionImage,
+        r.displayOrder,
+        r.sectionHeading,
       ].map(escapeCsv).join(','));
       const csv = [headers.join(','), ...csvRows].join('\n');
       const csvBlob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
@@ -1061,13 +1175,15 @@ export default function ExamManagement() {
 
       let res = await fetch(`${API_BASE_URL}/api/super-admin/exams/${selectedExam._id}/questions/bulk-upload`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: 'include',
+        headers: authBearerHeaders(),
         body: formData,
       });
       if (res.status === 404) {
         res = await fetch(`${API_BASE_URL}/api/super-admin/protected/exams/${selectedExam._id}/questions/bulk-upload`, {
           method: 'POST',
-          headers: { Authorization: `Bearer ${token}` },
+          credentials: 'include',
+          headers: authBearerHeaders(),
           body: formData,
         });
       }
@@ -1564,9 +1680,8 @@ export default function ExamManagement() {
 
       const response = await fetch(`${API_BASE_URL}/api/super-admin/upload-question-image`, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
+        credentials: 'include',
+        headers: authBearerHeaders(),
         body: formData
       });
 
@@ -1575,9 +1690,20 @@ export default function ExamManagement() {
         throw new Error(data.message || 'Failed to upload image');
       }
 
+      // Prefer relative /uploads path so auth image loader can normalize consistently
+      let storedUrl = String(data.imageUrl || '').trim();
+      try {
+        if (storedUrl.startsWith('http')) {
+          const u = new URL(storedUrl);
+          if (u.pathname.startsWith('/uploads/')) storedUrl = u.pathname;
+        }
+      } catch {
+        /* keep as-is */
+      }
+
       setQuestionFormData((prev) => ({
         ...prev,
-        questionImage: data.imageUrl || ''
+        questionImage: storedUrl
       }));
 
       toast({
@@ -2857,6 +2983,7 @@ export default function ExamManagement() {
           setQuestionPdfFile(null);
           setQuestionCsvUploadResults(null);
           setPdfQuestionRows([]);
+          setPdfAnswerKeyMeta(null);
           setPdfPreviewPage(1);
           setBulkQuestionUploadMode('csv');
           setPendingDeleteQuestion(null);
@@ -2864,17 +2991,22 @@ export default function ExamManagement() {
         }
       }}>
         <DialogContent
-          className="max-w-4xl max-h-[90vh] overflow-y-auto"
+          className="flex max-h-[96vh] w-[calc(100vw-1rem)] max-w-[min(96vw,80rem)] flex-col gap-4 overflow-hidden rounded-2xl p-4 sm:p-6 lg:max-w-[min(96vw,80rem)]"
           onOpenAutoFocus={(e) => e.preventDefault()}
         >
-          <DialogHeader>
-            <DialogTitle>Manage Questions - {selectedExam?.title}</DialogTitle>
-            <DialogDescription>
-              Add, edit, or upload MCQ / multiple / integer questions. Use Edit on any question to fix text, options, or answers without re-entering everything.
+          <DialogHeader className="shrink-0 space-y-2 text-left">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-amber-800">
+              Super Admin Exam Editor
+            </p>
+            <DialogTitle className="text-xl sm:text-2xl">
+              {selectedExam?.title || 'Exam'}
+            </DialogTitle>
+            <DialogDescription className="text-sm text-stone-600">
+              Student exam layout with Super Admin controls — edit order, section, text, answers, and figures.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-3 sm:space-y-4 lg:space-y-6">
+          <div className="min-h-0 flex-1 space-y-4 overflow-y-auto pr-1">
             {/* CSV Upload Section */}
             <div className="border-t pt-6 space-y-4">
               <div className="flex items-center justify-between">
@@ -2991,6 +3123,7 @@ export default function ExamManagement() {
                         const file = e.target.files?.[0] || null;
                         setQuestionPdfFile(file);
                         setPdfQuestionRows([]);
+                        setPdfAnswerKeyMeta(null);
                         setPdfPreviewPage(1);
                       }}
                       className="mt-1 cursor-pointer file:mr-3 file:rounded-md file:border-0 file:bg-blue-100 file:px-3 file:py-2 file:text-xs sm:text-sm file:font-medium file:text-blue-700 hover:file:bg-blue-200"
@@ -3024,6 +3157,26 @@ export default function ExamManagement() {
                       <p className="text-xs text-blue-700">
                         Preview only: extracted questions are not saved until you click <span className="font-semibold">Upload These Questions</span>.
                       </p>
+                      {pdfAnswerKeyMeta?.found && !pdfAnswerKeyMeta?.applied && (
+                        <div
+                          role="alert"
+                          className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-xs text-red-900"
+                        >
+                          <span className="font-semibold">Printed answer key was NOT used.</span>{' '}
+                          {pdfAnswerKeyMeta.reason}. The answers below were worked out from the
+                          questions themselves, so check them before uploading — especially any row
+                          marked ⚠.
+                        </div>
+                      )}
+                      {pdfAnswerKeyMeta?.applied && (pdfAnswerKeyMeta.conflictCount || 0) > 0 && (
+                        <div
+                          role="status"
+                          className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-950"
+                        >
+                          Printed answer key applied. On {pdfAnswerKeyMeta.conflictCount} question(s)
+                          it disagrees with the answer read from the question — those rows are marked ⚠.
+                        </div>
+                      )}
                       {pdfRowsMissingSubject && (
                         <div
                           role="status"
@@ -3033,9 +3186,32 @@ export default function ExamManagement() {
                           uploading.
                         </div>
                       )}
+                      {pdfQuestionRows.some((r) => r.solvable === false) && (
+                        <div
+                          role="status"
+                          className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-950"
+                        >
+                          {(() => {
+                            const flagged = pdfQuestionRows.filter((r) => r.solvable === false);
+                            const answers = flagged.filter((r) =>
+                              (r.validationFlags || []).includes('answer_conflict'),
+                            ).length;
+                            const context = flagged.length - answers;
+                            const parts = [
+                              answers ? `${answers} where the answer needs checking` : '',
+                              context ? `${context} missing a case passage or diagram` : '',
+                            ].filter(Boolean);
+                            return `${flagged.length} question(s) flagged — ${parts.join(', ')}. Review the rows marked ⚠ before upload, or edit them after upload.`;
+                          })()}
+                        </div>
+                      )}
                       <div className="flex items-center justify-between gap-2">
                         <p className="text-xs sm:text-sm font-semibold text-slate-800">
-                          Preview ({pdfQuestionRows.length} question{pdfQuestionRows.length === 1 ? '' : 's'})
+                          Preview ({pdfQuestionRows.length} question{pdfQuestionRows.length === 1 ? '' : 's'}
+                          {pdfQuestionRows.filter((r) => r.questionImage).length
+                            ? `, ${pdfQuestionRows.filter((r) => r.questionImage).length} with figure`
+                            : ''}
+                          )
                         </p>
                         <div className="flex gap-2">
                           <Button type="button" size="sm" variant="outline" onClick={handleDownloadExtractedCsv}>
@@ -3059,6 +3235,7 @@ export default function ExamManagement() {
                             <tr>
                               <th className="text-left p-2">#</th>
                               <th className="text-left p-2">Question</th>
+                              <th className="text-left p-2">Figure</th>
                               <th className="text-left p-2">Type</th>
                               <th className="text-left p-2">Subject</th>
                               <th className="text-left p-2">Marks</th>
@@ -3068,10 +3245,47 @@ export default function ExamManagement() {
                           <tbody>
                             {pdfQuestionRows.slice((pdfPreviewPage - 1) * 10, pdfPreviewPage * 10).map((row, i) => {
                               const globalIdx = (pdfPreviewPage - 1) * 10 + i;
+                              const imgSrc = String(row.questionImage || '').trim();
+                              const flagged = row.solvable === false;
                               return (
-                              <tr key={`${row.row}-${globalIdx}`} className="border-t">
-                                <td className="p-2">{(pdfPreviewPage - 1) * 10 + i + 1}</td>
-                                <td className="p-2 max-w-[420px] truncate" title={row.questionText}>{row.questionText}</td>
+                              <tr
+                                key={`${row.row}-${globalIdx}`}
+                                className={`border-t ${flagged ? 'bg-amber-50/80' : ''}`}
+                              >
+                                <td className="p-2 whitespace-nowrap">
+                                  {(pdfPreviewPage - 1) * 10 + i + 1}
+                                  {flagged ? (
+                                    <span
+                                      className="ml-1 text-amber-700"
+                                      title={row.validationNote || 'Needs passage/figure'}
+                                    >
+                                      ⚠
+                                    </span>
+                                  ) : null}
+                                </td>
+                                <td className="p-2 max-w-[360px]">
+                                  <div className="truncate" title={row.questionText}>
+                                    {row.passageText ? (
+                                      <span className="text-[10px] uppercase tracking-wide text-blue-600 mr-1">
+                                        [case]
+                                      </span>
+                                    ) : null}
+                                    {row.questionText}
+                                  </div>
+                                </td>
+                                <td className="p-2">
+                                  {imgSrc ? (
+                                    <AuthenticatedUploadImage
+                                      src={imgSrc}
+                                      alt={`Q${row.questionNumber || globalIdx + 1} figure`}
+                                      wrapperClassName="h-14 w-20 p-0.5"
+                                      className="h-12 w-full object-contain"
+                                      fallbackLabel="—"
+                                    />
+                                  ) : (
+                                    <span className="text-slate-400">—</span>
+                                  )}
+                                </td>
                                 <td className="p-2">{String(row.questionType || '').toUpperCase()}</td>
                                 <td className="p-1 align-middle min-w-[120px]">
                                   <Input
@@ -3144,10 +3358,17 @@ export default function ExamManagement() {
               )}
             </div>
 
-            {/* View All Questions Section */}
-            <div className="border-t pt-6 space-y-4">
-              <div className="flex items-center justify-between gap-2">
-                <h3 className="font-semibold">All Questions ({questions.length})</h3>
+            {/* Student paper + Super Admin edit controls */}
+            <div className="space-y-3">
+              <div className="flex flex-wrap items-start justify-between gap-3 rounded-xl border border-amber-200/80 bg-amber-50/50 px-4 py-3">
+                <div>
+                  <h3 className="text-base font-semibold text-stone-900">
+                    Student paper view · {questions.length} questions
+                  </h3>
+                  <p className="mt-0.5 text-xs text-stone-600">
+                    Same layout students see. Use the amber toolbar on each question to edit Super Admin details.
+                  </p>
+                </div>
                 <Button
                   type="button"
                   size="sm"
@@ -3172,11 +3393,9 @@ export default function ExamManagement() {
                   <p className="text-xs sm:text-sm mt-1">Upload a CSV file or add questions manually below</p>
                 </div>
               ) : (
-                <div className="space-y-4 max-h-[32rem] overflow-y-auto">
-                  <p className="text-xs text-muted-foreground">
-                    Set <strong>Order</strong> then Save — other questions shift automatically
-                    (e.g. move Q80→1 makes old 1→2, 2→3…). Use ↑↓ for one-step moves.
-                    Set <strong>Section</strong> heading (e.g. Maths, Physics) for student paper titles.
+                <div className="space-y-4 rounded-xl border border-slate-200 bg-slate-100/80 p-3 sm:p-4">
+                  <p className="text-xs text-slate-600">
+                    Set <strong>Order</strong> then Save. Use ↑↓ for one-step moves. Figures appear under the question text when attached.
                   </p>
                   {questions.map((q: any, idx: number) => {
                     const prev = idx > 0 ? questions[idx - 1] : null;
@@ -3184,155 +3403,27 @@ export default function ExamManagement() {
                     const prevHeading = prev ? resolveQuestionSectionHeading(prev) : null;
                     const showSection = !prev || heading !== prevHeading;
                     const orderValue = Number(q.displayOrder) > 0 ? Number(q.displayOrder) : idx + 1;
+                    const isEditingThis = editingQuestionId === String(q._id);
                     return (
                       <div key={q._id || idx} className="space-y-2">
                         {showSection && (
-                          <div className="rounded-md bg-slate-900 px-3 py-2 text-sm font-semibold text-white">
+                          <div className="rounded-md bg-slate-900 px-4 py-2 text-sm font-semibold text-white">
                             {heading}
                           </div>
                         )}
-                        <Card className="p-4 border-l-4 border-l-blue-500">
-                          <div className="space-y-3">
-                            <div className="flex flex-wrap items-end gap-2">
-                              <div className="w-20">
-                                <Label className="text-xs">Order</Label>
-                                <Input
-                                  type="number"
-                                  min={1}
-                                  max={Math.max(1, questions.length)}
-                                  value={orderValue}
-                                  disabled={Boolean(savingQuestionId) || isReorderingQuestions}
-                                  onChange={(e) =>
-                                    patchLocalQuestion(String(q._id), {
-                                      displayOrder: Math.min(
-                                        Math.max(1, questions.length),
-                                        Math.max(1, parseInt(e.target.value, 10) || 1)
-                                      ),
-                                    })
-                                  }
-                                />
-                              </div>
-                              <div className="min-w-[140px] flex-1">
-                                <Label className="text-xs">Section heading</Label>
-                                <Input
-                                  value={q.sectionHeading ?? ''}
-                                  placeholder={subjectSectionLabel(q.subject)}
-                                  disabled={Boolean(savingQuestionId) || isReorderingQuestions}
-                                  onChange={(e) =>
-                                    patchLocalQuestion(String(q._id), {
-                                      sectionHeading: e.target.value,
-                                    })
-                                  }
-                                />
-                              </div>
-                              <div className="w-36">
-                                <Label className="text-xs">Subject</Label>
-                                <Select
-                                  value={q.subject || 'maths'}
-                                  onValueChange={(value) =>
-                                    patchLocalQuestion(String(q._id), { subject: value })
-                                  }
-                                  disabled={Boolean(savingQuestionId) || isReorderingQuestions}
-                                >
-                                  <SelectTrigger>
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    {(availableQuestionSubjects.length
-                                      ? availableQuestionSubjects
-                                      : ['maths', 'physics', 'chemistry', 'biology']
-                                    ).map((s) => (
-                                      <SelectItem key={s} value={s}>
-                                        {subjectSectionLabel(s)}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                              </div>
-                              <div className="flex items-center gap-1 pb-0.5">
-                                <Button
-                                  type="button"
-                                  size="sm"
-                                  variant="outline"
-                                  disabled={
-                                    idx === 0 || Boolean(savingQuestionId) || isReorderingQuestions
-                                  }
-                                  onClick={() => handleMoveQuestion(idx, -1)}
-                                  title="Move up"
-                                >
-                                  <ChevronUp className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                  type="button"
-                                  size="sm"
-                                  variant="outline"
-                                  disabled={
-                                    idx === questions.length - 1 ||
-                                    Boolean(savingQuestionId) ||
-                                    isReorderingQuestions
-                                  }
-                                  onClick={() => handleMoveQuestion(idx, 1)}
-                                  title="Move down"
-                                >
-                                  <ChevronDown className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                  type="button"
-                                  size="sm"
-                                  variant="secondary"
-                                  disabled={Boolean(savingQuestionId) || isReorderingQuestions}
-                                  onClick={() => handleApplySubjectAsSection(q)}
-                                  title="Use subject name as section"
-                                >
-                                  Subject→Section
-                                </Button>
-                                <Button
-                                  type="button"
-                                  size="sm"
-                                  variant="outline"
-                                  disabled={Boolean(savingQuestionId) || isReorderingQuestions}
-                                  onClick={() => handleEditQuestion(q)}
-                                  title="Edit question content"
-                                  className={
-                                    editingQuestionId === String(q._id)
-                                      ? 'border-sky-500 bg-sky-50 text-sky-700'
-                                      : undefined
-                                  }
-                                >
-                                  <Edit className="h-4 w-4" />
-                                  <span className="ml-1">Edit</span>
-                                </Button>
-                                <Button
-                                  type="button"
-                                  size="sm"
-                                  disabled={
-                                    savingQuestionId === String(q._id) || isReorderingQuestions
-                                  }
-                                  onClick={() => handleSaveQuestionMeta(q)}
-                                  className="bg-sky-600 text-white hover:bg-sky-700"
-                                >
-                                  {savingQuestionId === String(q._id) ? (
-                                    <Loader2 className="h-4 w-4 animate-spin" />
-                                  ) : (
-                                    <Save className="h-4 w-4" />
-                                  )}
-                                  <span className="ml-1">Save</span>
-                                </Button>
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="sm"
-                                  className="text-red-400 hover:text-red-600"
-                                  onClick={() =>
-                                    setPendingDeleteQuestion({ id: String(q._id), index: idx })
-                                  }
-                                  aria-label={`Delete question ${orderValue}`}
-                                >
-                                  <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
-                                </Button>
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-2 flex-wrap">
+                        <Card
+                          className={`overflow-hidden border shadow-sm ${
+                            isEditingThis
+                              ? 'border-sky-400 ring-2 ring-sky-100'
+                              : 'border-slate-200'
+                          }`}
+                        >
+                          {/* Super Admin edit toolbar */}
+                          <div className="border-b border-amber-100 bg-amber-50/90 px-3 py-2.5 sm:px-4">
+                            <div className="mb-2 flex flex-wrap items-center gap-1.5">
+                              <span className="rounded bg-amber-200/90 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-950">
+                                Super Admin edit
+                              </span>
                               <Badge variant="outline" className="font-semibold">
                                 Q{orderValue}
                               </Badge>
@@ -3348,88 +3439,286 @@ export default function ExamManagement() {
                               >
                                 {q.questionType?.toUpperCase() || 'MCQ'}
                               </Badge>
-                              <Badge variant="outline" className="bg-orange-100 text-orange-800">
-                                {q.subject?.toUpperCase() || 'MATHS'}
+                              <Badge variant="outline" className="capitalize">
+                                {q.subject || 'maths'}
                               </Badge>
-                              <Badge variant="outline" className="bg-teal-100 text-teal-800">
-                                {q.marks} mark{q.marks !== 1 ? 's' : ''}
+                              <Badge variant="secondary">
+                                {q.marks || 0} mark{q.marks !== 1 ? 's' : ''}
                               </Badge>
+                              {q.questionImage ? (
+                                <Badge variant="outline" className="bg-violet-100 text-violet-800">
+                                  Figure attached
+                                </Badge>
+                              ) : (
+                                <Badge variant="outline" className="bg-slate-100 text-slate-600">
+                                  No figure
+                                </Badge>
+                              )}
                               {q.negativeMarks > 0 && (
-                                <Badge variant="outline" className="bg-red-100 text-red-800">
-                                  -{q.negativeMarks} negative
+                                <Badge variant="destructive">
+                                  -{q.negativeMarks} for wrong
                                 </Badge>
                               )}
                             </div>
-                            <div className="mt-2">
-                              {q.questionImage ? (
-                                <div className="mb-2">
-                                  <img
-                                    src={q.questionImage}
-                                    alt="Question"
-                                    className="max-w-full h-auto rounded-md border"
-                                    onError={(e) => {
-                                      (e.target as HTMLImageElement).style.display = 'none';
-                                    }}
-                                  />
-                                </div>
-                              ) : null}
-                              <p className="text-xs sm:text-sm font-medium text-gray-900 mb-2">
-                                {formatChemistryText(q.questionText || 'Image question', q.subject)}
-                              </p>
-                              {(q.questionType === 'mcq' || q.questionType === 'multiple') &&
-                                q.options &&
-                                q.options.length > 0 && (
-                                  <div className="space-y-1 mt-3">
-                                    <p className="text-xs font-semibold text-gray-600 mb-1">
-                                      Options:
-                                    </p>
-                                    {q.options.map((option: any, optIdx: number) => {
-                                      const isCorrect = Array.isArray(q.correctAnswer)
-                                        ? q.correctAnswer.includes(option.text)
-                                        : q.correctAnswer === option.text;
-                                      return (
-                                        <div
-                                          key={optIdx}
-                                          className={`p-2 rounded text-xs sm:text-sm ${
-                                            isCorrect
-                                              ? 'bg-green-50 border border-green-300 text-green-900'
-                                              : 'bg-gray-50 border border-gray-200 text-gray-700'
-                                          }`}
-                                        >
-                                          <span className="font-semibold mr-2">
-                                            {String.fromCharCode(65 + optIdx)}.
-                                          </span>
-                                          {formatChemistryText(option.text || option, q.subject)}
-                                          {isCorrect && (
-                                            <Badge className="ml-2 bg-green-600 text-white text-xs">
-                                              Correct
-                                            </Badge>
-                                          )}
-                                        </div>
-                                      );
-                                    })}
-                                  </div>
-                                )}
-                              {q.questionType === 'integer' && (
-                                <div className="mt-3 p-2 bg-green-50 border border-green-300 rounded">
-                                  <p className="text-xs font-semibold text-gray-600 mb-1">
-                                    Correct Answer:
-                                  </p>
-                                  <p className="text-xs sm:text-sm font-bold text-green-900">
-                                    {formatChemistryText(q.correctAnswer, q.subject)}
-                                  </p>
-                                </div>
-                              )}
-                              {q.explanation && (
-                                <div className="mt-3 p-2 bg-blue-50 border border-blue-200 rounded">
-                                  <p className="text-xs font-semibold text-gray-600 mb-1">
-                                    Explanation:
-                                  </p>
-                                  <p className="text-xs sm:text-sm text-gray-700">{q.explanation}</p>
-                                </div>
-                              )}
+                            <div className="flex flex-wrap items-end gap-2">
+                              <div className="w-20">
+                                <Label className="text-[10px] text-stone-500">Order</Label>
+                                <Input
+                                  type="number"
+                                  min={1}
+                                  max={Math.max(1, questions.length)}
+                                  value={orderValue}
+                                  className="h-8 bg-white"
+                                  disabled={Boolean(savingQuestionId) || isReorderingQuestions}
+                                  onChange={(e) =>
+                                    patchLocalQuestion(String(q._id), {
+                                      displayOrder: Math.min(
+                                        Math.max(1, questions.length),
+                                        Math.max(1, parseInt(e.target.value, 10) || 1)
+                                      ),
+                                    })
+                                  }
+                                />
+                              </div>
+                              <div className="min-w-[140px] flex-1">
+                                <Label className="text-[10px] text-stone-500">Section heading</Label>
+                                <Input
+                                  value={q.sectionHeading ?? ''}
+                                  placeholder={subjectSectionLabel(q.subject)}
+                                  className="h-8 bg-white"
+                                  disabled={Boolean(savingQuestionId) || isReorderingQuestions}
+                                  onChange={(e) =>
+                                    patchLocalQuestion(String(q._id), {
+                                      sectionHeading: e.target.value,
+                                    })
+                                  }
+                                />
+                              </div>
+                              <div className="w-36">
+                                <Label className="text-[10px] text-stone-500">Subject</Label>
+                                <Select
+                                  value={q.subject || 'maths'}
+                                  onValueChange={(value) =>
+                                    patchLocalQuestion(String(q._id), { subject: value })
+                                  }
+                                  disabled={Boolean(savingQuestionId) || isReorderingQuestions}
+                                >
+                                  <SelectTrigger className="h-8 bg-white">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {(availableQuestionSubjects.length
+                                      ? availableQuestionSubjects
+                                      : ['maths', 'physics', 'chemistry', 'biology']
+                                    ).map((s) => (
+                                      <SelectItem key={s} value={s}>
+                                        {subjectSectionLabel(s)}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              <div className="flex flex-wrap items-center gap-1 pb-0.5">
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-8"
+                                  disabled={
+                                    idx === 0 || Boolean(savingQuestionId) || isReorderingQuestions
+                                  }
+                                  onClick={() => handleMoveQuestion(idx, -1)}
+                                  title="Move up"
+                                >
+                                  <ChevronUp className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-8"
+                                  disabled={
+                                    idx === questions.length - 1 ||
+                                    Boolean(savingQuestionId) ||
+                                    isReorderingQuestions
+                                  }
+                                  onClick={() => handleMoveQuestion(idx, 1)}
+                                  title="Move down"
+                                >
+                                  <ChevronDown className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="secondary"
+                                  className="h-8"
+                                  disabled={Boolean(savingQuestionId) || isReorderingQuestions}
+                                  onClick={() => handleApplySubjectAsSection(q)}
+                                  title="Use subject name as section"
+                                >
+                                  Subject→Section
+                                </Button>
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="outline"
+                                  className={`h-8 ${
+                                    isEditingThis
+                                      ? 'border-sky-500 bg-sky-50 text-sky-700'
+                                      : ''
+                                  }`}
+                                  disabled={Boolean(savingQuestionId) || isReorderingQuestions}
+                                  onClick={() => handleEditQuestion(q)}
+                                  title="Edit question content"
+                                >
+                                  <Edit className="h-4 w-4" />
+                                  <span className="ml-1">Edit</span>
+                                </Button>
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  className="h-8 bg-sky-600 text-white hover:bg-sky-700"
+                                  disabled={
+                                    savingQuestionId === String(q._id) || isReorderingQuestions
+                                  }
+                                  onClick={() => handleSaveQuestionMeta(q)}
+                                >
+                                  {savingQuestionId === String(q._id) ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                  ) : (
+                                    <Save className="h-4 w-4" />
+                                  )}
+                                  <span className="ml-1">Save</span>
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-8 text-red-400 hover:text-red-600"
+                                  onClick={() =>
+                                    setPendingDeleteQuestion({ id: String(q._id), index: idx })
+                                  }
+                                  aria-label={`Delete question ${orderValue}`}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
                             </div>
                           </div>
+
+                          {/* Student exam body */}
+                          <CardContent className="bg-white p-4 sm:p-6 lg:p-8">
+                            <div className="mb-4 flex flex-wrap items-center gap-2">
+                              <Badge variant="outline" className="capitalize">
+                                {q.subject || 'Unknown'}
+                              </Badge>
+                              <Badge variant="secondary">
+                                {q.marks || 0} marks
+                              </Badge>
+                              {(q.negativeMarks || 0) > 0 && (
+                                <Badge variant="destructive">
+                                  -{q.negativeMarks} for wrong
+                                </Badge>
+                              )}
+                            </div>
+
+                            <div className="mb-6 flex items-start gap-3">
+                              <span className="shrink-0 text-base font-semibold text-gray-900 sm:text-lg">
+                                Q{orderValue}.
+                              </span>
+                              <div className="min-w-0 flex-1">
+                                {q.questionText ? (
+                                  <p className="mb-4 text-base text-gray-900 sm:text-lg">
+                                    {formatChemistryText(q.questionText, q.subject)}
+                                  </p>
+                                ) : null}
+
+                                {q.questionImage ? (
+                                  <div className="mb-4">
+                                    <AuthenticatedUploadImage
+                                      src={q.questionImage}
+                                      alt={`Question ${orderValue} figure`}
+                                      wrapperClassName="p-2 border-gray-200 bg-gray-50"
+                                      className="max-h-[420px]"
+                                      fallbackLabel="Figure failed to load"
+                                    />
+                                  </div>
+                                ) : (
+                                  <div className="mb-4 flex h-24 items-center justify-center rounded-lg border border-dashed border-slate-300 bg-slate-50 text-center text-xs text-slate-500">
+                                    No figure on this question — click Edit to upload an image
+                                  </div>
+                                )}
+
+                                {!q.questionText && !q.questionImage ? (
+                                  <div className="mb-4 flex h-24 items-center justify-center rounded-lg border border-gray-200 bg-gray-100 text-sm text-gray-500">
+                                    No question content available
+                                  </div>
+                                ) : null}
+
+                                {(q.questionType === 'mcq' || q.questionType === 'multiple') &&
+                                  q.options &&
+                                  q.options.length > 0 && (
+                                    <div className="space-y-3">
+                                      {q.options.map((option: any, optIdx: number) => {
+                                        const optText = option?.text ?? option;
+                                        const isCorrect = Array.isArray(q.correctAnswer)
+                                          ? q.correctAnswer.includes(optText)
+                                          : q.correctAnswer === optText;
+                                        const letter = String.fromCharCode(65 + optIdx);
+                                        return (
+                                          <div
+                                            key={optIdx}
+                                            className={`flex items-center gap-3 rounded-lg border px-3 py-2.5 ${
+                                              isCorrect
+                                                ? 'border-emerald-300 bg-emerald-50'
+                                                : 'border-transparent'
+                                            }`}
+                                          >
+                                            <span
+                                              className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 text-[10px] font-bold ${
+                                                isCorrect
+                                                  ? 'border-emerald-600 bg-emerald-600 text-white'
+                                                  : 'border-slate-400 text-slate-600'
+                                              }`}
+                                            >
+                                              {letter}
+                                            </span>
+                                            <span className="text-sm text-gray-900 sm:text-base">
+                                              {formatChemistryText(optText, q.subject)}
+                                            </span>
+                                            {isCorrect ? (
+                                              <Badge className="ml-auto shrink-0 bg-emerald-600 text-[10px] text-white">
+                                                Correct
+                                              </Badge>
+                                            ) : null}
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                  )}
+
+                                {q.questionType === 'integer' && (
+                                  <div className="max-w-xs rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2">
+                                    <p className="text-xs font-semibold text-emerald-800">
+                                      Correct answer
+                                    </p>
+                                    <p className="mt-1 text-base font-semibold text-emerald-950">
+                                      {formatChemistryText(q.correctAnswer, q.subject)}
+                                    </p>
+                                  </div>
+                                )}
+
+                                {q.explanation ? (
+                                  <div className="mt-4 rounded-lg border border-sky-100 bg-sky-50/80 px-3 py-2">
+                                    <p className="text-[11px] font-semibold uppercase tracking-wide text-sky-800">
+                                      Explanation
+                                    </p>
+                                    <p className="mt-1 text-sm text-gray-700">{q.explanation}</p>
+                                  </div>
+                                ) : null}
+                              </div>
+                            </div>
+                          </CardContent>
                         </Card>
                       </div>
                     );
@@ -3439,16 +3728,21 @@ export default function ExamManagement() {
             </div>
 
             {/* Add / Edit Question Form */}
-            <div
+              <div
               ref={questionFormRef}
               className={`border-t pt-6 space-y-4 ${
                 editingQuestionId ? 'rounded-xl border border-sky-200 bg-sky-50/40 px-3 pb-3 sm:px-4' : ''
               }`}
             >
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <h3 className="font-semibold">
-                  {editingQuestionId ? 'Edit Question' : 'Add New Question (Single)'}
-                </h3>
+              <div className="flex flex-wrap items-start justify-between gap-2 rounded-lg border border-amber-100 bg-amber-50/60 px-3 py-2">
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-amber-900">
+                    Super Admin · {editingQuestionId ? 'Edit question details' : 'Add new question'}
+                  </p>
+                  <h3 className="font-semibold text-stone-900">
+                    {editingQuestionId ? 'Edit Question' : 'Add New Question (Single)'}
+                  </h3>
+                </div>
                 {editingQuestionId ? (
                   <Button type="button" variant="outline" size="sm" onClick={handleCancelEditQuestion}>
                     Cancel edit
@@ -3535,10 +3829,14 @@ export default function ExamManagement() {
                 )}
                 {questionFormData.questionImage && (
                   <div className="mt-3 space-y-2">
-                    <img
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-stone-500">
+                      Figure preview
+                    </p>
+                    <AuthenticatedUploadImage
                       src={questionFormData.questionImage}
                       alt="Uploaded question preview"
-                      className="max-h-40 rounded border"
+                      className="max-h-48"
+                      wrapperClassName="p-2 max-w-md"
                     />
                     <div className="flex items-center gap-2">
                       {questionImageFile?.name && (

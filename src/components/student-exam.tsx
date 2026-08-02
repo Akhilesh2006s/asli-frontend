@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { normalizeAndFormatExamDisplayText } from '@/lib/exam-text-normalize';
+import { AuthenticatedUploadImage } from '@/components/AuthenticatedUploadImage';
 
 interface Question {
   _id: string;
@@ -657,41 +658,12 @@ export default function StudentExam({ examId, onComplete, onExit }: StudentExamP
                       
                       {currentQuestion.questionImage && (
                         <div className="mb-4">
-                          {(() => {
-                            const imageUrl = currentQuestion.questionImage.startsWith('http') 
-                              ? currentQuestion.questionImage 
-                              : `${API_BASE_URL}${currentQuestion.questionImage}`;
-                            console.log('Question image URL:', imageUrl);
-                            return (
-                              <div className="relative rounded-lg border border-gray-200 bg-gray-50 p-2">
-                                <img 
-                                  src={imageUrl}
-                                  alt="Question" 
-                                  className="mx-auto max-h-[420px] w-auto max-w-full object-contain rounded-lg"
-                                  onError={(e) => {
-                                    console.error('Image failed to load:', imageUrl);
-                                    e.currentTarget.style.display = 'none';
-                                    // Show a placeholder when image fails to load
-                                    const placeholder = document.createElement('div');
-                                    placeholder.className = 'w-full h-48 bg-gray-100 rounded-lg border border-gray-200 flex items-center justify-center text-gray-500';
-                                    placeholder.innerHTML = `
-                                      <div class="text-center">
-                                        <svg class="w-12 h-12 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                                        </svg>
-                                        <p>Image not available</p>
-                                        <p class="text-xs sm:text-sm">${imageUrl}</p>
-                                      </div>
-                                    `;
-                                    e.currentTarget.parentNode?.appendChild(placeholder);
-                                  }}
-                                  onLoad={() => {
-                                    console.log('Image loaded successfully:', imageUrl);
-                                  }}
-                                />
-                              </div>
-                            );
-                          })()}
+                          <AuthenticatedUploadImage
+                            src={currentQuestion.questionImage}
+                            alt="Question"
+                            wrapperClassName="p-2"
+                            className="max-h-[420px]"
+                          />
                         </div>
                       )}
                       

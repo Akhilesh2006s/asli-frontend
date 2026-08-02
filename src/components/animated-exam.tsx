@@ -9,6 +9,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { getAuthToken } from '@/lib/auth-utils';
+import { AuthenticatedUploadImage } from '@/components/AuthenticatedUploadImage';
 import {
   Clock, 
   CheckCircle, 
@@ -1264,18 +1265,12 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
                       )}
                       
                       {currentQuestion.questionImage && (
-                        <div className="mb-4 rounded-lg border border-gray-200 bg-gray-50 p-2">
-                          <img 
-                            src={currentQuestion.questionImage.startsWith('http') 
-                              ? currentQuestion.questionImage 
-                              : `${API_BASE_URL}${currentQuestion.questionImage}`}
-                            alt="Question" 
-                            className="mx-auto max-h-[420px] w-auto max-w-full object-contain rounded-lg"
-                            onError={(e) => {
-                              e.currentTarget.style.display = 'none';
-                            }}
-                          />
-                        </div>
+                        <AuthenticatedUploadImage
+                          src={currentQuestion.questionImage}
+                          alt="Question figure"
+                          wrapperClassName="mb-4 bg-gray-50 p-2"
+                          className="rounded-lg"
+                        />
                       )}
                     </div>
                   </div>

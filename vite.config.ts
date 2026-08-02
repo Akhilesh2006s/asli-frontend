@@ -62,6 +62,12 @@ export default defineConfig({
           });
         },
       },
+      // Same-origin /uploads so <img>/fetch can send auth cookies in local dev
+      '/uploads': {
+        target: process.env.VITE_BACKEND_URL || 'http://localhost:5000',
+        changeOrigin: true,
+        secure: false,
+      },
     },
   },
 });

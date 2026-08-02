@@ -10,6 +10,7 @@ import { normalizeAndFormatExamDisplayText } from '@/lib/exam-text-normalize';
 import AdvancedPerformanceDashboard from '@/components/analytics/AdvancedPerformanceDashboard';
 import AiReportTab from '@/components/exam-analysis/AiReportTab';
 import { getAuthToken } from '@/lib/auth-utils';
+import { AuthenticatedUploadImage } from '@/components/AuthenticatedUploadImage';
 import {
   WeakSubjectResourcesCard,
   type WeakSubjectContentMap,
@@ -2721,15 +2722,11 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
                               )}
                               
                               {analysisQuestions[mobileQuestionIndex]?.questionImage && (
-                                <div className="mb-4">
-                                  <img 
-                                    src={analysisQuestions[mobileQuestionIndex].questionImage.startsWith('http') 
-                                      ? analysisQuestions[mobileQuestionIndex].questionImage 
-                                      : `${API_BASE_URL}${analysisQuestions[mobileQuestionIndex].questionImage}`}
-                                    alt="Question" 
-                                    className="max-w-full h-auto rounded-lg border border-gray-200"
-                                  />
-                                </div>
+                                <AuthenticatedUploadImage
+                                  src={analysisQuestions[mobileQuestionIndex].questionImage}
+                                  alt="Question figure"
+                                  wrapperClassName="mb-4"
+                                />
                               )}
                             </div>
                           </div>

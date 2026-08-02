@@ -52,6 +52,13 @@ export function normalizeExamDisplayText(value: unknown): string {
 
   text = repairLossyMathSymbols(text);
 
+  // Gemini / OCR often verbalizes roots — show classroom symbols
+  text = text.replace(/\bcube\s*roots?\s+of\s*\(/gi, '∛(');
+  text = text.replace(/\bcuberoot\s*\(/gi, '∛(');
+  text = text.replace(/\bsquare\s*roots?\s+of\s*\(/gi, '√(');
+  text = text.replace(/\bsqrt\s*\(/gi, '√(');
+  text = text.replace(/\bsqrt\s+(\d+)/gi, '√$1');
+
   const monthToNumber: Record<string, string> = {
     jan: '1',
     feb: '2',
