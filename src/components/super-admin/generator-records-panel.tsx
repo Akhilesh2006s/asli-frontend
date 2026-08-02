@@ -77,9 +77,17 @@ function countGroupedRecords(tree: GroupedTool[]): number {
 }
 
 function authHeaders(): Record<string, string> {
-  const token =
-    getAuthToken();
+  const token = getAuthToken();
   return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+function mergeBoardOptions(base: string[], fromApi: Array<{ board?: string; count?: number }>) {
+  const set = new Set(base.map((b) => String(b || "").trim()).filter(Boolean));
+  for (const row of fromApi) {
+    const name = String(row?.board || "").trim();
+    if (name && name !== "(none)") set.add(name);
+  }
+  return Array.from(set).sort((a, b) => a.localeCompare(b));
 }
 
 function subtopicSectionKey(
@@ -120,10 +128,13 @@ export function GeneratorRecordsPanel({
 }: GeneratorRecordsPanelProps) {
   const { toast } = useToast();
   const [recordsBoardFilter, setRecordsBoardFilter] = useState(boardFilterDefault);
+  const [effectiveBoardOptions, setEffectiveBoardOptions] = useState(boardOptions);
   const [recordsTree, setRecordsTree] = useState<GroupedTool[]>([]);
   const [recordsTotal, setRecordsTotal] = useState(0);
   const [recordsLoadedCount, setRecordsLoadedCount] = useState(0);
   const [recordsTruncated, setRecordsTruncated] = useState(false);
+  const [recordsStratified, setRecordsStratified] = useState(false);
+  const [boardCounts, setBoardCounts] = useState<Array<{ board: string; count: number }>>([]);
   const [recordsLoading, setRecordsLoading] = useState(false);
   const [isDeletingAll, setIsDeletingAll] = useState(false);
   const [isDeleteAllDialogOpen, setIsDeleteAllDialogOpen] = useState(false);
@@ -133,6 +144,10 @@ export function GeneratorRecordsPanel({
   const [savingEdit, setSavingEdit] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deletingSubtopicKey, setDeletingSubtopicKey] = useState<string | null>(null);
+
+  useEffect(() => {
+    setEffectiveBoardOptions((prev) => mergeBoardOptions([...boardOptions, ...prev], []));
+  }, [boardOptions]);
 
   const accentBorder = accent === "violet" ? "border-violet-200" : "border-orange-200";
   const accentBg = accent === "violet" ? "bg-violet-50 text-violet-800" : "bg-orange-50 text-orange-800";
@@ -150,11 +165,22 @@ export function GeneratorRecordsPanel({
       }
       qs.set("limit", "400");
       let res: Response | null = null;
-      let json: { success?: boolean; message?: string; data?: { grouped?: unknown[]; total?: number; loadedCount?: number; truncated?: boolean } } | null = null;
-      // Brief retry if an old deploy still rate-limits GETs after generate/poll.
+      let json: {
+        success?: boolean;
+        message?: string;
+        data?: {
+          grouped?: unknown[];
+          total?: number;
+          loadedCount?: number;
+          truncated?: boolean;
+          stratified?: boolean;
+          boards?: Array<{ board?: string; count?: number }>;
+        };
+      } | null = null;
       for (let attempt = 0; attempt < 3; attempt += 1) {
         res = await fetch(`${API_BASE_URL}${apiPrefix}/records?${qs.toString()}`, {
           headers: authHeaders(),
+          credentials: "include",
         });
         json = await res.json().catch(() => null);
         if (res.status !== 429) break;
@@ -167,13 +193,28 @@ export function GeneratorRecordsPanel({
       setRecordsTree(grouped as typeof recordsTree);
       setRecordsTotal(Number(json?.data?.total || 0));
       const loaded = Number(json?.data?.loadedCount);
-      setRecordsLoadedCount(Number.isFinite(loaded) && loaded > 0 ? loaded : countGroupedRecords(grouped as typeof recordsTree));
+      setRecordsLoadedCount(
+        Number.isFinite(loaded) && loaded > 0
+          ? loaded
+          : countGroupedRecords(grouped as typeof recordsTree),
+      );
       setRecordsTruncated(Boolean(json?.data?.truncated));
+      setRecordsStratified(Boolean(json?.data?.stratified));
+      const boardsFromApi = Array.isArray(json?.data?.boards) ? json.data.boards : [];
+      setBoardCounts(
+        boardsFromApi.map((b) => ({
+          board: String(b?.board || "").trim() || "(none)",
+          count: Number(b?.count) || 0,
+        })),
+      );
+      setEffectiveBoardOptions((prev) => mergeBoardOptions([...boardOptions, ...prev], boardsFromApi));
     } catch (error: unknown) {
       setRecordsTree([]);
       setRecordsTotal(0);
       setRecordsLoadedCount(0);
       setRecordsTruncated(false);
+      setRecordsStratified(false);
+      setBoardCounts([]);
       toast({
         title: "Records load failed",
         description: error instanceof Error ? error.message : "Could not load records.",
@@ -182,7 +223,7 @@ export function GeneratorRecordsPanel({
     } finally {
       setRecordsLoading(false);
     }
-  }, [apiPrefix, recordsBoardFilter, toast]);
+  }, [apiPrefix, boardOptions, recordsBoardFilter, toast]);
 
   useEffect(() => {
     void loadRecords();
@@ -190,7 +231,10 @@ export function GeneratorRecordsPanel({
 
   const openView = async (id: string) => {
     try {
-      const res = await fetch(`${API_BASE_URL}${apiPrefix}/records/${id}`, { headers: authHeaders() });
+      const res = await fetch(`${API_BASE_URL}${apiPrefix}/records/${id}`, {
+        headers: authHeaders(),
+        credentials: "include",
+      });
       const json = await res.json();
       if (!res.ok || !json?.success) throw new Error(json?.message || "Failed to fetch record");
       setActiveRecord(json.data);
@@ -205,7 +249,10 @@ export function GeneratorRecordsPanel({
 
   const openEdit = async (id: string) => {
     try {
-      const res = await fetch(`${API_BASE_URL}${apiPrefix}/records/${id}`, { headers: authHeaders() });
+      const res = await fetch(`${API_BASE_URL}${apiPrefix}/records/${id}`, {
+        headers: authHeaders(),
+        credentials: "include",
+      });
       const json = await res.json();
       if (!res.ok || !json?.success) throw new Error(json?.message || "Failed to fetch record");
       setEditRecord(json.data);
@@ -230,6 +277,7 @@ export function GeneratorRecordsPanel({
       const res = await fetch(`${API_BASE_URL}${apiPrefix}/records/${editRecord._id}`, {
         method: "PUT",
         headers: { ...authHeaders(), "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ generatedContent: editContent }),
       });
       const json = await res.json();
@@ -255,6 +303,7 @@ export function GeneratorRecordsPanel({
       const res = await fetch(`${API_BASE_URL}${apiPrefix}/records/${id}`, {
         method: "DELETE",
         headers: authHeaders(),
+        credentials: "include",
       });
       const json = await res.json();
       if (!res.ok || !json?.success) throw new Error(json?.message || "Delete failed");
@@ -282,6 +331,7 @@ export function GeneratorRecordsPanel({
       const res = await fetch(`${API_BASE_URL}${apiPrefix}/records/all?${qs.toString()}`, {
         method: "DELETE",
         headers: authHeaders(),
+        credentials: "include",
       });
       const json = await res.json();
       if (!res.ok || !json?.success) throw new Error(json?.message || "Delete all failed");
@@ -379,7 +429,7 @@ export function GeneratorRecordsPanel({
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="__all__">All boards</SelectItem>
-                    {boardOptions.map((b) => (
+                    {effectiveBoardOptions.map((b) => (
                       <SelectItem key={b} value={b}>
                         {b}
                       </SelectItem>
@@ -437,7 +487,25 @@ export function GeneratorRecordsPanel({
             <span className="font-medium text-slate-700">
               {recordsBoardFilter === "__all__" ? "All boards" : recordsBoardFilter}
             </span>
+            {recordsBoardFilter === "__all__" && boardCounts.length > 1 ? (
+              <span className="text-slate-500">
+                {" "}
+                (
+                {boardCounts
+                  .slice(0, 6)
+                  .map((b) => `${b.board}: ${b.count.toLocaleString()}`)
+                  .join(" · ")}
+                {boardCounts.length > 6 ? " · …" : ""})
+              </span>
+            ) : null}
           </p>
+          {recordsTruncated ? (
+            <p className="text-xs text-amber-700">
+              {recordsStratified
+                ? `Showing a balanced sample of ${recordsLoadedCount.toLocaleString()} newest records across boards (of ${recordsTotal.toLocaleString()} total). Pick a board above to browse that board only.`
+                : `Showing ${recordsLoadedCount.toLocaleString()} newest of ${recordsTotal.toLocaleString()} total. Pick a board to narrow the list.`}
+            </p>
+          ) : null}
         </CardHeader>
         <CardContent>
           {recordsLoading ? (

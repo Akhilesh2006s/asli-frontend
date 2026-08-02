@@ -387,6 +387,37 @@ export default function ExamManagement() {
     reason?: string;
   } | null>(null);
   const [pdfPreviewPage, setPdfPreviewPage] = useState(1);
+  const [pdfShowFlaggedOnly, setPdfShowFlaggedOnly] = useState(false);
+  const pdfFlaggedRows = useMemo(
+    () => pdfQuestionRows.filter((r) => r.solvable === false),
+    [pdfQuestionRows],
+  );
+  /** Rows to render, each paired with its index in the full list so edits write back correctly. */
+  const pdfVisibleRows = useMemo(() => {
+    const withIndex = pdfQuestionRows.map((row, idx) => ({ row, idx }));
+    return pdfShowFlaggedOnly ? withIndex.filter(({ row }) => row.solvable === false) : withIndex;
+  }, [pdfQuestionRows, pdfShowFlaggedOnly]);
+  const pdfPreviewTotalPages = Math.max(1, Math.ceil(pdfVisibleRows.length / 10));
+  const updatePdfRow = (index: number, patch: Partial<PdfQuestionRow>) =>
+    setPdfQuestionRows((prev) => prev.map((x, j) => (j === index ? { ...x, ...patch } : x)));
+  /**
+   * Choosing an answer resolves an "answer needs checking" flag — a human just
+   * decided it. Any other flag on the row (missing figure/passage) stays.
+   */
+  const setPdfRowAnswer = (index: number, value: string) =>
+    setPdfQuestionRows((prev) =>
+      prev.map((x, j) => {
+        if (j !== index) return x;
+        const flags = (x.validationFlags || []).filter((f) => f !== 'answer_conflict');
+        return {
+          ...x,
+          correctAnswer: value,
+          validationFlags: flags,
+          validationNote: flags.length ? x.validationNote : '',
+          solvable: flags.length === 0 ? true : x.solvable,
+        };
+      }),
+    );
   const [pendingDeleteQuestion, setPendingDeleteQuestion] = useState<{ id: string; index: number } | null>(null);
   // Default ON: duplicate rows are uploaded instead of skipped.
   const [allowDuplicateQuestionsInCsv, setAllowDuplicateQuestionsInCsv] = useState(true);
@@ -897,6 +928,7 @@ export default function ExamManagement() {
     setIsExtractingPdfQuestions(true);
     setPdfQuestionRows([]);
     setPdfAnswerKeyMeta(null);
+    setPdfShowFlaggedOnly(false);
     setPdfPreviewPage(1);
     try {
       const controller = new AbortController();
@@ -2984,6 +3016,7 @@ export default function ExamManagement() {
           setQuestionCsvUploadResults(null);
           setPdfQuestionRows([]);
           setPdfAnswerKeyMeta(null);
+          setPdfShowFlaggedOnly(false);
           setPdfPreviewPage(1);
           setBulkQuestionUploadMode('csv');
           setPendingDeleteQuestion(null);
@@ -3124,6 +3157,7 @@ export default function ExamManagement() {
                         setQuestionPdfFile(file);
                         setPdfQuestionRows([]);
                         setPdfAnswerKeyMeta(null);
+                        setPdfShowFlaggedOnly(false);
                         setPdfPreviewPage(1);
                       }}
                       className="mt-1 cursor-pointer file:mr-3 file:rounded-md file:border-0 file:bg-blue-100 file:px-3 file:py-2 file:text-xs sm:text-sm file:font-medium file:text-blue-700 hover:file:bg-blue-200"
@@ -3192,17 +3226,37 @@ export default function ExamManagement() {
                           className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-950"
                         >
                           {(() => {
-                            const flagged = pdfQuestionRows.filter((r) => r.solvable === false);
-                            const answers = flagged.filter((r) =>
+                            const answers = pdfFlaggedRows.filter((r) =>
                               (r.validationFlags || []).includes('answer_conflict'),
                             ).length;
-                            const context = flagged.length - answers;
+                            const context = pdfFlaggedRows.length - answers;
                             const parts = [
                               answers ? `${answers} where the answer needs checking` : '',
                               context ? `${context} missing a case passage or diagram` : '',
                             ].filter(Boolean);
-                            return `${flagged.length} question(s) flagged — ${parts.join(', ')}. Review the rows marked ⚠ before upload, or edit them after upload.`;
+                            const numbers = pdfFlaggedRows
+                              .map((r, i) => (Number(r.questionNumber) > 0 ? `Q${r.questionNumber}` : `row ${i + 1}`))
+                              .join(', ');
+                            return (
+                              <>
+                                <span className="font-semibold">
+                                  {pdfFlaggedRows.length} question(s) need review
+                                </span>{' '}
+                                ({parts.join(', ')}): <span className="font-semibold">{numbers}</span>. Fix
+                                them right here in the table below — the Answer column is editable.
+                              </>
+                            );
                           })()}
+                          <button
+                            type="button"
+                            className="ml-2 underline underline-offset-2 font-semibold"
+                            onClick={() => {
+                              setPdfShowFlaggedOnly((v) => !v);
+                              setPdfPreviewPage(1);
+                            }}
+                          >
+                            {pdfShowFlaggedOnly ? 'Show all questions' : 'Show only these'}
+                          </button>
                         </div>
                       )}
                       <div className="flex items-center justify-between gap-2">
@@ -3243,8 +3297,9 @@ export default function ExamManagement() {
                             </tr>
                           </thead>
                           <tbody>
-                            {pdfQuestionRows.slice((pdfPreviewPage - 1) * 10, pdfPreviewPage * 10).map((row, i) => {
-                              const globalIdx = (pdfPreviewPage - 1) * 10 + i;
+                            {pdfVisibleRows
+                              .slice((pdfPreviewPage - 1) * 10, pdfPreviewPage * 10)
+                              .map(({ row, idx: globalIdx }) => {
                               const imgSrc = String(row.questionImage || '').trim();
                               const flagged = row.solvable === false;
                               return (
@@ -3252,16 +3307,10 @@ export default function ExamManagement() {
                                 key={`${row.row}-${globalIdx}`}
                                 className={`border-t ${flagged ? 'bg-amber-50/80' : ''}`}
                               >
-                                <td className="p-2 whitespace-nowrap">
-                                  {(pdfPreviewPage - 1) * 10 + i + 1}
-                                  {flagged ? (
-                                    <span
-                                      className="ml-1 text-amber-700"
-                                      title={row.validationNote || 'Needs passage/figure'}
-                                    >
-                                      ⚠
-                                    </span>
-                                  ) : null}
+                                <td className="p-2 whitespace-nowrap align-top">
+                                  {/* the paper's printed number, so it matches the PDF */}
+                                  {Number(row.questionNumber) > 0 ? `Q${row.questionNumber}` : globalIdx + 1}
+                                  {flagged ? <span className="ml-1 text-amber-700">⚠</span> : null}
                                 </td>
                                 <td className="p-2 max-w-[360px]">
                                   <div className="truncate" title={row.questionText}>
@@ -3272,6 +3321,11 @@ export default function ExamManagement() {
                                     ) : null}
                                     {row.questionText}
                                   </div>
+                                  {flagged && row.validationNote ? (
+                                    <div className="mt-1 text-[11px] font-medium text-amber-800">
+                                      ⚠ {row.validationNote}
+                                    </div>
+                                  ) : null}
                                 </td>
                                 <td className="p-2">
                                   {imgSrc ? (
@@ -3294,23 +3348,55 @@ export default function ExamManagement() {
                                     value={row.subject}
                                     placeholder="e.g. maths"
                                     title="Click to edit subject (maths, physics, chemistry, biology)"
-                                    onChange={(e) => {
-                                      const v = e.target.value;
-                                      setPdfQuestionRows((prev) =>
-                                        prev.map((x, j) => (j === globalIdx ? { ...x, subject: v } : x)),
-                                      );
-                                    }}
+                                    onChange={(e) => updatePdfRow(globalIdx, { subject: e.target.value })}
                                   />
                                 </td>
                                 <td className="p-2">{row.marks}</td>
-                                <td className="p-2 max-w-[200px] truncate" title={row.correctAnswer}>{row.correctAnswer}</td>
+                                <td className="p-1 align-middle min-w-[200px]">
+                                  {(() => {
+                                    const opts = [row.option1, row.option2, row.option3, row.option4]
+                                      .map((o) => String(o || '').trim())
+                                      .filter(Boolean);
+                                    // MCQ has exactly one right option, so pick it from a list —
+                                    // free text here is how wrong answers get typed in.
+                                    if (row.questionType === 'mcq' && opts.length >= 2) {
+                                      const current = String(row.correctAnswer || '');
+                                      return (
+                                        <select
+                                          className="h-8 w-full rounded-md border border-slate-300 bg-white px-2 text-xs"
+                                          value={current}
+                                          title="Correct answer — change it here if it is wrong"
+                                          onChange={(e) => setPdfRowAnswer(globalIdx, e.target.value)}
+                                        >
+                                          {!opts.includes(current) && (
+                                            <option value={current}>{current || '— not set —'}</option>
+                                          )}
+                                          {opts.map((o, k) => (
+                                            <option key={k} value={o}>
+                                              {String.fromCharCode(97 + k)}) {o}
+                                            </option>
+                                          ))}
+                                        </select>
+                                      );
+                                    }
+                                    return (
+                                      <Input
+                                        type="text"
+                                        className="h-8 text-xs"
+                                        value={String(row.correctAnswer || '')}
+                                        title="Correct answer — edit if wrong"
+                                        onChange={(e) => setPdfRowAnswer(globalIdx, e.target.value)}
+                                      />
+                                    );
+                                  })()}
+                                </td>
                               </tr>
                               );
                             })}
                           </tbody>
                         </table>
                       </div>
-                      {pdfQuestionRows.length > 10 && (
+                      {pdfVisibleRows.length > 10 && (
                         <div className="flex items-center justify-end gap-2">
                           <Button
                             type="button"
@@ -3322,13 +3408,13 @@ export default function ExamManagement() {
                             Prev
                           </Button>
                           <span className="text-xs text-slate-600">
-                            Page {pdfPreviewPage} / {Math.ceil(pdfQuestionRows.length / 10)}
+                            Page {pdfPreviewPage} / {pdfPreviewTotalPages}
                           </span>
                           <Button
                             type="button"
                             size="sm"
                             variant="outline"
-                            disabled={pdfPreviewPage >= Math.ceil(pdfQuestionRows.length / 10)}
+                            disabled={pdfPreviewPage >= pdfPreviewTotalPages}
                             onClick={() => setPdfPreviewPage((p) => p + 1)}
                           >
                             Next
