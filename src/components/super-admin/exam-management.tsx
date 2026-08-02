@@ -119,6 +119,140 @@ function optionText(opt: unknown): string {
   return '';
 }
 
+/**
+ * Edits a question where it sits in the paper, instead of sending the user to a
+ * form elsewhere on the page. Saving goes through the same handler the main
+ * form uses, so add and edit stay in sync.
+ */
+function InlineQuestionEditor({
+  form,
+  setForm,
+  saving,
+  onSave,
+  onCancel,
+}: {
+  form: typeof EMPTY_QUESTION_FORM;
+  setForm: React.Dispatch<React.SetStateAction<typeof EMPTY_QUESTION_FORM>>;
+  saving: boolean;
+  onSave: () => void;
+  onCancel: () => void;
+}) {
+  const patch = (p: Partial<typeof EMPTY_QUESTION_FORM>) => setForm((prev) => ({ ...prev, ...p }));
+  const isChoice = form.questionType === 'mcq' || form.questionType === 'multiple';
+
+  return (
+    <div className="space-y-4 rounded-lg border-2 border-sky-300 bg-sky-50/50 p-3 sm:p-4">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-xs font-semibold uppercase tracking-wide text-sky-800">
+          Editing this question
+        </span>
+        <div className="flex gap-2">
+          <Button type="button" size="sm" variant="outline" onClick={onCancel} disabled={saving}>
+            Cancel
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            className="bg-sky-600 text-white hover:bg-sky-700"
+            onClick={onSave}
+            disabled={saving}
+          >
+            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+            <span className="ml-1">Save</span>
+          </Button>
+        </div>
+      </div>
+
+      <div>
+        <Label className="text-xs">Question text</Label>
+        <Textarea
+          className="mt-1 bg-white"
+          rows={4}
+          value={form.questionText}
+          onChange={(e) => patch({ questionText: e.target.value })}
+        />
+      </div>
+
+      {isChoice ? (
+        <div className="space-y-2">
+          <Label className="text-xs">
+            Options — click the circle to mark the correct one
+          </Label>
+          {form.options.map((opt, i) => {
+            const letter = String.fromCharCode(97 + i);
+            const checked =
+              form.questionType === 'multiple'
+                ? form.correctAnswers.includes(opt) && Boolean(opt.trim())
+                : Boolean(opt.trim()) && form.correctAnswer === opt;
+            return (
+              <div key={i} className="flex items-center gap-2">
+                <button
+                  type="button"
+                  title={`Mark ${letter}) correct`}
+                  className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 text-[10px] font-bold ${
+                    checked
+                      ? 'border-emerald-600 bg-emerald-600 text-white'
+                      : 'border-slate-400 bg-white text-slate-600'
+                  }`}
+                  onClick={() => {
+                    if (!opt.trim()) return;
+                    if (form.questionType === 'multiple') {
+                      const next = form.correctAnswers.includes(opt)
+                        ? form.correctAnswers.filter((a) => a !== opt)
+                        : [...form.correctAnswers, opt];
+                      patch({ correctAnswers: next });
+                    } else {
+                      patch({ correctAnswer: opt });
+                    }
+                  }}
+                >
+                  {letter}
+                </button>
+                <Input
+                  className="h-9 bg-white"
+                  value={opt}
+                  placeholder={`Option ${letter}`}
+                  onChange={(e) => {
+                    const nextOptions = form.options.map((o, j) => (j === i ? e.target.value : o));
+                    // Keep the answer pointing at this option when its text is edited
+                    const nextPatch: Partial<typeof EMPTY_QUESTION_FORM> = { options: nextOptions };
+                    if (form.correctAnswer === opt) nextPatch.correctAnswer = e.target.value;
+                    if (form.correctAnswers.includes(opt)) {
+                      nextPatch.correctAnswers = form.correctAnswers.map((a) =>
+                        a === opt ? e.target.value : a,
+                      );
+                    }
+                    patch(nextPatch);
+                  }}
+                />
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <div>
+          <Label className="text-xs">Correct answer (integer)</Label>
+          <Input
+            className="mt-1 h-9 max-w-xs bg-white"
+            value={form.integerAnswer}
+            onChange={(e) => patch({ integerAnswer: e.target.value })}
+          />
+        </div>
+      )}
+
+      <div>
+        <Label className="text-xs">Explanation</Label>
+        <Textarea
+          className="mt-1 bg-white"
+          rows={2}
+          value={form.explanation}
+          onChange={(e) => patch({ explanation: e.target.value })}
+        />
+      </div>
+    </div>
+  );
+}
+
 function buildQuestionFormFromExisting(q: any): typeof EMPTY_QUESTION_FORM {
   const rawOptions = Array.isArray(q?.options) ? q.options : [];
   const options = rawOptions.map(optionText);
@@ -1088,6 +1222,8 @@ export default function ExamManagement() {
         'questionImage',
         'displayOrder',
         'sectionHeading',
+        'needsReview',
+        'reviewNote',
       ];
       const sanitizeCsvCell = (v: unknown) =>
         String(v ?? '')
@@ -1174,6 +1310,9 @@ export default function ExamManagement() {
             questionImage: relativeImage,
             displayOrder: Number.isFinite(qn) && qn >= 1 ? Math.floor(qn) : idx + 1,
             sectionHeading: subjectSectionLabel(normalizePdfRowSubjectSlug(r.subject)),
+            // Carry the review warning onto the saved question so it survives upload
+            needsReview: r.solvable === false,
+            reviewNote: sanitizeCsvCell(r.validationNote),
           };
         })
         .filter((r): r is NonNullable<typeof r> => Boolean(r));
@@ -1197,6 +1336,8 @@ export default function ExamManagement() {
         r.questionImage,
         r.displayOrder,
         r.sectionHeading,
+        r.needsReview ? 'true' : 'false',
+        r.reviewNote,
       ].map(escapeCsv).join(','));
       const csv = [headers.join(','), ...csvRows].join('\n');
       const csvBlob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
@@ -1503,15 +1644,17 @@ export default function ExamManagement() {
     setEditingQuestionId(null);
   };
 
+  /**
+   * Opens the editor inside the question's own card. It deliberately does not
+   * scroll anywhere — jumping to a form at the bottom of a long paper loses
+   * your place and makes it impossible to see the question you are editing.
+   */
   const handleEditQuestion = (q: any) => {
     if (!q?._id) return;
     setEditingQuestionId(String(q._id));
     setQuestionFormData(buildQuestionFormFromExisting(q));
     setQuestionImageFile(null);
     setBulkQuestionUploadMode('csv');
-    window.setTimeout(() => {
-      questionFormRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 50);
   };
 
   const handleCancelEditQuestion = () => {
@@ -3694,6 +3837,33 @@ export default function ExamManagement() {
 
                           {/* Student exam body */}
                           <CardContent className="bg-white p-4 sm:p-6 lg:p-8">
+                            {q.needsReview && !isEditingThis ? (
+                              <div
+                                role="alert"
+                                className="mb-4 flex flex-wrap items-center gap-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900"
+                              >
+                                <span className="font-semibold">⚠ Answer not verified.</span>
+                                <span>{q.reviewNote || 'Imported without a usable answer key — please confirm.'}</span>
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  className="ml-auto h-7 bg-amber-600 text-white hover:bg-amber-700"
+                                  onClick={() => handleEditQuestion(q)}
+                                >
+                                  Check now
+                                </Button>
+                              </div>
+                            ) : null}
+                            {isEditingThis ? (
+                              <InlineQuestionEditor
+                                form={questionFormData}
+                                setForm={setQuestionFormData}
+                                saving={isAddingQuestion}
+                                onSave={handleAddQuestion}
+                                onCancel={handleCancelEditQuestion}
+                              />
+                            ) : (
+                            <>
                             <div className="mb-4 flex flex-wrap items-center gap-2">
                               <Badge variant="outline" className="capitalize">
                                 {q.subject || 'Unknown'}
@@ -3804,6 +3974,8 @@ export default function ExamManagement() {
                                 ) : null}
                               </div>
                             </div>
+                            </>
+                            )}
                           </CardContent>
                         </Card>
                       </div>
