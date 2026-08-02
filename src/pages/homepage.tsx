@@ -10,14 +10,10 @@ import {
   CheckCircle2,
   ChevronDown,
   ClipboardCheck,
-  Facebook,
   GraduationCap,
-  Instagram,
   Library,
   Lightbulb,
   LineChart,
-  Linkedin,
-  Menu,
   MessageSquare,
   Play,
   School,
@@ -26,21 +22,13 @@ import {
   Trophy,
   UserPlus,
   Users,
-  X,
 } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import { MarketingNav, MarketingFooter } from "@/components/marketing/MarketingShell";
+import { usePageSeo } from "@/components/marketing/seo";
 
 const HERO_PHOTO = "/file_000000009ae082079e1d3de4f3bd3a3e.png";
 const GROUP_PHOTO = "/file_00000000411c8206be42efa220120ba0.png";
-
-const NAV_LINKS = [
-  { href: "#features", label: "Features" },
-  { href: "#platform", label: "Platform" },
-  { href: "#pricing", label: "Pricing" },
-  { href: "#resources", label: "Resources" },
-  { href: "#about", label: "About Us" },
-  { href: "#faq", label: "FAQ" },
-];
 
 const METRICS = [
   { value: "13,000+", label: "Active Students", icon: GraduationCap, color: "text-sky-600", bg: "bg-sky-100" },
@@ -312,114 +300,15 @@ function FaqItem({ q, a }: { q: string; a: string }) {
   );
 }
 
-function Navbar({ scrolled }: { scrolled: boolean }) {
-  const [mobileOpen, setMobileOpen] = useState(false);
-
-  return (
-    <nav
-      className={`sticky top-0 z-50 border-b transition-colors duration-300 ${
-        scrolled
-          ? "border-slate-200 bg-white/95 shadow-sm backdrop-blur-xl"
-          : "border-transparent bg-[#050d24]"
-      }`}
-    >
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-3 px-4 sm:h-[4.25rem] sm:px-6 lg:px-8">
-        <Link href="/" className="flex min-w-0 items-center gap-2.5">
-          <img
-            src="/logo.jpg"
-            alt="AsliLearn AI"
-            className="h-9 w-9 rounded-lg object-contain ring-2 ring-white/20 sm:h-10 sm:w-10"
-          />
-          <span
-            className={`font-display text-lg font-extrabold tracking-tight sm:text-xl ${
-              scrolled ? "text-[#0a1f44]" : "text-white"
-            }`}
-          >
-            ASLILEARN<span className={scrolled ? "text-sky-600" : "text-sky-300"}>.AI</span>
-          </span>
-        </Link>
-
-        <div className="hidden items-center gap-6 xl:flex">
-          {NAV_LINKS.map((link) => (
-            <a
-              key={link.href}
-              href={link.href}
-              className={`text-sm font-semibold transition ${
-                scrolled ? "text-slate-600 hover:text-sky-700" : "text-white/85 hover:text-white"
-              }`}
-            >
-              {link.label}
-            </a>
-          ))}
-        </div>
-
-        <div className="flex shrink-0 items-center gap-2">
-          <Link href="/auth/login" className="hidden sm:block">
-            <Button
-              variant="outline"
-              className={`h-10 border-2 ${
-                scrolled
-                  ? "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
-                  : "border-white/50 bg-transparent text-white hover:bg-white/10 hover:text-white"
-              }`}
-            >
-              Login
-            </Button>
-          </Link>
-          <Link href="/contact" className="hidden sm:block">
-            <Button className="h-10 bg-sky-500 px-4 text-white hover:bg-sky-600">Book a Demo</Button>
-          </Link>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className={`xl:hidden ${scrolled ? "text-slate-800" : "text-white hover:bg-white/10"}`}
-            aria-label="Open menu"
-            onClick={() => setMobileOpen((v) => !v)}
-          >
-            {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-          </Button>
-        </div>
-      </div>
-
-      {mobileOpen ? (
-        <div
-          className={`border-t px-4 py-4 xl:hidden ${
-            scrolled ? "border-slate-200 bg-white" : "border-white/10 bg-[#050d24]"
-          }`}
-        >
-          <div className="flex flex-col gap-1">
-            {NAV_LINKS.map((link) => (
-              <a
-                key={link.href}
-                href={link.href}
-                onClick={() => setMobileOpen(false)}
-                className={`rounded-lg px-3 py-2.5 text-sm font-semibold ${
-                  scrolled ? "text-slate-700 hover:bg-slate-50" : "text-white hover:bg-white/10"
-                }`}
-              >
-                {link.label}
-              </a>
-            ))}
-            <div className="mt-3 grid grid-cols-2 gap-2">
-              <Link href="/auth/login" onClick={() => setMobileOpen(false)}>
-                <Button variant="outline" className="h-11 w-full border-slate-300 bg-white text-slate-800">
-                  Login
-                </Button>
-              </Link>
-              <Link href="/contact" onClick={() => setMobileOpen(false)}>
-                <Button className="h-11 w-full bg-sky-500 text-white hover:bg-sky-600">Book a Demo</Button>
-              </Link>
-            </div>
-          </div>
-        </div>
-      ) : null}
-    </nav>
-  );
-}
-
 export default function Homepage() {
   const [scrolled, setScrolled] = useState(false);
+
+  usePageSeo({
+    title: "AsliLearn.ai | AI-Powered Board & IIT Foundation Learning for Schools",
+    description:
+      "AsliLearn.ai helps schools personalise Board and IIT Foundation learning with adaptive pathways, smart assessments, teacher tools and academic analytics.",
+    path: "/",
+  });
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 24);
@@ -430,7 +319,7 @@ export default function Homepage() {
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-white text-slate-900">
-      <Navbar scrolled={scrolled} />
+      <MarketingNav scrolled={scrolled} />
 
       {/* HERO — exact mock: blended photo, aligned head/headline, soft glow */}
       <section className="relative overflow-hidden bg-[#050d24] pb-16 pt-7 sm:pb-24 sm:pt-12 lg:pb-36 lg:pt-16">
@@ -523,7 +412,7 @@ export default function Homepage() {
               className="animate-fade-rise mt-6 flex w-full flex-col gap-2.5 sm:mt-8 sm:max-w-lg sm:flex-row sm:items-center sm:gap-3"
               style={{ animationDelay: "200ms" }}
             >
-              <Link href="/contact" className="w-full sm:w-auto">
+              <Link href="/book-a-demo" className="w-full sm:w-auto">
                 <Button
                   size="lg"
                   className="group h-11 w-full rounded-full bg-sky-500 px-5 pl-6 text-sm font-semibold text-white hover:bg-sky-600 sm:h-12 sm:w-auto sm:text-base"
@@ -534,7 +423,7 @@ export default function Homepage() {
                   </span>
                 </Button>
               </Link>
-              <a href="#platform" className="w-full sm:w-auto">
+              <Link href="/platform" className="w-full sm:w-auto">
                 <Button
                   size="lg"
                   variant="outline"
@@ -542,7 +431,7 @@ export default function Homepage() {
                 >
                   Explore the Platform
                 </Button>
-              </a>
+              </Link>
             </div>
             <div
               className="animate-fade-rise mt-6 flex items-center gap-2.5 sm:mt-8 sm:gap-3"
@@ -1012,13 +901,13 @@ export default function Homepage() {
             </p>
           </div>
           <div className="flex w-full flex-col gap-2 sm:w-auto sm:shrink-0 sm:flex-row">
-            <Link href="/contact" className="w-full sm:w-auto">
+            <Link href="/book-a-demo" className="w-full sm:w-auto">
               <Button className="h-11 w-full rounded-full bg-white px-5 font-semibold text-sky-600 hover:bg-white/95 sm:w-auto">
                 Book a Demo
                 <ArrowRight className="h-4 w-4" />
               </Button>
             </Link>
-            <Link href="/contact" className="w-full sm:w-auto">
+            <Link href="/book-a-demo" className="w-full sm:w-auto">
               <Button
                 variant="outline"
                 className="h-11 w-full rounded-full border-2 border-white bg-transparent px-5 font-semibold text-white hover:bg-white/10 hover:text-white sm:w-auto"
@@ -1030,122 +919,7 @@ export default function Homepage() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="bg-[#0a1f44] pt-10 text-white sm:pt-14">
-        <div className="mx-auto grid max-w-7xl gap-8 px-4 pb-10 sm:gap-10 sm:px-6 sm:pb-12 md:grid-cols-2 lg:grid-cols-4 lg:px-8">
-          <div>
-            <Link href="/" className="flex items-center gap-2.5">
-              <img src="/logo.jpg" alt="AsliLearn AI" className="h-9 w-9 rounded-lg object-contain" />
-              <span className="font-display text-lg font-extrabold tracking-tight">
-                ASLILEARN<span className="text-sky-300">.AI</span>
-              </span>
-            </Link>
-            <p className="mt-4 text-sm leading-relaxed text-white/65">
-              AsliLearn AI
-              <br />
-              Empowering schools with intelligent learning tools across India.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-2 gap-6">
-            <div>
-              <ul className="space-y-2.5 text-sm text-white/80">
-                {[
-                  { href: "#features", label: "Features" },
-                  { href: "#platform", label: "Platform" },
-                  { href: "#pricing", label: "Pricing" },
-                  { href: "#resources", label: "Resources" },
-                ].map((l) => (
-                  <li key={l.href}>
-                    <a href={l.href} className="hover:text-white">
-                      {l.label}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div>
-              <ul className="space-y-2.5 text-sm text-white/80">
-                {[
-                  { href: "#about", label: "About Us" },
-                  { href: "#faq", label: "FAQ" },
-                  { href: "/privacy", label: "Privacy Policy" },
-                  { href: "/terms", label: "Terms of Use" },
-                ].map((l) => (
-                  <li key={l.href}>
-                    {l.href.startsWith("#") ? (
-                      <a href={l.href} className="hover:text-white">
-                        {l.label}
-                      </a>
-                    ) : (
-                      <Link href={l.href} className="hover:text-white">
-                        {l.label}
-                      </Link>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-
-          <div>
-            <p className="text-sm font-semibold text-white/90">For enquiries, contact:</p>
-            <p className="mt-2 text-sm text-white/75">987 654 3210</p>
-            <a href="mailto:hello@aslilearn.ai" className="mt-1 block text-sm text-sky-300 hover:text-sky-200">
-              hello@aslilearn.ai
-            </a>
-            <div className="mt-4 flex gap-2">
-              <a
-                href="https://www.facebook.com/profile.php?id=61573366977048"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white/80 transition-colors hover:bg-white/20 hover:text-white"
-                aria-label="AsliLearn on Facebook"
-              >
-                <Facebook className="h-4 w-4" />
-              </a>
-              <a
-                href="https://www.instagram.com/aslilearnai"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white/80 transition-colors hover:bg-white/20 hover:text-white"
-                aria-label="AsliLearn on Instagram"
-              >
-                <Instagram className="h-4 w-4" />
-              </a>
-              <a
-                href="https://www.linkedin.com/company/asli-learn"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white/80 transition-colors hover:bg-white/20 hover:text-white"
-                aria-label="AsliLearn on LinkedIn"
-              >
-                <Linkedin className="h-4 w-4" />
-              </a>
-            </div>
-          </div>
-
-          <div>
-            <ul className="space-y-3">
-              {[
-                "Secure Student Data",
-                "Role-based Access",
-                "School-controlled Accounts",
-                "Reliable Cloud Platform",
-                "Dedicated Support",
-              ].map((item) => (
-                <li key={item} className="flex gap-2.5 text-sm text-white/85">
-                  <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-sky-400" />
-                  {item}
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-        <div className="border-t border-white/10 py-5 text-center text-xs text-white/50">
-          © {new Date().getFullYear()} AsliLearn AI. All rights reserved.
-        </div>
-      </footer>
+      <MarketingFooter />
     </div>
   );
 }

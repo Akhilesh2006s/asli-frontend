@@ -1,8 +1,22 @@
 User-agent: *
 Allow: /
 
-Disallow: /auth/login
-Disallow: /auth/register
+Allow: /features
+Allow: /platform
+Allow: /pricing
+Allow: /resources
+Allow: /about-us
+Allow: /faq
+Allow: /book-a-demo
+Allow: /privacy-policy
+Allow: /terms-of-use
+
 Disallow: /auth/
+Disallow: /dashboard
+Disallow: /admin/
+Disallow: /teacher/
+Disallow: /super-admin/
+Disallow: /student/
+Disallow: /onboarding
 
 Sitemap: https://www.aslilearn.ai/sitemap.xml

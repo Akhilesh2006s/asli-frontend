@@ -1,50 +1,56 @@
+import { MarketingShell, MarketingPageHero } from "@/components/marketing/MarketingShell";
+import { usePageSeo } from "@/components/marketing/seo";
 import { Link } from "wouter";
 
 export default function Privacy() {
-  return (
-    <main className="min-h-screen bg-slate-50 text-slate-900">
-      <div className="mx-auto max-w-3xl px-3 sm:px-4 lg:px-6 py-12">
-        <h1 className="text-2xl sm:text-3xl font-bold">Privacy Policy</h1>
-        <p className="mt-3 text-slate-600">
-          This policy describes how AsliLearn AI collects, uses, and protects your
-          information when you use our learning platform.
-        </p>
+  usePageSeo({
+    title: "Privacy Policy | AsliLearn.ai",
+    description:
+      "How AsliLearn.ai and Heyansh Edu Media Pvt. Ltd. collect, use and protect personal information on the learning platform.",
+    path: "/privacy-policy",
+  });
 
-        <section className="mt-8 space-y-4">
-          <h2 className="text-lg sm:text-xl font-semibold">Information we collect</h2>
-          <p className="text-slate-700">
-            We may collect account details you provide (such as name and email),
-            usage data to improve the product, and content you submit through the
+  return (
+    <MarketingShell>
+      <MarketingPageHero
+        eyebrow="Legal"
+        title="Privacy Policy"
+        subtitle="How AsliLearn.ai collects, uses and protects information when you use our learning platform."
+      />
+      <div className="mx-auto max-w-3xl space-y-8 px-4 py-12 sm:px-6 lg:px-8">
+        <section className="space-y-3">
+          <h2 className="font-display text-xl font-bold text-slate-900">Information we collect</h2>
+          <p className="leading-relaxed text-slate-700">
+            We may collect account details you provide (such as name and email), school and role
+            information, usage data to improve the product, and content you submit through the
             platform as part of your learning experience.
           </p>
         </section>
 
-        <section className="mt-8 space-y-4">
-          <h2 className="text-lg sm:text-xl font-semibold">How we use information</h2>
-          <p className="text-slate-700">
-            We use this information to operate and improve AsliLearn AI, personalize
-            learning features, communicate with you about your account, and comply
-            with legal obligations where applicable.
+        <section className="space-y-3">
+          <h2 className="font-display text-xl font-bold text-slate-900">How we use information</h2>
+          <p className="leading-relaxed text-slate-700">
+            We use this information to operate and improve AsliLearn.ai, personalise learning
+            features, communicate about your account or demo requests, support schools and teachers,
+            and comply with legal obligations where applicable.
           </p>
         </section>
 
-        <section className="mt-8 space-y-4">
-          <h2 className="text-lg sm:text-xl font-semibold">Contact</h2>
-          <p className="text-slate-700">
-            For privacy-related questions, you can reach us through the{" "}
-            <Link href="/contact" className="text-blue-600 hover:text-blue-700">
-              contact page
-            </Link>
-            .
+        <section className="space-y-3">
+          <h2 className="font-display text-xl font-bold text-slate-900">Contact</h2>
+          <p className="leading-relaxed text-slate-700">
+            For privacy-related questions, email{" "}
+            <a href="mailto:hello@aslilearn.ai" className="font-medium text-sky-700 hover:underline">
+              hello@aslilearn.ai
+            </a>{" "}
+            or use our{" "}
+            <Link href="/book-a-demo" className="font-medium text-sky-700 hover:underline">
+              Book a Demo
+            </Link>{" "}
+            form.
           </p>
         </section>
-
-        <div className="mt-10">
-          <Link href="/" className="text-blue-600 hover:text-blue-700">
-            Back to home
-          </Link>
-        </div>
       </div>
-    </main>
+    </MarketingShell>
   );
 }

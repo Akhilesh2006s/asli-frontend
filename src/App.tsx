@@ -47,7 +47,21 @@ const Onboarding = lazy(() => import("./pages/onboarding"));
 const AIToolsDashboard = lazy(() => import("./pages/ai-tools-dashboard"));
 const Privacy = lazy(() => import("./pages/privacy"));
 const Terms = lazy(() => import("./pages/terms"));
-const Contact = lazy(() => import("./pages/contact"));
+const AboutUs = lazy(() => import("./pages/about-us"));
+const BookADemo = lazy(() => import("./pages/book-a-demo"));
+const Features = lazy(() => import("./pages/marketing-pages"));
+const Platform = lazy(() =>
+  import("./pages/marketing-pages").then((m) => ({ default: m.PlatformPage })),
+);
+const Pricing = lazy(() =>
+  import("./pages/marketing-pages").then((m) => ({ default: m.PricingPage })),
+);
+const Resources = lazy(() =>
+  import("./pages/marketing-pages").then((m) => ({ default: m.ResourcesPage })),
+);
+const Faq = lazy(() =>
+  import("./pages/marketing-pages").then((m) => ({ default: m.FaqPage })),
+);
 
 function RouteLoadingState() {
   return (
@@ -95,6 +109,24 @@ function Router() {
     <Suspense fallback={<RouteLoadingState />}>
       <Switch>
         <Route path="/" component={Homepage} />
+        <Route path="/about-us" component={AboutUs} />
+        <Route path="/book-a-demo" component={BookADemo} />
+        <Route path="/features" component={Features} />
+        <Route path="/platform" component={Platform} />
+        <Route path="/pricing" component={Pricing} />
+        <Route path="/resources" component={Resources} />
+        <Route path="/faq" component={Faq} />
+        <Route path="/privacy-policy" component={Privacy} />
+        <Route path="/terms-of-use" component={Terms} />
+        <Route path="/privacy">
+          <Redirect to="/privacy-policy" />
+        </Route>
+        <Route path="/terms">
+          <Redirect to="/terms-of-use" />
+        </Route>
+        <Route path="/contact">
+          <Redirect to="/book-a-demo" />
+        </Route>
         <Route path="/dashboard" component={() => <Guarded Guard={StudentRoute} Page={Dashboard} />} />
         <Route path="/learning-paths" component={() => <Guarded Guard={ProtectedRoute} Page={LearningPaths} />} />
         <Route path="/tests" component={() => <Guarded Guard={StudentRoute} Page={PracticeTests} />} />
@@ -130,9 +162,6 @@ function Router() {
           {(params) => <Redirect to={`/super-admin/schools/${params.id}`} />}
         </Route>
         <Route path="/onboarding" component={Onboarding} />
-        <Route path="/privacy" component={Privacy} />
-        <Route path="/terms" component={Terms} />
-        <Route path="/contact" component={Contact} />
         {/* Preview/test routes removed from production router */}
         <Route component={NotFound} />
       </Switch>
