@@ -53,6 +53,9 @@ export default defineConfig({
         changeOrigin: true,
         secure: false, // Set to false for localhost
         rewrite: (path) => path, // Don't rewrite the path
+        // PDF question extraction can run many minutes — do not proxy-abort.
+        timeout: 0,
+        proxyTimeout: 0,
         configure: (proxy, _options) => {
           proxy.on('error', (err, _req, res) => {
             console.log('Proxy error:', err);

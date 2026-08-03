@@ -1065,32 +1065,24 @@ export default function ExamManagement() {
     setPdfShowFlaggedOnly(false);
     setPdfPreviewPage(1);
     try {
-      const controller = new AbortController();
-      const timeoutId = window.setTimeout(() => controller.abort(), 300000);
+      // No client abort timeout — extraction time depends on Gemini/pages, not file MB.
       const form = new FormData();
       form.append('file', questionPdfFile);
       const headers = authBearerHeaders();
-      let res: Response;
-      try {
-        res = await fetch(`${API_BASE_URL}/api/super-admin/exams/${selectedExam._id}/questions/pdf-convert`, {
+      let res: Response = await fetch(`${API_BASE_URL}/api/super-admin/exams/${selectedExam._id}/questions/pdf-convert`, {
+        method: 'POST',
+        headers,
+        credentials: 'include',
+        body: form,
+      });
+      // Some deployments expose super-admin routes only under /protected.
+      if (res.status === 404) {
+        res = await fetch(`${API_BASE_URL}/api/super-admin/protected/exams/${selectedExam._id}/questions/pdf-convert`, {
           method: 'POST',
           headers,
           credentials: 'include',
           body: form,
-          signal: controller.signal,
         });
-        // Some deployments expose super-admin routes only under /protected.
-        if (res.status === 404) {
-          res = await fetch(`${API_BASE_URL}/api/super-admin/protected/exams/${selectedExam._id}/questions/pdf-convert`, {
-            method: 'POST',
-            headers,
-            credentials: 'include',
-            body: form,
-            signal: controller.signal,
-          });
-        }
-      } finally {
-        window.clearTimeout(timeoutId);
       }
       const raw = await res.text();
       let data: any = null;
@@ -1124,12 +1116,9 @@ export default function ExamManagement() {
         variant: keyUnusable ? 'destructive' : undefined,
       });
     } catch (error: any) {
-      const message = error?.name === 'AbortError'
-        ? 'Extraction timed out. Large papers can take a few minutes — retry, or split the PDF by subject.'
-        : error?.message || 'Gemini failed to extract questions.';
       toast({
         title: 'Extraction failed',
-        description: message,
+        description: error?.message || 'Gemini failed to extract questions.',
         variant: 'destructive',
       });
     } finally {
@@ -3325,8 +3314,8 @@ export default function ExamManagement() {
                     )}
                   </Button>
                   <p className="text-xs text-slate-500">
-                    Tip: multi-page papers often need 1–3 minutes. Very large PDFs may take longer; the button shows a
-                    spinner while extraction runs.
+                    Tip: leave this tab open — extraction has no time limit. Multi-page papers often need several
+                    minutes (model processing, not file size). The button shows a spinner while it runs.
                   </p>
 
                   {pdfQuestionRows.length > 0 && (

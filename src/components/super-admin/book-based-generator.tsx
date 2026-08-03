@@ -293,8 +293,13 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
 
   const bookGroups = useMemo(() => {
     const track = normalizeIitCategory(productCategory);
+    // When an IIT track is selected, still include legacy books with no category
+    // so older indexed textbooks remain visible.
     const scoped = track
-      ? books.filter((b) => normalizeIitCategory(b.productCategory) === track)
+      ? books.filter((b) => {
+          const cat = normalizeIitCategory(b.productCategory);
+          return !cat || cat === track;
+        })
       : books;
     return bookGroupMode === "class" ? groupBooksByClass(scoped) : groupBooksBySubject(scoped);
   }, [books, bookGroupMode, productCategory]);
@@ -316,7 +321,10 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
   const loadBooks = async () => {
     setBooksLoading(true);
     try {
-      const res = await fetch(`${API_BASE_URL}/api/book-knowledge/books`, { headers: { ...authHeaders() } });
+      const res = await fetch(`${API_BASE_URL}/api/book-knowledge/books`, {
+        headers: { ...authHeaders() },
+        credentials: "include",
+      });
       const json = await res.json();
       if (json.success) setBooks(Array.isArray(json.data) ? json.data : []);
     } catch {

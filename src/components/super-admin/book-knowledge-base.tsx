@@ -125,6 +125,7 @@ export default function BookKnowledgeBase() {
     try {
       const res = await fetch(`${API_BASE_URL}/api/book-knowledge/books`, {
         headers: { ...authHeaders() },
+        credentials: "include",
       });
       const json = await res.json();
       if (!res.ok || !json.success) throw new Error(json.message || "Failed to load books");
@@ -147,6 +148,7 @@ export default function BookKnowledgeBase() {
     try {
       const res = await fetch(`${API_BASE_URL}/api/book-knowledge/importable-content`, {
         headers: { ...authHeaders() },
+        credentials: "include",
       });
       const json = await res.json();
       if (!res.ok || !json.success) throw new Error(json.message || "Failed to load learning-path content");
@@ -237,6 +239,7 @@ export default function BookKnowledgeBase() {
       const res = await fetch(`${API_BASE_URL}/api/book-knowledge/books/import-from-content`, {
         method: "POST",
         headers: { "Content-Type": "application/json", ...authHeaders() },
+        credentials: "include",
         body: JSON.stringify({ contentId }),
       });
       const json = await res.json();
@@ -265,6 +268,7 @@ export default function BookKnowledgeBase() {
       const res = await fetch(`${API_BASE_URL}/api/book-knowledge/books/import-from-content/bulk`, {
         method: "POST",
         headers: { "Content-Type": "application/json", ...authHeaders() },
+        credentials: "include",
         body: JSON.stringify({ contentIds: ids }),
       });
       const json = await res.json();
@@ -272,7 +276,23 @@ export default function BookKnowledgeBase() {
       toast({
         title: "Bulk import complete",
         description: json.message || `Imported ${json.summary?.imported || 0} books.`,
+        variant: Number(json.summary?.failed || 0) > 0 ? "destructive" : undefined,
       });
+      const failures = Array.isArray(json.data)
+        ? json.data.filter((r: { success?: boolean }) => !r.success).slice(0, 5)
+        : [];
+      if (failures.length) {
+        const detail = failures
+          .map((r: { title?: string; contentId?: string; message?: string }) =>
+            `${r.title || r.contentId || "item"}: ${r.message || "failed"}`,
+          )
+          .join(" · ");
+        toast({
+          title: "Why some imports failed",
+          description: detail + (Number(json.summary?.failed || 0) > 5 ? " · …" : ""),
+          variant: "destructive",
+        });
+      }
       setSelectedContentIds(new Set());
       await Promise.all([loadBooks(), loadImportableContent()]);
     } catch (e: any) {
