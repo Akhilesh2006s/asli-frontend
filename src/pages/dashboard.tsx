@@ -2022,7 +2022,8 @@ export default function Dashboard() {
                         type="date"
                         value={calendarJumpDate}
                         onChange={(e) => setCalendarJumpDate(e.target.value)}
-                        className="h-9 rounded-md border border-gray-200 px-2 text-xs sm:text-sm text-gray-700 bg-white"
+                        aria-label="Jump to date"
+                        className="asli-date-input h-9 min-w-[10.5rem] rounded-md border border-gray-200 bg-white py-1.5 pl-3 pr-3 text-xs text-gray-700 sm:min-w-[11.5rem] sm:text-sm"
                       />
                       <Button size="sm" className="whitespace-nowrap" onClick={handleJumpToDate}>
                         Go

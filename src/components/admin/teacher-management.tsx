@@ -12,6 +12,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { API_BASE_URL } from '@/lib/api-config';
 import { getAuthToken } from '@/lib/auth-utils';
 import {
+  contactFieldError,
+  normalizePhoneInput,
+  sanitizePhoneTyping,
+} from '@/lib/contact-validation';
+import {
   formatSubjectDisplayLabel,
   normalizeSubjectDisplayKey,
 } from '@/lib/subject-names';
@@ -560,10 +565,21 @@ const TeacherManagement = () => {
 
   const handleAddTeacher = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
+    const fullName = String(newTeacher.fullName || '').trim();
+    const email = String(newTeacher.email || '').trim().toLowerCase();
+    const phone = normalizePhoneInput(newTeacher.phone || '');
+    const department = String(newTeacher.department || '').trim();
+
     // Validate required fields
-    if (!newTeacher.fullName || !newTeacher.email || !newTeacher.password || !newTeacher.department || newTeacher.subjects.length === 0) {
-      notify('Please fill in all required fields: Name, Email, Password, Department, and at least one subject.');
+    if (!fullName || !email || !phone || !newTeacher.password || !department || newTeacher.subjects.length === 0) {
+      notify('Please fill in all required fields: Name, Email, Phone, Password, Department, and at least one subject.');
+      return;
+    }
+
+    const contactError = contactFieldError({ email, phone, requirePhone: true });
+    if (contactError) {
+      notify(contactError);
       return;
     }
 
@@ -580,7 +596,13 @@ const TeacherManagement = () => {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json' 
         },
-        body: JSON.stringify(newTeacher)
+        body: JSON.stringify({
+          ...newTeacher,
+          fullName,
+          email,
+          phone,
+          department,
+        })
       });
 
       let responseData;
@@ -1430,7 +1452,9 @@ Jane Smith,jane.smith@school.edu,TeacherPass2,1234567891,Science,MSc in Chemistr
                 <form onSubmit={handleAddTeacher} id="add-teacher-form" className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div>
-                    <Label htmlFor="fullName" className="text-gray-700 font-medium">Full Name</Label>
+                    <Label htmlFor="fullName" className="text-gray-700 font-medium">
+                      Full Name <span className="text-red-500">*</span>
+                    </Label>
                     <Input
                       id="fullName"
                       value={newTeacher.fullName}
@@ -1440,10 +1464,15 @@ Jane Smith,jane.smith@school.edu,TeacherPass2,1234567891,Science,MSc in Chemistr
                     />
                   </div>
                   <div>
-                    <Label htmlFor="email" className="text-gray-700 font-medium">Email</Label>
+                    <Label htmlFor="email" className="text-gray-700 font-medium">
+                      Email <span className="text-red-500">*</span>
+                    </Label>
                     <Input
                       id="email"
                       type="email"
+                      inputMode="email"
+                      autoComplete="email"
+                      placeholder="name@school.com"
                       value={newTeacher.email}
                       onChange={(e) => setNewTeacher({ ...newTeacher, email: e.target.value })}
                       className="border-orange-200 focus:border-orange-400 rounded-xl"
@@ -1451,12 +1480,26 @@ Jane Smith,jane.smith@school.edu,TeacherPass2,1234567891,Science,MSc in Chemistr
                     />
                   </div>
                   <div>
-                    <Label htmlFor="phone" className="text-gray-700 font-medium">Phone</Label>
+                    <Label htmlFor="phone" className="text-gray-700 font-medium">
+                      Phone <span className="text-red-500">*</span>
+                    </Label>
                     <Input
                       id="phone"
+                      type="tel"
+                      inputMode="tel"
+                      autoComplete="tel"
+                      placeholder="10-digit mobile number"
                       value={newTeacher.phone}
-                      onChange={(e) => setNewTeacher({ ...newTeacher, phone: e.target.value })}
+                      onChange={(e) =>
+                        setNewTeacher({
+                          ...newTeacher,
+                          phone: sanitizePhoneTyping(e.target.value),
+                        })
+                      }
                       className="border-orange-200 focus:border-orange-400 rounded-xl"
+                      required
+                      minLength={10}
+                      maxLength={18}
                     />
                   </div>
                   <div>

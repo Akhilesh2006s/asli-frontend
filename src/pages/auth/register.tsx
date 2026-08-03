@@ -124,6 +124,7 @@ const Register = () => {
           interestedCourses: formData.interestedCourses,
           interestedSubjects: formData.interestedSubjects,
           iitCategories: formData.iitCategories,
+          accountSource: 'web_register',
         }),
       });
 

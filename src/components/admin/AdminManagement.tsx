@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,6 +17,10 @@ import { cn } from "@/lib/utils";
 import { formatIitCategoryLabel, normalizeIitCategories } from "@/lib/products";
 import { useProductCategories } from "@/hooks/use-product-categories";
 import { useBoards } from "@/hooks/use-boards";
+import {
+  sanitizePincodeInput,
+  schoolAddressFieldError,
+} from "@/lib/contact-validation";
 
 /** Visible borders/background on white dialogs (muted/40 was nearly invisible). */
 const SCHOOL_FORM_FIELD_CLASS =
@@ -257,6 +261,65 @@ function curriculumDisplayLabel(code?: string, nameMap?: Map<string, string>): s
   return labels[u] || code || "";
 }
 
+/** Normalize for school search: lowercase, strip punctuation, collapse spaces. */
+function normalizeSchoolSearchText(value: unknown): string {
+  return String(value ?? "")
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9\s@.+_-]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/** Partial / multi-token match — substring match, not exact school name only. */
+function schoolMatchesSearchQuery(
+  admin: {
+    schoolName?: string;
+    name?: string;
+    email?: string;
+    state?: string;
+    place?: string;
+    board?: string;
+    curriculumBoard?: string;
+    phone?: string;
+    contactPerson?: string;
+    isAsliPrepExclusive?: boolean;
+    schoolDetails?: { city?: string; district?: string; area?: string };
+  },
+  rawQuery: string,
+  boardNameMap?: Map<string, string>
+): boolean {
+  const query = normalizeSchoolSearchText(rawQuery);
+  if (!query) return true;
+
+  const haystack = normalizeSchoolSearchText(
+    [
+      admin.schoolName,
+      admin.name,
+      admin.email,
+      admin.state,
+      admin.place,
+      admin.board,
+      admin.curriculumBoard,
+      curriculumDisplayLabel(admin.curriculumBoard, boardNameMap),
+      admin.phone,
+      admin.contactPerson,
+      admin.schoolDetails?.city,
+      admin.schoolDetails?.district,
+      admin.schoolDetails?.area,
+      admin.isAsliPrepExclusive ? "asli prep exclusive" : "",
+    ]
+      .filter(Boolean)
+      .join(" ")
+  );
+
+  if (!haystack) return false;
+
+  const tokens = query.split(" ").filter(Boolean);
+  return tokens.every((token) => haystack.includes(token));
+}
+
 export default function AdminManagement() {
   const [, setLocation] = useLocation();
   const { codes: iitCategoryCodes, labelMap: iitLabelMap } = useProductCategories();
@@ -272,6 +335,14 @@ export default function AdminManagement() {
   const [isDeletingAdmin, setIsDeletingAdmin] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const DEFAULT_CURRICULUM_BOARD = "CBSE";
+
+  const filteredAdmins = useMemo(() => {
+    const list = Array.isArray(admins) ? admins : [];
+    const q = searchQuery.trim();
+    if (!q) return list;
+    const nameMap = new Map(allBoards.map((b) => [b.code, b.name]));
+    return list.filter((admin) => schoolMatchesSearchQuery(admin, q, nameMap));
+  }, [admins, searchQuery, allBoards]);
 
   const emptySchoolDetails = (): SchoolDetailsForm => ({
     doorNo: '',
@@ -605,6 +676,24 @@ export default function AdminManagement() {
       return;
     }
 
+    const addressError = schoolAddressFieldError({
+      schoolName: newAdmin.schoolName,
+      city: sd.city,
+      district: sd.district,
+      pin: newAdmin.pin,
+      doorNo: sd.doorNo,
+      street: sd.street,
+      area: sd.area,
+    });
+    if (addressError) {
+      toast({
+        title: "Invalid school details",
+        description: addressError,
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsAddingAdmin(true);
     try {
       const token = getAuthToken();
@@ -625,7 +714,7 @@ export default function AdminManagement() {
         phone: sanitizePhoneInput(newAdmin.phone),
         secondaryContactPerson: newAdmin.secondaryContactPerson?.trim() || '',
         secondaryContactPhone: sanitizePhoneInput(newAdmin.secondaryContactPhone),
-        pin: newAdmin.pin?.trim() || '',
+        pin: sanitizePincodeInput(newAdmin.pin),
         permissions: resolvePortalPermissions(newAdmin.accessMode, newAdmin.limitedFeatures),
         vidyaEnabledForTeachers: newAdmin.vidyaEnabledForTeachers,
         vidyaEnabledForStudents: newAdmin.vidyaEnabledForStudents,
@@ -862,6 +951,24 @@ export default function AdminManagement() {
       return;
     }
 
+    const addressError = schoolAddressFieldError({
+      schoolName: editAdmin.schoolName,
+      city: esd.city,
+      district: esd.district,
+      pin: editAdmin.pin,
+      doorNo: esd.doorNo,
+      street: esd.street,
+      area: esd.area,
+    });
+    if (addressError) {
+      toast({
+        title: "Invalid school details",
+        description: addressError,
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsUpdatingAdmin(true);
     try {
       const token = getAuthToken();
@@ -886,7 +993,7 @@ export default function AdminManagement() {
           phone: sanitizePhoneInput(editAdmin.phone),
           secondaryContactPerson: editAdmin.secondaryContactPerson?.trim() || '',
           secondaryContactPhone: sanitizePhoneInput(editAdmin.secondaryContactPhone),
-          pin: editAdmin.pin?.trim() || '',
+          pin: sanitizePincodeInput(editAdmin.pin),
           schoolDetails: {
             ...esd,
             state: editAdmin.state
@@ -1311,11 +1418,19 @@ export default function AdminManagement() {
                   <Label htmlFor="pin">Pincode</Label>
                   <Input
                     id="pin"
+                    type="text"
+                    inputMode="numeric"
+                    autoComplete="postal-code"
+                    maxLength={6}
+                    pattern="[1-9][0-9]{5}"
                     value={newAdmin.pin}
-                    onChange={(e) => setNewAdmin({ ...newAdmin, pin: e.target.value })}
-                    placeholder="Pincode"
+                    onChange={(e) =>
+                      setNewAdmin({ ...newAdmin, pin: sanitizePincodeInput(e.target.value) })
+                    }
+                    placeholder="6-digit PIN (e.g. 500001)"
                     className={SCHOOL_FORM_FIELD_CLASS}
                   />
+                  <p className="text-xs text-slate-500">Exactly 6 digits, or leave empty.</p>
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="board">Curriculum board *</Label>
@@ -2059,10 +2174,19 @@ export default function AdminManagement() {
                   <Label htmlFor="edit-pin">Pincode</Label>
                   <Input
                     id="edit-pin"
+                    type="text"
+                    inputMode="numeric"
+                    autoComplete="postal-code"
+                    maxLength={6}
+                    pattern="[1-9][0-9]{5}"
                     value={editAdmin.pin}
-                    onChange={(e) => setEditAdmin({ ...editAdmin, pin: e.target.value })}
+                    onChange={(e) =>
+                      setEditAdmin({ ...editAdmin, pin: sanitizePincodeInput(e.target.value) })
+                    }
+                    placeholder="6-digit PIN (e.g. 500001)"
                     className={SCHOOL_FORM_FIELD_CLASS}
                   />
+                  <p className="text-xs text-slate-500">Exactly 6 digits, or leave empty.</p>
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="edit-board">Curriculum board *</Label>
@@ -2526,26 +2650,32 @@ export default function AdminManagement() {
       </div>
 
       {/* Search Bar */}
-      <div className="flex items-center gap-4">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
         <div className="relative flex-1 max-w-md">
           <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 sm:h-5 sm:w-5 text-gray-400" />
           <Input
             type="text"
-            placeholder="Search by school, contact, email, state, board, or Asli Prep…"
+            placeholder="Search by school, contact, email, city, state, board…"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="px-0 pl-10 sm:pl-11"
+            aria-label="Search schools"
           />
         </div>
-        {searchQuery && (
-          <Button
-            variant="outline"
-            onClick={() => setSearchQuery('')}
-            className="shrink-0"
-          >
-            Clear
-          </Button>
-        )}
+        {searchQuery.trim() ? (
+          <div className="flex items-center gap-2">
+            <p className="text-sm text-slate-600">
+              Showing {filteredAdmins.length} of {admins?.length || 0}
+            </p>
+            <Button
+              variant="outline"
+              onClick={() => setSearchQuery('')}
+              className="shrink-0"
+            >
+              Clear
+            </Button>
+          </div>
+        ) : null}
       </div>
 
       {/* Admin Stats Overview */}
@@ -2595,29 +2725,7 @@ export default function AdminManagement() {
       </div>
 
       {/* Admins List */}
-      {(() => {
-        // Filter admins based on search query
-        const filteredAdmins = admins?.filter((admin) => {
-          if (!searchQuery) return true;
-          const query = searchQuery.toLowerCase();
-          const searchBlob = [
-            admin.schoolName,
-            admin.name,
-            admin.email,
-            admin.state,
-            admin.board,
-            admin.curriculumBoard,
-            curriculumDisplayLabel(admin.curriculumBoard, boardNameMap),
-            admin.isAsliPrepExclusive ? "asli prep exclusive" : "",
-          ]
-            .filter(Boolean)
-            .join(" ")
-            .toLowerCase();
-          return searchBlob.includes(query);
-        });
-
-        return (
-          <>
+      <>
             {filteredAdmins && filteredAdmins.length > 0 ? (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:p-4 lg:p-6 items-stretch">
                 {filteredAdmins.map((admin) => (
@@ -2778,12 +2886,14 @@ export default function AdminManagement() {
           </Card>
         ))}
       </div>
-            ) : searchQuery ? (
+            ) : searchQuery.trim() ? (
               <Card>
                 <CardContent className="p-12 text-center">
                   <SearchIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                   <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2">No Schools Found</h3>
-                  <p className="text-gray-600 mb-4">No schools match your search query "{searchQuery}"</p>
+                  <p className="text-gray-600 mb-4">
+                    No schools match &quot;{searchQuery.trim()}&quot;. Try a partial name, city, email, or state.
+                  </p>
                   <Button variant="outline" onClick={() => setSearchQuery('')}>
                     Clear Search
                   </Button>
@@ -2791,10 +2901,8 @@ export default function AdminManagement() {
               </Card>
             ) : null}
           </>
-        );
-      })()}
 
-      {(!admins || admins.length === 0) && !searchQuery && (
+      {(!admins || admins.length === 0) && !searchQuery.trim() && (
         <Card>
           <CardContent className="p-12 text-center">
             <CrownIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />

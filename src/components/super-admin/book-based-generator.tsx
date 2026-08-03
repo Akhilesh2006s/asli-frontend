@@ -276,10 +276,31 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
     () => sortClassLabelsAscending(classOptions),
     [classOptions],
   );
-  const subjectOptionsForSelect = useMemo(
-    () => (selectedTool ? subjectsForTool : subjects),
-    [selectedTool, subjectsForTool, subjects],
-  );
+  const subjectOptionsForSelect = useMemo(() => {
+    const base = selectedTool ? subjectsForTool : subjects;
+    if (subject && !base.some((s) => s.toLowerCase() === subject.toLowerCase())) {
+      return [subject, ...base];
+    }
+    return base;
+  }, [selectedTool, subjectsForTool, subjects, subject]);
+  const classOptionsForSelectWithBook = useMemo(() => {
+    if (classNumber && !classOptionsForSelect.includes(classNumber)) {
+      return sortClassLabelsAscending([classNumber, ...classOptionsForSelect]);
+    }
+    return classOptionsForSelect;
+  }, [classOptionsForSelect, classNumber]);
+  const boardOptionsForSelect = useMemo(() => {
+    if (board && !boardOptions.some((b) => b.toLowerCase() === board.toLowerCase())) {
+      return [...boardOptions, board].sort((a, b) => a.localeCompare(b));
+    }
+    return boardOptions;
+  }, [boardOptions, board]);
+  const topicOptionsForSelect = useMemo(() => {
+    if (topic && !topics.some((t) => t.toLowerCase() === topic.toLowerCase())) {
+      return [topic, ...topics];
+    }
+    return topics;
+  }, [topics, topic]);
   const selectedBook = useMemo(() => books.find((b) => b._id === bookId), [books, bookId]);
   const bookReady = Boolean(selectedBook?.embeddingsCreated && selectedBook?.processingStatus === "indexed");
   const step1Done = Boolean(bookId && bookReady);
@@ -316,6 +337,30 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
 
   const selectBook = useCallback((book: BookOption) => {
     setBookId(book._id);
+
+    const nextBoard = String(book.board || "").trim();
+    const nextClassRaw = normalizeClassLabel(book.class);
+    const nextClass = nextClassRaw === "Unassigned" ? "" : nextClassRaw;
+    const nextSubject = String(book.subject || "").trim();
+    const nextCategory = normalizeIitCategory(book.productCategory) || "";
+    const nextTopic = String(book.topic || "").trim();
+    const nextSubTopic = String(book.subtopic || "").trim();
+
+    if (nextBoard) {
+      setBoard(nextBoard);
+      setBoardOptions((prev) =>
+        prev.includes(nextBoard)
+          ? prev
+          : [...prev, nextBoard].sort((a, b) => a.localeCompare(b)),
+      );
+    }
+    setProductCategory(nextCategory);
+    setClassNumber(nextClass);
+    setSubject(nextSubject);
+    setTopic(nextTopic);
+    setSubTopic(nextSubTopic || WHOLE_CHAPTER_VALUE);
+    setExtraSubTopics([]);
+    setExpandEachSubtopic(false);
   }, []);
 
   const loadBooks = async () => {
@@ -1028,9 +1073,9 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
           <div className="space-y-2">
             <Label>Board</Label>
             <Select value={board} onValueChange={handleBoardChange}>
-              <SelectTrigger><SelectValue placeholder={boardOptions.length ? "Select board" : "Loading boards…"} /></SelectTrigger>
+              <SelectTrigger><SelectValue placeholder={boardOptionsForSelect.length ? "Select board" : "Loading boards…"} /></SelectTrigger>
               <SelectContent>
-                {boardOptions.map((b) => <SelectItem key={b} value={b}>{b}</SelectItem>)}
+                {boardOptionsForSelect.map((b) => <SelectItem key={b} value={b}>{b}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
@@ -1067,7 +1112,7 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
             <Select value={classNumber} onValueChange={handleClassChange} disabled={!board || loadingClasses}>
               <SelectTrigger><SelectValue placeholder={!board ? "Select board first" : loadingClasses ? "Loading classes…" : "Select class"} /></SelectTrigger>
               <SelectContent>
-                {classOptionsForSelect.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                {classOptionsForSelectWithBook.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
@@ -1099,7 +1144,7 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
             <Select value={topic} onValueChange={handleTopicChange} disabled={!subject || loadingTopics}>
               <SelectTrigger><SelectValue placeholder={!subject ? "Select subject first" : loadingTopics ? "Loading topics…" : "Select topic"} /></SelectTrigger>
               <SelectContent>
-                {topics.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                {topicOptionsForSelect.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>

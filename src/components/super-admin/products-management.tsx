@@ -18,7 +18,7 @@ import { API_BASE_URL } from '@/lib/api-config';
 import { PRODUCT_IIT, formatIitCategoryLabel, normalizeCategoryCode } from '@/lib/products';
 import { useProductCategories } from '@/hooks/use-product-categories';
 import { useToast } from '@/hooks/use-toast';
-import { BookOpen, Layers, Loader2, Pencil, Plus, Trash2 } from 'lucide-react';
+import { Layers, Loader2, Pencil, Plus, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 function authHeaders(): HeadersInit {
@@ -326,20 +326,6 @@ export default function ProductsManagement() {
               </div>
             </div>
           )}
-
-          <div className="mt-6 flex gap-3 rounded-lg border border-orange-100 bg-orange-50/60 p-4 text-sm text-slate-700">
-            <BookOpen className="mt-0.5 h-4 w-4 shrink-0 text-orange-600" />
-            <div>
-              <p className="font-medium text-slate-900">How to use</p>
-              <ol className="mt-1 list-decimal space-y-1 pl-4 text-xs sm:text-sm text-slate-600">
-                <li>Add categories here (or keep Alpha / Beta / Gamma).</li>
-                <li>Tag subjects / content / books with a category (or leave General).</li>
-                <li>
-                  School Management → Asli Prep → assign the categories that school may access.
-                </li>
-              </ol>
-            </div>
-          </div>
         </CardContent>
       </Card>
 

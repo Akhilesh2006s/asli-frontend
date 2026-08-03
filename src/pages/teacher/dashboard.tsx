@@ -1232,10 +1232,19 @@ const TeacherDashboard = () => {
   const handleHomeworkFileUpload = async (file: File): Promise<string> => {
     setIsUploadingHomeworkFile(true);
     try {
+      const maxBytes = 25 * 1024 * 1024;
+      if (file.size > maxBytes) {
+        throw new Error('File is too large. Maximum size is 25MB.');
+      }
+
       const formData = new FormData();
       formData.append('file', file);
       
       const token = getAuthToken();
+      if (!token) {
+        throw new Error('Please sign in again, then retry creating homework.');
+      }
+
       const response = await fetch(`${API_BASE_URL}/api/upload`, {
         method: 'POST',
         headers: {
@@ -1244,12 +1253,21 @@ const TeacherDashboard = () => {
         body: formData
       });
 
+      const data = await response.json().catch(() => ({} as { message?: string; url?: string; fileUrl?: string }));
       if (!response.ok) {
-        throw new Error('File upload failed');
+        throw new Error(
+          data.message ||
+            (response.status === 404
+              ? 'File upload service is unavailable. Please try again later or paste a file URL instead.'
+              : `File upload failed (${response.status}).`)
+        );
       }
 
-      const data = await response.json();
-      return data.url || data.fileUrl;
+      const uploadedUrl = data.url || data.fileUrl;
+      if (!uploadedUrl) {
+        throw new Error('Upload succeeded but no file link was returned. Please try again or use a URL.');
+      }
+      return uploadedUrl;
     } catch (error) {
       console.error('File upload error:', error);
       throw error;
@@ -1263,7 +1281,7 @@ const TeacherDashboard = () => {
     e.preventDefault();
     
     if (!homeworkForm.title || !homeworkForm.subject || !homeworkForm.date || !homeworkForm.deadline) {
-      notify('Please fill in all required fields');
+      notify('Please fill in all required fields (title, subject, date, and deadline).');
       return;
     }
 
@@ -1273,20 +1291,30 @@ const TeacherDashboard = () => {
     }
 
     if (!homeworkForm.fileUrl && !selectedHomeworkFile) {
-      notify('Please provide a file URL or upload a file');
+      notify('Please upload a file or paste a file URL.');
       return;
     }
 
     setIsCreatingHomework(true);
     try {
-      let fileUrl = homeworkForm.fileUrl;
+      let fileUrl = homeworkForm.fileUrl.trim();
       
       // Upload file if selected
       if (selectedHomeworkFile && !fileUrl) {
         fileUrl = await handleHomeworkFileUpload(selectedHomeworkFile);
       }
 
+      if (!fileUrl) {
+        notify('A homework file or URL is required.');
+        return;
+      }
+
       const token = getAuthToken();
+      if (!token) {
+        notify('Please sign in again, then retry creating homework.');
+        return;
+      }
+
       const response = await fetch(`${API_BASE_URL}/api/teacher/homework`, {
         method: 'POST',
         headers: {
@@ -1305,34 +1333,34 @@ const TeacherDashboard = () => {
         })
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success) {
-          notify('Homework created successfully!');
-          setIsHomeworkModalOpen(false);
-          setHomeworkForm({
-            title: '',
-            description: '',
-            subject: '',
-            classNumber: '',
-            topic: '',
-            date: localYmd(),
-            deadline: '',
-            fileUrl: ''
-          });
-          setSelectedHomeworkFile(null);
-          // Refresh homework submissions
-          fetchHomeworkSubmissions();
-        } else {
-          notify(data.message || 'Failed to create homework');
-        }
+      const data = await response.json().catch(() => ({} as { success?: boolean; message?: string; error?: string }));
+      if (response.ok && data.success) {
+        notify('Homework created successfully!');
+        setIsHomeworkModalOpen(false);
+        setHomeworkForm({
+          title: '',
+          description: '',
+          subject: '',
+          classNumber: '',
+          topic: '',
+          date: localYmd(),
+          deadline: '',
+          fileUrl: ''
+        });
+        setSelectedHomeworkFile(null);
+        // Refresh homework submissions
+        fetchHomeworkSubmissions();
       } else {
-        const error = await response.json();
-        notify(error.message || 'Failed to create homework');
+        const detail = [data.message, data.error].filter(Boolean).join(' — ');
+        notify(detail || `Failed to create homework (${response.status}).`);
       }
     } catch (error) {
       console.error('Create homework error:', error);
-      notify('Failed to create homework. Please try again.');
+      const message =
+        error instanceof Error && error.message
+          ? error.message
+          : 'Failed to create homework. Please try again.';
+      notify(message);
     } finally {
       setIsCreatingHomework(false);
     }
@@ -2962,7 +2990,9 @@ const TeacherDashboard = () => {
                           </Select>
                         </div>
                         <div className="space-y-2">
-                          <Label htmlFor="remark">Remark</Label>
+                          <Label htmlFor="remark">
+                            Remark <span className="text-red-500" aria-hidden="true">*</span>
+                          </Label>
                           <Textarea
                             id="remark"
                             placeholder="Enter your remark here..."
@@ -2970,7 +3000,11 @@ const TeacherDashboard = () => {
                             onChange={(e) => setRemarkText(e.target.value)}
                             className="min-h-[120px]"
                             required
+                            aria-required="true"
                           />
+                          {!remarkText.trim() ? (
+                            <p className="text-xs text-muted-foreground">Remark text is required before you can add it.</p>
+                          ) : null}
                         </div>
                         <div className="flex justify-end gap-2 pt-4">
                           <Button
@@ -2988,7 +3022,14 @@ const TeacherDashboard = () => {
                           <Button
                             className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white"
                             onClick={async () => {
-                              if (!remarkText.trim() || !selectedStudentForRemark) return;
+                              if (!selectedStudentForRemark) {
+                                notify('Please select a student first.');
+                                return;
+                              }
+                              if (!remarkText.trim()) {
+                                notify('Remark is required. Please enter a remark before submitting.');
+                                return;
+                              }
                               
                               setIsSubmittingRemark(true);
                               try {
@@ -3002,7 +3043,7 @@ const TeacherDashboard = () => {
                                       'Authorization': `Bearer ${token}`
                                     },
                                     body: JSON.stringify({
-                                      remark: remarkText,
+                                      remark: remarkText.trim(),
                                       subject: selectedSubjectForRemark && selectedSubjectForRemark !== 'general' ? selectedSubjectForRemark : null,
                                       isPositive: isPositiveRemark
                                     })

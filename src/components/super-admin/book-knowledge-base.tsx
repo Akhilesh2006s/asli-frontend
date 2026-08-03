@@ -795,6 +795,8 @@ export default function BookKnowledgeBase() {
                   <Button
                     size="sm"
                     variant="outline"
+                    title="Re-index"
+                    aria-label="Re-index"
                     onClick={() => void handleReindex(book._id)}
                     disabled={reindexingId === book._id}
                   >

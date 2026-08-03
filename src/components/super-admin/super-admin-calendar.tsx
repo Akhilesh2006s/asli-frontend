@@ -32,6 +32,9 @@ import {
   Building2,
   Plus,
   BookOpen,
+  Search,
+  Trash2,
+  Loader2,
 } from 'lucide-react';
 
 export type CalendarEventRecord = {
@@ -114,6 +117,29 @@ async function fetchCalendarEventsPost(
   return last!;
 }
 
+async function fetchCalendarEventsDelete(
+  eventId: string,
+  token: string | null
+): Promise<Response> {
+  const headers: HeadersInit = {
+    ...(token && { Authorization: `Bearer ${token}` }),
+    'Content-Type': 'application/json',
+  };
+  const paths = [
+    `/api/super-admin/calendar/events/${encodeURIComponent(eventId)}`,
+    `/api/calendar/events/${encodeURIComponent(eventId)}`,
+  ] as const;
+  let last: Response | undefined;
+  for (const path of paths) {
+    last = await fetch(`${API_BASE_URL}${path}`, {
+      method: 'DELETE',
+      headers,
+    });
+    if (last.status !== 404) return last;
+  }
+  return last!;
+}
+
 function toDatetimeLocal(d: Date) {
   const pad = (n: number) => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
@@ -160,6 +186,7 @@ export default function SuperAdminCalendar({ onNavigateToExams }: SuperAdminCale
   const [events, setEvents] = useState<CalendarEventRecord[]>([]);
   const [admins, setAdmins] = useState<Admin[]>([]);
   const [selectedSchoolId, setSelectedSchoolId] = useState<string>('all');
+  const [schoolFilterSearch, setSchoolFilterSearch] = useState('');
   const [selectedEvent, setSelectedEvent] = useState<CalendarEventRecord | null>(null);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -178,6 +205,7 @@ export default function SuperAdminCalendar({ onNavigateToExams }: SuperAdminCale
     notes: '',
   });
   const [isSavingCustom, setIsSavingCustom] = useState(false);
+  const [isDeletingEvent, setIsDeletingEvent] = useState(false);
 
   useEffect(() => {
     fetchAdmins();
@@ -348,6 +376,38 @@ export default function SuperAdminCalendar({ onNavigateToExams }: SuperAdminCale
     setIsViewDialogOpen(true);
   };
 
+  const canDeleteSelectedEvent =
+    Boolean(selectedEvent) && selectedEvent?.type !== 'exam';
+
+  const deleteSelectedEvent = async () => {
+    if (!selectedEvent || selectedEvent.type === 'exam') return;
+    const ok = window.confirm(
+      `Delete “${selectedEvent.title}”? This removes it from the school calendar.`,
+    );
+    if (!ok) return;
+    setIsDeletingEvent(true);
+    try {
+      const token = getAuthToken();
+      const response = await fetchCalendarEventsDelete(selectedEvent.id, token);
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || 'Failed to delete event');
+      }
+      toast({ title: 'Deleted', description: 'Event removed from calendar' });
+      setIsViewDialogOpen(false);
+      setSelectedEvent(null);
+      fetchCalendarEvents();
+    } catch (e) {
+      toast({
+        title: 'Could not delete',
+        description: e instanceof Error ? e.message : 'Failed to delete event',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsDeletingEvent(false);
+    }
+  };
+
   const monthNames = [
     'January',
     'February',
@@ -373,6 +433,17 @@ export default function SuperAdminCalendar({ onNavigateToExams }: SuperAdminCale
       return aLabel.localeCompare(bLabel, undefined, { sensitivity: 'base' });
     });
   }, [admins]);
+
+  const filteredAdmins = useMemo(() => {
+    const q = schoolFilterSearch.trim().toLowerCase();
+    if (!q) return sortedAdmins;
+    return sortedAdmins.filter((admin) => {
+      const name = String(admin.schoolName || admin.name || '').toLowerCase();
+      const email = String(admin.email || '').toLowerCase();
+      return name.includes(q) || email.includes(q);
+    });
+  }, [sortedAdmins, schoolFilterSearch]);
+
   const getSchoolLabelById = (schoolId: string) => {
     const school = admins.find((a) => (a.id || a._id) === schoolId);
     return school?.schoolName || school?.name || school?.email || '';
@@ -505,23 +576,48 @@ export default function SuperAdminCalendar({ onNavigateToExams }: SuperAdminCale
               <Building2 className="h-4 w-4 sm:h-5 sm:w-5 text-gray-500 shrink-0" />
               <div className="flex-1 space-y-2">
                 <Label htmlFor="school-select">School filter</Label>
-                <Select value={selectedSchoolId} onValueChange={setSelectedSchoolId}>
+                <Select
+                  value={selectedSchoolId}
+                  onValueChange={setSelectedSchoolId}
+                  onOpenChange={(open) => {
+                    if (!open) setSchoolFilterSearch('');
+                  }}
+                >
                   <SelectTrigger
                     id="school-select"
                     className="w-full max-w-md border border-orange-200 bg-white shadow-sm transition-colors hover:border-orange-400 focus:ring-2 focus:ring-orange-400/40"
                   >
                     <SelectValue placeholder="Select scope" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="max-h-72">
+                    <div className="sticky top-0 z-10 border-b border-gray-100 bg-popover p-2">
+                      <div className="relative">
+                        <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
+                        <Input
+                          value={schoolFilterSearch}
+                          onChange={(e) => setSchoolFilterSearch(e.target.value)}
+                          placeholder="Search schools…"
+                          className="h-8 pl-8 text-xs"
+                          onKeyDown={(e) => e.stopPropagation()}
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                      </div>
+                    </div>
                     <SelectItem value="all">All Schools</SelectItem>
-                    {sortedAdmins.map((admin) => {
-                      const adminId = admin.id || admin._id || '';
-                      return (
-                        <SelectItem key={adminId} value={adminId}>
-                          {admin.schoolName || admin.name || admin.email}
-                        </SelectItem>
-                      );
-                    })}
+                    {filteredAdmins.length === 0 ? (
+                      <div className="px-2 py-3 text-center text-xs text-gray-500">
+                        No schools found
+                      </div>
+                    ) : (
+                      filteredAdmins.map((admin) => {
+                        const adminId = admin.id || admin._id || '';
+                        return (
+                          <SelectItem key={adminId} value={adminId}>
+                            {admin.schoolName || admin.name || admin.email}
+                          </SelectItem>
+                        );
+                      })
+                    )}
                   </SelectContent>
                 </Select>
                 <p className="text-xs text-gray-500">
@@ -967,10 +1063,37 @@ export default function SuperAdminCalendar({ onNavigateToExams }: SuperAdminCale
                     </p>
                   );
                 })()}
-                <div className="flex items-center gap-2 text-gray-500">
-                  <Eye className="h-3 w-3 sm:h-4 sm:w-4" />
-                  <span>Read-only</span>
-                </div>
+                {canDeleteSelectedEvent ? (
+                  <div className="flex flex-col gap-2 border-t border-slate-100 pt-3 sm:flex-row sm:items-center sm:justify-between">
+                    <p className="text-xs text-slate-500">
+                      You can remove this holiday or custom event from the calendar.
+                    </p>
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="sm"
+                      disabled={isDeletingEvent}
+                      onClick={() => void deleteSelectedEvent()}
+                      className="shrink-0"
+                    >
+                      {isDeletingEvent ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
+                        <Trash2 className="mr-2 h-4 w-4" />
+                      )}
+                      Delete event
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 text-gray-500">
+                    <Eye className="h-3 w-3 sm:h-4 sm:w-4" />
+                    <span>
+                      {selectedEvent.type === 'exam'
+                        ? 'Exam entries are managed in Exam Management'
+                        : 'Read-only'}
+                    </span>
+                  </div>
+                )}
               </div>
             )}
           </DialogContent>

@@ -1162,39 +1162,47 @@ const ClassDashboard = () => {
                       <span className="font-medium text-sky-900 shrink-0">{classItem.studentCount || 0}</span>
                     </div>
                     {classItem.teachers && classItem.teachers.length > 0 && (
-                      <div className="flex items-center justify-between gap-2 text-xs sm:text-sm min-w-0">
-                        <div className="flex items-center text-sky-700 min-w-0">
+                      <div className="flex items-start justify-between gap-3 text-xs sm:text-sm min-w-0">
+                        <div className="flex items-center text-sky-700 shrink-0">
                           <UserPlus className="w-3 h-3 sm:w-4 sm:h-4 mr-3 text-sky-600 shrink-0" />
-                          <span className="shrink-0">Teachers:</span>
+                          <span>Teachers:</span>
                         </div>
-                        <span className="font-medium text-sky-900 shrink-0 whitespace-nowrap">
-                          {teacherCount} on class
-                          {seats.licensedTeachers > 0
-                            ? ` · school ${formatSeatUsage(seats.usedTeachers, seats.licensedTeachers)}`
-                            : ""}
-                        </span>
+                        <div className="min-w-0 flex-1 text-right leading-snug">
+                          <p className="font-medium text-sky-900 break-words">
+                            {teacherCount} on class
+                          </p>
+                          {seats.licensedTeachers > 0 ? (
+                            <p className="text-sky-600 break-words">
+                              School {formatSeatUsage(seats.usedTeachers, seats.licensedTeachers)} seats
+                            </p>
+                          ) : null}
+                        </div>
                       </div>
                     )}
                     {(!classItem.teachers || classItem.teachers.length === 0) && (
-                      <div className="flex items-center justify-between gap-2 text-xs sm:text-sm min-w-0">
-                        <div className="flex items-center text-sky-700 min-w-0">
+                      <div className="flex items-start justify-between gap-3 text-xs sm:text-sm min-w-0">
+                        <div className="flex items-center text-sky-700 shrink-0">
                           <UserPlus className="w-3 h-3 sm:w-4 sm:h-4 mr-3 text-sky-600 shrink-0" />
-                          <span className="shrink-0">Teachers:</span>
+                          <span>Teachers:</span>
                         </div>
-                        <span className="font-medium text-sky-500 text-xs shrink-0 whitespace-nowrap text-right">
-                          No teachers assigned
-                          {seats.licensedTeachers > 0
-                            ? ` · school ${formatSeatUsage(seats.usedTeachers, seats.licensedTeachers)}`
-                            : ""}
-                        </span>
+                        <div className="min-w-0 flex-1 text-right leading-snug">
+                          <p className="font-medium text-sky-500 break-words">
+                            No teachers assigned
+                          </p>
+                          {seats.licensedTeachers > 0 ? (
+                            <p className="text-sky-600 break-words">
+                              School {formatSeatUsage(seats.usedTeachers, seats.licensedTeachers)} seats
+                            </p>
+                          ) : null}
+                        </div>
                       </div>
                     )}
-                    <div className="flex items-center justify-between gap-2 text-xs sm:text-sm min-w-0">
-                      <div className="flex items-center text-sky-700 min-w-0">
+                    <div className="flex items-start justify-between gap-3 text-xs sm:text-sm min-w-0">
+                      <div className="flex items-center text-sky-700 shrink-0">
                         <Users className="w-3 h-3 sm:w-4 sm:h-4 mr-3 text-sky-600 shrink-0" />
-                        <span className="shrink-0">School students:</span>
+                        <span>School students:</span>
                       </div>
-                      <span className="font-medium text-sky-900 shrink-0 whitespace-nowrap">
+                      <span className="min-w-0 flex-1 text-right font-medium text-sky-900 leading-snug break-words">
                         {formatSeatUsage(seats.usedStudents, seats.licensedStudents)}
                         {seats.licensedStudents > 0 ? " seats" : ""}
                       </span>
@@ -1213,12 +1221,12 @@ const ClassDashboard = () => {
                   {/* Teachers List (dropdown) */}
                   {classItem.teachers && classItem.teachers.length > 0 && (
                     <div className="space-y-2 mb-4">
-                      <div className="flex items-center justify-between gap-2 mb-1">
-                        <h4 className="font-semibold text-sky-900 text-xs sm:text-sm">
+                      <div className="flex items-start justify-between gap-2 mb-1 min-w-0">
+                        <h4 className="min-w-0 font-semibold text-sky-900 text-xs sm:text-sm leading-snug">
                           Assigned Teachers ({teacherCount})
                           {seats.licensedTeachers > 0 && (
-                            <span className="ml-1 font-medium text-sky-600">
-                              · school {formatSeatUsage(seats.usedTeachers, seats.licensedTeachers)} max
+                            <span className="mt-0.5 block font-medium text-sky-600 break-words">
+                              School {formatSeatUsage(seats.usedTeachers, seats.licensedTeachers)} max
                             </span>
                           )}
                         </h4>

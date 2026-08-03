@@ -28,13 +28,22 @@ import { formatIitCategoryLabel } from '@/lib/products';
 import {
   Clock,
   Loader2,
+  Plus,
   RefreshCw,
   Search,
   ShieldAlert,
+  Trash2,
   UserRound,
   GraduationCap,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import {
+  CURRICULUM_BOARD_OPTIONS,
+  INDIVIDUAL_CLASS_OPTIONS,
+  INDIVIDUAL_COURSE_OPTIONS,
+  INDIVIDUAL_SUBJECT_OPTIONS,
+  INDIVIDUAL_TRIAL_DAYS,
+} from '@/lib/individual-signup';
 
 type TrialMember = {
   id: string;
@@ -47,6 +56,8 @@ type TrialMember = {
   interestedCourses: string[];
   interestedSubjects: string[];
   iitCategories: string[];
+  accountSource?: string;
+  accountSourceLabel?: string;
   subscriptionStatus: string;
   trialStartsAt?: string | null;
   trialEndsAt?: string | null;
@@ -65,6 +76,21 @@ type TrialMember = {
   convertedAt?: string | null;
   isActive: boolean;
   createdAt?: string | null;
+};
+
+const EMPTY_ADD_FORM = {
+  role: 'student' as 'student' | 'teacher',
+  fullName: '',
+  email: '',
+  password: '',
+  phone: '',
+  schoolName: '',
+  classNumber: 'Class 10',
+  curriculumBoard: 'CBSE',
+  interestedCourses: [] as string[],
+  interestedSubjects: [] as string[],
+  trialDays: String(INDIVIDUAL_TRIAL_DAYS),
+  trialAdminNotes: '',
 };
 
 type Summary = {
@@ -135,6 +161,10 @@ export default function TrialMembersManagement() {
   const [search, setSearch] = useState('');
   const [editing, setEditing] = useState<TrialMember | null>(null);
   const [saving, setSaving] = useState(false);
+  const [addingOpen, setAddingOpen] = useState(false);
+  const [addForm, setAddForm] = useState(EMPTY_ADD_FORM);
+  const [creating, setCreating] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [applyingDefaults, setApplyingDefaults] = useState(false);
   const [batchDefaults, setBatchDefaults] = useState({
@@ -218,6 +248,8 @@ export default function TrialMembersManagement() {
     };
   };
 
+  const memberKey = (m: TrialMember) => `${m.role}:${m.id}`;
+
   const saveMember = async (extra: Record<string, unknown> = {}) => {
     if (!editing) return;
     setSaving(true);
@@ -252,7 +284,110 @@ export default function TrialMembersManagement() {
     }
   };
 
-  const memberKey = (m: TrialMember) => `${m.role}:${m.id}`;
+  const createMember = async () => {
+    const phoneDigits = addForm.phone.replace(/\D/g, '');
+    if (!addForm.fullName.trim()) {
+      toast({ title: 'Full name is required', variant: 'destructive' });
+      return;
+    }
+    if (!addForm.email.trim() || !addForm.email.includes('@')) {
+      toast({ title: 'Valid email is required', variant: 'destructive' });
+      return;
+    }
+    if (addForm.password.length < 6) {
+      toast({ title: 'Password must be at least 6 characters', variant: 'destructive' });
+      return;
+    }
+    if (!addForm.schoolName.trim()) {
+      toast({ title: 'School name is required', variant: 'destructive' });
+      return;
+    }
+    if (phoneDigits.length !== 10) {
+      toast({ title: 'Phone must be exactly 10 digits', variant: 'destructive' });
+      return;
+    }
+    if (addForm.role === 'student' && !addForm.classNumber) {
+      toast({ title: 'Class is required for students', variant: 'destructive' });
+      return;
+    }
+    if (addForm.interestedCourses.length === 0) {
+      toast({ title: 'Select at least one course', variant: 'destructive' });
+      return;
+    }
+    if (addForm.interestedSubjects.length === 0) {
+      toast({ title: 'Select at least one subject', variant: 'destructive' });
+      return;
+    }
+
+    setCreating(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/super-admin/trial-members`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({
+          role: addForm.role,
+          fullName: addForm.fullName.trim(),
+          email: addForm.email.trim(),
+          password: addForm.password,
+          phone: phoneDigits,
+          schoolName: addForm.schoolName.trim(),
+          classNumber: addForm.classNumber,
+          curriculumBoard: addForm.curriculumBoard,
+          interestedCourses: addForm.interestedCourses,
+          interestedSubjects: addForm.interestedSubjects,
+          trialDays: Math.max(1, parseInt(addForm.trialDays, 10) || INDIVIDUAL_TRIAL_DAYS),
+          trialAdminNotes: addForm.trialAdminNotes.trim(),
+          accountSource: 'super_admin',
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) throw new Error(json.message || 'Create failed');
+      toast({ title: 'Member added', description: json.message });
+      setAddingOpen(false);
+      setAddForm(EMPTY_ADD_FORM);
+      await load();
+    } catch (e) {
+      toast({
+        title: 'Could not add member',
+        description: e instanceof Error ? e.message : 'Unknown error',
+        variant: 'destructive',
+      });
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const deleteMember = async (m: TrialMember) => {
+    const ok = window.confirm(
+      `Delete ${m.fullName || m.email}? This permanently removes their individual trial account.`,
+    );
+    if (!ok) return;
+    setDeletingId(m.id);
+    try {
+      const res = await fetch(
+        `${API_BASE_URL}/api/super-admin/trial-members/${m.id}?role=${encodeURIComponent(m.role)}`,
+        { method: 'DELETE', headers: authHeaders() },
+      );
+      const json = await res.json();
+      if (!res.ok || !json.success) throw new Error(json.message || 'Delete failed');
+      toast({ title: 'Member deleted', description: json.message });
+      if (editing?.id === m.id) setEditing(null);
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        next.delete(memberKey(m));
+        return next;
+      });
+      await load();
+    } catch (e) {
+      toast({
+        title: 'Could not delete member',
+        description: e instanceof Error ? e.message : 'Unknown error',
+        variant: 'destructive',
+      });
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   const toggleSelected = (m: TrialMember) => {
     const key = memberKey(m);
@@ -336,15 +471,28 @@ export default function TrialMembersManagement() {
         <div>
           <h2 className="text-xl font-semibold text-slate-900 sm:text-2xl">Trial members</h2>
           <p className="mt-1 max-w-2xl text-sm text-slate-600">
-            Individual (B2C) teacher and student signups. Manage trials here; when you Unlock as paid
-            they become <strong>Converted</strong> and also appear under{' '}
+            Individual (B2C) teacher and student accounts. Add members here or they appear after
+            self-signup. Source shows where each account came from. When you Unlock as paid they
+            become <strong>Converted</strong> and also appear under{' '}
             <strong>Subscriptions → Individual</strong>.
           </p>
         </div>
-        <Button variant="outline" onClick={() => void load()} disabled={loading}>
-          {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
-          Refresh
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            type="button"
+            onClick={() => {
+              setAddForm(EMPTY_ADD_FORM);
+              setAddingOpen(true);
+            }}
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Add member
+          </Button>
+          <Button variant="outline" onClick={() => void load()} disabled={loading}>
+            {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+            Refresh
+          </Button>
+        </div>
       </div>
 
       {summary && (
@@ -387,7 +535,9 @@ export default function TrialMembersManagement() {
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-base">Members</CardTitle>
-          <CardDescription>Filter by status, role, or search name / email / school.</CardDescription>
+          <CardDescription>
+            Filter by status, role, or search name / email / school / source.
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex flex-col gap-3 sm:flex-row">
@@ -493,7 +643,7 @@ export default function TrialMembersManagement() {
             </div>
           ) : members.length === 0 ? (
             <p className="py-10 text-center text-sm text-slate-500">
-              No individual trial members yet. They appear here after self-signup.
+              No individual trial members yet. Add one above, or they appear after web self-signup.
             </p>
           ) : (
             <div className="divide-y divide-slate-100 rounded-xl border border-slate-200">
@@ -525,11 +675,23 @@ export default function TrialMembersManagement() {
                       </Badge>
                       {statusBadge(m)}
                       {!m.isActive && <Badge variant="destructive">Inactive</Badge>}
+                      <Badge
+                        variant="outline"
+                        className="border-slate-200 bg-slate-50 text-slate-700"
+                        title={m.accountSource || 'legacy'}
+                      >
+                        {m.accountSourceLabel || 'Self-signup · Legacy'}
+                      </Badge>
                     </div>
                     <p className="truncate text-xs text-slate-600">
                       {m.email} · {m.phone || 'no phone'} · {m.schoolName || 'no school'}
                       {m.classNumber ? ` · ${m.classNumber}` : ''}
                     </p>
+                    {m.createdAt && (
+                      <p className="text-mini text-slate-500">
+                        Joined {new Date(m.createdAt).toLocaleString()}
+                      </p>
+                    )}
                     {(m.trialPaymentAmount != null || m.trialPaidAt) && (
                       <p className="text-xs text-emerald-800">
                         Paid
@@ -569,9 +731,25 @@ export default function TrialMembersManagement() {
                     )}
                     </div>
                   </div>
-                  <Button size="sm" variant="outline" onClick={() => openEdit(m)}>
-                    Manage trial
-                  </Button>
+                  <div className="flex shrink-0 flex-wrap items-center gap-2">
+                    <Button size="sm" variant="outline" onClick={() => openEdit(m)}>
+                      Manage trial
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="border-red-200 text-red-700 hover:bg-red-50"
+                      disabled={deletingId === m.id}
+                      onClick={() => void deleteMember(m)}
+                    >
+                      {deletingId === m.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Trash2 className="h-4 w-4" />
+                      )}
+                      <span className="sr-only">Delete</span>
+                    </Button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -579,53 +757,291 @@ export default function TrialMembersManagement() {
         </CardContent>
       </Card>
 
+      <Dialog
+        open={addingOpen}
+        onOpenChange={(open) => {
+          setAddingOpen(open);
+          if (!open) setAddForm(EMPTY_ADD_FORM);
+        }}
+      >
+        <DialogContent className="flex max-h-[min(92vh,920px)] w-[min(96vw,44rem)] max-w-[min(96vw,44rem)] flex-col gap-0 overflow-hidden p-0 sm:max-w-[min(94vw,48rem)]">
+          <DialogHeader className="shrink-0 space-y-1 border-b border-slate-200 bg-white px-5 py-4 sm:px-6">
+            <DialogTitle className="text-lg sm:text-xl">Add trial member</DialogTitle>
+            <DialogDescription className="text-sm text-slate-600">
+              Creates an individual (B2C) account with source{' '}
+              <strong>Added by Super Admin</strong>. Share the password with the member so they can
+              sign in.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-4 sm:px-6">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label>Role</Label>
+                <Select
+                  value={addForm.role}
+                  onValueChange={(v) =>
+                    setAddForm((prev) => ({ ...prev, role: v as 'student' | 'teacher' }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="student">Student</SelectItem>
+                    <SelectItem value="teacher">Teacher</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label>Trial days</Label>
+                <Input
+                  type="number"
+                  min={1}
+                  max={365}
+                  value={addForm.trialDays}
+                  onChange={(e) => setAddForm((prev) => ({ ...prev, trialDays: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-1.5 sm:col-span-2">
+                <Label>Full name</Label>
+                <Input
+                  value={addForm.fullName}
+                  onChange={(e) => setAddForm((prev) => ({ ...prev, fullName: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Email</Label>
+                <Input
+                  type="email"
+                  value={addForm.email}
+                  onChange={(e) => setAddForm((prev) => ({ ...prev, email: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Password</Label>
+                <Input
+                  type="text"
+                  autoComplete="new-password"
+                  value={addForm.password}
+                  onChange={(e) => setAddForm((prev) => ({ ...prev, password: e.target.value }))}
+                  placeholder="Min 6 characters"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Phone (10 digits)</Label>
+                <Input
+                  value={addForm.phone}
+                  onChange={(e) => setAddForm((prev) => ({ ...prev, phone: e.target.value }))}
+                  inputMode="numeric"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>School name</Label>
+                <Input
+                  value={addForm.schoolName}
+                  onChange={(e) => setAddForm((prev) => ({ ...prev, schoolName: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Board</Label>
+                <Select
+                  value={addForm.curriculumBoard}
+                  onValueChange={(v) => setAddForm((prev) => ({ ...prev, curriculumBoard: v }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CURRICULUM_BOARD_OPTIONS.map((b) => (
+                      <SelectItem key={b} value={b}>
+                        {b}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              {addForm.role === 'student' && (
+                <div className="space-y-1.5">
+                  <Label>Class</Label>
+                  <Select
+                    value={addForm.classNumber}
+                    onValueChange={(v) => setAddForm((prev) => ({ ...prev, classNumber: v }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {INDIVIDUAL_CLASS_OPTIONS.map((c) => (
+                        <SelectItem key={c} value={c}>
+                          {c}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label>Interested courses</Label>
+              <div className="flex flex-wrap gap-3">
+                {INDIVIDUAL_COURSE_OPTIONS.map((course) => (
+                  <label key={course} className="flex items-center gap-2 text-xs">
+                    <Checkbox
+                      checked={addForm.interestedCourses.includes(course)}
+                      onCheckedChange={() =>
+                        setAddForm((prev) => ({
+                          ...prev,
+                          interestedCourses: prev.interestedCourses.includes(course)
+                            ? prev.interestedCourses.filter((c) => c !== course)
+                            : [...prev.interestedCourses, course],
+                        }))
+                      }
+                    />
+                    {course}
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Interested subjects</Label>
+              <div className="flex flex-wrap gap-3">
+                {INDIVIDUAL_SUBJECT_OPTIONS.map((subject) => (
+                  <label key={subject} className="flex items-center gap-2 text-xs">
+                    <Checkbox
+                      checked={addForm.interestedSubjects.includes(subject)}
+                      onCheckedChange={() =>
+                        setAddForm((prev) => ({
+                          ...prev,
+                          interestedSubjects: prev.interestedSubjects.includes(subject)
+                            ? prev.interestedSubjects.filter((s) => s !== subject)
+                            : [...prev.interestedSubjects, subject],
+                        }))
+                      }
+                    />
+                    {subject}
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label>Admin notes (optional)</Label>
+              <Textarea
+                rows={2}
+                value={addForm.trialAdminNotes}
+                onChange={(e) =>
+                  setAddForm((prev) => ({ ...prev, trialAdminNotes: e.target.value }))
+                }
+                placeholder="How / why this trial was created…"
+              />
+            </div>
+          </div>
+
+          <DialogFooter className="shrink-0 border-t border-slate-200 bg-slate-50 px-5 py-4 sm:px-6">
+            <Button type="button" variant="outline" onClick={() => setAddingOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="button" disabled={creating} onClick={() => void createMember()}>
+              {creating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Plus className="mr-2 h-4 w-4" />}
+              Create member
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={!!editing} onOpenChange={(open) => !open && setEditing(null)}>
-        <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Manage trial — {editing?.fullName}</DialogTitle>
-            <DialogDescription>
-              {editing?.email} · {editing?.role}. Set trial days, mark exceeded / paid, and restrict
-              content.
+        <DialogContent className="flex max-h-[min(92vh,920px)] w-[min(96vw,44rem)] max-w-[min(96vw,44rem)] translate-x-[-50%] translate-y-[-50%] flex-col gap-0 overflow-hidden p-0 sm:w-[min(94vw,48rem)] sm:max-w-[min(94vw,48rem)] lg:max-w-[min(94vw,48rem)]">
+          <DialogHeader className="shrink-0 space-y-1 border-b border-slate-200 bg-white px-5 py-4 sm:px-6">
+            <DialogTitle className="text-lg sm:text-xl">
+              Manage trial — {editing?.fullName}
+            </DialogTitle>
+            <DialogDescription className="text-sm text-slate-600">
+              {editing?.email} · {editing?.role === 'teacher' ? 'Teacher' : 'Student'}
+              {editing?.accountSourceLabel ? ` · ${editing.accountSourceLabel}` : ''}
+              {editing?.trialEndsAt
+                ? ` · Trial ends ${new Date(editing.trialEndsAt).toLocaleString()}`
+                : ''}
             </DialogDescription>
           </DialogHeader>
 
           {editing && (
-            <div className="space-y-5 py-2">
-              <div className="flex flex-wrap gap-2">
-                {QUICK_TRIAL_DAYS.map((d) => (
+            <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-4 sm:px-6">
+              <section className="space-y-3 rounded-xl border border-slate-200 bg-slate-50/80 p-4">
+                <div>
+                  <h3 className="text-sm font-semibold text-slate-900">1. Trial length</h3>
+                  <p className="mt-0.5 text-xs text-slate-600">
+                    Instantly start a new trial, or add days to the current end date.
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {QUICK_TRIAL_DAYS.map((d) => (
+                    <Button
+                      key={d}
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="bg-white"
+                      disabled={saving}
+                      onClick={() => void saveMember({ resetTrial: true, trialDays: d })}
+                    >
+                      {d} days
+                    </Button>
+                  ))}
+                </div>
+                <div className="flex flex-wrap gap-2 border-t border-slate-200/80 pt-3">
+                  <span className="w-full text-xs font-medium text-slate-500 sm:w-auto sm:self-center">
+                    Extend current trial:
+                  </span>
                   <Button
-                    key={d}
                     type="button"
                     size="sm"
-                    variant="outline"
+                    variant="secondary"
                     disabled={saving}
-                    onClick={() => void saveMember({ resetTrial: true, trialDays: d })}
+                    onClick={() => void saveMember({ extendDays: 1 })}
                   >
-                    Set {d}-day trial
+                    +1 day
                   </Button>
-                ))}
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  disabled={saving}
-                  onClick={() => void saveMember({ extendDays: 1 })}
-                >
-                  +1 day
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  disabled={saving}
-                  onClick={() => void saveMember({ extendDays: 7 })}
-                >
-                  +7 days
-                </Button>
-              </div>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="secondary"
+                    disabled={saving}
+                    onClick={() => void saveMember({ extendDays: 7 })}
+                  >
+                    +7 days
+                  </Button>
+                </div>
+                <div className="grid gap-3 border-t border-slate-200/80 pt-3 sm:grid-cols-[1fr_auto] sm:items-end">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="custom-trial-days">Custom days (apply with Save below)</Label>
+                    <Input
+                      id="custom-trial-days"
+                      type="number"
+                      min={1}
+                      max={90}
+                      className="bg-white"
+                      value={editForm.trialDays}
+                      onChange={(e) => setEditForm((p) => ({ ...p, trialDays: e.target.value }))}
+                    />
+                  </div>
+                  <p className="text-xs text-slate-500 sm:pb-2">
+                    Use <span className="font-medium text-slate-700">Save &amp; reset trial days</span> in
+                    the footer to apply this number.
+                  </p>
+                </div>
+              </section>
 
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
+              <section className="space-y-3 rounded-xl border border-slate-200 bg-white p-4">
+                <div>
+                  <h3 className="text-sm font-semibold text-slate-900">2. Access status</h3>
+                  <p className="mt-0.5 text-xs text-slate-600">
+                    Controls whether the member can use the product right now.
+                  </p>
+                </div>
+                <div className="space-y-1.5 max-w-sm">
                   <Label>Subscription status</Label>
                   <Select
                     value={editForm.subscriptionStatus}
@@ -635,38 +1051,40 @@ export default function TrialMembersManagement() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="trial">Trial</SelectItem>
-                      <SelectItem value="active">Paid / unlocked</SelectItem>
-                      <SelectItem value="expired">Trial exceeded</SelectItem>
+                      <SelectItem value="trial">Trial — access while trial is active</SelectItem>
+                      <SelectItem value="active">Paid / unlocked — full access</SelectItem>
+                      <SelectItem value="expired">Trial exceeded — blocked until extended/paid</SelectItem>
                       <SelectItem value="none">None</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-2">
-                  <Label>Custom trial days (then use Save)</Label>
-                  <Input
-                    type="number"
-                    min={1}
-                    max={90}
-                    value={editForm.trialDays}
-                    onChange={(e) => setEditForm((p) => ({ ...p, trialDays: e.target.value }))}
+                <label className="flex items-center gap-2 text-sm text-slate-700">
+                  <Checkbox
+                    checked={editForm.isActive}
+                    onCheckedChange={(v) =>
+                      setEditForm((p) => ({ ...p, isActive: v === true }))
+                    }
                   />
-                </div>
-              </div>
+                  Account can log in (uncheck to deactivate)
+                </label>
+              </section>
 
-              <div className="space-y-3 rounded-lg border border-emerald-200 bg-emerald-50/50 p-3">
-                <Label className="font-medium text-emerald-950">Payment (manual)</Label>
-                <p className="text-xs text-emerald-900/80">
-                  Record amount and reference when unlocking. Marking paid sets status to active and
-                  unlocks the gate.
-                </p>
+              <section className="space-y-3 rounded-xl border border-emerald-200 bg-emerald-50/70 p-4">
+                <div>
+                  <h3 className="text-sm font-semibold text-emerald-950">3. Payment (manual)</h3>
+                  <p className="mt-0.5 text-xs leading-relaxed text-emerald-900/90">
+                    Optional bookkeeping when you unlock someone offline. Fill amount/reference, then
+                    click <span className="font-medium">Unlock as paid</span> in the footer.
+                  </p>
+                </div>
                 <div className="grid gap-3 sm:grid-cols-2">
-                  <div className="space-y-2">
+                  <div className="space-y-1.5">
                     <Label>Amount (₹)</Label>
                     <Input
                       type="number"
                       min={0}
                       step="1"
+                      className="bg-white"
                       value={editForm.trialPaymentAmount}
                       onChange={(e) =>
                         setEditForm((p) => ({ ...p, trialPaymentAmount: e.target.value }))
@@ -674,7 +1092,7 @@ export default function TrialMembersManagement() {
                       placeholder="e.g. 499"
                     />
                   </div>
-                  <div className="space-y-2">
+                  <div className="space-y-1.5">
                     <Label>Method</Label>
                     <Select
                       value={editForm.trialPaymentMethod || 'manual'}
@@ -682,7 +1100,7 @@ export default function TrialMembersManagement() {
                         setEditForm((p) => ({ ...p, trialPaymentMethod: v }))
                       }
                     >
-                      <SelectTrigger>
+                      <SelectTrigger className="bg-white">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -693,19 +1111,21 @@ export default function TrialMembersManagement() {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="space-y-2">
+                  <div className="space-y-1.5">
                     <Label>Paid at</Label>
                     <Input
                       type="datetime-local"
+                      className="bg-white"
                       value={editForm.trialPaidAt}
                       onChange={(e) =>
                         setEditForm((p) => ({ ...p, trialPaidAt: e.target.value }))
                       }
                     />
                   </div>
-                  <div className="space-y-2">
+                  <div className="space-y-1.5">
                     <Label>Reference</Label>
                     <Input
+                      className="bg-white"
                       value={editForm.trialPaymentReference}
                       onChange={(e) =>
                         setEditForm((p) => ({ ...p, trialPaymentReference: e.target.value }))
@@ -714,20 +1134,25 @@ export default function TrialMembersManagement() {
                     />
                   </div>
                 </div>
-              </div>
+              </section>
 
-              <div className="space-y-2 rounded-lg border border-slate-200 p-3">
-                <Label className="font-medium">Content allowed on trial</Label>
-                <p className="text-xs text-slate-500">
-                  Empty = all content types (no extra restriction). Check types to allow only those
-                  during trial.
-                </p>
-                <div className="mt-2 flex flex-wrap gap-3">
+              <section className="space-y-3 rounded-xl border border-slate-200 bg-white p-4">
+                <div>
+                  <h3 className="text-sm font-semibold text-slate-900">4. Content allowed on trial</h3>
+                  <p className="mt-0.5 text-xs text-slate-600">
+                    Leave all unchecked for no extra restriction (all types). Check boxes to allow
+                    only those content types during trial.
+                  </p>
+                </div>
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                   {(contentTypeOptions.length
                     ? contentTypeOptions
                     : ['Video', 'Audio', 'TextBook', 'Workbook', 'Material', 'Homework']
                   ).map((type) => (
-                    <label key={type} className="flex items-center gap-2 text-sm">
+                    <label
+                      key={type}
+                      className="flex items-center gap-2 rounded-lg border border-slate-100 bg-slate-50 px-2.5 py-2 text-sm text-slate-800"
+                    >
                       <Checkbox
                         checked={editForm.trialAllowedContentTypes.includes(type)}
                         onCheckedChange={() => toggleContentType(type)}
@@ -741,7 +1166,7 @@ export default function TrialMembersManagement() {
                     type="button"
                     variant="ghost"
                     size="sm"
-                    className="mt-1 h-8 px-2 text-xs"
+                    className="h-8 px-2 text-xs"
                     onClick={() =>
                       setEditForm((p) => ({ ...p, trialAllowedContentTypes: [] }))
                     }
@@ -749,16 +1174,22 @@ export default function TrialMembersManagement() {
                     Clear content restrictions
                   </Button>
                 )}
-              </div>
+              </section>
 
-              <div className="space-y-2 rounded-lg border border-slate-200 p-3">
-                <Label className="font-medium">AI tools allowed on trial</Label>
-                <p className="text-xs text-slate-500">
-                  Empty = all AI tools. Check tools to allow only those during trial.
-                </p>
-                <div className="mt-2 flex flex-wrap gap-3">
+              <section className="space-y-3 rounded-xl border border-slate-200 bg-white p-4">
+                <div>
+                  <h3 className="text-sm font-semibold text-slate-900">5. AI tools allowed on trial</h3>
+                  <p className="mt-0.5 text-xs text-slate-600">
+                    Leave all unchecked for all AI tools. Check tools to allow only those during
+                    trial.
+                  </p>
+                </div>
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                   {COMMON_AI_TOOLS.map((tool) => (
-                    <label key={tool.id} className="flex items-center gap-2 text-sm">
+                    <label
+                      key={tool.id}
+                      className="flex items-center gap-2 rounded-lg border border-slate-100 bg-slate-50 px-2.5 py-2 text-sm text-slate-800"
+                    >
                       <Checkbox
                         checked={editForm.trialAllowedAiTools.includes(tool.id)}
                         onCheckedChange={() => toggleTool(tool.id)}
@@ -772,17 +1203,20 @@ export default function TrialMembersManagement() {
                     type="button"
                     variant="ghost"
                     size="sm"
-                    className="mt-1 h-8 px-2 text-xs"
+                    className="h-8 px-2 text-xs"
                     onClick={() => setEditForm((p) => ({ ...p, trialAllowedAiTools: [] }))}
                   >
                     Clear AI tool restrictions
                   </Button>
                 )}
-              </div>
+              </section>
 
-              <div className="space-y-2">
-                <Label>Admin notes</Label>
+              <section className="space-y-1.5 rounded-xl border border-slate-200 bg-white p-4">
+                <Label htmlFor="trial-admin-notes" className="text-sm font-semibold text-slate-900">
+                  Admin notes
+                </Label>
                 <Textarea
+                  id="trial-admin-notes"
                   value={editForm.trialAdminNotes}
                   onChange={(e) =>
                     setEditForm((p) => ({ ...p, trialAdminNotes: e.target.value }))
@@ -790,21 +1224,11 @@ export default function TrialMembersManagement() {
                   rows={3}
                   placeholder="Internal notes…"
                 />
-              </div>
-
-              <label className="flex items-center gap-2 text-sm">
-                <Checkbox
-                  checked={editForm.isActive}
-                  onCheckedChange={(v) =>
-                    setEditForm((p) => ({ ...p, isActive: v === true }))
-                  }
-                />
-                Account active (uncheck to deactivate login)
-              </label>
+              </section>
             </div>
           )}
 
-          <DialogFooter className="gap-2 sm:gap-0">
+          <DialogFooter className="shrink-0 flex-col gap-2 border-t border-slate-200 bg-slate-50 px-5 py-4 sm:flex-row sm:flex-wrap sm:justify-end sm:gap-2 sm:px-6">
             <Button
               type="button"
               variant="destructive"
@@ -816,6 +1240,7 @@ export default function TrialMembersManagement() {
             <Button
               type="button"
               variant="outline"
+              className="border-emerald-300 bg-white text-emerald-900 hover:bg-emerald-50"
               disabled={saving}
               onClick={() =>
                 void saveMember({

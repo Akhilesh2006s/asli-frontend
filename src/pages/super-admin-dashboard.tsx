@@ -2,7 +2,7 @@ import { Suspense, lazy, useState, useEffect, type FormEvent } from "react";
 import { motion } from "framer-motion";
 import SuperAdminSidebar from "@/components/dashboard/SuperAdminSidebar";
 import type { SuperAdminView } from "@/lib/super-admin-views";
-import { clearAuthData, getAuthToken } from "@/lib/auth-utils";
+import { clearAuthData, getAuthToken, getUser } from "@/lib/auth-utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -926,9 +926,88 @@ export default function SuperAdminDashboard() {
     }
   };
 
-  const renderSettingsContent = () => (
+  const renderSettingsContent = () => {
+    const storedUser = getUser();
+    const profileName =
+      String(storedUser?.fullName || storedUser?.name || user.fullName || "Super Admin").trim() ||
+      "Super Admin";
+    const profileEmail =
+      String(storedUser?.email || user.email || "").trim() || "—";
+    const profileRole = String(storedUser?.role || user.role || "super-admin").replace(/_/g, " ");
+
+    return (
     <div className="space-y-3 sm:space-y-4 lg:space-y-6">
-      <h2 className="text-xl sm:text-2xl font-bold">System Settings</h2>
+      <div>
+        <h2 className="text-xl sm:text-2xl font-bold">System Settings</h2>
+        <p className="mt-1 text-sm text-slate-600">
+          Account security, Vidya display preferences, and quick links. Provider keys and database URLs stay on the server.
+        </p>
+      </div>
+
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+            <User className="h-5 w-5 text-orange-500" />
+            Account
+          </CardTitle>
+          <p className="text-sm text-slate-600">Signed-in super admin profile for this session.</p>
+        </CardHeader>
+        <CardContent className="p-3 sm:p-4 lg:p-6 pt-0">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-orange-50 text-orange-600">
+              <CrownIcon className="h-6 w-6" />
+            </div>
+            <div className="min-w-0 space-y-1">
+              <p className="truncate text-base font-semibold text-slate-900">{profileName}</p>
+              <p className="truncate text-sm text-slate-600">{profileEmail}</p>
+              <Badge variant="secondary" className="capitalize">
+                {profileRole}
+              </Badge>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+            <Sparkles className="h-5 w-5 text-orange-500" />
+            Vidya AI preferences
+          </CardTitle>
+          <p className="text-sm text-slate-600">
+            Model choice and API credentials are configured on the server. Set tutor display preferences for this browser.
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-4 p-3 sm:p-4 lg:p-6 pt-0">
+          <div className="mx-auto max-w-md space-y-2">
+            <Label htmlFor="settings-vidya-depth">Default explanation depth</Label>
+            <Select
+              value={vidyaExplainDepth}
+              onValueChange={(v: "concise" | "balanced" | "detailed") => setVidyaExplainDepth(v)}
+            >
+              <SelectTrigger id="settings-vidya-depth">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="concise">Concise — short answers</SelectItem>
+                <SelectItem value="balanced">Balanced — recommended</SelectItem>
+                <SelectItem value="detailed">Detailed — step-by-step</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-slate-500">
+              Stored locally in your browser; chat can read this preference.
+            </p>
+            <Button
+              type="button"
+              className="gap-2 bg-gradient-to-r from-orange-400 to-orange-300 hover:from-orange-500 hover:to-orange-400"
+              onClick={saveVidyaPreferences}
+            >
+              <Sparkles className="h-4 w-4" />
+              Save preferences
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader className="pb-2">
@@ -999,6 +1078,45 @@ export default function SuperAdminDashboard() {
           </form>
         </CardContent>
       </Card>
+
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+            <Monitor className="h-5 w-5 text-orange-500" />
+            Display
+          </CardTitle>
+          <p className="text-sm text-slate-600">Dashboard appearance for demos and school walkthroughs.</p>
+        </CardHeader>
+        <CardContent className="space-y-2 p-3 sm:p-4 lg:p-6 pt-0 text-sm text-slate-600">
+          <p>
+            Appearance stays <span className="font-medium text-slate-800">light-only</span> for consistent
+            school demos. Dark mode is not enabled yet.
+          </p>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+            <Shield className="h-5 w-5 text-orange-500" />
+            Platform configuration
+          </CardTitle>
+          <p className="text-sm text-slate-600">
+            Secrets are not editable in the browser. Update the backend environment and redeploy to change them.
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-3 p-3 sm:p-4 lg:p-6 pt-0">
+          <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm">
+            <p className="text-xs font-medium uppercase tracking-wide text-slate-500">API base</p>
+            <p className="mt-0.5 break-all font-mono text-slate-800">{API_BASE_URL || "(same origin)"}</p>
+          </div>
+          <ul className="list-disc space-y-1 pl-5 text-sm text-slate-600">
+            <li>AI provider keys (e.g. Gemini)</li>
+            <li>JWT / session secrets</li>
+            <li>Database connection URL</li>
+          </ul>
+        </CardContent>
+      </Card>
       
       <Card>
         <CardHeader className="pb-2">
@@ -1013,9 +1131,11 @@ export default function SuperAdminDashboard() {
             { label: "Subscriptions", view: "subscriptions" as const },
             { label: "Vidya AI", view: "vidya-ai" as const },
             { label: "Calendar", view: "calendar" as const },
+            { label: "School management", view: "admins" as const },
+            { label: "Audit logs", view: "audit-logs" as const },
           ].map((item) => (
             <Button
-              key={item.view}
+              key={`${item.view}-${item.label}`}
               type="button"
               variant="outline"
               className="justify-start"
@@ -1024,21 +1144,11 @@ export default function SuperAdminDashboard() {
               {item.label}
             </Button>
           ))}
-          <Button
-            type="button"
-            variant="secondary"
-            className="justify-start sm:col-span-2 lg:col-span-3"
-            onClick={() => setSystemSettingsOpen(true)}
-          >
-            Open system dialog
-          </Button>
-          <p className="sm:col-span-2 lg:col-span-3 text-xs text-slate-500">
-            Appearance stays light-only for consistent school demos. Dark mode is not enabled yet.
-          </p>
         </CardContent>
       </Card>
     </div>
-  );
+    );
+  };
 
   const renderVidyaAIContent = () => {
     const quickActions = [

@@ -200,7 +200,11 @@ export default function StudentExams() {
     setter(value);
   };
 
-  const studentClassNumber = normalizeClassNumber(user?.classNumber);
+  const studentClassNumber = normalizeClassNumber(
+    user?.classNumber ||
+      (typeof user?.assignedClass === 'object' ? user?.assignedClass?.classNumber : '') ||
+      ''
+  );
 
   /** Stable id for React Query keys so another user's cached exam/results never flash after login switch. */
   const studentId =
@@ -405,8 +409,8 @@ export default function StudentExams() {
   }, [exams, isLoading]);
 
   const classFilteredExams = useMemo(
-    () => exams.filter((e: Exam) => examMatchesStudentAssignedClass(e, user?.classNumber)),
-    [exams, user?.classNumber]
+    () => exams.filter((e: Exam) => examMatchesStudentAssignedClass(e, studentClassNumber)),
+    [exams, studentClassNumber]
   );
 
   const getExamSubjects = (exam: Exam): string[] => {
@@ -556,7 +560,7 @@ export default function StudentExams() {
       if (examSubjectFilter === 'all') return true;
       const catalogExam = exams.find((e: Exam) => String(e._id) === String(examIdStr));
       if (!catalogExam) return true;
-      if (!examMatchesStudentAssignedClass(catalogExam, user?.classNumber)) return false;
+      if (!examMatchesStudentAssignedClass(catalogExam, studentClassNumber)) return false;
       return getExamSubjects(catalogExam).includes(String(examSubjectFilter).toLowerCase());
     });
 
@@ -820,6 +824,14 @@ export default function StudentExams() {
     const now = new Date();
     const startDate = new Date(exam.startDate);
     const endDate = new Date(exam.endDate);
+    const startMs = startDate.getTime();
+    const endMs = endDate.getTime();
+
+    // Invalid / inverted windows: treat as upcoming until start, then ended after the later bound.
+    if (Number.isFinite(startMs) && Number.isFinite(endMs) && endMs < startMs) {
+      if (now.getTime() < startMs) return { status: 'upcoming', color: 'bg-yellow-100 text-yellow-700' };
+      return { status: 'ended', color: 'bg-red-100 text-red-700' };
+    }
 
     if (now < startDate) return { status: 'upcoming', color: 'bg-yellow-100 text-yellow-700' };
     if (now > endDate) return { status: 'ended', color: 'bg-red-100 text-red-700' };
@@ -1083,7 +1095,7 @@ export default function StudentExams() {
               {availableActiveExams.map((exam: Exam, index: number) => {
                 const status = getExamStatus(exam);
                 const colorScheme = EXAM_CARD_SCHEMES[index % EXAM_CARD_SCHEMES.length];
-                const classLabels = getExamClassLabelsForStudent(exam, user?.classNumber);
+                const classLabels = getExamClassLabelsForStudent(exam, studentClassNumber);
                 const hydratedQuestionCount = Array.isArray(exam.questions) ? exam.questions.length : Number(exam.totalQuestions || 0);
                 
                 return (
@@ -1175,7 +1187,12 @@ export default function StudentExams() {
                 <BookOpen className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                 <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-2">No Available Exams</h3>
                 <p className="text-gray-600">
-                  No active exams are available right now. Check Upcoming for scheduled exams.
+                  No active exams for
+                  {studentClassNumber ? ` Class ${studentClassNumber}` : ' your class'}{' '}
+                  are open right now
+                  {subjectFilteredExams.some((e) => getExamStatus(e).status === 'upcoming')
+                    ? '. Check the Upcoming tab for scheduled exams.'
+                    : '. Scheduled Super Admin exams appear here when they match your school, board, and class, and questions have been uploaded.'}
                 </p>
               </div>
             )}
@@ -1195,7 +1212,7 @@ export default function StudentExams() {
                 const exam = catalogExam || buildFallbackExamFromResult(examIdStr, result);
 
                 const colorScheme = EXAM_CARD_SCHEMES[index % EXAM_CARD_SCHEMES.length];
-                const classLabelsAttempted = getExamClassLabelsForStudent(exam, user?.classNumber);
+                const classLabelsAttempted = getExamClassLabelsForStudent(exam, studentClassNumber);
                 const attemptHistory = attemptHistoryByExamId.get(examIdStr) || [result];
                 const totalAttempts = attemptHistory.length;
                 const selectedRowId = selectedAttemptByExam[examIdStr];
@@ -1453,7 +1470,7 @@ export default function StudentExams() {
             <div className="grid grid-cols-1 items-stretch gap-4 overflow-visible p-1 sm:grid-cols-2 sm:gap-5 sm:p-2 md:grid-cols-2 lg:grid-cols-3 lg:gap-6">
               {subjectFilteredExams.filter((exam: Exam) => getExamStatus(exam).status === 'upcoming').map((exam: Exam, index: number) => {
                 const colorScheme = EXAM_CARD_SCHEMES[index % EXAM_CARD_SCHEMES.length];
-                const classLabelsUpcoming = getExamClassLabelsForStudent(exam, user?.classNumber);
+                const classLabelsUpcoming = getExamClassLabelsForStudent(exam, studentClassNumber);
                 const isCalendarFocus =
                   calendarFocusExam?.examId === String(exam._id) && calendarFocusExam.mode === 'upcoming';
                 

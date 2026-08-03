@@ -2344,20 +2344,20 @@ export default function SubjectContentManagement() {
         <div className="grid grid-cols-1 lg:grid-cols-[300px,minmax(0,1fr)] gap-5">
           {/* Left: Classes */}
           <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <span>Classes</span>
-                {isLoadingSubjects && <Loader2 className="w-3 h-3 sm:w-4 sm:h-4 animate-spin" />}
-              </CardTitle>
-            </div>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 gap-2 pb-3">
+            <CardTitle className="flex min-w-0 items-center gap-2 text-base">
+              <span>Classes</span>
+              {isLoadingSubjects && <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" />}
+            </CardTitle>
             <Button
-              size="sm"
+              type="button"
+              size="icon"
               onClick={handleOpenAddClass}
-              className="bg-gradient-to-r from-orange-400 to-sky-400 hover:from-orange-500 hover:to-sky-500 text-white shrink-0"
+              title="Add Class"
+              aria-label="Add Class"
+              className="h-8 w-8 shrink-0 bg-gradient-to-r from-orange-400 to-sky-400 text-white hover:from-orange-500 hover:to-sky-500"
             >
-              <Plus className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
-              Add Class
+              <Plus className="h-4 w-4" />
             </Button>
           </CardHeader>
           <CardContent className="space-y-3">

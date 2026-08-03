@@ -16,6 +16,7 @@ import {
   AdminRoute,
   SuperAdminRoute,
 } from "@/components/ProtectedRoute";
+import { BrandLoadingState } from "@/components/BrandLoadingState";
 
 const Dashboard = lazy(() => import("./pages/dashboard"));
 const LearningPaths = lazy(() => import("./pages/learning-paths"));
@@ -64,22 +65,7 @@ const Faq = lazy(() =>
 );
 
 function RouteLoadingState() {
-  return (
-    <div className="asli-app-bg flex min-h-screen items-center justify-center p-6" role="status">
-      <div className="asli-card-premium flex w-full max-w-xl flex-col items-center p-8 text-center sm:p-10">
-        <div className="mb-6 flex h-20 w-20 animate-ai-pulse items-center justify-center rounded-3xl bg-gradient-to-br from-indigo-blue-600 to-blue-500 shadow-glow">
-          <img src="/logo.jpg" alt="AsliLearn" className="h-14 w-14 rounded-2xl object-cover" />
-        </div>
-        <p className="font-display text-3xl font-bold text-slate-900">Opening Your Workspace</p>
-        <p className="mt-3 text-lg text-slate-600">Preparing a clear, personalised view for you.</p>
-        <div className="mt-8 w-full space-y-3" aria-hidden="true">
-          <div className="mx-auto h-4 w-2/3 animate-pulse rounded-full bg-indigo-blue-100" />
-          <div className="h-4 w-full animate-pulse rounded-full bg-slate-200" />
-          <div className="mx-auto h-4 w-5/6 animate-pulse rounded-full bg-slate-200" />
-        </div>
-      </div>
-    </div>
-  );
+  return <BrandLoadingState />;
 }
 
 function EduOTTWithFilters() {

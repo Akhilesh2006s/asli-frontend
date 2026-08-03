@@ -1230,8 +1230,26 @@ export default function SuperAdminAiGenerator() {
               <SelectTrigger>
                 <SelectValue placeholder={!subject ? "Select class & subject first" : (loadingTopics ? "Loading topics..." : "Select topic")} />
               </SelectTrigger>
-              <SelectContent>{topics.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
+              <SelectContent>
+                {topics.length === 0 ? (
+                  <div className="px-2 py-3 text-center text-xs text-slate-500">
+                    No topics found for this board / class / subject
+                  </div>
+                ) : (
+                  topics.map((t) => (
+                    <SelectItem key={t} value={t}>
+                      {t}
+                    </SelectItem>
+                  ))
+                )}
+              </SelectContent>
             </Select>
+            {!loadingTopics && subject && topics.length === 0 ? (
+              <p className="mt-1 text-xs text-amber-700">
+                No chapters available yet. Add topics under <strong>AI Tool Topics</strong>, or ensure
+                NCERT content files exist for this class/subject.
+              </p>
+            ) : null}
           </div>
           <div>
             <Label>Sub Topic</Label>

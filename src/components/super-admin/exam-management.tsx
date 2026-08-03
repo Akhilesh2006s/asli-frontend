@@ -37,7 +37,7 @@ import { API_BASE_URL } from '@/lib/api-config';
 import { getExamClassStrings } from '@/lib/exam-classes';
 import { normalizeAndFormatExamDisplayText } from '@/lib/exam-text-normalize';
 import { AuthenticatedUploadImage } from '@/components/AuthenticatedUploadImage';
-import { Plus, Trash2, Edit, Eye, Calendar, Clock, BookOpen, FileQuestion, X, Upload, Download, School, GraduationCap, Loader2, ChevronUp, ChevronDown, Save } from 'lucide-react';
+import { Plus, Trash2, Edit, Eye, Calendar, Clock, BookOpen, FileQuestion, X, Upload, Download, School, GraduationCap, Loader2, ChevronUp, ChevronDown, Save, Search } from 'lucide-react';
 
 type ExamSubjectValue =
   | 'maths'
@@ -318,6 +318,7 @@ function buildQuestionFormFromExisting(q: any): typeof EMPTY_QUESTION_FORM {
 
 const BOARDS = [
   { value: 'ASLI_EXCLUSIVE_SCHOOLS', label: 'Asli Prep (exclusive)' },
+  { value: 'IIT', label: 'IIT' },
   { value: 'CBSE', label: 'CBSE' },
   { value: 'SSC', label: 'SSC / State Board' },
   { value: 'STATE', label: 'State Board (generic)' },
@@ -344,7 +345,28 @@ const EXAM_SUBJECTS = [
   { value: 'social_science', label: 'Social Science' },
 ];
 
-const CLASS_OPTIONS = ['6', '7', '8', '9', '10', '11', '12'];
+const DEFAULT_CLASS_OPTIONS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'];
+
+function mergeClassOptionLists(...lists: Array<string[] | undefined>): string[] {
+  const collected = new Set<string>();
+  for (const list of lists) {
+    for (const raw of list || []) {
+      const value = String(raw || '').trim();
+      if (!value || /^unassigned$/i.test(value)) continue;
+      collected.add(value);
+    }
+  }
+  return [...collected].sort((a, b) => {
+    const numA = parseInt(a, 10);
+    const numB = parseInt(b, 10);
+    const aNum = !Number.isNaN(numA) && String(numA) === a;
+    const bNum = !Number.isNaN(numB) && String(numB) === b;
+    if (aNum && bNum) return numA - numB;
+    if (aNum) return -1;
+    if (bNum) return 1;
+    return a.localeCompare(b, undefined, { sensitivity: 'base' });
+  });
+}
 
 type FilterType = 'all-schools' | 'specific-schools' | 'all-boards';
 type BulkQuestionUploadMode = 'csv' | 'pdf';
@@ -490,6 +512,10 @@ export default function ExamManagement() {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedSchool, setSelectedSchool] = useState('all-schools');
   const [selectedClass, setSelectedClass] = useState('all-classes');
+  const [schoolFilterSearch, setSchoolFilterSearch] = useState('');
+  const [formSchoolSearch, setFormSchoolSearch] = useState('');
+  const [classOptions, setClassOptions] = useState<string[]>(DEFAULT_CLASS_OPTIONS);
+  const [classPickerSearch, setClassPickerSearch] = useState('');
   const [schools, setSchools] = useState<any[]>([]);
   const [isLoadingSchools, setIsLoadingSchools] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -497,7 +523,6 @@ export default function ExamManagement() {
   const [isEditing, setIsEditing] = useState(false);
   const [editingExamId, setEditingExamId] = useState<string | null>(null);
   const [selectedExam, setSelectedExam] = useState<Exam | null>(null);
-  const [classModalSearch, setClassModalSearch] = useState('');
   const [isQuestionDialogOpen, setIsQuestionDialogOpen] = useState(false);
   const [isAddingQuestion, setIsAddingQuestion] = useState(false);
   const [questions, setQuestions] = useState<any[]>([]);
@@ -602,6 +627,7 @@ export default function ExamManagement() {
 
   useEffect(() => {
     fetchExams();
+    fetchClassOptions();
   }, []);
 
   useEffect(() => {
@@ -1896,6 +1922,26 @@ export default function ExamManagement() {
     }
   };
 
+  const fetchClassOptions = async () => {
+    try {
+      const token = getAuthToken();
+      const response = await fetch(`${API_BASE_URL}/api/super-admin/classes`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      if (!response.ok) return;
+      const data = await response.json();
+      const fromApi = Array.isArray(data?.data)
+        ? data.data.map((c: unknown) => String(c || '').trim()).filter(Boolean)
+        : [];
+      setClassOptions((prev) => mergeClassOptionLists(DEFAULT_CLASS_OPTIONS, prev, fromApi));
+    } catch (error) {
+      console.error('Failed to fetch class options:', error);
+    }
+  };
+
   const fetchSchools = async () => {
     setIsLoadingSchools(true);
     try {
@@ -1964,6 +2010,11 @@ export default function ExamManagement() {
             };
           });
 
+          const examClassLabels = fetchedExams.flatMap((ex) => getExamClassStrings(ex));
+          setClassOptions((prev) =>
+            mergeClassOptionLists(DEFAULT_CLASS_OPTIONS, prev, examClassLabels),
+          );
+
           // Note: Backend already filters by schoolIds, so no additional frontend filtering needed
           // The backend returns exams that are either:
           // 1. Available to all schools (isSchoolSpecific: false)
@@ -2031,6 +2082,24 @@ export default function ExamManagement() {
         title: 'Validation Error',
         description: 'No. of Attempts must be at least 1',
         variant: 'destructive'
+      });
+      return;
+    }
+
+    if ((parseInt(formData.duration, 10) || 0) < 1) {
+      toast({
+        title: 'Validation Error',
+        description: 'Duration must be at least 1 minute',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (!formData.board) {
+      toast({
+        title: 'Validation Error',
+        description: 'Please select a board for school visibility',
+        variant: 'destructive',
       });
       return;
     }
@@ -2118,7 +2187,8 @@ export default function ExamManagement() {
         setIsDialogOpen(false);
         setIsEditing(false);
         setEditingExamId(null);
-        setClassModalSearch('');
+        setClassPickerSearch('');
+        setFormSchoolSearch('');
         setFormData({
           title: '',
           description: '',
@@ -2364,6 +2434,37 @@ export default function ExamManagement() {
 
     return schoolMatches && classMatches;
   });
+
+  const filterSchoolOptions = useMemo(() => {
+    const q = schoolFilterSearch.trim().toLowerCase();
+    if (!q) return schools;
+    return schools.filter((school) =>
+      String(school.name || school.schoolName || '')
+        .toLowerCase()
+        .includes(q),
+    );
+  }, [schools, schoolFilterSearch]);
+
+  const formSchoolOptions = useMemo(() => {
+    const q = formSchoolSearch.trim().toLowerCase();
+    if (!q) return schools;
+    return schools.filter((school) =>
+      String(school.name || school.schoolName || '')
+        .toLowerCase()
+        .includes(q),
+    );
+  }, [schools, formSchoolSearch]);
+
+  const filteredClassPickerOptions = useMemo(() => {
+    const q = classPickerSearch.trim().toLowerCase();
+    const base = mergeClassOptionLists(classOptions, formData.assignedClasses);
+    if (!q) return base;
+    return base.filter(
+      (cls) =>
+        cls.toLowerCase().includes(q) || `class ${cls}`.toLowerCase().includes(q),
+    );
+  }, [classOptions, formData.assignedClasses, classPickerSearch]);
+
   const dedupedFilteredExams = (() => {
     const byKey = new Map<string, Exam>();
     filteredExams.forEach((exam) => {
@@ -2406,10 +2507,17 @@ export default function ExamManagement() {
   const classSectionKeys = Object.keys(groupedExams).sort((a, b) => {
     if (a === 'unassigned') return 1;
     if (b === 'unassigned') return -1;
-    return Number(a) - Number(b);
+    const numA = parseInt(a, 10);
+    const numB = parseInt(b, 10);
+    const aNum = !Number.isNaN(numA) && String(numA) === a;
+    const bNum = !Number.isNaN(numB) && String(numB) === b;
+    if (aNum && bNum) return numA - numB;
+    if (aNum) return -1;
+    if (bNum) return 1;
+    return a.localeCompare(b, undefined, { sensitivity: 'base' });
   });
 
-  const classWiseStats = CLASS_OPTIONS
+  const classWiseStats = classOptions
     .map((cls) => {
       const count = exams.filter((exam) => {
         const classes = getExamClassStrings(exam);
@@ -2439,7 +2547,8 @@ export default function ExamManagement() {
   const openCreateExamDialog = () => {
     setIsEditing(false);
     setEditingExamId(null);
-    setClassModalSearch('');
+    setClassPickerSearch('');
+    setFormSchoolSearch('');
     setFormData({
       title: '',
       description: '',
@@ -2465,7 +2574,8 @@ export default function ExamManagement() {
     const assigned = getExamClassStrings(exam);
     setIsEditing(true);
     setEditingExamId(exam._id);
-    setClassModalSearch('');
+    setClassPickerSearch('');
+    setFormSchoolSearch('');
     setFormData({
       title: exam.title || '',
       description: exam.description || '',
@@ -2662,6 +2772,37 @@ export default function ExamManagement() {
                     <SelectItem value="specific-schools">Specific schools only</SelectItem>
                   </SelectContent>
                 </Select>
+                <p className="mt-1 text-xs text-slate-500">
+                  &quot;All schools on this board&quot; uses the Board below. Pick{' '}
+                  <strong>CBSE</strong> (etc.) for curriculum schools, or{' '}
+                  <strong>Asli Prep</strong> for exclusive Prep schools. Use{' '}
+                  <strong>Specific schools</strong> to target by name.
+                </p>
+              </div>
+
+              <div>
+                <Label htmlFor="board">Board *</Label>
+                <Select
+                  value={formData.board}
+                  onValueChange={(value) => setFormData({ ...formData, board: value })}
+                  disabled={formData.filterType === 'all-boards'}
+                >
+                  <SelectTrigger id="board">
+                    <SelectValue placeholder="Select board" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {BOARDS.map((b) => (
+                      <SelectItem key={b.value} value={b.value}>
+                        {b.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {formData.filterType === 'all-boards' ? (
+                  <p className="mt-1 text-xs text-slate-500">
+                    All-boards exams appear for every school regardless of board.
+                  </p>
+                ) : null}
               </div>
 
               {formData.filterType === 'specific-schools' && (
@@ -2673,37 +2814,56 @@ export default function ExamManagement() {
                       <span>Loading schools...</span>
                     </div>
                   ) : (
-                    <div className="space-y-2 max-h-40 overflow-y-auto border rounded-md p-3">
-                      {schools.length === 0 ? (
-                        <p className="text-xs sm:text-sm text-gray-500">No schools available</p>
-                      ) : (
-                        schools.map((school) => (
-                          <div key={school.id} className="flex items-center space-x-2">
-                            <input
-                              type="checkbox"
-                              id={`school-${school.id}`}
-                              checked={formData.selectedSchools.includes(school.id)}
-                              onChange={(e) => {
-                                if (e.target.checked) {
-                                  setFormData({
-                                    ...formData,
-                                    selectedSchools: [...formData.selectedSchools, school.id]
-                                  });
-                                } else {
-                                  setFormData({
-                                    ...formData,
-                                    selectedSchools: formData.selectedSchools.filter(id => id !== school.id)
-                                  });
-                                }
-                              }}
-                              className="h-3 w-3 sm:h-4 sm:w-4 rounded border border-gray-400 accent-orange-500"
-                            />
-                            <Label htmlFor={`school-${school.id}`} className="text-xs sm:text-sm cursor-pointer">
-                              {school.name} (Asli Exclusive Schools)
-                            </Label>
-                          </div>
-                        ))
-                      )}
+                    <div className="space-y-2 rounded-md border p-3">
+                      <div className="relative">
+                        <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
+                        <Input
+                          id="schools"
+                          value={formSchoolSearch}
+                          onChange={(e) => setFormSchoolSearch(e.target.value)}
+                          placeholder="Search schools..."
+                          className="h-9 pl-8 text-xs sm:text-sm"
+                        />
+                      </div>
+                      <div className="max-h-40 space-y-2 overflow-y-auto">
+                        {schools.length === 0 ? (
+                          <p className="text-xs sm:text-sm text-gray-500">No schools available</p>
+                        ) : formSchoolOptions.length === 0 ? (
+                          <p className="text-xs sm:text-sm text-gray-500">No schools match your search</p>
+                        ) : (
+                          formSchoolOptions.map((school) => (
+                            <div key={school.id} className="flex items-center space-x-2">
+                              <input
+                                type="checkbox"
+                                id={`school-${school.id}`}
+                                checked={formData.selectedSchools.includes(school.id)}
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    setFormData({
+                                      ...formData,
+                                      selectedSchools: [...formData.selectedSchools, school.id],
+                                    });
+                                  } else {
+                                    setFormData({
+                                      ...formData,
+                                      selectedSchools: formData.selectedSchools.filter(
+                                        (id) => id !== school.id,
+                                      ),
+                                    });
+                                  }
+                                }}
+                                className="h-3 w-3 rounded border border-gray-400 accent-orange-500 sm:h-4 sm:w-4"
+                              />
+                              <Label
+                                htmlFor={`school-${school.id}`}
+                                className="cursor-pointer text-xs sm:text-sm"
+                              >
+                                {school.name}
+                              </Label>
+                            </div>
+                          ))
+                        )}
+                      </div>
                     </div>
                   )}
                   {formData.filterType === 'specific-schools' && formData.selectedSchools.length === 0 && (
@@ -2739,23 +2899,49 @@ export default function ExamManagement() {
                       if (!cls || formData.assignedClasses.includes(cls)) return;
                       const next = [...formData.assignedClasses, cls];
                       setFormData({ ...formData, assignedClasses: next, classNumber: next[0] || '' });
+                      setClassPickerSearch('');
+                    }}
+                    onOpenChange={(open) => {
+                      if (!open) setClassPickerSearch('');
                     }}
                   >
                     <SelectTrigger id="exam-class-select" className="mt-1">
-                      <SelectValue placeholder="Add a class from the list…" />
+                      <SelectValue placeholder="Add a class from school classes…" />
                     </SelectTrigger>
-                    <SelectContent className="max-h-64">
-                      {CLASS_OPTIONS.map((cls) => (
-                        <SelectItem
-                          key={cls}
-                          value={cls}
-                          disabled={formData.assignedClasses.includes(cls)}
-                        >
-                          {`Class ${cls}`}
-                        </SelectItem>
-                      ))}
+                    <SelectContent className="max-h-72">
+                      <div className="sticky top-0 z-10 border-b border-gray-100 bg-popover p-2">
+                        <div className="relative">
+                          <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
+                          <Input
+                            value={classPickerSearch}
+                            onChange={(e) => setClassPickerSearch(e.target.value)}
+                            placeholder="Search classes…"
+                            className="h-8 pl-8 text-xs"
+                            onKeyDown={(e) => e.stopPropagation()}
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                        </div>
+                      </div>
+                      {filteredClassPickerOptions.length === 0 ? (
+                        <div className="px-2 py-3 text-center text-xs text-gray-500">
+                          No classes found
+                        </div>
+                      ) : (
+                        filteredClassPickerOptions.map((cls) => (
+                          <SelectItem
+                            key={cls}
+                            value={cls}
+                            disabled={formData.assignedClasses.includes(cls)}
+                          >
+                            {`Class ${cls}`}
+                          </SelectItem>
+                        ))
+                      )}
                     </SelectContent>
                   </Select>
+                  <p className="mt-1 text-xs text-slate-500">
+                    Includes classes created in school dashboards, plus grades 1–12.
+                  </p>
                   <div className="mt-2 flex flex-wrap gap-2">
                     {formData.assignedClasses.map((cls) => (
                       <Badge key={cls} className="bg-sky-100 text-sky-700 font-semibold rounded-full">
@@ -2839,6 +3025,8 @@ export default function ExamManagement() {
                   <Input
                     id="duration"
                     type="number"
+                    min={1}
+                    step={1}
                     value={formData.duration}
                     onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
                     placeholder="180"
@@ -2965,33 +3153,84 @@ export default function ExamManagement() {
             <div />
           )}
 
-          <Select value={selectedSchool} onValueChange={setSelectedSchool}>
+          <Select
+            value={selectedSchool}
+            onValueChange={setSelectedSchool}
+            onOpenChange={(open) => {
+              if (!open) setSchoolFilterSearch('');
+            }}
+          >
             <SelectTrigger className="h-10 rounded-md border border-gray-300 bg-white text-xs sm:text-sm">
-              <div className="flex items-center gap-2">
-                <School className="h-3.5 w-3.5 text-gray-600" />
+              <div className="flex min-w-0 items-center gap-2">
+                <School className="h-3.5 w-3.5 shrink-0 text-gray-600" />
                 <SelectValue placeholder="All Schools" />
               </div>
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="max-h-72">
+              <div className="sticky top-0 z-10 border-b border-gray-100 bg-popover p-2">
+                <div className="relative">
+                  <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
+                  <Input
+                    value={schoolFilterSearch}
+                    onChange={(e) => setSchoolFilterSearch(e.target.value)}
+                    placeholder="Search schools..."
+                    className="h-8 pl-8 text-xs"
+                    onKeyDown={(e) => e.stopPropagation()}
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                </div>
+              </div>
               <SelectItem value="all-schools">All Schools</SelectItem>
-              {schools.map((school) => (
-                <SelectItem key={school.id} value={school.id}>
-                  {school.name}
-                </SelectItem>
-              ))}
+              {filterSchoolOptions.length === 0 ? (
+                <div className="px-2 py-3 text-center text-xs text-gray-500">No schools found</div>
+              ) : (
+                filterSchoolOptions.map((school) => (
+                  <SelectItem key={school.id} value={school.id}>
+                    {school.name}
+                  </SelectItem>
+                ))
+              )}
             </SelectContent>
           </Select>
 
-          <Select value={selectedClass} onValueChange={setSelectedClass}>
+          <Select
+            value={selectedClass}
+            onValueChange={setSelectedClass}
+            onOpenChange={(open) => {
+              if (!open) setClassPickerSearch('');
+            }}
+          >
             <SelectTrigger className="h-10 rounded-md border border-gray-300 bg-white text-xs sm:text-sm">
               <div className="flex items-center gap-2">
                 <GraduationCap className="h-3.5 w-3.5 text-gray-600" />
                 <SelectValue placeholder="All Classes" />
               </div>
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="max-h-72">
+              <div className="sticky top-0 z-10 border-b border-gray-100 bg-popover p-2">
+                <div className="relative">
+                  <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
+                  <Input
+                    value={classPickerSearch}
+                    onChange={(e) => setClassPickerSearch(e.target.value)}
+                    placeholder="Search classes…"
+                    className="h-8 pl-8 text-xs"
+                    onKeyDown={(e) => e.stopPropagation()}
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                </div>
+              </div>
               <SelectItem value="all-classes">All Classes</SelectItem>
-              {CLASS_OPTIONS.map((cls) => (
+              {(classPickerSearch.trim()
+                ? classOptions.filter(
+                    (cls) =>
+                      cls.toLowerCase().includes(classPickerSearch.trim().toLowerCase()) ||
+                      `class ${cls}`
+                        .toLowerCase()
+                        .includes(classPickerSearch.trim().toLowerCase()),
+                  )
+                : classOptions
+              ).map((cls) => (
                 <SelectItem key={cls} value={cls}>
                   {`Class ${cls}`}
                 </SelectItem>
@@ -3060,7 +3299,26 @@ export default function ExamManagement() {
                                   ) : (
                                     <Badge className="bg-gray-100 text-gray-600 border border-gray-200 text-mini">Inactive</Badge>
                                   )}
-                                  <Badge className="bg-gray-100 text-gray-700 border border-gray-200 text-mini">Asli Exclusive Schools</Badge>
+                                  {exam.isAllBoards ? (
+                                    <Badge className="border border-violet-200 bg-violet-50 text-mini text-violet-800">
+                                      All boards
+                                    </Badge>
+                                  ) : exam.isSchoolSpecific ? (
+                                    <Badge className="border border-amber-200 bg-amber-50 text-mini text-amber-900">
+                                      Specific schools
+                                      {(exam.targetSchools?.length ?? 0) > 0
+                                        ? ` · ${exam.targetSchools.length}`
+                                        : ''}
+                                    </Badge>
+                                  ) : (
+                                    <Badge
+                                      className={`${getBoardBadgeColor(exam.board)} border text-mini`}
+                                    >
+                                      {BOARDS.find((b) => b.value === exam.board)?.label ||
+                                        exam.board ||
+                                        'Board'}
+                                    </Badge>
+                                  )}
                                 </div>
                               </div>
                             </CardHeader>
@@ -3072,7 +3330,11 @@ export default function ExamManagement() {
                                 <div className="space-y-1.5 text-xs text-gray-600">
                                   <div className="flex items-center gap-1.5">
                                     <Clock className="h-3.5 w-3.5 shrink-0 text-gray-500" />
-                                    <span>{exam.duration} min</span>
+                                    <span>
+                                      {Number.isFinite(Number(exam.duration)) && Number(exam.duration) > 0
+                                        ? `${exam.duration} min`
+                                        : 'Duration not set'}
+                                    </span>
                                   </div>
                                   <div className="flex items-center gap-1.5">
                                     <BookOpen className="h-3.5 w-3.5 shrink-0 text-gray-500" />

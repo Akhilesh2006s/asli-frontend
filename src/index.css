@@ -188,6 +188,29 @@
   input[type="week"] {
     font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   }
+
+  /* Keep the native calendar/time icon fully inside the field (not clipped by the border). */
+  input[type="date"],
+  input[type="time"],
+  input[type="datetime-local"],
+  input[type="month"],
+  input[type="week"],
+  .asli-date-input {
+    box-sizing: border-box;
+    padding-inline-end: 2.5rem !important;
+  }
+
+  input[type="date"]::-webkit-calendar-picker-indicator,
+  input[type="time"]::-webkit-calendar-picker-indicator,
+  input[type="datetime-local"]::-webkit-calendar-picker-indicator,
+  input[type="month"]::-webkit-calendar-picker-indicator,
+  input[type="week"]::-webkit-calendar-picker-indicator,
+  .asli-date-input::-webkit-calendar-picker-indicator {
+    margin-inline-end: 0.15rem;
+    padding: 0.2rem;
+    cursor: pointer;
+    opacity: 0.85;
+  }
   
   /* Product-wide readability contract. Legacy pages still use Tailwind's
      compact text helpers; keep them readable on shared screens without

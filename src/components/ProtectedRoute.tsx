@@ -9,6 +9,7 @@ import {
   setUser,
   setAuthToken,
 } from "@/lib/auth-utils";
+import { BrandLoadingState } from "@/components/BrandLoadingState";
 
 type Role = "student" | "teacher" | "admin" | "super-admin";
 
@@ -103,9 +104,10 @@ export function ProtectedRoute({
 
   if (state === "loading") {
     return (
-      <div className="asli-app-bg flex min-h-screen items-center justify-center p-6" role="status">
-        <p className="text-slate-600">Checking access…</p>
-      </div>
+      <BrandLoadingState
+        title="Opening Your Workspace"
+        subtitle="Checking your access and preparing your dashboard."
+      />
     );
   }
 

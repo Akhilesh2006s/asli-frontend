@@ -318,7 +318,28 @@ export default function TimetableManagement() {
   }), [form]);
 
   const handleSave = async (forceSave = false) => {
-    const payload = { ...buildPayload(), forceSave };
+    if (!form.classId || !form.subjectId || !form.teacherId) {
+      toast({
+        title: 'Missing fields',
+        description: 'Class, subject, and teacher are required.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    if (!form.room.trim() || !form.building.trim()) {
+      toast({
+        title: 'Missing fields',
+        description: 'Room and building are required.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    const payload = {
+      ...buildPayload(),
+      room: form.room.trim(),
+      building: form.building.trim(),
+      forceSave,
+    };
     try {
       if (editingEntry) {
         await updateMut.mutateAsync({ id: editingEntry._id, ...payload });
@@ -480,8 +501,18 @@ export default function TimetableManagement() {
         </Select>
         {viewMode !== 'week' && (
           <>
-            <Input type="date" className="w-[168px] rounded-xl bg-white border-orange-200" value={filters.startDate || rangeStart} onChange={(e) => setFilters((f) => ({ ...f, startDate: e.target.value }))} />
-            <Input type="date" className="w-[168px] rounded-xl bg-white border-orange-200" value={filters.endDate || rangeEnd} onChange={(e) => setFilters((f) => ({ ...f, endDate: e.target.value }))} />
+            <Input
+              type="date"
+              className="asli-date-input h-10 w-[11.5rem] min-w-[11.5rem] rounded-xl border-orange-200 bg-white py-2 pl-3 pr-10 text-sm"
+              value={filters.startDate || rangeStart}
+              onChange={(e) => setFilters((f) => ({ ...f, startDate: e.target.value }))}
+            />
+            <Input
+              type="date"
+              className="asli-date-input h-10 w-[11.5rem] min-w-[11.5rem] rounded-xl border-orange-200 bg-white py-2 pl-3 pr-10 text-sm"
+              value={filters.endDate || rangeEnd}
+              onChange={(e) => setFilters((f) => ({ ...f, endDate: e.target.value }))}
+            />
           </>
         )}
         <Button type="button" variant="outline" size="sm" className="rounded-xl border-orange-200 text-orange-700" onClick={() => exportTimetableCSV(queryFilters)}>
@@ -685,7 +716,7 @@ export default function TimetableManagement() {
                 <Label className="text-gray-700">Date</Label>
                 <Input
                   type="date"
-                  className={FORM_INPUT}
+                  className={cn(FORM_INPUT, 'asli-date-input pr-10')}
                   value={form.date}
                   onChange={(e) => setForm((f) => ({ ...f, date: e.target.value }))}
                 />
@@ -775,12 +806,24 @@ export default function TimetableManagement() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 min-w-0">
               <div className="space-y-1.5 min-w-0">
-                <Label className="text-gray-700">Room</Label>
-                <Input className={FORM_INPUT} value={form.room} onChange={(e) => setForm((f) => ({ ...f, room: e.target.value }))} />
+                <Label className="text-gray-700">Room *</Label>
+                <Input
+                  required
+                  className={FORM_INPUT}
+                  value={form.room}
+                  onChange={(e) => setForm((f) => ({ ...f, room: e.target.value }))}
+                  placeholder="e.g. 101"
+                />
               </div>
               <div className="space-y-1.5 min-w-0">
-                <Label className="text-gray-700">Building</Label>
-                <Input className={FORM_INPUT} value={form.building} onChange={(e) => setForm((f) => ({ ...f, building: e.target.value }))} />
+                <Label className="text-gray-700">Building *</Label>
+                <Input
+                  required
+                  className={FORM_INPUT}
+                  value={form.building}
+                  onChange={(e) => setForm((f) => ({ ...f, building: e.target.value }))}
+                  placeholder="e.g. Main Block"
+                />
               </div>
             </div>
 
