@@ -383,7 +383,16 @@ export function AiToolResultShell({
                   }}
                 />
               ) : null}
-              <div className="w-full">{children}</div>
+              {/*
+                The card is overflow-hidden, so anything wider than it — a
+                generated table, a long formula, an unbroken URL — was clipped
+                with no way to reach it. min-w-0 lets this shrink inside its
+                flex parent, wide blocks scroll horizontally on their own, and
+                long words wrap instead of pushing the layout open.
+              */}
+              <div className="w-full min-w-0 break-words [&_pre]:overflow-x-auto [&_table]:block [&_table]:w-max [&_table]:min-w-full [&_table]:overflow-x-auto">
+                {children}
+              </div>
             </>
           ) : (
             empty || (

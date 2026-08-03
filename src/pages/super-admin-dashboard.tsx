@@ -1045,7 +1045,10 @@ export default function SuperAdminDashboard() {
               new CustomEvent("vidya-chat-prefill", {
                 detail: {
                   role: "super_admin",
-                  message: "Monitor active AI sessions and highlight spikes across schools",
+                  // Concrete and answerable: this maps to the usage-analytics
+                  // module. The old open-ended wording matched no module and
+                  // always came back "could not find matching records".
+                  message: "How many usage analytics entries were logged in the last 7 days, grouped by school?",
                 },
               }),
             );
@@ -1069,7 +1072,9 @@ export default function SuperAdminDashboard() {
               new CustomEvent("vidya-chat-prefill", {
                 detail: {
                   role: "super_admin",
-                  message: "Detect anomalies in AI responses and compliance risks",
+                  // Maps to the audit-log module; the previous phrasing matched
+                  // no module and always returned "no matching records".
+                  message: "How many audit log entries were recorded in the last 7 days, grouped by school?",
                 },
               }),
             );

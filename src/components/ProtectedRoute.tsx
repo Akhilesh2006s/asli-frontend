@@ -33,6 +33,15 @@ export function ProtectedRoute({
   useEffect(() => {
     let cancelled = false;
 
+    /**
+     * Re-check identity, not just on mount.
+     *
+     * Browsers restore pages from the back/forward cache without re-running
+     * effects, so pressing Forward after logging out brought back a fully
+     * rendered dashboard that was never re-authorised. Revalidating on bfcache
+     * restore — and when the tab regains focus, which catches a logout in
+     * another tab — closes that.
+     */
     const run = async () => {
       try {
         const token = getAuthToken();
@@ -67,8 +76,28 @@ export function ProtectedRoute({
     };
 
     run();
+
+    // `persisted` means this page came back from the bfcache with its old DOM
+    // and state intact — the only moment the mount check is skipped. The stale
+    // dashboard is already on screen, so hide it while identity is re-checked.
+    const onPageShow = (event: PageTransitionEvent) => {
+      if (!event.persisted || cancelled) return;
+      setState("loading");
+      void run();
+    };
+    // Re-check quietly on tab focus (catches a logout in another tab) without
+    // flashing the loading screen every time someone switches tabs.
+    const onVisibility = () => {
+      if (document.visibilityState === "visible" && !cancelled) void run();
+    };
+
+    window.addEventListener("pageshow", onPageShow);
+    document.addEventListener("visibilitychange", onVisibility);
+
     return () => {
       cancelled = true;
+      window.removeEventListener("pageshow", onPageShow);
+      document.removeEventListener("visibilitychange", onVisibility);
     };
   }, [roles]);
 

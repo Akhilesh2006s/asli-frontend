@@ -402,6 +402,8 @@ export default function PdfPreviewPanel({
   const [isFullscreen, setIsFullscreen] = useState(false);
   const pdfDocRef = useRef<pdfjs.PDFDocumentProxy | null>(null);
   const renderingPagesRef = useRef<Set<number>>(new Set());
+  /** Survives the slot rebuild that fullscreen toggling causes. */
+  const rememberedPageRef = useRef<number>(1);
   const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
   const [totalPages, setTotalPages] = useState(0);
   const [pdfSource, setPdfSource] = useState<PdfSource | null>(null);
@@ -709,6 +711,38 @@ export default function PdfPreviewPanel({
       'h-full w-full snap-y snap-mandatory overflow-y-auto overflow-x-hidden overscroll-y-contain touch-pan-y';
     host.style.setProperty('-webkit-overflow-scrolling', 'touch');
 
+    // Slots are rebuilt whenever the container resizes (entering/leaving
+    // fullscreen) and on every mount (reload), which threw the reader back to
+    // page 1. Remember the page and put the reader back where it was.
+    const pageStorageKey = `asli:pdf-page:${absoluteUrl}`;
+    const readRememberedPage = () => {
+      const fromRef = rememberedPageRef.current;
+      if (fromRef && fromRef > 1) return fromRef;
+      try {
+        const stored = Number(window.sessionStorage.getItem(pageStorageKey));
+        return Number.isFinite(stored) && stored > 1 ? stored : 1;
+      } catch {
+        return 1;
+      }
+    };
+    const pageHeight = () => Math.max(1, containerSize.height);
+    const rememberCurrentPage = () => {
+      const page = Math.round(host.scrollTop / pageHeight()) + 1;
+      if (!Number.isFinite(page) || page < 1) return;
+      rememberedPageRef.current = page;
+      try {
+        window.sessionStorage.setItem(pageStorageKey, String(page));
+      } catch {
+        /* private mode — the ref still covers fullscreen toggles */
+      }
+    };
+    let scrollTick = 0;
+    const onScroll = () => {
+      window.clearTimeout(scrollTick);
+      scrollTick = window.setTimeout(rememberCurrentPage, 150);
+    };
+    host.addEventListener('scroll', onScroll, { passive: true });
+
     const setup = async () => {
       const slots: HTMLElement[] = [];
 
@@ -742,7 +776,16 @@ export default function PdfPreviewPanel({
         renderObserver?.observe(slot);
       });
 
-      if (slots[0]) {
+      const restoreTo = Math.min(readRememberedPage(), totalPages);
+      const target = slots[restoreTo - 1];
+      if (target) {
+        // Render the page we are about to land on before jumping, so the reader
+        // does not flash a blank slot.
+        await renderPageIntoSlot(restoreTo, target, containerSize, signal, 'viewport');
+        if (signal.cancelled) return;
+        if (restoreTo > 1) host.scrollTop = (restoreTo - 1) * pageHeight();
+      }
+      if (slots[0] && restoreTo !== 1) {
         void renderPageIntoSlot(1, slots[0], containerSize, signal, 'viewport');
       }
     };
@@ -751,6 +794,8 @@ export default function PdfPreviewPanel({
 
     return () => {
       signal.cancelled = true;
+      window.clearTimeout(scrollTick);
+      host.removeEventListener('scroll', onScroll);
       renderObserver?.disconnect();
       host.innerHTML = '';
       renderingPagesRef.current.clear();

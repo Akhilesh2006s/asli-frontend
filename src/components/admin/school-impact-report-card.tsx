@@ -207,7 +207,7 @@ export function SchoolImpactReportCard() {
                   type="date"
                   value={fromDate}
                   onChange={(e) => setFromDate(e.target.value)}
-                  className="w-[150px] bg-white"
+                  className="w-[168px] bg-white"
                 />
               </div>
               <div className="space-y-1">
@@ -217,7 +217,7 @@ export function SchoolImpactReportCard() {
                   type="date"
                   value={toDate}
                   onChange={(e) => setToDate(e.target.value)}
-                  className="w-[150px] bg-white"
+                  className="w-[168px] bg-white"
                 />
               </div>
               <Button type="button" size="sm" onClick={() => void load()} disabled={loading}>

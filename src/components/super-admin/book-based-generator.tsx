@@ -792,7 +792,9 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
         <p>
           <strong>Book upload / indexing</strong> (Book Knowledge Base): PDF text extraction is free. Embeddings use{" "}
           <code className="text-mini bg-white/80 px-1 rounded">EMBEDDING_PROVIDER=local</code> by default (₹0).
-          Scanned PDF OCR may use a small Gemini charge.
+          Only <em>scanned</em> PDFs need OCR, which runs on Gemini Flash-Lite at about{" "}
+          <strong>₹0.02–0.03 per page</strong> (roughly <strong>₹2–3 per 100 pages</strong>) at current
+          rates. A text-based PDF costs ₹0. The exact tokens and ₹ for every run are shown below.
         </p>
         <p>
           <strong>Content generation</strong> (this page): choose how many records to generate per batch ({GENERATION_RECORD_COUNT_MIN}–{BOOK_GENERATOR_MAX_BATCH_SIZE}) with Gemini.

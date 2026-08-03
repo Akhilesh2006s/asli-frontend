@@ -522,6 +522,15 @@ export default function ExamManagement() {
   } | null>(null);
   const [pdfPreviewPage, setPdfPreviewPage] = useState(1);
   const [pdfShowFlaggedOnly, setPdfShowFlaggedOnly] = useState(false);
+  const [isDraggingQuestionFile, setIsDraggingQuestionFile] = useState(false);
+  /** Shared by the file picker and the drop zone so both reset the same state. */
+  const selectQuestionPaperFile = (file: File | null) => {
+    setQuestionPdfFile(file);
+    setPdfQuestionRows([]);
+    setPdfAnswerKeyMeta(null);
+    setPdfShowFlaggedOnly(false);
+    setPdfPreviewPage(1);
+  };
   const pdfFlaggedRows = useMemo(
     () => pdfQuestionRows.filter((r) => r.solvable === false),
     [pdfQuestionRows],
@@ -2760,32 +2769,47 @@ export default function ExamManagement() {
                   </div>
                 </div>
                 <div>
-                  <Label htmlFor="subject">Subjects *</Label>
-                  <div className="mt-2 max-h-32 overflow-y-auto rounded-md border bg-white p-2 space-y-2">
-                    {EXAM_SUBJECTS.map((subject) => (
-                      <label key={subject.value} className="flex items-center gap-2 text-xs sm:text-sm">
-                        <input
-                          type="checkbox"
-                          checked={formData.subjects.includes(subject.value as any)}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setFormData({
-                                ...formData,
-                                subjects: formData.subjects.includes(subject.value as any)
-                                  ? formData.subjects
-                                  : [...formData.subjects, subject.value as any]
-                              });
-                            } else {
-                              setFormData({
-                                ...formData,
-                                subjects: formData.subjects.filter((s) => s !== subject.value)
-                              });
-                            }
-                          }}
-                          className="h-3 w-3 sm:h-4 sm:w-4 rounded border border-gray-400 accent-orange-500"
+                  <Label htmlFor="exam-subject-select">Subjects *</Label>
+                  {/* Pick-and-tag, matching Assigned Classes above. This used to
+                      be a checkbox list inside a 128px box you had to scroll. */}
+                  <Select
+                    onValueChange={(value) => {
+                      if (!value || formData.subjects.includes(value as any)) return;
+                      setFormData({ ...formData, subjects: [...formData.subjects, value as any] });
+                    }}
+                  >
+                    <SelectTrigger id="exam-subject-select" className="mt-1">
+                      <SelectValue placeholder="Add a subject from the list…" />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-64">
+                      {EXAM_SUBJECTS.map((subject) => (
+                        <SelectItem
+                          key={subject.value}
+                          value={subject.value}
+                          disabled={formData.subjects.includes(subject.value as any)}
+                        >
+                          {subject.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {formData.subjects.map((value) => (
+                      <Badge
+                        key={value}
+                        className="bg-orange-100 text-orange-700 font-semibold rounded-full"
+                      >
+                        {EXAM_SUBJECTS.find((s) => s.value === value)?.label || value}
+                        <X
+                          className="ml-1 h-3 w-3 cursor-pointer"
+                          onClick={() =>
+                            setFormData({
+                              ...formData,
+                              subjects: formData.subjects.filter((s) => s !== value),
+                            })
+                          }
                         />
-                        <span>{subject.label}</span>
-                      </label>
+                      </Badge>
                     ))}
                   </div>
                   <p className="text-xs text-gray-500 mt-1">Multiple subjects are saved under a single exam.</p>
@@ -3279,23 +3303,38 @@ export default function ExamManagement() {
               ) : (
                 <div className="p-4 bg-blue-50 rounded-lg space-y-3">
                   <div>
-                    <Label htmlFor="questionPdfFile">Select PDF File *</Label>
-                    <Input
-                      id="questionPdfFile"
-                      type="file"
-                      accept=".pdf,application/pdf"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0] || null;
-                        setQuestionPdfFile(file);
-                        setPdfQuestionRows([]);
-                        setPdfAnswerKeyMeta(null);
-                        setPdfShowFlaggedOnly(false);
-                        setPdfPreviewPage(1);
+                    <Label htmlFor="questionPdfFile">Select question paper (PDF or Word) *</Label>
+                    <div
+                      onDragOver={(e) => {
+                        e.preventDefault();
+                        setIsDraggingQuestionFile(true);
                       }}
-                      className="mt-1 cursor-pointer file:mr-3 file:rounded-md file:border-0 file:bg-blue-100 file:px-3 file:py-2 file:text-xs sm:text-sm file:font-medium file:text-blue-700 hover:file:bg-blue-200"
-                    />
+                      onDragLeave={() => setIsDraggingQuestionFile(false)}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        setIsDraggingQuestionFile(false);
+                        const dropped = e.dataTransfer.files?.[0];
+                        if (dropped) selectQuestionPaperFile(dropped);
+                      }}
+                      className={`mt-1 rounded-lg border-2 border-dashed px-3 py-4 transition-colors ${
+                        isDraggingQuestionFile
+                          ? 'border-blue-500 bg-blue-100'
+                          : 'border-blue-200 bg-white/60'
+                      }`}
+                    >
+                      <p className="mb-2 text-center text-xs text-blue-800">
+                        Drag &amp; drop a PDF or Word file here, or choose one below
+                      </p>
+                      <Input
+                        id="questionPdfFile"
+                        type="file"
+                        accept=".pdf,application/pdf,.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                        onChange={(e) => selectQuestionPaperFile(e.target.files?.[0] || null)}
+                        className="cursor-pointer file:mr-3 file:rounded-md file:border-0 file:bg-blue-100 file:px-3 file:py-2 file:text-xs sm:text-sm file:font-medium file:text-blue-700 hover:file:bg-blue-200"
+                      />
+                    </div>
                     <p className={`text-xs mt-1 ${questionPdfFile ? 'text-blue-700 font-medium' : 'text-gray-500'}`}>
-                      {questionPdfFile ? `Selected file: ${questionPdfFile.name}` : 'No PDF selected yet'}
+                      {questionPdfFile ? `Selected file: ${questionPdfFile.name}` : 'No file selected yet'}
                     </p>
                   </div>
                   <Button

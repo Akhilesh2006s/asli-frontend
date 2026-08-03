@@ -1251,8 +1251,10 @@ Jane Smith,jane.smith@school.edu,TeacherPass2,1234567891,Science,MSc in Chemistr
         </div>
 
         {/* Action Bar */}
-        <div className="flex flex-col sm:flex-row gap-4 items-center justify-between bg-white/70 backdrop-blur-xl rounded-2xl p-4 sm:p-6 shadow-xl border border-white/20">
-          <div className="flex flex-col sm:flex-row gap-4 items-center">
+        {/* Wraps rather than overflowing: when "Delete selected" appears it used
+            to push the Add Teacher group outside the bar. */}
+        <div className="flex flex-col sm:flex-row flex-wrap gap-4 items-center justify-between bg-white/70 backdrop-blur-xl rounded-2xl p-4 sm:p-6 shadow-xl border border-white/20">
+          <div className="flex min-w-0 flex-col sm:flex-row flex-wrap gap-4 items-center">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-orange-600 w-4 h-4 sm:w-5 sm:h-5" />
               <Input
@@ -1294,7 +1296,7 @@ Jane Smith,jane.smith@school.edu,TeacherPass2,1234567891,Science,MSc in Chemistr
             ) : null}
           </div>
           
-          <div className="flex gap-3">
+          <div className="flex shrink-0 flex-wrap gap-3">
             <Dialog open={isUploadDialogOpen} onOpenChange={setIsUploadDialogOpen}>
               <DialogTrigger asChild>
                 <Button variant="outline" className="border-orange-200 text-orange-700 hover:bg-orange-50 rounded-xl">

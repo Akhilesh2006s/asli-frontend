@@ -80,6 +80,8 @@ const SubjectManagement = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterByTeacher, setFilterByTeacher] = useState<string>('all');
   const [filterByStatus, setFilterByStatus] = useState<string>('active');
+  /** Show one subject at a time instead of the whole list at once. */
+  const [filterBySubject, setFilterBySubject] = useState<string>('all');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
@@ -404,13 +406,17 @@ const SubjectManagement = () => {
     }
 
     // Status filter
+    if (filterBySubject !== 'all') {
+      filtered = filtered.filter((s) => String(s.name || '') === filterBySubject);
+    }
+
     if (filterByStatus !== 'all') {
       const isActive = filterByStatus === 'active';
       filtered = filtered.filter(s => s.isActive === isActive);
     }
 
     return filtered;
-  }, [subjects, searchTerm, filterByTeacher, filterByStatus]);
+  }, [subjects, searchTerm, filterByTeacher, filterByStatus, filterBySubject]);
 
   const totalSubjects = Array.isArray(subjects) ? subjects.length : 0;
   const activeSubjects = Array.isArray(subjects) ? subjects.filter(s => s.isActive).length : 0;
@@ -662,14 +668,41 @@ const SubjectManagement = () => {
                 </Select>
               </div>
 
+              {/* Subject filter — view one subject's data at a time */}
+              <div className="relative">
+                <div className="absolute -inset-[2px] bg-gradient-to-r from-sky-400 to-sky-500 rounded-md"></div>
+                <Select value={filterBySubject} onValueChange={setFilterBySubject}>
+                  <SelectTrigger className="w-full sm:w-48 relative z-10 border-0 bg-white focus:ring-2 focus:ring-sky-500 focus:ring-offset-0">
+                    <SelectValue placeholder="All Subjects" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-64">
+                    <SelectItem value="all">All Subjects</SelectItem>
+                    {Array.from(
+                      new Set(
+                        (Array.isArray(subjects) ? subjects : [])
+                          .map((s: any) => String(s?.name || '').trim())
+                          .filter(Boolean),
+                      ),
+                    )
+                      .sort((a, b) => a.localeCompare(b))
+                      .map((name) => (
+                        <SelectItem key={name} value={name}>
+                          {name}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
               {/* Clear Filters Button */}
-              {(filterByTeacher !== 'all' || filterByStatus !== 'all') && (
+              {(filterByTeacher !== 'all' || filterByStatus !== 'all' || filterBySubject !== 'all') && (
                 <Button
                   variant="outline"
                   className="border-sky-200 text-sky-700 hover:bg-sky-50"
                   onClick={() => {
                     setFilterByTeacher('all');
                     setFilterByStatus('all');
+                    setFilterBySubject('all');
                   }}
                 >
                   Clear Filters
@@ -681,9 +714,11 @@ const SubjectManagement = () => {
 
         {/* Subjects Table */}
         <div className="bg-white/70 backdrop-blur-xl rounded-2xl shadow-lg border border-sky-200 overflow-hidden">
-          <div className="overflow-x-auto">
+          {/* Scrolls inside itself with the heading row pinned, instead of
+              dumping every subject onto the page at once. */}
+          <div className="max-h-[60vh] overflow-y-auto overflow-x-auto">
           <Table className="min-w-[640px]">
-            <TableHeader>
+            <TableHeader className="sticky top-0 z-10 bg-sky-50">
               <TableRow className="bg-sky-50/50">
                 <TableHead className="text-sky-900 font-semibold">Subject</TableHead>
                 <TableHead className="text-sky-900 font-semibold">Assigned Classes</TableHead>

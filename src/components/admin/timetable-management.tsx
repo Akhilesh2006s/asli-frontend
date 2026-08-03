@@ -480,8 +480,8 @@ export default function TimetableManagement() {
         </Select>
         {viewMode !== 'week' && (
           <>
-            <Input type="date" className="w-[140px] rounded-xl bg-white border-orange-200" value={filters.startDate || rangeStart} onChange={(e) => setFilters((f) => ({ ...f, startDate: e.target.value }))} />
-            <Input type="date" className="w-[140px] rounded-xl bg-white border-orange-200" value={filters.endDate || rangeEnd} onChange={(e) => setFilters((f) => ({ ...f, endDate: e.target.value }))} />
+            <Input type="date" className="w-[168px] rounded-xl bg-white border-orange-200" value={filters.startDate || rangeStart} onChange={(e) => setFilters((f) => ({ ...f, startDate: e.target.value }))} />
+            <Input type="date" className="w-[168px] rounded-xl bg-white border-orange-200" value={filters.endDate || rangeEnd} onChange={(e) => setFilters((f) => ({ ...f, endDate: e.target.value }))} />
           </>
         )}
         <Button type="button" variant="outline" size="sm" className="rounded-xl border-orange-200 text-orange-700" onClick={() => exportTimetableCSV(queryFilters)}>

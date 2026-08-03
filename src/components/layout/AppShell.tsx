@@ -2,7 +2,6 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from "react"
 import { Link, useLocation, useSearch } from "wouter";
 import {
   ChevronDown,
-  ChevronLeft,
   LogOut,
   type LucideIcon,
   Menu,
@@ -100,7 +99,6 @@ function SidebarBody({
   showUpgrade,
   onUpgrade,
   onNavigate,
-  onToggleCollapse,
 }: {
   nav: NavItem[];
   activeId: string;
@@ -112,7 +110,6 @@ function SidebarBody({
   showUpgrade?: boolean;
   onUpgrade?: () => void;
   onNavigate?: () => void;
-  onToggleCollapse?: () => void;
 }) {
   return (
     <div className="flex h-full flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground">
@@ -172,27 +169,9 @@ function SidebarBody({
         </div>
       )}
 
-      {/* Collapse toggle (desktop only) + support */}
+      {/* Support / footer. The collapse toggle lives in the topbar only — one
+          here as well meant two identical controls on screen at once. */}
       <div className="border-t border-sidebar-border p-3">
-        {onToggleCollapse && (
-          <button
-            type="button"
-            onClick={onToggleCollapse}
-            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-            aria-expanded={!collapsed}
-            className={cn(
-              "flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm text-sidebar-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring",
-              collapsed && "justify-center px-0",
-            )}
-          >
-            <ChevronLeft
-              className={cn("h-4 w-4 shrink-0 transition-transform", collapsed && "rotate-180")}
-              aria-hidden="true"
-            />
-            {!collapsed && <span>Collapse</span>}
-          </button>
-        )}
         {!collapsed && (
           <p className="mt-3 text-center text-micro leading-relaxed text-sidebar-foreground">
             © {new Date().getFullYear()} AsliLearn AI
@@ -315,7 +294,6 @@ export function AppShell({
           homeHref={homeHref}
           showUpgrade={showUpgrade}
           onUpgrade={onUpgrade}
-          onToggleCollapse={toggleCollapse}
         />
       </aside>
 
@@ -412,17 +390,8 @@ export function AppShell({
           ) : null}
 
           <div className="ml-auto flex shrink-0 items-center gap-1 sm:gap-2">
-            {onLogout ? (
-              <button
-                type="button"
-                onClick={() => onLogout()}
-                aria-label="Log out"
-                className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-card px-2.5 py-2 text-xs font-semibold text-ink-soft transition-colors hover:bg-muted hover:text-foreground sm:px-3 sm:text-sm"
-              >
-                <LogOut className="h-4 w-4 shrink-0" aria-hidden="true" />
-                <span className="hidden sm:inline">Log out</span>
-              </button>
-            ) : null}
+            {/* Log out lives only in the account menu below. A standalone
+                button beside it gave two identical controls side by side. */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button

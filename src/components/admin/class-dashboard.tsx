@@ -829,15 +829,45 @@ const ClassDashboard = () => {
     });
   };
 
+  /** One spelling per subject: "Maths", "maths" and "Mathematics" are the same. */
+  const canonicalSubjectKey = (value: string) => {
+    const t = String(value || '').trim().replace(/\s+/g, ' ').toLowerCase();
+    if (t === 'mathematics' || t === 'math') return 'maths';
+    if (t === 'social studies') return 'social science';
+    return t;
+  };
+
   const filteredClasses = classes.filter(classItem => {
     const matchesSearch = classItem.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          classItem.subject.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          classItem.teacher.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesSubject = selectedSubject === 'all' || classItem.subject === selectedSubject;
+    // Match on the canonical key so picking "Maths" also returns "Mathematics" rows
+    const matchesSubject =
+      selectedSubject === 'all' ||
+      canonicalSubjectKey(classItem.subject) === canonicalSubjectKey(selectedSubject);
     return matchesSearch && matchesSubject;
   });
 
-  const classSubjects = Array.from(new Set(classes.map(c => c.subject)));
+  /**
+   * Deduping on the raw string listed "Maths", "maths" and "Mathematics " as
+   * three separate filter options. Group by the canonical key and show one
+   * clean label per subject.
+   */
+  const classSubjects = (() => {
+    const canonical = canonicalSubjectKey;
+    const byKey = new Map<string, string>();
+    for (const c of classes) {
+      const raw = String(c?.subject || '').trim().replace(/\s+/g, ' ');
+      if (!raw) continue;
+      const key = canonical(raw);
+      // Keep the first spelling seen, preferring one that is not all-lowercase
+      const existing = byKey.get(key);
+      if (!existing || (existing === existing.toLowerCase() && raw !== raw.toLowerCase())) {
+        byKey.set(key, raw);
+      }
+    }
+    return [...byKey.values()].sort((a, b) => a.localeCompare(b));
+  })();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50">

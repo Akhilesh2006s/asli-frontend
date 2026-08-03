@@ -75,7 +75,7 @@ interface ToolConfig {
   fields: Array<{
     name: string;
     label: string;
-    type: 'text' | 'select' | 'number' | 'textarea';
+    type: 'text' | 'select' | 'number' | 'textarea' | 'date';
     required?: boolean;
     options?: string[];
     placeholder?: string;
@@ -216,7 +216,9 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
     description: 'Organize your daily teaching schedule efficiently',
     icon: Sparkles,
     fields: [
-      { name: 'date', label: 'Date', type: 'text', placeholder: 'e.g., 2025-01-15' },
+      // A free-text date accepted anything at all, including special characters.
+      // type="date" gives a picker and the browser enforces a real date.
+      { name: 'date', label: 'Date', type: 'date', placeholder: 'e.g., 2025-01-15' },
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
       { name: 'subject', label: 'Subject *', type: 'select', required: true, dependsOn: 'gradeLevel' },
       { name: 'topic', label: 'Topic *', type: 'select', required: true, placeholder: 'Select topic', isNCERT: true },
@@ -264,6 +266,13 @@ export default function TeacherToolPage() {
   const [assignedStudents, setAssignedStudents] = useState<Array<{id: string, name: string, classNumber?: string}>>([]);
   const [isLoadingStudents, setIsLoadingStudents] = useState(false);
   const [availableNCERTTopics, setAvailableNCERTTopics] = useState<string[]>([]);
+  /**
+   * Chapters that actually have generated content for this tool. The chapter
+   * list comes from the syllabus, but most chapters have never been generated —
+   * without this the teacher picks one and gets a dead-end error. Empty set
+   * means "unknown", in which case nothing is marked.
+   */
+  const [topicsWithContent, setTopicsWithContent] = useState<Set<string> | null>(null);
   const [assignedSubjectNames, setAssignedSubjectNames] = useState<string[]>([]);
   const [schoolBoardName, setSchoolBoardName] = useState('CBSE');
   const [isAsliPrepExclusive, setIsAsliPrepExclusive] = useState(false);
@@ -701,41 +710,10 @@ export default function TeacherToolPage() {
         'story-passage-creator',
       ]);
 
-      if (toolsNeedingFiltering.has(toolType)) {
-        const token = getAuthToken();
-        const run = async () => {
-          const filtered: string[] = [];
-          for (const topic of topics) {
-            try {
-              const acResp = await fetch(
-                `${API_BASE_URL}/api/teacher/ai/available-content?classNumber=${classNumber}&subject=${encodeURIComponent(subjectValue)}&topic=${encodeURIComponent(topic)}`,
-                {
-                  headers: {
-                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-                    'Content-Type': 'application/json',
-                  },
-                },
-              );
-              if (acResp.ok) {
-                const acData = await acResp.json();
-                if (acData.success && Array.isArray(acData.data)) {
-                  const hasTool = acData.data.some((entry: any) => entry.toolType === toolType);
-                  if (hasTool) filtered.push(topic);
-                } else {
-                  filtered.push(topic);
-                }
-              } else {
-                filtered.push(topic);
-              }
-            } catch {
-              filtered.push(topic);
-            }
-          }
-          setAvailableNCERTTopics(filtered);
-        };
-        run();
-        return;
-      }
+      // Availability is now resolved for every class/subject in one request
+      // (see the topicsWithContent effect) instead of hiding chapters here via
+      // one request per chapter.
+      void toolsNeedingFiltering;
     }
 
     setAvailableNCERTTopics(topics);
@@ -749,6 +727,58 @@ export default function TeacherToolPage() {
     cascade.topics,
     cascade.loadingTopics,
   ]);
+
+  // Which chapters have generated content for this tool — one request, used to
+  // label the dropdown so nobody picks a chapter that cannot generate.
+  useEffect(() => {
+    const classValue = String(formParams.gradeLevel || '').trim();
+    const subjectValue = String(
+      formParams.subject || (Array.isArray(formParams.subjects) ? formParams.subjects[0] : '') || '',
+    ).trim();
+    if (!classValue || !subjectValue || !toolType) {
+      setTopicsWithContent(null);
+      return;
+    }
+
+    let cancelled = false;
+    const classNumber = classValue === 'IIT-6' ? 6 : parseInt(String(classValue).replace(/\D/g, ''), 10);
+    if (!Number.isFinite(classNumber)) {
+      setTopicsWithContent(null);
+      return;
+    }
+
+    (async () => {
+      try {
+        const token = getAuthToken();
+        const resp = await fetch(
+          `${API_BASE_URL}/api/teacher/ai/topics-with-content?classNumber=${classNumber}` +
+            `&subject=${encodeURIComponent(subjectValue)}&toolType=${encodeURIComponent(toolType)}`,
+          {
+            headers: {
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
+              'Content-Type': 'application/json',
+            },
+          },
+        );
+        if (!resp.ok) throw new Error(String(resp.status));
+        const body = await resp.json();
+        const list: string[] = body?.data?.topics || [];
+        if (cancelled) return;
+        // Unknown availability must not label anything as unavailable
+        setTopicsWithContent(
+          body?.data?.degraded || list.length === 0
+            ? null
+            : new Set(list.map((t) => String(t).trim().toLowerCase())),
+        );
+      } catch {
+        if (!cancelled) setTopicsWithContent(null);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [formParams.gradeLevel, formParams.subject, formParams.subjects, toolType]);
 
   const handleInputChange = (fieldName: string, value: any) => {
     setFormParams(prev => {
@@ -1713,17 +1743,30 @@ export default function TeacherToolPage() {
                         </SelectTrigger>
                         <SelectContent>
                           {fieldOptions.length > 0 ? (
-                            fieldOptions.map((option) => (
-                              <SelectItem key={option} value={option}>
-                                {option === WHOLE_CHAPTER_VALUE
-                                  ? 'Whole chapter'
-                                  : option === 'NONE'
-                                    ? 'General'
-                                    : field.name === 'productCategory'
-                                      ? `IIT ${formatIitCategoryLabel(option)}`
-                                      : option}
-                              </SelectItem>
-                            ))
+                            fieldOptions.map((option) => {
+                              // Chapters with no generated content for this tool are shown
+                              // but marked, so the syllabus stays visible while dead-end
+                              // picks are obvious before generating.
+                              const isTopicField = Boolean(field.isNCERT && field.name === 'topic');
+                              const noContent =
+                                isTopicField &&
+                                topicsWithContent !== null &&
+                                !topicsWithContent.has(String(option).trim().toLowerCase());
+                              return (
+                                <SelectItem key={option} value={option} disabled={noContent}>
+                                  <span className={noContent ? 'text-slate-400' : undefined}>
+                                    {option === WHOLE_CHAPTER_VALUE
+                                      ? 'Whole chapter'
+                                      : option === 'NONE'
+                                        ? 'General'
+                                        : field.name === 'productCategory'
+                                          ? `IIT ${formatIitCategoryLabel(option)}`
+                                          : option}
+                                    {noContent ? ' — no content yet' : ''}
+                                  </span>
+                                </SelectItem>
+                              );
+                            })
                           ) : (
                             <div className="px-2 py-1.5 text-xs sm:text-sm text-gray-500">
                               {field.isNCERT && field.name === 'topic'

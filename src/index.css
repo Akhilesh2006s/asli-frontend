@@ -151,6 +151,19 @@
     overflow-x: clip;
     font-size: 100%;
     -webkit-text-size-adjust: 100%;
+    /* Reserve the scrollbar track permanently. Radix locks body scroll when a
+       dropdown/dialog opens, which removes the scrollbar and shifts the whole
+       page sideways — the "giggle" on every dropdown. Reserving the gutter
+       means there is nothing to reclaim, so nothing moves. */
+    scrollbar-gutter: stable;
+  }
+
+  /* Radix locks body scroll behind the scenes and pads the body to make up for
+     the scrollbar it just removed. The gutter above already holds that space,
+     so the padding would push content sideways instead — cancel it. */
+  body[data-scroll-locked] {
+    padding-right: 0 !important;
+    margin-right: 0 !important;
   }
 
   body {

@@ -3261,20 +3261,22 @@ const TeacherDashboard = () => {
                           <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-2">Detailed Progress Report</h3>
                           <p className="text-xs sm:text-sm text-gray-600">View individual student progress and performance metrics</p>
                         </div>
-                        <div className="overflow-x-auto">
+                        {/* Scrolls inside itself with the header row pinned, so the
+                            whole page no longer moves and the columns stay labelled. */}
+                        <div className="max-h-[60vh] overflow-y-auto overflow-x-auto">
                           <table className="w-full">
-                            <thead>
+                            <thead className="sticky top-0 z-10 bg-white">
                               <tr className="border-b border-gray-200">
-                                <th className="text-left py-3 px-4 font-medium text-gray-900">Student</th>
-                                <th className="text-left py-3 px-4 font-medium text-gray-900">Class</th>
-                                <th className="text-left py-3 px-4 font-medium text-gray-900">Overall Progress</th>
-                                <th className="text-left py-3 px-4 font-medium text-gray-900">Learning Progress</th>
-                                <th className="text-left py-3 px-4 font-medium text-gray-900">Average Score</th>
-                                <th className="text-left py-3 px-4 font-medium text-gray-900">Exams Taken</th>
-                                <th className="text-left py-3 px-4 font-medium text-gray-900">Daily Avg Watch Time</th>
-                                <th className="text-left py-3 px-4 font-medium text-gray-900">Last Activity</th>
-                                <th className="text-left py-3 px-4 font-medium text-gray-900">Status</th>
-                                <th className="text-right py-3 px-4 font-medium text-gray-900">Actions</th>
+                                <th className="bg-white text-left py-3 px-4 font-medium text-gray-900">Student</th>
+                                <th className="bg-white text-left py-3 px-4 font-medium text-gray-900">Class</th>
+                                <th className="bg-white text-left py-3 px-4 font-medium text-gray-900">Overall Progress</th>
+                                <th className="bg-white text-left py-3 px-4 font-medium text-gray-900">Learning Progress</th>
+                                <th className="bg-white text-left py-3 px-4 font-medium text-gray-900">Average Score</th>
+                                <th className="bg-white text-left py-3 px-4 font-medium text-gray-900">Exams Taken</th>
+                                <th className="bg-white text-left py-3 px-4 font-medium text-gray-900">Daily Avg Watch Time</th>
+                                <th className="bg-white text-left py-3 px-4 font-medium text-gray-900">Last Activity</th>
+                                <th className="bg-white text-left py-3 px-4 font-medium text-gray-900">Status</th>
+                                <th className="bg-white text-right py-3 px-4 font-medium text-gray-900">Actions</th>
                               </tr>
                             </thead>
                             <tbody>

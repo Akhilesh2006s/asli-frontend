@@ -95,7 +95,9 @@ export function StudentShell({
       });
     } finally {
       clearAuthData();
-      setLocation("/signin");
+      // Hard replace, not client-side navigation: a pushed entry leaves the
+      // dashboard sitting in history for the Back button to reopen.
+      window.location.replace("/signin");
     }
   };
 

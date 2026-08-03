@@ -233,9 +233,11 @@ export default function AccountSeatsPanel() {
           ) : !filtered.length ? (
             <p className="py-10 text-center text-sm text-slate-500">No schools found.</p>
           ) : (
-            <div className="overflow-x-auto rounded-md border">
+            // Scrolls inside itself with the heading row pinned, instead of
+            // scrolling the whole page and losing the column labels.
+            <div className="max-h-[60vh] overflow-y-auto overflow-x-auto rounded-md border">
               <Table>
-                <TableHeader>
+                <TableHeader className="sticky top-0 z-10 bg-slate-50">
                   <TableRow className="bg-slate-50">
                     <TableHead>School</TableHead>
                     <TableHead>Students used</TableHead>

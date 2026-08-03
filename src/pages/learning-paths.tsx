@@ -61,6 +61,10 @@ function apiRoot(): "/api/teacher" | "/api/student" {
   return isTeacherPortalUser() ? "/api/teacher" : "/api/student";
 }
 
+/** Keys for restoring the view after a reload (QA: reload jumped to the root view). */
+const LEARNING_PATHS_TAB_KEY = "asli:learning-paths:tab";
+const LEARNING_PATHS_TYPE_KEY = "asli:learning-paths:contentType";
+
 export default function LearningPaths() {
   const [, setLocation] = useLocation();
   const isMobile = useIsMobile();
@@ -70,7 +74,18 @@ export default function LearningPaths() {
   const [isLoadingUser, setIsLoadingUser] = useState(true);
   const [subjects, setSubjects] = useState<any[]>([]);
   const [isLoadingSubjects, setIsLoadingSubjects] = useState(true);
-  const [activeTab, setActiveTab] = useState<'subjects' | 'quizzes'>('subjects');
+  /**
+   * Reloading used to drop the user back on the default tab and content type.
+   * The view is kept in sessionStorage so a refresh returns to where they were.
+   */
+  const [activeTab, setActiveTab] = useState<'subjects' | 'quizzes'>(() => {
+    try {
+      const saved = window.sessionStorage.getItem(LEARNING_PATHS_TAB_KEY);
+      return saved === 'quizzes' || saved === 'subjects' ? saved : 'subjects';
+    } catch {
+      return 'subjects';
+    }
+  });
   const [quizzes, setQuizzes] = useState<any[]>([]);
   const [isLoadingQuizzes, setIsLoadingQuizzes] = useState(true);
   const isAsliPrepExclusive = resolveIsAsliPrepExclusive(user);
@@ -84,7 +99,28 @@ export default function LearningPaths() {
     Video: 0,
   });
   const [isLoadingContentCounts, setIsLoadingContentCounts] = useState(true);
-  const [selectedContentType, setSelectedContentType] = useState<ContentTypeName | null>(null);
+  const [selectedContentType, setSelectedContentType] = useState<ContentTypeName | null>(() => {
+    try {
+      const saved = window.sessionStorage.getItem(LEARNING_PATHS_TYPE_KEY);
+      return saved ? (saved as ContentTypeName) : null;
+    } catch {
+      return null;
+    }
+  });
+  // Persist the view whenever it changes, so a refresh lands back here.
+  useEffect(() => {
+    try {
+      window.sessionStorage.setItem(LEARNING_PATHS_TAB_KEY, activeTab);
+      if (selectedContentType) {
+        window.sessionStorage.setItem(LEARNING_PATHS_TYPE_KEY, selectedContentType);
+      } else {
+        window.sessionStorage.removeItem(LEARNING_PATHS_TYPE_KEY);
+      }
+    } catch {
+      /* private mode — the view simply won't be restored */
+    }
+  }, [activeTab, selectedContentType]);
+
   const [filteredContent, setFilteredContent] = useState<any[]>([]);
   const [isLoadingFilteredContent, setIsLoadingFilteredContent] = useState(false);
   const [allLibraryContent, setAllLibraryContent] = useState<any[]>([]);
