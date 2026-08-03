@@ -337,15 +337,44 @@ export default function TeacherToolPage() {
 
   const normalizeSubjectName = (value: string) => {
     let compact = value.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
-    if (compact === 'maths') return 'mathematics';
-    if (compact === 'socialscience' || compact === 'socialstudies' || compact === 'sst') return 'socialscience';
-    if (compact === 'computerscience') return 'computerscience';
+    if (compact === 'maths' || compact === 'math') return 'mathematics';
+    if (
+      compact === 'socialscience' ||
+      compact === 'socialstudies' ||
+      compact === 'sst' ||
+      compact === 'social'
+    ) {
+      return 'socialscience';
+    }
+    if (compact === 'computerscience' || compact === 'computer' || compact === 'cs' || compact === 'it') {
+      return 'computerscience';
+    }
+    if (compact === 'phy' || compact.startsWith('physics')) return 'physics';
+    if (compact === 'chem' || compact.startsWith('chemistry')) return 'chemistry';
+    if (compact === 'bio' || compact.startsWith('biology')) return 'biology';
+    if (compact === 'sci' || compact === 'evs' || compact.startsWith('science')) return 'science';
     // IIT / codes like BIOLOGY_7, PHYSICS_6 → align with curriculum canonical names
-    if (compact.startsWith('biology')) return 'biology';
-    if (compact.startsWith('physics')) return 'physics';
-    if (compact.startsWith('chemistry')) return 'chemistry';
-    if (compact.startsWith('math')) return 'mathematics';
+    if (compact.startsWith('mathematics')) return 'mathematics';
     return compact;
+  };
+
+  const subjectDisplayLabel = (value: string) => {
+    const key = normalizeSubjectName(value);
+    const labels: Record<string, string> = {
+      mathematics: 'Mathematics',
+      physics: 'Physics',
+      chemistry: 'Chemistry',
+      biology: 'Biology',
+      science: 'Science',
+      socialscience: 'Social Science',
+      computerscience: 'Computer Science',
+      english: 'English',
+      hindi: 'Hindi',
+      telugu: 'Telugu',
+    };
+    if (labels[key]) return labels[key];
+    const trimmed = value.trim();
+    return trimmed || value;
   };
 
   const uniquePreserveOrder = (items: string[]) => {
@@ -360,12 +389,22 @@ export default function TeacherToolPage() {
     return result;
   };
 
-  const restrictToAssignedSubjects = (subjects: string[]) => {
-    if (assignedSubjectNames.length === 0) return subjects;
-    const allowed = new Set(assignedSubjectNames.map(normalizeSubjectName));
-    return uniquePreserveOrder(
-      subjects.filter((subject) => allowed.has(normalizeSubjectName(subject))),
+  /** Assigned subjects ∪ curriculum matches — never hide subjects the teacher actually teaches. */
+  const mergeAssignedWithCurriculum = (curriculumSubjects: string[]) => {
+    if (assignedSubjectNames.length === 0) {
+      return uniquePreserveOrder(curriculumSubjects);
+    }
+    const assignedKeys = new Set(assignedSubjectNames.map(normalizeSubjectName));
+    const fromCurriculum = uniquePreserveOrder(
+      curriculumSubjects.filter((s) => assignedKeys.has(normalizeSubjectName(s))),
     );
+    const matchedKeys = new Set(fromCurriculum.map(normalizeSubjectName));
+    const assignedOnly = uniquePreserveOrder(
+      assignedSubjectNames
+        .filter((s) => !matchedKeys.has(normalizeSubjectName(s)))
+        .map((s) => subjectDisplayLabel(s)),
+    );
+    return uniquePreserveOrder([...fromCurriculum, ...assignedOnly]);
   };
 
   const cascade = useCurriculumCascade(
@@ -384,11 +423,13 @@ export default function TeacherToolPage() {
     if (cascade.loadingSubjects && raw.length === 0) {
       return [];
     }
+    // Prefer assigned subjects even when curriculum taxonomy is incomplete
+    // (e.g. Class 6 CBSE cascade may only list English / Math / Science).
+    if (assignedSubjectNames.length > 0) {
+      return mergeAssignedWithCurriculum(raw);
+    }
     if (raw.length === 0) return [];
-    const restricted = restrictToAssignedSubjects(raw);
-    if (restricted.length > 0) return restricted;
-    if (raw.length > 0) return raw;
-    return [];
+    return uniquePreserveOrder(raw);
   })();
 
   const classSelectOptions =
@@ -739,8 +780,9 @@ export default function TeacherToolPage() {
     cascade.loadingTopics,
   ]);
 
-  // Which chapters have generated content for this tool — one request, used to
-  // label the dropdown so nobody picks a chapter that cannot generate.
+  // Which chapters have saved AI Tool Data for this tool — hint only.
+  // Never block selection: Super Admin may store slightly different topic titles,
+  // and generate-content already returns a clear message when nothing matches.
   useEffect(() => {
     const classValue = String(formParams.gradeLevel || '').trim();
     const subjectValue = String(
@@ -761,9 +803,12 @@ export default function TeacherToolPage() {
     (async () => {
       try {
         const token = getAuthToken();
+        const boardQs = selectedBoard
+          ? `&board=${encodeURIComponent(selectedBoard)}`
+          : '';
         const resp = await fetch(
           `${API_BASE_URL}/api/teacher/ai/topics-with-content?classNumber=${classNumber}` +
-            `&subject=${encodeURIComponent(subjectValue)}&toolType=${encodeURIComponent(toolType)}`,
+            `&subject=${encodeURIComponent(subjectValue)}&toolType=${encodeURIComponent(toolType)}${boardQs}`,
           {
             headers: {
               ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -789,7 +834,40 @@ export default function TeacherToolPage() {
     return () => {
       cancelled = true;
     };
-  }, [formParams.gradeLevel, formParams.subject, formParams.subjects, toolType]);
+  }, [formParams.gradeLevel, formParams.subject, formParams.subjects, toolType, selectedBoard]);
+
+  const topicHasSavedContent = useCallback(
+    (option: string): boolean | null => {
+      if (topicsWithContent === null) return null;
+      const opt = String(option || '').trim().toLowerCase();
+      if (!opt) return false;
+      if (topicsWithContent.has(opt)) return true;
+      const optCompact = opt.replace(/[^a-z0-9]+/g, '');
+      for (const stored of topicsWithContent) {
+        if (!stored) continue;
+        if (opt.includes(stored) || stored.includes(opt)) return true;
+        const storedCompact = stored.replace(/[^a-z0-9]+/g, '');
+        if (
+          storedCompact.length >= 8 &&
+          optCompact.length >= 8 &&
+          (optCompact.includes(storedCompact) || storedCompact.includes(optCompact))
+        ) {
+          return true;
+        }
+        // Syllabus: "Unit 1 - … - A Bottle of Dew (Story)" vs stored "A Bottle of Dew"
+        const dashParts = opt
+          .split(/\s+-\s+/)
+          .map((p) => p.replace(/\([^)]*\)/g, '').trim())
+          .filter(Boolean);
+        for (const part of dashParts) {
+          if (part.length < 6) continue;
+          if (stored === part || stored.includes(part) || part.includes(stored)) return true;
+        }
+      }
+      return false;
+    },
+    [topicsWithContent],
+  );
 
   const handleInputChange = (fieldName: string, value: any) => {
     setFormParams(prev => {
@@ -1755,17 +1833,14 @@ export default function TeacherToolPage() {
                         <SelectContent>
                           {fieldOptions.length > 0 ? (
                             fieldOptions.map((option) => {
-                              // Chapters with no generated content for this tool are shown
-                              // but marked, so the syllabus stays visible while dead-end
-                              // picks are obvious before generating.
+                              // Hint when Super Admin has not saved AI Tool Data for this
+                              // chapter yet — keep selectable so title mismatches still work.
                               const isTopicField = Boolean(field.isNCERT && field.name === 'topic');
-                              const noContent =
-                                isTopicField &&
-                                topicsWithContent !== null &&
-                                !topicsWithContent.has(String(option).trim().toLowerCase());
+                              const saved = isTopicField ? topicHasSavedContent(String(option)) : null;
+                              const noSavedHint = saved === false;
                               return (
-                                <SelectItem key={option} value={option} disabled={noContent}>
-                                  <span className={noContent ? 'text-slate-400' : undefined}>
+                                <SelectItem key={option} value={option}>
+                                  <span className={noSavedHint ? 'text-slate-500' : undefined}>
                                     {option === WHOLE_CHAPTER_VALUE
                                       ? 'Whole chapter'
                                       : option === 'NONE'
@@ -1773,7 +1848,7 @@ export default function TeacherToolPage() {
                                         : field.name === 'productCategory'
                                           ? `IIT ${formatIitCategoryLabel(option)}`
                                           : option}
-                                    {noContent ? ' — no content yet' : ''}
+                                    {noSavedHint ? ' — no saved content yet' : ''}
                                   </span>
                                 </SelectItem>
                               );
@@ -1789,6 +1864,12 @@ export default function TeacherToolPage() {
                           )}
                         </SelectContent>
                       </Select>
+                      {field.isNCERT && field.name === 'topic' && topicsWithContent !== null ? (
+                        <p className="text-[11px] text-slate-500 leading-snug">
+                          Topics with saved AI Tool Data are ready to open. Others need Super Admin
+                          to generate them under AI Tool Generations first (you can still select them).
+                        </p>
+                      ) : null}
                       ) : field.type === 'textarea' ? (
                     <Textarea
                       id={field.name}
