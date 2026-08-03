@@ -602,15 +602,43 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
   };
 
   const pollBookGeneratorJob = async (jobId: string) => {
-    const maxPolls = 400;
+    // Up to ~60 minutes (1200 × 3s). Premium book batches often need 15–40 min.
+    const maxPolls = 1200;
+    let consecutiveNetworkErrors = 0;
     for (let attempt = 0; attempt < maxPolls; attempt += 1) {
       if (attempt > 0) {
         await new Promise((resolve) => setTimeout(resolve, 3000));
       }
-      const res = await fetch(`${API_BASE_URL}/api/book-generator/jobs/${jobId}`, {
-        headers: authHeaders(),
-      });
-      const json = await res.json();
+      let res: Response;
+      let json: { data?: Record<string, unknown>; message?: string };
+      try {
+        res = await resilientFetch(`${API_BASE_URL}/api/book-generator/jobs/${jobId}`, {
+          headers: authHeaders(),
+          retries: 3,
+          retryDelayMs: 1500,
+          timeoutMs: 30_000,
+        });
+        json = await res.json();
+        consecutiveNetworkErrors = 0;
+      } catch (err) {
+        consecutiveNetworkErrors += 1;
+        setProgress(
+          `Connection blip while checking status (retry ${consecutiveNetworkErrors}) — generation usually continues on the server…`,
+        );
+        // Don't kill a long batch for a single proxy/network drop; keep polling.
+        if (consecutiveNetworkErrors < 40) continue;
+        throw err;
+      }
+
+      if (!res.ok) {
+        // Job store may briefly miss after restart — keep polling a bit.
+        if (res.status === 404 && attempt < 20) {
+          setProgress("Waiting for generation job to appear…");
+          continue;
+        }
+        throw new Error(json?.message || `Job status failed (${res.status})`);
+      }
+
       const job = (json.data || {}) as {
         done?: boolean;
         locked?: boolean;
@@ -647,7 +675,8 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
 
     toast({
       title: "Still generating",
-      description: "The batch is taking longer than expected. Check AI Tool Data in a few minutes.",
+      description:
+        "The batch is taking longer than expected. Leave this page, wait a few minutes, then refresh the records list — work often finishes on the server after the browser disconnects.",
     });
   };
 
@@ -719,13 +748,14 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
     setProgress("Retrieving textbook chunks for your topic…");
     if (!opts?.forceUnlock) setLastBatchSummary(null);
     try {
+      // Kickoff should return 202 quickly. Retries are safe: a second POST gets 409 + jobId if already running.
       const res = await resilientFetch(`${API_BASE_URL}/api/book-generator/generate-batch`, {
         method: "POST",
         headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify(buildGenerationPayload(opts?.forceUnlock)),
         retries: 2,
         retryDelayMs: 2500,
-        timeoutMs: 0,
+        timeoutMs: 120_000,
       });
       const json = await res.json();
 
@@ -735,7 +765,7 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
         toast({
           title: "Generation already in progress",
           description: existingJobId
-            ? "A batch is still running for this book/sub-topic. Wait a few minutes or use “Clear lock & retry”."
+            ? "A batch is still running for this book/sub-topic. Waiting for it to finish…"
             : "A previous batch may still be running, or a lock is stuck. Use “Clear lock & retry” below.",
           variant: "destructive",
         });
@@ -747,7 +777,7 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
       }
 
       if (res.status === 202 && json.data?.jobId) {
-        setProgress(`Generation started — 0/${batchSize} saved (this may take 10–25 min for heavy tools)…`);
+        setProgress(`Generation started — 0/${batchSize} saved (this may take 10–40 min for heavy tools)…`);
         await pollBookGeneratorJob(String(json.data.jobId));
         return;
       }
@@ -759,6 +789,11 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
         title: "Generation failed",
         description: networkErrorUserMessage(e),
         variant: "destructive",
+      });
+      toast({
+        title: "Check before retrying",
+        description:
+          "The server may still be generating. Wait 1–2 minutes, refresh records below, and only use Clear lock & retry if nothing new appeared.",
       });
     } finally {
       setIsGenerating(false);
