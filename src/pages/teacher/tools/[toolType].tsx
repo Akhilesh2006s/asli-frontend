@@ -1791,6 +1791,7 @@ export default function TeacherToolPage() {
                     className={field.type === 'textarea' ? 'sm:col-span-2 lg:col-span-3' : ''}
                   >
                     {(field.type === 'select' || field.isNCERT || field.isCascadeSubtopic) ? (
+                      <>
                       <Select
                         value={selectValue}
                         onValueChange={(value) => {
@@ -1887,11 +1888,12 @@ export default function TeacherToolPage() {
                         </SelectContent>
                       </Select>
                       {field.isNCERT && field.name === 'topic' && topicsWithContent !== null ? (
-                        <p className="text-[11px] text-slate-500 leading-snug">
+                        <p className="mt-1.5 text-[11px] text-slate-500 leading-snug">
                           Topics with saved AI Tool Data are ready to open. Others need Super Admin
                           to generate them under AI Tool Generations first (you can still select them).
                         </p>
                       ) : null}
+                      </>
                       ) : field.type === 'textarea' ? (
                     <Textarea
                       id={field.name}
