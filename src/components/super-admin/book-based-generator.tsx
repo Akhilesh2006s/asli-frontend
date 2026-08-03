@@ -777,7 +777,9 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
       }
 
       if (res.status === 202 && json.data?.jobId) {
-        setProgress(`Generation started — 0/${batchSize} saved (this may take 10–40 min for heavy tools)…`);
+        setProgress(
+          `Generation started — 0/${batchSize} saved. Gemini 3.1 Flash-Lite is running; leave this tab open…`,
+        );
         await pollBookGeneratorJob(String(json.data.jobId));
         return;
       }
@@ -833,7 +835,7 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
         </p>
         <p>
           <strong>Content generation</strong> (this page): choose how many records to generate per batch ({GENERATION_RECORD_COUNT_MIN}–{BOOK_GENERATOR_MAX_BATCH_SIZE}) with Gemini.
-          <strong> Premium</strong> uses Gemini 3.1 Pro Preview; <strong>Balanced</strong> and <strong>Fast</strong> use Gemini 3.1 Flash-Lite.
+          <strong> Premium</strong>, <strong>Balanced</strong>, and <strong>Fast</strong> all use Gemini 3.1 Flash-Lite (Premium adds stricter validation and more retries).
           Token count and estimated ₹ cost appear below after each run.
         </p>
       </div>

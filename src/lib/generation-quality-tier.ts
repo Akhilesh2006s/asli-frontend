@@ -2,7 +2,7 @@ export const GENERATION_QUALITY_TIERS = [
   {
     id: "premium" as const,
     label: "Premium",
-    description: "Gemini 3.1 Pro Preview — strict validation, dedup, and more retries (best board-grade quality)",
+    description: "Gemini 3.1 Flash-Lite — strict validation, dedup, and more retries",
   },
   {
     id: "balanced" as const,

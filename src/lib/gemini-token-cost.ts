@@ -44,19 +44,19 @@ export function normalizeGeminiModelLabel(modelName = ""): string {
   const raw = String(modelName || "").trim();
   if (!raw) return "";
   const lower = raw.toLowerCase();
-  if (lower.includes("pro")) {
-    return lower.includes("3.1") ? "gemini-3.1-pro-preview" : raw;
+  // Pro is blocked — always report Flash-Lite 3.1.
+  if (lower.includes("pro") && !lower.includes("flash")) {
+    return "gemini-3.1-flash-lite";
   }
   if (lower.includes("flash-lite") || lower.includes("flash_lite")) {
     return lower.includes("3.1") ? "gemini-3.1-flash-lite" : "gemini-2.5-flash-lite";
   }
-  if (lower.includes("3.5")) return "gemini-3.5-flash";
   if (lower.includes("3.1") && lower.includes("flash")) return "gemini-3.1-flash-lite";
   if (lower.startsWith("gemini-1.5") || lower.startsWith("gemini-1.0")) {
-    return "gemini-3.1-flash-lite (legacy env model)";
+    return "gemini-3.1-flash-lite";
   }
-  if (lower.includes("flash")) return "gemini-2.5-flash";
-  return raw;
+  if (lower.includes("flash")) return "gemini-3.1-flash-lite";
+  return "gemini-3.1-flash-lite";
 }
 
 export function formatModelsUsedFromTokenUsage(tokenUsage?: TokenUsageSnapshot): string {
@@ -76,12 +76,12 @@ export function formatModelsUsedFromTokenUsage(tokenUsage?: TokenUsageSnapshot):
 
 export function resolveGeminiPricing(modelName = "") {
   const model = String(modelName || "").toLowerCase();
-  if (model.includes("pro")) {
+  if (model.includes("pro") && !model.includes("flash")) {
     return {
-      model: model.includes("3.1") ? "gemini-3.1-pro-preview" : modelName || "gemini-3.1-pro-preview",
-      inputUsdPerM: 2,
-      outputUsdPerM: 12,
-      pricingNote: "Estimated from Pro list pricing (input $2/M, output $12/M).",
+      model: "gemini-3.1-flash-lite",
+      inputUsdPerM: GEMINI_25_FLASH_LITE_INPUT_USD_PER_M,
+      outputUsdPerM: GEMINI_25_FLASH_LITE_OUTPUT_USD_PER_M,
+      pricingNote: "Estimated from Flash-Lite list pricing (input $0.10/M, output $0.40/M).",
     };
   }
   if (model.includes("flash-lite") || model.includes("flash_lite")) {
@@ -94,10 +94,10 @@ export function resolveGeminiPricing(modelName = "") {
     };
   }
   return {
-    model: model.includes("3.5") ? "gemini-3.5-flash" : "gemini-2.5-flash",
-    inputUsdPerM: GEMINI_25_FLASH_INPUT_USD_PER_M,
-    outputUsdPerM: GEMINI_25_FLASH_OUTPUT_USD_PER_M,
-    pricingNote: "Estimated from Flash list pricing (input $0.30/M, output $2.50/M).",
+    model: "gemini-3.1-flash-lite",
+    inputUsdPerM: GEMINI_25_FLASH_LITE_INPUT_USD_PER_M,
+    outputUsdPerM: GEMINI_25_FLASH_LITE_OUTPUT_USD_PER_M,
+    pricingNote: "Estimated from Flash-Lite list pricing (input $0.10/M, output $0.40/M).",
   };
 }
 
