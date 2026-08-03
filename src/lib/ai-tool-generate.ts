@@ -121,12 +121,12 @@ export function resolveAiToolApiInlineMessage(
 const ADMIN_FACING_COPY = /super\s*admin|ai tool generations|ai tool data|mapping/i;
 
 /**
- * A missing subtopic is a normal gap in coverage, not a failure the student
+ * A missing chapter is a normal gap in coverage, not a failure the student
  * caused — and they can't act on "ask Super Admin to add this mapping".
  * Rewrites those into something a student can actually use.
  */
 export function resolveAiToolStudentEmptyMessage(
-  data: { message?: string; code?: string },
+  data: { message?: string; code?: string; availableTopics?: string[] },
   toolName?: string,
 ): { message: string; isContentGap: boolean } {
   const raw = resolveAiToolApiInlineMessage(data, toolName);
@@ -138,8 +138,35 @@ export function resolveAiToolStudentEmptyMessage(
 
   if (!isContentGap) return { message: raw, isContentGap: false };
 
+  const ready = Array.isArray(data.availableTopics)
+    ? data.availableTopics.map((t) => String(t || '').trim()).filter(Boolean)
+    : [];
+
+  if (data.code === 'AI_TOOL_CONTENT_INCOMPLETE') {
+    return {
+      message: `This ${toolName || 'content'} is still incomplete for the selected chapter. Try another chapter for now.`,
+      isContentGap: true,
+    };
+  }
+
+  if (data.code === 'AI_TOOL_WRONG_TYPE') {
+    return {
+      message: `Saved content for this chapter is not a ${toolName || 'valid tool'} yet. Try another chapter.`,
+      isContentGap: true,
+    };
+  }
+
+  if (ready.length > 0) {
+    const shown = ready.slice(0, 6).join('; ');
+    const more = ready.length > 6 ? ` (+${ready.length - 6} more)` : '';
+    return {
+      message: `No ${toolName || 'content'} is ready for this chapter yet. Try one of these ready chapters: ${shown}${more}.`,
+      isContentGap: true,
+    };
+  }
+
   return {
-    message: `No ${toolName || 'content'} is ready for this sub-topic yet. Try another sub-topic or chapter — more is being added.`,
+    message: `No ${toolName || 'content'} is ready for this class and subject yet. Try another chapter — more is being added.`,
     isContentGap: true,
   };
 }

@@ -12,7 +12,7 @@ import {
   isAiToolApiFailureInline,
   isAiToolClientValidationError,
   isAiToolInlineOnlyError,
-  resolveAiToolApiInlineMessage,
+  resolveAiToolStudentEmptyMessage,
   sanitizeAiToolDateValue,
   todayAiToolDate,
   validateAiToolForm,
@@ -842,14 +842,20 @@ export default function TeacherToolPage() {
       const opt = String(option || '').trim().toLowerCase();
       if (!opt) return false;
       if (topicsWithContent.has(opt)) return true;
-      const optCompact = opt.replace(/[^a-z0-9]+/g, '');
+      // Keep letters from any script (Hindi/Telugu chapter titles must not become "").
+      const compactKey = (value: string) =>
+        String(value || '')
+          .normalize('NFC')
+          .toLowerCase()
+          .replace(/[^\p{L}\p{N}]+/gu, '');
+      const optCompact = compactKey(option);
       for (const stored of topicsWithContent) {
         if (!stored) continue;
         if (opt.includes(stored) || stored.includes(opt)) return true;
-        const storedCompact = stored.replace(/[^a-z0-9]+/g, '');
+        const storedCompact = compactKey(stored);
         if (
-          storedCompact.length >= 8 &&
-          optCompact.length >= 8 &&
+          storedCompact.length >= 4 &&
+          optCompact.length >= 4 &&
           (optCompact.includes(storedCompact) || storedCompact.includes(optCompact))
         ) {
           return true;
@@ -860,7 +866,7 @@ export default function TeacherToolPage() {
           .map((p) => p.replace(/\([^)]*\)/g, '').trim())
           .filter(Boolean);
         for (const part of dashParts) {
-          if (part.length < 6) continue;
+          if (part.length < 3) continue;
           if (stored === part || stored.includes(part) || part.includes(stored)) return true;
         }
       }
@@ -1038,7 +1044,21 @@ export default function TeacherToolPage() {
       });
 
       const responseText = await response.text();
-      let data: { success?: boolean; data?: { content?: string; rawData?: unknown; metadata?: AiToolGenerationMeta & { aiUnavailable?: boolean; chunksUsed?: number; citations?: CitationItem[] } }; message?: string; code?: string } = {};
+      let data: {
+        success?: boolean;
+        data?: {
+          content?: string;
+          rawData?: unknown;
+          metadata?: AiToolGenerationMeta & {
+            aiUnavailable?: boolean;
+            chunksUsed?: number;
+            citations?: CitationItem[];
+          };
+        };
+        message?: string;
+        code?: string;
+        availableTopics?: string[];
+      } = {};
       try {
         data = responseText ? JSON.parse(responseText) : {};
       } catch {
@@ -1047,11 +1067,13 @@ export default function TeacherToolPage() {
 
       if (!response.ok) {
         if (isAiToolApiFailureInline(response, data?.code)) {
-          showInlineOutputMessage(resolveAiToolApiInlineMessage(data, config?.name));
+          const empty = resolveAiToolStudentEmptyMessage(data, config?.name);
+          showInlineOutputMessage(empty.message);
           return;
         }
         if (response.status === 503 && data?.code === 'AI_UNAVAILABLE_NO_FALLBACK') {
-          showInlineOutputMessage(resolveAiToolApiInlineMessage(data, config?.name));
+          const empty = resolveAiToolStudentEmptyMessage(data, config?.name);
+          showInlineOutputMessage(empty.message);
           return;
         }
         const errorMessage =

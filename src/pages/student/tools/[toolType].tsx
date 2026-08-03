@@ -1091,6 +1091,7 @@ export default function StudentToolPage() {
           };
           message?: string;
           code?: string;
+          availableTopics?: string[];
         } = {};
         try {
           data = responseText ? JSON.parse(responseText) : {};
@@ -1160,6 +1161,7 @@ export default function StudentToolPage() {
           };
           message?: string;
           code?: string;
+          availableTopics?: string[];
         } = {};
         try {
           data = responseText ? JSON.parse(responseText) : {};
