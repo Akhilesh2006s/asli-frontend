@@ -214,7 +214,7 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
   const [subTopic, setSubTopic] = useState(WHOLE_CHAPTER_VALUE);
   const [extraSubTopics, setExtraSubTopics] = useState<string[]>([]);
   /** When Whole chapter is selected, also generate one batch per real subtopic. */
-  const [expandEachSubtopic, setExpandEachSubtopic] = useState(true);
+  const [expandEachSubtopic, setExpandEachSubtopic] = useState(false);
   const [bookId, setBookId] = useState("");
   const [useBookKnowledge, setUseBookKnowledge] = useState(true);
   const [qualityTier, setQualityTier] = useState<GenerationQualityTierId>(DEFAULT_GENERATION_QUALITY_TIER);
@@ -584,18 +584,30 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
         Array.isArray(failures) &&
         failures.length > 0 &&
         failures.every((line) => /spending cap|monthly spend|Billing\/Spend/i.test(line));
+      const allAuth =
+        Array.isArray(failures) &&
+        failures.length > 0 &&
+        failures.every((line) =>
+          /ACCESS_TOKEN_TYPE_UNSUPPORTED|invalid or missing|reported as leaked|API key type|check GEMINI_API_KEY/i.test(
+            line,
+          ),
+        );
       const retryHint = allSpendCap
         ? " Raise the Gemini project spending cap in Google AI Studio (Billing/Spend), then retry."
-        : allBusy
+        : allAuth
+          ? " Stop retrying — create a working key in Google Cloud Console (Credentials) or another Google account, put it in server .env, then pm2 restart."
+          : allBusy
           ? " Gemini may be rate-limited. Wait 1–2 minutes, try Balanced or Fast, or generate fewer records (3–5)."
           : "";
       const failNote =
-        failures?.length && failedCount > 0
+        allAuth && failures?.length
+          ? failures[0]
+          : failures?.length && failedCount > 0
           ? `${failedCount} slot(s) failed. ${failures[0]}${failures.length > 1 ? ` (+${failures.length - 1} more)` : ""}${retryHint}`
           : `${json.message || "No records were saved."}${retryHint}`;
       toast({
-        title: "Batch failed",
-        description: failNote,
+        title: allAuth ? "Gemini API key blocked" : "Batch failed",
+        description: failNote + (allAuth ? retryHint : ""),
         variant: "destructive",
       });
     }

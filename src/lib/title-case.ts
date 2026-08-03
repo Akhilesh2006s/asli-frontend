@@ -1,31 +1,82 @@
-/** Known acronyms / tokens to preserve casing (MCQs, IIT, etc.). */
-const PRESERVE_TOKENS = new Set([
-  'MCQ',
-  'MCQs',
-  'IIT',
-  'CBSE',
-  'NEP',
-  'NCF',
-  'AI',
-  'V2',
-  'PDF',
-  'CSV',
-  'URL',
-  'ASLI',
+/**
+ * Acronyms that must keep their own casing, keyed by their UPPERCASE form
+ * because that is what the lookup normalises to.
+ *
+ * The previous version stored mixed-case entries like 'MCQs' in a Set and then
+ * looked up `bare.toUpperCase()` — 'MCQS' never matched 'MCQs', so the very
+ * acronyms this list existed to protect were title-cased into "Mcqs". VSAQ,
+ * SAQ and LAQ were missing entirely, which is why every AI tool form showed
+ * "Mcqs / Vsaqs / Saqs / Laqs".
+ */
+const ACRONYM_DISPLAY = new Map<string, string>([
+  ['MCQ', 'MCQ'],
+  ['MCQS', 'MCQs'],
+  ['VSAQ', 'VSAQ'],
+  ['VSAQS', 'VSAQs'],
+  ['SAQ', 'SAQ'],
+  ['SAQS', 'SAQs'],
+  ['LAQ', 'LAQ'],
+  ['LAQS', 'LAQs'],
+  ['HOTS', 'HOTS'],
+  ['NCERT', 'NCERT'],
+  ['IIT', 'IIT'],
+  ['NEET', 'NEET'],
+  ['CBSE', 'CBSE'],
+  ['ICSE', 'ICSE'],
+  ['SSC', 'SSC'],
+  ['NEP', 'NEP'],
+  ['NCF', 'NCF'],
+  ['AI', 'AI'],
+  ['V2', 'V2'],
+  ['PDF', 'PDF'],
+  ['PDFS', 'PDFs'],
+  ['DOCX', 'DOCX'],
+  ['CSV', 'CSV'],
+  ['URL', 'URL'],
+  ['ASLI', 'ASLI'],
+  ['OCR', 'OCR'],
+  ['RAG', 'RAG'],
+  ['QA', 'Q&A'],
+  ['FAQ', 'FAQ'],
+  ['FAQS', 'FAQs'],
+  ['UI', 'UI'],
+  ['API', 'API'],
+  ['ID', 'ID'],
+  ['IDS', 'IDs'],
+  ['OTP', 'OTP'],
+  ['SMS', 'SMS'],
 ]);
 
-function titleCaseToken(token: string): string {
+/**
+ * Words that stay lowercase inside a title (never at the start or end).
+ * Without this, labels read "Leave Empty For Whole Chapter" and
+ * "Fill In The Blanks".
+ */
+const SMALL_WORDS = new Set([
+  'a', 'an', 'and', 'as', 'at', 'but', 'by', 'for', 'from', 'in', 'into',
+  'nor', 'of', 'on', 'onto', 'or', 'over', 'per', 'the', 'to', 'up', 'via',
+  'vs', 'with',
+]);
+
+function titleCaseToken(token: string, isFirst: boolean, isLast: boolean): string {
   if (!token) return token;
   if (/^\d+$/.test(token)) return token;
+
   const bare = token.replace(/[^\w'-]/g, '');
-  if (PRESERVE_TOKENS.has(bare.toUpperCase())) {
-    return token.replace(bare, bare.toUpperCase());
-  }
+  const display = ACRONYM_DISPLAY.get(bare.toUpperCase());
+  if (display) return token.replace(bare, display);
+
+  // Already an all-caps acronym we don't know — leave it alone.
   if (/^[A-Z0-9]{2,}$/.test(bare)) return token;
 
   const match = token.match(/^([^A-Za-z0-9]*)([A-Za-z0-9][A-Za-z0-9'/-]*)([^A-Za-z0-9]*)$/);
   if (!match) return token;
   const [, pre, core, post] = match;
+
+  if (!isFirst && !isLast && SMALL_WORDS.has(core.toLowerCase())) {
+    return `${pre}${core.toLowerCase()}${post}`;
+  }
+
   const cased = core.charAt(0).toUpperCase() + core.slice(1).toLowerCase();
   return `${pre}${cased}${post}`;
 }
@@ -46,9 +97,8 @@ export function formatAiToolText(value: string): string {
       .map((line) => formatAiToolText(line))
       .join('\n');
   }
-  return raw
-    .split(/\s+/)
-    .filter(Boolean)
-    .map(titleCaseToken)
+  const words = raw.split(/\s+/).filter(Boolean);
+  return words
+    .map((token, i) => titleCaseToken(token, i === 0, i === words.length - 1))
     .join(' ');
 }
