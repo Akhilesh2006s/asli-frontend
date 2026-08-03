@@ -77,7 +77,7 @@ function ToolCard({
 export default function AIToolsDashboard() {
   return (
     <StudentShell>
-      <div className="asli-app-bg min-h-screen">
+      <div className="asli-app-bg min-h-0 w-full">
         <div className="mx-auto flex max-w-7xl flex-col gap-8 px-5 pb-16 sm:px-8 ">
           <header className="max-w-4xl space-y-4">
             <Badge className="rounded-full bg-indigo-blue-100 text-indigo-blue-800 ring-1 ring-indigo-blue-200">

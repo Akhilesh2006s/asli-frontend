@@ -116,6 +116,20 @@ export default function SuperAdminDashboard() {
 
   const VIDYA_PREFS_KEY = "superAdminVidyaPrefs";
 
+  // Same contract as AppShell: lock document scroll so only the main pane moves.
+  useEffect(() => {
+    const html = document.documentElement;
+    const body = document.body;
+    const prevHtmlOverflow = html.style.overflow;
+    const prevBodyOverflow = body.style.overflow;
+    html.style.overflow = "hidden";
+    body.style.overflow = "hidden";
+    return () => {
+      html.style.overflow = prevHtmlOverflow;
+      body.style.overflow = prevBodyOverflow;
+    };
+  }, []);
+
   useEffect(() => {
     clearSuperAdminDashboardQueryFromUrl();
     const restore = consumeSuperAdminViewRestore();
@@ -1275,7 +1289,7 @@ export default function SuperAdminDashboard() {
   };
 
   return (
-    <div className="bg-gray-50 min-h-screen">
+    <div className="fixed inset-0 z-10 flex overflow-hidden bg-gray-50">
       {/* Fixed sidebar */}
       <SuperAdminSidebar
         currentView={currentView}
@@ -1284,16 +1298,17 @@ export default function SuperAdminDashboard() {
         onLogout={handleLogout}
       />
 
-      {/* Scrollable main content area */}
+      {/* Internal main scroller — sidebar stays pinned */}
       <div
         className={cn(
-          "flex flex-col overflow-x-hidden",
-          superAdminDrawerNav ? "ml-0 min-h-screen pt-14 pb-16 sm:pb-0" : "sm:ml-[60px] lg:ml-64 min-h-screen",
+          "flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden",
+          superAdminDrawerNav ? "ml-0 pt-14 pb-16 sm:pb-0" : "sm:ml-[60px] lg:ml-64",
         )}
       >
-        <div
+        <main
+          data-dashboard-main-scroll=""
           className={cn(
-            "flex-1 min-h-0",
+            "dashboard-main-scroll custom-scrollbar min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain",
             currentView === "ai-tool-generations"
               ? "p-0"
               : superAdminDrawerNav
@@ -1302,7 +1317,7 @@ export default function SuperAdminDashboard() {
           )}
         >
           {renderContent()}
-        </div>
+        </main>
       </div>
 
       <Dialog open={vidyaSettingsOpen} onOpenChange={setVidyaSettingsOpen}>

@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { API_BASE_URL } from "@/lib/api-config";
 import { getAuthToken } from "@/lib/auth-utils";
 import { useToast } from "@/hooks/use-toast";
+import { DashboardScrollPanel } from "@/components/layout/DashboardScrollPanel";
 import {
   Download,
   FileText,
@@ -312,18 +313,16 @@ export function ImpactReportsPanel() {
             then download PDF.
           </p>
         ) : (
-          // Scrolls inside itself with the heading row pinned, instead of
-          // scrolling the whole page and losing the column labels.
-          <div className="max-h-[60vh] overflow-y-auto overflow-x-auto rounded-xl border border-slate-200">
+          <DashboardScrollPanel className="rounded-xl border border-slate-200">
             <table className="min-w-full text-sm">
               <thead className="sticky top-0 z-10 bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
                 <tr>
-                  <th className="px-3 py-2">School</th>
-                  <th className="px-3 py-2">Teachers active</th>
-                  <th className="px-3 py-2">Students accessed</th>
-                  <th className="px-3 py-2">Sessions</th>
-                  <th className="px-3 py-2">AI / Practice</th>
-                  <th className="px-3 py-2">Actions</th>
+                  <th className="bg-slate-50 px-3 py-2">School</th>
+                  <th className="bg-slate-50 px-3 py-2">Teachers active</th>
+                  <th className="bg-slate-50 px-3 py-2">Students accessed</th>
+                  <th className="bg-slate-50 px-3 py-2">Sessions</th>
+                  <th className="bg-slate-50 px-3 py-2">AI / Practice</th>
+                  <th className="bg-slate-50 px-3 py-2">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -364,7 +363,7 @@ export function ImpactReportsPanel() {
                 ))}
               </tbody>
             </table>
-          </div>
+          </DashboardScrollPanel>
         )}
 
         {selected ? (

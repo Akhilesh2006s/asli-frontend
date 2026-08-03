@@ -425,7 +425,7 @@ const SubjectManagement = () => {
     : 0;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-orange-100 to-teal-50 overflow-x-hidden">
+    <div className="min-h-0 w-full overflow-x-hidden bg-gradient-to-br from-orange-50 via-orange-100 to-teal-50">
       <div className="space-y-3 sm:space-y-4 lg:space-y-6 p-3 sm:space-y-8 sm:p-4 lg:p-6">
         {/* Hero Section with Vibrant Subject Stats */}
         <div className="relative overflow-hidden">
@@ -714,9 +714,6 @@ const SubjectManagement = () => {
 
         {/* Subjects Table */}
         <div className="bg-white/70 backdrop-blur-xl rounded-2xl shadow-lg border border-sky-200 overflow-hidden">
-          {/* Scrolls inside itself with the heading row pinned, instead of
-              dumping every subject onto the page at once. */}
-          <div className="max-h-[60vh] overflow-y-auto overflow-x-auto">
           <Table className="min-w-[640px]">
             <TableHeader className="sticky top-0 z-10 bg-sky-50">
               <TableRow className="bg-sky-50/50">
@@ -805,7 +802,6 @@ const SubjectManagement = () => {
               ))}
             </TableBody>
           </Table>
-          </div>
         </div>
 
         {filteredSubjects.length === 0 && (

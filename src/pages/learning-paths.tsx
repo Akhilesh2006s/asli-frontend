@@ -64,6 +64,50 @@ function apiRoot(): "/api/teacher" | "/api/student" {
 /** Keys for restoring the view after a reload (QA: reload jumped to the root view). */
 const LEARNING_PATHS_TAB_KEY = "asli:learning-paths:tab";
 const LEARNING_PATHS_TYPE_KEY = "asli:learning-paths:contentType";
+const LEARNING_PATHS_PREVIEW_KEY = "asli:learning-paths:preview";
+
+type StoredLearningPathPreview = {
+  id: string;
+  title?: string;
+  fileUrl?: string;
+  type?: string;
+  description?: string;
+  subject?: unknown;
+};
+
+function readStoredPreview(): StoredLearningPathPreview | null {
+  try {
+    const raw = window.sessionStorage.getItem(LEARNING_PATHS_PREVIEW_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as StoredLearningPathPreview;
+    if (!parsed?.id || !parsed?.fileUrl) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function writeStoredPreview(content: StoredLearningPathPreview | null) {
+  try {
+    if (!content?.id || !content?.fileUrl) {
+      window.sessionStorage.removeItem(LEARNING_PATHS_PREVIEW_KEY);
+      return;
+    }
+    window.sessionStorage.setItem(
+      LEARNING_PATHS_PREVIEW_KEY,
+      JSON.stringify({
+        id: String(content.id),
+        title: content.title,
+        fileUrl: content.fileUrl,
+        type: content.type,
+        description: content.description,
+        subject: content.subject,
+      }),
+    );
+  } catch {
+    /* private mode */
+  }
+}
 
 export default function LearningPaths() {
   const [, setLocation] = useLocation();
@@ -124,9 +168,30 @@ export default function LearningPaths() {
   const [filteredContent, setFilteredContent] = useState<any[]>([]);
   const [isLoadingFilteredContent, setIsLoadingFilteredContent] = useState(false);
   const [allLibraryContent, setAllLibraryContent] = useState<any[]>([]);
-  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
-  const [previewContent, setPreviewContent] = useState<any | null>(null);
+  const [previewContent, setPreviewContent] = useState<any | null>(() => readStoredPreview());
+  const [isPreviewOpen, setIsPreviewOpen] = useState(() => Boolean(readStoredPreview()));
   const [isNavigatingToSubject, setIsNavigatingToSubject] = useState(false);
+
+  const openContentPreview = (content: any) => {
+    if (!content?.fileUrl) return;
+    const payload = {
+      id: String(content._id || content.id || content.fileUrl),
+      title: content.title,
+      fileUrl: content.fileUrl,
+      type: content.type,
+      description: content.description,
+      subject: content.subject,
+    };
+    setPreviewContent(payload);
+    setIsPreviewOpen(true);
+    writeStoredPreview(payload);
+  };
+
+  const closeContentPreview = () => {
+    setIsPreviewOpen(false);
+    setPreviewContent(null);
+    writeStoredPreview(null);
+  };
 
   const prefetchSubjectPage = () => {
     void import("@/pages/subject-content");
@@ -1031,11 +1096,7 @@ export default function LearningPaths() {
                             variant="outline"
                             size="sm"
                             className="flex-1"
-                            onClick={() => {
-                              if (!content.fileUrl) return;
-                              setPreviewContent(content);
-                              setIsPreviewOpen(true);
-                            }}
+                            onClick={() => openContentPreview(content)}
                             disabled={!content.fileUrl}
                           >
                             <Eye className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
@@ -1045,10 +1106,7 @@ export default function LearningPaths() {
                               <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => {
-                                  setPreviewContent(content);
-                                  setIsPreviewOpen(true);
-                                }}
+                                onClick={() => openContentPreview(content)}
                                 title="Preview in this page"
                               >
                                 <ExternalLink className="w-3 h-3 sm:w-4 sm:h-4" />
@@ -1069,26 +1127,35 @@ export default function LearningPaths() {
       <Dialog
         open={isPreviewOpen}
         onOpenChange={(open) => {
-          setIsPreviewOpen(open);
-          if (!open) setPreviewContent(null);
+          if (!open) closeContentPreview();
+          else setIsPreviewOpen(true);
         }}
       >
-        <DialogContent className="flex h-[min(96dvh,1120px)] max-h-[96dvh] w-[min(96vw,860px)] max-w-[860px] flex-col overflow-hidden rounded-2xl bg-white p-0">
-          <DialogHeader className="px-4 sm:px-6 lg:px-8 pt-5 pb-3 border-b border-gray-200">
-            <DialogTitle className="pl-2 pt-1">{previewContent?.title || "Content Preview"}</DialogTitle>
+        <DialogContent className="flex h-[min(96dvh,1120px)] max-h-[96dvh] w-[min(96vw,920px)] max-w-[920px] flex-col overflow-hidden rounded-2xl bg-stone-100 p-0">
+          <DialogHeader className="shrink-0 space-y-1 border-b border-stone-200 bg-white px-5 pb-4 pt-5 sm:px-7 sm:pb-5 sm:pt-6">
+            <DialogTitle className="pr-12 text-left text-lg font-bold leading-snug text-slate-900 sm:text-xl md:text-2xl">
+              {previewContent?.title || "Content Preview"}
+            </DialogTitle>
+            {previewContent?.type ? (
+              <p className="text-left text-sm text-slate-600 sm:text-base">
+                {previewContent.type}
+                {previewContent.description ? ` · ${previewContent.description}` : ""}
+              </p>
+            ) : null}
           </DialogHeader>
           <div
-            className={`flex-1 min-h-0 px-4 py-4 ${
+            className={`min-h-0 flex-1 ${
               (() => {
                 const previewUrl = extractDirectFileUrl(getNormalizedContentUrl(previewContent?.fileUrl));
                 const previewLower = previewUrl.toLowerCase();
                 const previewIsPdf =
                   previewLower.endsWith(".pdf") ||
                   previewLower.includes(".pdf") ||
-                  previewContent?.type === "PDF";
+                  previewContent?.type === "PDF" ||
+                  previewContent?.type === "TextBook";
                 return previewIsPdf
-                  ? "flex min-h-0 flex-col overflow-hidden"
-                  : "overflow-x-hidden overflow-y-auto";
+                  ? "flex min-h-0 flex-col overflow-hidden p-0"
+                  : "overflow-x-hidden overflow-y-auto px-4 py-4 sm:px-6";
               })()
             }`}
           >
@@ -1097,7 +1164,10 @@ export default function LearningPaths() {
             const fileUrl = extractDirectFileUrl(getNormalizedContentUrl(previewContent?.fileUrl));
             const lower = fileUrl.toLowerCase();
             const isPdf =
-              lower.endsWith(".pdf") || lower.includes(".pdf") || previewContent?.type === "PDF";
+              lower.endsWith(".pdf") ||
+              lower.includes(".pdf") ||
+              previewContent?.type === "PDF" ||
+              previewContent?.type === "TextBook";
             const isImage = /\.(jpg|jpeg|png|gif|webp|svg|bmp)$/.test(lower);
             const isAudio = /\.(mp3|wav|ogg|m4a|aac|flac)$/.test(lower) || previewContent?.type === "Audio";
             const isVideo = /\.(mp4|webm|ogg|mov|avi|mkv)$/.test(lower) || previewContent?.type === "Video";

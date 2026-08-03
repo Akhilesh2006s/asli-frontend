@@ -4,10 +4,40 @@ import {
   LANGUAGE_EXCLUDED_TOOL_ERROR,
 } from '@/lib/ai-tool-subject-rules';
 
+/** HTML date inputs require YYYY-MM-DD; anything else is rejected. */
+const AI_TOOL_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+export function isValidAiToolDate(value: unknown): boolean {
+  const raw = String(value ?? '').trim();
+  if (!AI_TOOL_DATE_RE.test(raw)) return false;
+  const [y, m, d] = raw.split('-').map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  return (
+    dt.getUTCFullYear() === y &&
+    dt.getUTCMonth() === m - 1 &&
+    dt.getUTCDate() === d
+  );
+}
+
+/** Keep only a real calendar date — strips junk like !@#$%!@#$%. */
+export function sanitizeAiToolDateValue(value: unknown): string {
+  const raw = String(value ?? '').trim();
+  return isValidAiToolDate(raw) ? raw : '';
+}
+
+export function todayAiToolDate(): string {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, '0');
+  const d = String(now.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
 export type AiToolFieldConfig = {
   name: string;
   label: string;
   required?: boolean;
+  type?: string;
 };
 
 type ValidateOptions = {
@@ -44,6 +74,14 @@ export function validateAiToolForm({
 
   if (isLanguageExcludedTool(toolType) && isStoryPassageLanguageSubject(subject)) {
     return LANGUAGE_EXCLUDED_TOOL_ERROR;
+  }
+
+  const dateField = config.fields.find((f) => f.name === 'date' || f.type === 'date');
+  if (dateField) {
+    const raw = formParams.date ?? formParams[dateField.name];
+    if (raw != null && String(raw).trim() !== '' && !isValidAiToolDate(raw)) {
+      return 'Please pick a valid date.';
+    }
   }
 
   return null;

@@ -3,6 +3,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { API_BASE_URL } from '@/lib/api-config';
 import { getAuthToken } from '@/lib/auth-utils';
 import TeacherShell from '@/components/layout/TeacherShell';
+import { DashboardScrollPanel } from '@/components/layout/DashboardScrollPanel';
 import StatCard from '@/components/dashboard/StatCard';
 import { WeeklyDigestCard } from '@/components/weekly-digest-card';
 import { cn } from '@/lib/utils';
@@ -36,7 +37,6 @@ import {
   Trash2,
   Sparkles,
   Wrench,
-  LogOut,
   Menu,
   Search,
   ChevronDown,
@@ -875,13 +875,6 @@ const TeacherDashboard = () => {
     };
     void loadLearningPaths();
   }, [dashboardSubTab, isAsliPrepExclusive]);
-
-  const handleLogout = () => {
-    localStorage.removeItem('authToken');
-    localStorage.removeItem('userRole');
-    localStorage.removeItem('userEmail');
-    setLocation('/auth/login');
-  };
 
   const handleViewVideo = (video: any) => {
     setSelectedVideo(video);
@@ -2768,18 +2761,18 @@ const TeacherDashboard = () => {
                       </div>
 
                   <div className="rounded-2xl border border-white/80 bg-white/90 p-4 shadow-sm backdrop-blur-sm sm:p-6">
-                    <div className="overflow-x-auto">
-                      <table className="w-full">
-                        <thead>
+                    <DashboardScrollPanel>
+                      <table className="w-full min-w-[960px]">
+                        <thead className="sticky top-0 z-10 bg-white">
                           <tr className="border-b border-gray-200">
-                            <th className="text-left py-3 px-4 font-medium text-gray-900">Student</th>
-                            <th className="text-left py-3 px-4 font-medium text-gray-900">Contact</th>
-                            <th className="text-left py-3 px-4 font-medium text-gray-900">Class</th>
-                            <th className="text-left py-3 px-4 font-medium text-gray-900">Status</th>
-                            <th className="text-left py-3 px-4 font-medium text-gray-900">Overall Progress</th>
-                            <th className="text-left py-3 px-4 font-medium text-gray-900">Average</th>
-                            <th className="text-left py-3 px-4 font-medium text-gray-900">Last Login</th>
-                            <th className="text-left py-3 px-4 font-medium text-gray-900">Actions</th>
+                            <th className="bg-white text-left py-3 px-4 font-medium text-gray-900">Student</th>
+                            <th className="bg-white text-left py-3 px-4 font-medium text-gray-900">Contact</th>
+                            <th className="bg-white text-left py-3 px-4 font-medium text-gray-900">Class</th>
+                            <th className="bg-white text-left py-3 px-4 font-medium text-gray-900">Status</th>
+                            <th className="bg-white text-left py-3 px-4 font-medium text-gray-900">Overall Progress</th>
+                            <th className="bg-white text-left py-3 px-4 font-medium text-gray-900">Average</th>
+                            <th className="bg-white text-left py-3 px-4 font-medium text-gray-900">Last Login</th>
+                            <th className="bg-white text-left py-3 px-4 font-medium text-gray-900">Actions</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -2916,7 +2909,7 @@ const TeacherDashboard = () => {
                             })}
                         </tbody>
                       </table>
-                    </div>
+                    </DashboardScrollPanel>
                   </div>
 
                   {/* Add Remark Dialog */}
@@ -3262,9 +3255,9 @@ const TeacherDashboard = () => {
                           <p className="text-xs sm:text-sm text-gray-600">View individual student progress and performance metrics</p>
                         </div>
                         {/* Scrolls inside itself with the header row pinned, so the
-                            whole page no longer moves and the columns stay labelled. */}
-                        <div className="max-h-[60vh] overflow-y-auto overflow-x-auto">
-                          <table className="w-full">
+                            shell chrome stays fixed and columns stay labelled. */}
+                        <DashboardScrollPanel>
+                          <table className="w-full min-w-[1100px]">
                             <thead className="sticky top-0 z-10 bg-white">
                               <tr className="border-b border-gray-200">
                                 <th className="bg-white text-left py-3 px-4 font-medium text-gray-900">Student</th>
@@ -3464,7 +3457,7 @@ const TeacherDashboard = () => {
                               <p className="text-gray-500">No students found</p>
                             </div>
                           )}
-                        </div>
+                        </DashboardScrollPanel>
                       </div>
                         </>
                       )}

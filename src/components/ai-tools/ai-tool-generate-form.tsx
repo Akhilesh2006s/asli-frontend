@@ -1,11 +1,42 @@
 import type { LucideIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
-import { ArrowLeft, Sparkles } from 'lucide-react';
+import { ArrowLeft, Loader2, Sparkles } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import { AI_V2 } from '@/lib/ai-tool-design-tokens';
 import { formatAiToolText } from '@/lib/title-case';
+
+/** Fixed label band so long labels never push controls out of row alignment. */
+export function AiToolFormField({
+  label,
+  htmlFor,
+  loading = false,
+  className,
+  children,
+}: {
+  label: ReactNode;
+  htmlFor?: string;
+  loading?: boolean;
+  className?: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className={cn('flex min-w-0 flex-col gap-1.5', className)}>
+      <Label
+        htmlFor={htmlFor}
+        className="flex min-h-10 items-end gap-2 text-sm font-medium leading-snug text-slate-700"
+      >
+        <span className="line-clamp-2">{label}</span>
+        {loading ? (
+          <Loader2 className="mb-0.5 h-3.5 w-3.5 shrink-0 animate-spin text-blue-600" aria-hidden />
+        ) : null}
+      </Label>
+      {children}
+    </div>
+  );
+}
 
 type AiToolGeneratePageChromeProps = {
   title: string;
@@ -132,7 +163,9 @@ export function AiToolGenerateFormCard({
       </div>
       <div className="space-y-6 p-5 sm:p-7">
         {notices}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">{children}</div>
+        <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {children}
+        </div>
         <motion.div whileTap={{ scale: 0.985 }}>
           <Button
             type="button"

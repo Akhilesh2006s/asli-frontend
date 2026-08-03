@@ -40,7 +40,8 @@ export function shouldFetchDirectly(url: string): boolean {
   }
 }
 
-const PDF_IFRAME_CHROMELESS_HASH = "toolbar=0&navpanes=0&scrollbar=1&view=FitH";
+const PDF_IFRAME_CHROMELESS_HASH =
+  "toolbar=0&navpanes=0&scrollbar=0&statusbar=0&messages=0&view=FitH";
 
 /** Hide browser PDF viewer toolbar (download / print / menu) where supported. */
 export function appendPdfViewerChromelessHash(src: string): string {
@@ -58,7 +59,18 @@ export function appendPdfViewerChromelessHash(src: string): string {
     const url = new URL(src);
     const existing = url.hash ? url.hash.replace(/^#/, "") : "";
     const parts = existing
-      ? existing.split("&").filter((p) => p && !p.startsWith("toolbar=") && !p.startsWith("navpanes="))
+      ? existing
+          .split("&")
+          .filter(
+            (p) =>
+              p &&
+              !p.startsWith("toolbar=") &&
+              !p.startsWith("navpanes=") &&
+              !p.startsWith("scrollbar=") &&
+              !p.startsWith("statusbar=") &&
+              !p.startsWith("messages=") &&
+              !p.startsWith("view="),
+          )
       : [];
     parts.push(...PDF_IFRAME_CHROMELESS_HASH.split("&"));
     url.hash = parts.join("&");
@@ -141,7 +153,7 @@ export function getMobilePdfIframePageSrc(
   const base = getStudentPdfPreviewIframeSrc(fileUrl, title).split("#")[0];
   if (!base) return "";
   const pageNum = Math.max(1, Math.floor(page));
-  return `${base}#page=${pageNum}&toolbar=0&navpanes=0&scrollbar=0&view=Fit`;
+  return `${base}#page=${pageNum}&toolbar=0&navpanes=0&scrollbar=0&statusbar=0&messages=0&view=Fit`;
 }
 
 function resolvePdfPreviewBaseUrl(fileUrl: string, title?: string): string {

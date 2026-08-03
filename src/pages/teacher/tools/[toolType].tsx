@@ -2,7 +2,6 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useLocation, useRoute } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,6 +13,8 @@ import {
   isAiToolClientValidationError,
   isAiToolInlineOnlyError,
   resolveAiToolApiInlineMessage,
+  sanitizeAiToolDateValue,
+  todayAiToolDate,
   validateAiToolForm,
 } from '@/lib/ai-tool-generate';
 import {
@@ -48,6 +49,7 @@ import {
 import { AiToolResultShell } from '@/components/ai-tool-result-shell';
 import { AiToolV2InputSummary } from '@/components/ai-v2';
 import {
+  AiToolFormField,
   AiToolGenerateFormCard,
   AiToolGeneratePageChrome,
 } from '@/components/ai-tools/ai-tool-generate-form';
@@ -123,7 +125,7 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
       { name: 'subject', label: 'Subject *', type: 'select', required: true },
       { name: 'topic', label: 'Topic *', type: 'select', required: true, placeholder: 'Select topic', isNCERT: true },
-      { name: 'subTopic', label: 'Sub Topic (optional — leave empty for whole chapter)', type: 'select', required: false, placeholder: 'Whole chapter', isCascadeSubtopic: true },
+      { name: 'subTopic', label: 'Sub Topic (Optional)', type: 'select', required: false, placeholder: 'Whole chapter', isCascadeSubtopic: true },
       { name: 'className', label: 'Section (Optional)', type: 'text', placeholder: 'e.g., A, B, C' }
     ]
   },
@@ -135,12 +137,12 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
       { name: 'subject', label: 'Subject *', type: 'select', required: true },
       { name: 'topic', label: 'Topic *', type: 'select', required: true, placeholder: 'Select topic', isNCERT: true },
-      { name: 'subTopic', label: 'Sub Topic (optional — leave empty for whole chapter)', type: 'select', required: false, placeholder: 'Whole chapter', isCascadeSubtopic: true },
+      { name: 'subTopic', label: 'Sub Topic (Optional)', type: 'select', required: false, placeholder: 'Whole chapter', isCascadeSubtopic: true },
       { name: 'countMcq', label: 'MCQs', type: 'number', required: false, placeholder: '5' },
       { name: 'countVsaq', label: 'VSAQs', type: 'number', required: false, placeholder: '3' },
       { name: 'countSaq', label: 'SAQs', type: 'number', required: false, placeholder: '3' },
       { name: 'countLaq', label: 'LAQs', type: 'number', required: false, placeholder: '1' },
-      { name: 'countFib', label: 'Fill in the blanks', type: 'number', required: false, placeholder: '2' },
+      { name: 'countFib', label: 'Fill Blanks', type: 'number', required: false, placeholder: '2' },
     ]
   },
   'concept-mastery-helper': {
@@ -151,7 +153,7 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
       { name: 'subject', label: 'Subject *', type: 'select', required: true, dependsOn: 'gradeLevel' },
       { name: 'topic', label: 'Topic *', type: 'select', required: true, placeholder: 'Select topic', isNCERT: true },
-      { name: 'subTopic', label: 'Sub Topic (optional — leave empty for whole chapter)', type: 'select', required: false, placeholder: 'Whole chapter', isCascadeSubtopic: true }
+      { name: 'subTopic', label: 'Sub Topic (Optional)', type: 'select', required: false, placeholder: 'Whole chapter', isCascadeSubtopic: true }
     ]
   },
   'lesson-planner': {
@@ -162,7 +164,7 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
       { name: 'subject', label: 'Subject *', type: 'select', required: true },
       { name: 'topic', label: 'Topic *', type: 'select', required: true, placeholder: 'Select topic', isNCERT: true },
-      { name: 'subTopic', label: 'Sub Topic (optional — leave empty for whole chapter)', type: 'select', required: false, placeholder: 'Whole chapter', isCascadeSubtopic: true }
+      { name: 'subTopic', label: 'Sub Topic (Optional)', type: 'select', required: false, placeholder: 'Whole chapter', isCascadeSubtopic: true }
     ]
   },
   'homework-creator': {
@@ -173,8 +175,8 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
       { name: 'subject', label: 'Subject *', type: 'select', required: true },
       { name: 'topic', label: 'Topic *', type: 'select', required: true, placeholder: 'Select topic', isNCERT: true },
-      { name: 'subTopic', label: 'Sub Topic (optional — leave empty for whole chapter)', type: 'select', required: false, placeholder: 'Whole chapter', isCascadeSubtopic: true },
-      { name: 'duration', label: 'Expected Duration (minutes)', type: 'number', placeholder: '30' }
+      { name: 'subTopic', label: 'Sub Topic (Optional)', type: 'select', required: false, placeholder: 'Whole chapter', isCascadeSubtopic: true },
+      { name: 'duration', label: 'Duration (Minutes)', type: 'number', placeholder: '30' }
     ]
   },
   'story-passage-creator': {
@@ -185,7 +187,7 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
       { name: 'subject', label: 'Subject *', type: 'select', required: true },
       { name: 'topic', label: 'Topic *', type: 'select', required: true, placeholder: 'Select topic', isNCERT: true },
-      { name: 'subTopic', label: 'Sub Topic (optional — leave empty for whole chapter)', type: 'select', required: false, placeholder: 'Whole chapter', isCascadeSubtopic: true },
+      { name: 'subTopic', label: 'Sub Topic (Optional)', type: 'select', required: false, placeholder: 'Whole chapter', isCascadeSubtopic: true },
       { name: 'length', label: 'Length', type: 'select', options: ['short', 'medium', 'long'] }
     ]
   },
@@ -197,7 +199,7 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
       { name: 'subject', label: 'Subject *', type: 'select', required: true },
       { name: 'topic', label: 'Topic *', type: 'select', required: true, placeholder: 'Select topic', isNCERT: true },
-      { name: 'subTopic', label: 'Sub Topic (optional — leave empty for whole chapter)', type: 'select', required: false, placeholder: 'Whole chapter', isCascadeSubtopic: true }
+      { name: 'subTopic', label: 'Sub Topic (Optional)', type: 'select', required: false, placeholder: 'Whole chapter', isCascadeSubtopic: true }
     ]
   },
   'flashcard-generator': {
@@ -208,7 +210,7 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
       { name: 'subject', label: 'Subject *', type: 'select', required: true },
       { name: 'topic', label: 'Topic *', type: 'select', required: true, placeholder: 'Select topic', isNCERT: true },
-      { name: 'subTopic', label: 'Sub Topic (optional — leave empty for whole chapter)', type: 'select', required: false, placeholder: 'Whole chapter', isCascadeSubtopic: true }
+      { name: 'subTopic', label: 'Sub Topic (Optional)', type: 'select', required: false, placeholder: 'Whole chapter', isCascadeSubtopic: true }
     ]
   },
   'daily-class-plan-maker': {
@@ -216,13 +218,12 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
     description: 'Organize your daily teaching schedule efficiently',
     icon: Sparkles,
     fields: [
-      // A free-text date accepted anything at all, including special characters.
-      // type="date" gives a picker and the browser enforces a real date.
-      { name: 'date', label: 'Date', type: 'date', placeholder: 'e.g., 2025-01-15' },
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
       { name: 'subject', label: 'Subject *', type: 'select', required: true, dependsOn: 'gradeLevel' },
       { name: 'topic', label: 'Topic *', type: 'select', required: true, placeholder: 'Select topic', isNCERT: true },
-      { name: 'subTopic', label: 'Sub Topic (optional — leave empty for whole chapter)', type: 'select', required: false, placeholder: 'Whole chapter', isCascadeSubtopic: true },
+      { name: 'subTopic', label: 'Sub Topic (Optional)', type: 'select', required: false, placeholder: 'Whole chapter', isCascadeSubtopic: true },
+      // Native date picker only — never free text (avoids junk like !@#$%).
+      { name: 'date', label: 'Date *', type: 'date', required: true },
       { name: 'timeSlots', label: 'Time Slots', type: 'text', placeholder: 'e.g., 9:00-10:00, 10:15-11:15' }
     ]
   },
@@ -234,12 +235,12 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
       { name: 'gradeLevel', label: 'Class *', type: 'select', required: true, options: CLASS_OPTIONS },
       { name: 'subject', label: 'Subject *', type: 'select', required: true },
       { name: 'topic', label: 'Topic *', type: 'select', required: true, placeholder: 'Select topic', isNCERT: true },
-      { name: 'subTopic', label: 'Sub Topic (optional — leave empty for whole chapter)', type: 'select', required: false, placeholder: 'Whole chapter', isCascadeSubtopic: true },
+      { name: 'subTopic', label: 'Sub Topic (Optional)', type: 'select', required: false, placeholder: 'Whole chapter', isCascadeSubtopic: true },
       { name: 'countMcq', label: 'MCQs', type: 'number', required: false, placeholder: '5' },
       { name: 'countVsaq', label: 'VSAQs', type: 'number', required: false, placeholder: '3' },
       { name: 'countSaq', label: 'SAQs', type: 'number', required: false, placeholder: '3' },
       { name: 'countLaq', label: 'LAQs', type: 'number', required: false, placeholder: '1' },
-      { name: 'countFib', label: 'Fill in the blanks', type: 'number', required: false, placeholder: '2' },
+      { name: 'countFib', label: 'Fill Blanks', type: 'number', required: false, placeholder: '2' },
     ]
   },
 };
@@ -291,7 +292,7 @@ export default function TeacherToolPage() {
         ...config.fields.slice(0, 2),
         {
           name: 'productCategory',
-          label: 'IIT track (optional)',
+          label: 'IIT Track (Optional)',
           type: 'select' as const,
           required: false,
           options: ['NONE', ...schoolIitCategories],
@@ -399,6 +400,16 @@ export default function TeacherToolPage() {
   );
 
   // No PDF auto-fill needed - users can enter any topic with Gemini API
+
+  // Daily Class Plan: default to today and clear any junk left in state.
+  useEffect(() => {
+    if (toolType !== 'daily-class-plan-maker') return;
+    setFormParams((prev) => {
+      const cleaned = sanitizeAiToolDateValue(prev.date);
+      if (cleaned && cleaned === prev.date) return prev;
+      return { ...prev, date: cleaned || todayAiToolDate() };
+    });
+  }, [toolType]);
 
   // Fetch teacher-assigned subjects once and keep them as default constraints for all tools
   useEffect(() => {
@@ -782,7 +793,9 @@ export default function TeacherToolPage() {
 
   const handleInputChange = (fieldName: string, value: any) => {
     setFormParams(prev => {
-      const updated = { ...prev, [fieldName]: value };
+      const nextValue =
+        fieldName === 'date' ? sanitizeAiToolDateValue(value) : value;
+      const updated = { ...prev, [fieldName]: nextValue };
       
       // If student is selected, try to auto-populate class
       if (fieldName === 'studentName' && value) {
@@ -1593,8 +1606,7 @@ export default function TeacherToolPage() {
               </>
             }
           >
-              <div>
-                <Label htmlFor="board">Board *</Label>
+              <AiToolFormField label="Board *" htmlFor="board">
                 <Select
                   value={selectedBoard}
                   onValueChange={(value) => handleInputChange('board', value)}
@@ -1610,7 +1622,7 @@ export default function TeacherToolPage() {
                     ))}
                   </SelectContent>
                 </Select>
-              </div>
+              </AiToolFormField>
               {((effectiveConfig || config).fields).map((field: any) => {
                 // Check if field should be shown based on showWhen condition
                 if (field.showWhen && !field.showWhen(formParams)) {
@@ -1671,14 +1683,13 @@ export default function TeacherToolPage() {
                       : formParams[field.name] || '';
 
                 return (
-                  <div
+                  <AiToolFormField
                     key={field.name}
+                    htmlFor={field.name}
+                    loading={loadingDropdown}
+                    label={formatAiToolText(field.label)}
                     className={field.type === 'textarea' ? 'sm:col-span-2 lg:col-span-3' : ''}
                   >
-                    <Label htmlFor={field.name} className="flex items-center gap-2">
-                      {formatAiToolText(field.label)}
-                      {loadingDropdown && <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 animate-spin text-blue-600" aria-hidden />}
-                    </Label>
                     {(field.type === 'select' || field.isNCERT || field.isCascadeSubtopic) ? (
                       <Select
                         value={selectValue}
@@ -1786,17 +1797,27 @@ export default function TeacherToolPage() {
                       placeholder={field.placeholder}
                       rows={3}
                     />
+                  ) : field.type === 'date' ? (
+                    <Input
+                      id={field.name}
+                      type="date"
+                      lang="en"
+                      value={sanitizeAiToolDateValue(formParams[field.name])}
+                      onChange={(e) => handleInputChange(field.name, e.target.value)}
+                      required={field.required}
+                      className="font-sans [color-scheme:light]"
+                    />
                   ) : (
                     <Input
                       id={field.name}
-                      type={field.type}
+                      type={field.type === 'number' ? 'number' : 'text'}
                       value={formParams[field.name] || ''}
                       onChange={(e) => handleInputChange(field.name, e.target.value)}
                       placeholder={field.placeholder}
                       required={field.required}
                     />
                   )}
-                  </div>
+                  </AiToolFormField>
                 );
               })}
           </AiToolGenerateFormCard>

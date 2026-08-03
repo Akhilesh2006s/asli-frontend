@@ -179,6 +179,15 @@
     overflow-x: clip;
     min-height: 100vh;
   }
+
+  /* Custom fonts break native date/time spinner glyphs on some Windows Chrome builds. */
+  input[type="date"],
+  input[type="time"],
+  input[type="datetime-local"],
+  input[type="month"],
+  input[type="week"] {
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
   
   /* Product-wide readability contract. Legacy pages still use Tailwind's
      compact text helpers; keep them readable on shared screens without
@@ -554,6 +563,23 @@
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: linear-gradient(135deg, #0d9488, #0369a1);
+}
+
+/* Dashboard shells: sidebar + topbar stay fixed; only these regions scroll. */
+.dashboard-main-scroll {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+.dashboard-scroll-panel {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+.dashboard-scroll-panel thead th {
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
 
 .super-admin-sidebar {

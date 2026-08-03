@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import * as pdfjs from 'pdfjs-dist';
 import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
-import { ExternalLink, Loader2, Maximize2, Minimize2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ExternalLink, Loader2, Maximize2, Minimize2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getAuthToken } from '@/lib/auth-utils';
 import {
   getEmbeddedPdfIframeSrc,
+  getMobilePdfIframePageSrc,
   getPdfContentPreviewProxyUrl,
   getPdfJsFetchUrl,
   getPdfOpenInNewTabUrl,
@@ -14,7 +15,11 @@ import {
   shouldFetchDirectly,
 } from '@/lib/api-config';
 import { detectDigitalBoard } from '@/hooks/use-digital-board';
-import PdfMobileScrollViewer from '@/components/shared/PdfMobileScrollViewer';
+import PdfMobileScrollViewer, {
+  readStoredPdfPage,
+  writeStoredPdfPage,
+  type PdfMobileScrollViewerHandle,
+} from '@/components/shared/PdfMobileScrollViewer';
 
 pdfjs.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
 
@@ -399,11 +404,18 @@ export default function PdfPreviewPanel({
   const containerRef = useRef<HTMLDivElement>(null);
   const scrollHostRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
+  const mobileViewerRef = useRef<PdfMobileScrollViewerHandle>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [readerPage, setReaderPage] = useState(1);
+  const [readerPageCount, setReaderPageCount] = useState(0);
   const pdfDocRef = useRef<pdfjs.PDFDocumentProxy | null>(null);
   const renderingPagesRef = useRef<Set<number>>(new Set());
   /** Survives the slot rebuild that fullscreen toggling causes. */
   const rememberedPageRef = useRef<number>(1);
+
+  useEffect(() => {
+    rememberedPageRef.current = readStoredPdfPage(normalizeContentFileUrl(fileUrl) || fileUrl);
+  }, [fileUrl]);
   const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
   const [totalPages, setTotalPages] = useState(0);
   const [pdfSource, setPdfSource] = useState<PdfSource | null>(null);
@@ -415,7 +427,11 @@ export default function PdfPreviewPanel({
   const absoluteUrl = normalizeContentFileUrl(fileUrl);
   const proxyUrl = getPdfContentPreviewProxyUrl(fileUrl, title);
   const forcedProxyUrl = getPdfJsFetchUrl(fileUrl, title);
-  const iframeSrc = getEmbeddedPdfIframeSrc(absoluteUrl || fileUrl, title);
+  const rememberedIframePage = readStoredPdfPage(absoluteUrl || fileUrl);
+  const iframeSrc =
+    rememberedIframePage > 1
+      ? getMobilePdfIframePageSrc(absoluteUrl || fileUrl, title, rememberedIframePage)
+      : getEmbeddedPdfIframeSrc(absoluteUrl || fileUrl, title);
   const openTabUrl = getPdfOpenInNewTabUrl(fileUrl, title);
 
   const openInNewTab = useCallback(() => {
@@ -444,27 +460,6 @@ export default function PdfPreviewPanel({
     document.addEventListener('fullscreenchange', onFsChange);
     return () => document.removeEventListener('fullscreenchange', onFsChange);
   }, []);
-
-  const toolbar = (allowFullscreen || showOpenInNewTab) ? (
-    <div className="flex flex-wrap items-center justify-end gap-2 shrink-0 pb-1">
-      {allowFullscreen ? (
-        <Button type="button" variant="outline" size="sm" onClick={() => void toggleFullscreen()}>
-          {isFullscreen ? (
-            <Minimize2 className="mr-2 h-4 w-4" />
-          ) : (
-            <Maximize2 className="mr-2 h-4 w-4" />
-          )}
-          {isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
-        </Button>
-      ) : null}
-      {showOpenInNewTab ? (
-        <Button type="button" variant="outline" size="sm" onClick={openInNewTab}>
-          <ExternalLink className="mr-2 h-4 w-4" />
-          Open in new tab
-        </Button>
-      ) : null}
-    </div>
-  ) : null;
 
   const updateContainerSize = useCallback(() => {
     const el = containerRef.current;
@@ -499,6 +494,8 @@ export default function PdfPreviewPanel({
     setTotalPages(0);
     setUseIframeFallback(false);
     setPdfError(null);
+    setReaderPage(1);
+    setReaderPageCount(0);
   }, [fileUrl, title]);
 
   const destroyPdfDoc = useCallback(async () => {
@@ -714,27 +711,18 @@ export default function PdfPreviewPanel({
     // Slots are rebuilt whenever the container resizes (entering/leaving
     // fullscreen) and on every mount (reload), which threw the reader back to
     // page 1. Remember the page and put the reader back where it was.
-    const pageStorageKey = `asli:pdf-page:${absoluteUrl}`;
+    const pageStorageKey = absoluteUrl;
     const readRememberedPage = () => {
       const fromRef = rememberedPageRef.current;
-      if (fromRef && fromRef > 1) return fromRef;
-      try {
-        const stored = Number(window.sessionStorage.getItem(pageStorageKey));
-        return Number.isFinite(stored) && stored > 1 ? stored : 1;
-      } catch {
-        return 1;
-      }
+      if (fromRef && fromRef >= 1) return fromRef;
+      return readStoredPdfPage(pageStorageKey);
     };
     const pageHeight = () => Math.max(1, containerSize.height);
     const rememberCurrentPage = () => {
       const page = Math.round(host.scrollTop / pageHeight()) + 1;
       if (!Number.isFinite(page) || page < 1) return;
       rememberedPageRef.current = page;
-      try {
-        window.sessionStorage.setItem(pageStorageKey, String(page));
-      } catch {
-        /* private mode — the ref still covers fullscreen toggles */
-      }
+      writeStoredPdfPage(pageStorageKey, page);
     };
     let scrollTick = 0;
     const onScroll = () => {
@@ -836,14 +824,37 @@ export default function PdfPreviewPanel({
   /** Desktop mouse/trackpad — embedded PDF iframe (never on touch tablets / book mode). */
   if (!useCanvasRendering && inlineIframeSupported) {
     return (
-      <div ref={panelRef} className={`flex h-full min-h-0 flex-1 flex-col bg-white ${className}`}>
-        {toolbar}
+      <div ref={panelRef} className={`flex h-full min-h-0 flex-1 flex-col bg-stone-100 ${className}`}>
+        <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 border-b border-stone-200/80 bg-white px-3 py-2.5 sm:px-4">
+          {allowFullscreen ? (
+            <Button type="button" variant="outline" size="sm" onClick={() => void toggleFullscreen()}>
+              {isFullscreen ? (
+                <Minimize2 className="mr-2 h-4 w-4" />
+              ) : (
+                <Maximize2 className="mr-2 h-4 w-4" />
+              )}
+              {isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
+            </Button>
+          ) : null}
+          {showOpenInNewTab ? (
+            <Button type="button" variant="outline" size="sm" onClick={openInNewTab}>
+              <ExternalLink className="mr-2 h-4 w-4" />
+              Open in new tab
+            </Button>
+          ) : null}
+        </div>
         <div
-          className={`flex min-h-0 flex-1 justify-center overflow-hidden p-2 sm:p-3 ${
-            isBookLayout ? 'bg-stone-300/70' : ''
+          className={`flex min-h-0 flex-1 justify-center overflow-hidden p-3 sm:p-5 ${
+            isBookLayout ? 'bg-stone-400/40' : ''
           }`}
         >
-          <div className={`${bookShellClass} overflow-hidden ${readingSurfaceClass}`}>
+          <div
+            className={`${bookShellClass} overflow-hidden ${
+              isBookLayout
+                ? 'rounded-xl border border-stone-300/70 bg-white shadow-xl ring-1 ring-black/5'
+                : readingSurfaceClass
+            }`}
+          >
             <iframe
               key={iframeSrc}
               title={title || 'PDF Preview'}
@@ -856,50 +867,58 @@ export default function PdfPreviewPanel({
     );
   }
 
-  const mobileIframeSrc = getEmbeddedPdfIframeSrc(fileUrl, title);
+  const mobileIframeSrc =
+    rememberedIframePage > 1
+      ? getMobilePdfIframePageSrc(fileUrl, title, rememberedIframePage)
+      : getEmbeddedPdfIframeSrc(fileUrl, title);
 
   /** Book / touch — scroll through full pages (no clipped FitH iframe). */
   return (
-    <div ref={panelRef} className={`flex h-full min-h-0 flex-1 flex-col bg-white ${className}`}>
-      {toolbar || showOpenInNewTab ? (
-        <div className="flex flex-wrap items-center justify-between gap-2 shrink-0 pb-1">
-          <p className="text-[11px] text-stone-500 sm:text-xs">
-            Scroll to turn pages · pinch to zoom
-          </p>
-          <div className="flex flex-wrap items-center gap-2">
-            {allowFullscreen ? (
-              <Button type="button" variant="outline" size="sm" onClick={() => void toggleFullscreen()}>
-                {isFullscreen ? (
-                  <Minimize2 className="mr-2 h-4 w-4" />
-                ) : (
-                  <Maximize2 className="mr-2 h-4 w-4" />
-                )}
-                {isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
-              </Button>
-            ) : null}
-            {showOpenInNewTab ? (
-              <Button type="button" variant="outline" size="sm" onClick={openInNewTab}>
-                <ExternalLink className="mr-2 h-4 w-4" />
-                Open in new tab
-              </Button>
-            ) : null}
-          </div>
+    <div
+      ref={panelRef}
+      className={`flex h-full min-h-0 flex-1 flex-col bg-stone-100 ${className}`}
+    >
+      <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-stone-200/80 bg-white px-3 py-2.5 sm:px-4">
+        <p className="text-xs font-medium text-stone-500 sm:text-sm">
+          {useIframeFallback
+            ? 'Use the scrollbar to move through pages'
+            : 'Scroll to turn pages · pinch to zoom'}
+        </p>
+        <div className="flex flex-wrap items-center gap-2">
+          {allowFullscreen ? (
+            <Button type="button" variant="outline" size="sm" onClick={() => void toggleFullscreen()}>
+              {isFullscreen ? (
+                <Minimize2 className="mr-2 h-4 w-4" />
+              ) : (
+                <Maximize2 className="mr-2 h-4 w-4" />
+              )}
+              {isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
+            </Button>
+          ) : null}
+          {showOpenInNewTab ? (
+            <Button type="button" variant="outline" size="sm" onClick={openInNewTab}>
+              <ExternalLink className="mr-2 h-4 w-4" />
+              Open in new tab
+            </Button>
+          ) : null}
         </div>
-      ) : null}
+      </div>
 
       <div
         className={`flex min-h-0 flex-1 justify-center touch-manipulation ${
-          isBookLayout ? 'overflow-hidden bg-stone-300/80 p-2 sm:p-4' : 'overflow-hidden'
+          isBookLayout ? 'overflow-hidden bg-stone-400/40 p-3 sm:p-5' : 'overflow-hidden'
         }`}
       >
         <div
-          className={`${bookShellClass} ${readingSurfaceClass} touch-manipulation ${
-            isBookLayout ? 'overflow-hidden shadow-lg ring-1 ring-black/5' : 'overflow-hidden'
+          className={`${bookShellClass} touch-manipulation ${
+            isBookLayout
+              ? 'overflow-hidden rounded-xl border border-stone-300/70 bg-stone-200/80 shadow-xl ring-1 ring-black/5'
+              : `overflow-hidden ${readingSurfaceClass}`
           }`}
         >
           <div
             ref={containerRef}
-            className="relative h-full min-h-0 flex-1 overflow-hidden touch-manipulation"
+            className="relative h-full min-h-0 flex-1 overflow-hidden touch-manipulation bg-stone-200/50"
           >
             {useIframeFallback ? (
               <iframe
@@ -910,9 +929,16 @@ export default function PdfPreviewPanel({
               />
             ) : useMobileScrollLayout && pdfDoc && totalPages > 0 && bookPageWidth >= 280 ? (
               <PdfMobileScrollViewer
+                ref={mobileViewerRef}
                 pdf={pdfDoc}
                 totalPages={totalPages}
                 containerWidth={bookPageWidth}
+                storageKey={absoluteUrl}
+                showPageHud={false}
+                onPageChange={(page, count) => {
+                  setReaderPage(page);
+                  setReaderPageCount(count);
+                }}
                 className="h-full w-full"
               />
             ) : (
@@ -935,6 +961,36 @@ export default function PdfPreviewPanel({
           </div>
         </div>
       </div>
+
+      {!useIframeFallback && readerPageCount > 0 ? (
+        <div className="flex shrink-0 items-center justify-center gap-3 border-t border-stone-200/80 bg-white px-3 py-2.5 sm:gap-4 sm:py-3">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-10 min-w-10 rounded-xl px-0 sm:h-11 sm:min-w-11"
+            disabled={readerPage <= 1}
+            onClick={() => mobileViewerRef.current?.goToPage(readerPage - 1)}
+            aria-label="Previous page"
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </Button>
+          <p className="min-w-[8rem] text-center text-sm font-semibold tabular-nums text-stone-800 sm:min-w-[10rem] sm:text-base">
+            Page {readerPage} of {readerPageCount}
+          </p>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-10 min-w-10 rounded-xl px-0 sm:h-11 sm:min-w-11"
+            disabled={readerPage >= readerPageCount}
+            onClick={() => mobileViewerRef.current?.goToPage(readerPage + 1)}
+            aria-label="Next page"
+          >
+            <ChevronRight className="h-5 w-5" />
+          </Button>
+        </div>
+      ) : null}
     </div>
   );
 }

@@ -210,16 +210,6 @@ export function SuperAdminSidebar({ currentView, onViewChange, user, onLogout }:
               </div>
             </button>
             <div className="flex items-center gap-1 shrink-0">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={onLogout}
-                className="text-white hover:bg-orange-600/50 gap-1.5 px-2"
-                aria-label="Log out"
-              >
-                <LogOut className="h-4 w-4" />
-                <span className="text-xs font-medium">Logout</span>
-              </Button>
               <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
                 <SheetTrigger asChild>
                   <Button

@@ -862,7 +862,7 @@ const UserManagement = () => {
   );
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-gradient-to-br from-orange-50 via-orange-100 to-teal-50">
+    <div className="min-h-0 w-full overflow-x-hidden bg-gradient-to-br from-orange-50 via-orange-100 to-teal-50">
       <div className="space-y-3 sm:space-y-4 lg:space-y-6 p-3 sm:p-4 lg:space-y-8 lg:p-6">
         {/* Hero Section with Vibrant Student Stats */}
         <div className="relative overflow-hidden">

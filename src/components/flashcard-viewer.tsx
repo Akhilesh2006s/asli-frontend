@@ -225,6 +225,181 @@ function StudyFieldTile({
 
 type TeacherCardCategory = 'all' | 'concept' | 'formula' | 'application' | 'visual';
 
+function DualFaceCardPair({
+  front,
+  back,
+  taskLabel = 'Task',
+  solutionLabel = 'Solution',
+}: {
+  front: string;
+  back: string;
+  taskLabel?: string;
+  solutionLabel?: string;
+}) {
+  return (
+    <div className="grid gap-4 sm:grid-cols-2">
+      <div className="relative min-h-[160px] min-w-0 overflow-hidden rounded-2xl border-2 border-violet-300 bg-white p-4 sm:p-5 shadow-sm">
+        <div
+          className="pointer-events-none absolute -left-6 -top-6 h-24 w-24 rounded-full bg-violet-200/50"
+          aria-hidden
+        />
+        <div
+          className="pointer-events-none absolute -bottom-8 -right-4 h-20 w-28 rounded-[40%] bg-violet-100/70"
+          aria-hidden
+        />
+        <p className="relative mb-3 text-[11px] font-bold uppercase tracking-[0.14em] text-violet-700">
+          {taskLabel}
+        </p>
+        <p className="relative text-base font-semibold leading-relaxed text-slate-900 break-words [overflow-wrap:anywhere] sm:text-[17px]">
+          {front}
+        </p>
+      </div>
+      <div className="relative min-h-[160px] min-w-0 overflow-hidden rounded-2xl border-2 border-emerald-300/90 bg-white p-4 sm:p-5 shadow-sm">
+        <div
+          className="pointer-events-none absolute right-3 top-3 h-8 w-8 rounded-full border border-emerald-200 bg-emerald-50"
+          aria-hidden
+        />
+        <div
+          className="pointer-events-none absolute -bottom-6 -left-4 h-16 w-24 rounded-[45%] bg-emerald-50"
+          aria-hidden
+        />
+        <p className="relative mb-3 text-[11px] font-bold uppercase tracking-[0.14em] text-emerald-700">
+          {solutionLabel}
+        </p>
+        <p className="relative text-[15px] leading-relaxed text-slate-800 break-words [overflow-wrap:anywhere] sm:text-base">
+          {back}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function DecorativeFrontBackPair({ front, back }: { front: string; back: string }) {
+  return (
+    <div className="grid gap-5 sm:grid-cols-2">
+      <div className="flex flex-col items-center gap-2">
+        <span className="rounded-md bg-indigo-800 px-4 py-1 text-xs font-bold uppercase tracking-widest text-white">
+          Front
+        </span>
+        <div className="relative w-full min-h-[200px] overflow-hidden rounded-xl border-[3px] border-indigo-800 bg-white px-5 py-8 text-center shadow-md">
+          <div className="pointer-events-none absolute left-0 top-0 h-16 w-20 bg-[radial-gradient(circle_at_0_0,rgba(49,46,129,0.25),transparent_70%)]" />
+          <div className="pointer-events-none absolute bottom-0 right-0 h-16 w-20 bg-[radial-gradient(circle_at_100%_100%,rgba(49,46,129,0.2),transparent_70%)]" />
+          <div className="mx-auto mb-4 flex w-full max-w-[85%] items-center gap-2">
+            <div className="h-px flex-1 bg-indigo-300" />
+            <span className="text-indigo-500 text-xs">✦</span>
+            <div className="h-px flex-1 bg-indigo-300" />
+          </div>
+          <p className="font-serif text-lg font-bold leading-snug text-indigo-950 sm:text-xl">
+            {front}
+          </p>
+          <div className="mx-auto mt-4 flex w-full max-w-[85%] items-center gap-2">
+            <div className="h-px flex-1 bg-indigo-300" />
+            <span className="text-indigo-500 text-xs">✦</span>
+            <div className="h-px flex-1 bg-indigo-300" />
+          </div>
+        </div>
+      </div>
+      <div className="flex flex-col items-center gap-2">
+        <span className="rounded-md bg-emerald-700 px-4 py-1 text-xs font-bold uppercase tracking-widest text-white">
+          Back
+        </span>
+        <div className="relative w-full min-h-[200px] overflow-hidden rounded-xl border-[3px] border-emerald-700 bg-white px-5 py-8 text-center shadow-md">
+          <div className="pointer-events-none absolute inset-2 rounded-lg border border-dashed border-emerald-300/80" />
+          <div className="relative mb-3 flex justify-center text-emerald-700" aria-hidden>
+            <BookOpen className="h-5 w-5" />
+          </div>
+          <div className="mx-auto mb-3 flex w-full max-w-[85%] items-center gap-2">
+            <div className="h-px flex-1 bg-emerald-300" />
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+            <div className="h-px flex-1 bg-emerald-300" />
+          </div>
+          <p className="relative font-serif text-[15px] leading-relaxed text-slate-800 sm:text-base">
+            {back}
+          </p>
+          <div className="mx-auto mt-3 flex w-full max-w-[85%] items-center gap-2">
+            <div className="h-px flex-1 bg-emerald-300" />
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+            <div className="h-px flex-1 bg-emerald-300" />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function FlashcardListView({ cards }: { cards: Flashcard[] }) {
+  return (
+    <div className="space-y-6 rounded-xl border border-slate-200 bg-white px-4 py-5 sm:px-6">
+      {cards.map((card, idx) => (
+        <div key={`${idx}-${card.front.slice(0, 24)}`} className="space-y-1.5">
+          <p className="text-lg font-semibold text-sky-600">Card {idx + 1}</p>
+          <p className="text-sm leading-relaxed text-slate-900">
+            <span className="font-bold">Front:</span> {card.front}
+          </p>
+          <p className="text-sm leading-relaxed text-slate-800">
+            <span className="font-bold">Back:</span> {card.back}
+          </p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function CardSetPager({
+  currentIndex,
+  total,
+  onPrev,
+  onNext,
+  onJump,
+}: {
+  currentIndex: number;
+  total: number;
+  onPrev: () => void;
+  onNext: () => void;
+  onJump: (idx: number) => void;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-2">
+      <Button
+        variant="outline"
+        size="sm"
+        disabled={currentIndex === 0}
+        onClick={onPrev}
+        className="rounded-full border-slate-300 px-4 disabled:opacity-40"
+      >
+        <ChevronLeft className="h-4 w-4" />
+        Previous
+      </Button>
+      <div className="flex flex-1 flex-wrap justify-center gap-1.5 px-2">
+        {Array.from({ length: total }, (_, idx) => (
+          <button
+            key={idx}
+            type="button"
+            aria-label={`Card ${idx + 1}`}
+            aria-current={idx === currentIndex}
+            onClick={() => onJump(idx)}
+            className={`rounded-full transition-all ${
+              idx === currentIndex
+                ? 'h-2.5 w-7 bg-violet-600'
+                : 'h-2.5 w-2.5 bg-violet-200 hover:bg-violet-400'
+            }`}
+          />
+        ))}
+      </div>
+      <Button
+        variant="outline"
+        size="sm"
+        disabled={currentIndex >= total - 1}
+        onClick={onNext}
+        className="rounded-full border-slate-300 px-4 disabled:opacity-40"
+      >
+        Next
+        <ChevronRight className="h-4 w-4" />
+      </Button>
+    </div>
+  );
+}
+
 export function FlashcardViewer({
   content,
   rawContent,
@@ -238,6 +413,8 @@ export function FlashcardViewer({
   const [activeCategory, setActiveCategory] = useState<TeacherCardCategory>('all');
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
+  /** study = Task/Solution; print = decorative FRONT/BACK; list = Front/Back stack; flip = classic */
+  const [viewMode, setViewMode] = useState<'study' | 'print' | 'list' | 'flip'>('study');
   const cards =
     variant === 'teacher' && activeCategory !== 'all'
       ? allCards.filter((card) => card.cardCategory === activeCategory)
@@ -789,39 +966,25 @@ export function FlashcardViewer({
         ) : null}
 
         {hasCards && currentCard ? (
-        <section className="rounded-2xl border border-violet-200/70 bg-gradient-to-br from-white via-violet-50/20 to-indigo-50/30 shadow-lg">
-          <div className="border-b border-violet-100 bg-white/80 px-4 py-3 sm:px-5 flex flex-wrap items-center justify-between gap-2">
+        <section className="rounded-2xl border border-violet-200/80 bg-white shadow-md overflow-hidden">
+          <div className="border-b border-violet-100 bg-white px-4 py-3.5 sm:px-6 flex flex-wrap items-center justify-between gap-2">
             <div>
-              <p className={blockTitle}>
+              <p className="text-sm sm:text-base font-bold uppercase tracking-wide text-violet-700">
                 {cardsNum} · The Card Set: Application &amp; HOTS
               </p>
-              <p className="text-sm text-slate-600 mt-0.5">
+              <p className="text-sm text-slate-500 mt-0.5">
                 {allCards.length} task{allCards.length === 1 ? '' : 's'}
               </p>
             </div>
-            <Badge variant="outline" className="border-violet-200 bg-violet-50 text-violet-800">
+            <Badge
+              variant="outline"
+              className="rounded-full border-violet-300 bg-white px-3 py-1 text-violet-700 font-medium"
+            >
               Card {currentIndex + 1} of {cards.length}
             </Badge>
           </div>
-          <div className="p-4 sm:p-5 space-y-4">
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="min-w-0 rounded-xl border-2 border-violet-200 bg-gradient-to-br from-violet-50 to-white p-4 sm:p-5 min-h-[140px] flex flex-col overflow-visible">
-                <p className="text-micro font-bold uppercase tracking-wider text-violet-700 mb-2">
-                  Task
-                </p>
-                <p className="text-sm sm:text-base font-medium text-slate-900 leading-relaxed flex-1 break-words [overflow-wrap:anywhere]">
-                  {currentCard.front}
-                </p>
-              </div>
-              <div className="min-w-0 rounded-xl border-2 border-indigo-200 bg-gradient-to-br from-indigo-50 to-white p-4 sm:p-5 min-h-[140px] flex flex-col overflow-visible">
-                <p className="text-micro font-bold uppercase tracking-wider text-indigo-700 mb-2">
-                  Solution
-                </p>
-                <p className="text-sm sm:text-base text-slate-800 leading-relaxed flex-1 break-words [overflow-wrap:anywhere]">
-                  {currentCard.back}
-                </p>
-              </div>
-            </div>
+          <div className="p-4 sm:p-6 space-y-5">
+            <DualFaceCardPair front={currentCard.front} back={currentCard.back} />
             {cardExtras.length > 0 ? (
               <div className="flex flex-wrap gap-2">
                 {cardExtras.map((chip) => (
@@ -835,42 +998,13 @@ export function FlashcardViewer({
                 ))}
               </div>
             ) : null}
-            <div className="flex items-center justify-between gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={currentIndex === 0}
-                onClick={() => setCurrentIndex((i) => Math.max(0, i - 1))}
-              >
-                <ChevronLeft className="h-4 w-4" />
-                Previous
-              </Button>
-              <div className="flex flex-wrap justify-center gap-1.5 flex-1 px-2">
-                {cards.map((_, idx) => (
-                  <button
-                    key={idx}
-                    type="button"
-                    aria-label={`Card ${idx + 1}`}
-                    aria-current={idx === currentIndex}
-                    onClick={() => setCurrentIndex(idx)}
-                    className={`rounded-full transition-all ${
-                      idx === currentIndex
-                        ? 'h-2 w-6 bg-violet-600'
-                        : 'h-2 w-2 bg-violet-300 hover:bg-violet-400'
-                    }`}
-                  />
-                ))}
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={currentIndex >= cards.length - 1}
-                onClick={() => setCurrentIndex((i) => Math.min(cards.length - 1, i + 1))}
-              >
-                Next
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
+            <CardSetPager
+              currentIndex={currentIndex}
+              total={cards.length}
+              onPrev={() => setCurrentIndex((i) => Math.max(0, i - 1))}
+              onNext={() => setCurrentIndex((i) => Math.min(cards.length - 1, i + 1))}
+              onJump={(idx) => setCurrentIndex(idx)}
+            />
           </div>
         </section>
         ) : null}
@@ -946,310 +1080,233 @@ export function FlashcardViewer({
 
   return (
     <div className="w-full max-w-3xl mx-auto">
-      <div className="overflow-hidden rounded-2xl border border-violet-200/60 bg-gradient-to-br from-white via-violet-50/30 to-indigo-50/40 shadow-lg shadow-violet-200/20">
-        {/* Header */}
-        <div className="border-b border-violet-100/80 bg-white/70 px-4 py-3 sm:px-5 sm:py-4 backdrop-blur-sm">
+      <div className="overflow-hidden rounded-2xl border border-violet-200/70 bg-white shadow-lg">
+        <div className="border-b border-violet-100 bg-white px-4 py-3.5 sm:px-6">
           <div className="flex flex-wrap items-start justify-between gap-3">
-            <div className="flex items-start gap-3 min-w-0">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-violet-600 to-indigo-600 text-white shadow-md">
-                <Layers className="h-5 w-5" aria-hidden />
-              </div>
-              <div className="min-w-0">
-                <p className="text-xs font-medium text-violet-600 uppercase tracking-wide">
-                  Flashcard deck
-                </p>
-                <h3 className="text-base sm:text-lg font-semibold text-slate-900 truncate">
-                  {deckTitle || 'Study cards'}
-                </h3>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  {allCards.length} card{allCards.length === 1 ? '' : 's'}
-                </p>
-              </div>
+            <div className="min-w-0">
+              <p className="text-sm font-bold uppercase tracking-wide text-violet-700">
+                The Card Set: Application &amp; HOTS
+              </p>
+              <h3 className="mt-0.5 truncate text-base font-semibold text-slate-900 sm:text-lg">
+                {deckTitle || 'Study cards'}
+              </h3>
+              <p className="mt-0.5 text-sm text-slate-500">
+                {allCards.length} task{allCards.length === 1 ? '' : 's'}
+              </p>
             </div>
-            <Badge
-              variant="outline"
-              className="shrink-0 border-violet-200 bg-violet-50 text-violet-800 font-medium"
-            >
-              Card {currentIndex + 1} of {cards.length}
-            </Badge>
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="flex rounded-full border border-violet-200 bg-violet-50/80 p-0.5 text-xs">
+                {(
+                  [
+                    { id: 'study' as const, label: 'Study' },
+                    { id: 'print' as const, label: 'Print' },
+                    { id: 'list' as const, label: 'List' },
+                    { id: 'flip' as const, label: 'Flip' },
+                  ] as const
+                ).map((mode) => (
+                  <button
+                    key={mode.id}
+                    type="button"
+                    onClick={() => setViewMode(mode.id)}
+                    className={`rounded-full px-3 py-1 font-medium transition-colors ${
+                      viewMode === mode.id
+                        ? 'bg-violet-600 text-white shadow-sm'
+                        : 'text-violet-700 hover:bg-violet-100'
+                    }`}
+                  >
+                    {mode.label}
+                  </button>
+                ))}
+              </div>
+              {viewMode !== 'list' ? (
+                <Badge
+                  variant="outline"
+                  className="rounded-full border-violet-300 bg-white px-3 py-1 font-medium text-violet-700"
+                >
+                  Card {currentIndex + 1} of {cards.length}
+                </Badge>
+              ) : null}
+            </div>
           </div>
         </div>
 
-        <div className="p-4 sm:p-5 space-y-4 sm:space-y-5">
-      {/* Legacy MCQ / notes / facts decks only */}
-      {showLegacyTypeTabs ? (
-      <div className="flex flex-wrap justify-center gap-2">
-        <Button
-          variant={activeType === 'all' ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => setActiveType('all')}
-          className="relative"
-        >
-          All
-          <span className="ml-2 text-xs opacity-75">({allCards.length})</span>
-        </Button>
-        <Button
-          variant={activeType === 'question' ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => setActiveType('question')}
-          className="relative"
-          disabled={questionCount === 0}
-        >
-          Questions
-          <span className="ml-2 text-xs opacity-75">({questionCount})</span>
-        </Button>
-        <Button
-          variant={activeType === 'note' ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => setActiveType('note')}
-          className="relative"
-          disabled={noteCount === 0}
-        >
-          Important Notes
-          <span className="ml-2 text-xs opacity-75">({noteCount})</span>
-        </Button>
-        <Button
-          variant={activeType === 'fact' ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => setActiveType('fact')}
-          className="relative"
-          disabled={factCount === 0}
-        >
-          Facts
-          <span className="ml-2 text-xs opacity-75">({factCount})</span>
-        </Button>
-      </div>
-      ) : null}
-
-      <p className="text-center text-mini sm:text-xs text-slate-500">
-        <kbd className="rounded-md border border-slate-200 bg-white px-1.5 py-0.5 font-mono text-micro shadow-sm">
-          Space
-        </kbd>{' '}
-        flip ·{' '}
-        <kbd className="rounded-md border border-slate-200 bg-white px-1.5 py-0.5 font-mono text-micro shadow-sm">
-          ←
-        </kbd>{' '}
-        <kbd className="rounded-md border border-slate-200 bg-white px-1.5 py-0.5 font-mono text-micro shadow-sm">
-          →
-        </kbd>{' '}
-        navigate
-      </p>
-
-      {/* Flashcard */}
-      <div className="relative w-full z-10" style={{ perspective: '1000px' }}>
-        <motion.div
-          className="relative min-h-[420px] h-[min(480px,70vh)] w-full"
-          style={{ transformStyle: 'preserve-3d' }}
-        >
-          <motion.div
-            className="relative w-full h-full"
-            animate={{ rotateY: isFlipped ? 180 : 0 }}
-            transition={{ duration: 0.6, type: 'spring', stiffness: 200, damping: 20 }}
-            style={{ transformStyle: 'preserve-3d' }}
-          >
-            {/* Front of card */}
-            <motion.div
-              className={`absolute inset-0 w-full h-full bg-gradient-to-br ${cardStyles.front} rounded-2xl shadow-xl border border-violet-200/80 ring-1 ring-white/60 p-4 sm:p-6 lg:p-8 flex flex-col cursor-pointer overflow-hidden`}
-              onClick={() => setIsFlipped(!isFlipped)}
-              style={{ 
-                backfaceVisibility: 'hidden',
-                WebkitBackfaceVisibility: 'hidden',
-                transform: 'rotateY(0deg)'
-              }}
-              whileHover={{ scale: 1.005 }}
-              whileTap={{ scale: 0.995 }}
-            >
-              <div className="pointer-events-none absolute -right-8 -top-8 h-32 w-32 rounded-full bg-violet-300/20 blur-2xl" />
-              <div className="text-center space-y-4 w-full flex flex-col flex-1 min-h-0 justify-between relative">
-                <div className="flex items-center justify-center shrink-0">
-                  <span
-                    className={`inline-flex items-center rounded-full border border-violet-200/80 bg-white/80 px-3 py-1 text-mini font-semibold uppercase tracking-widest ${cardStyles.label} shadow-sm`}
-                  >
-                  {cardStyles.labelText}
-                  </span>
-                </div>
-                <div className="text-base sm:text-lg lg:text-xl font-medium text-slate-900 leading-relaxed w-full flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-2 sm:px-4 [scrollbar-width:thin]">
-                  {currentCard.front}
-                </div>
-                {currentCard.options && currentCard.options.length > 0 && (
-                  <div className="mt-6 space-y-2">
-                    {currentCard.options.map((option, idx) => (
-                      <div key={idx} className="text-left text-gray-700 bg-white/50 rounded-lg p-3">
-                        {option}
-                      </div>
-                    ))}
-                  </div>
-                )}
-                <div className="shrink-0 pt-2" onClick={(e) => e.stopPropagation()}>
-                  <Button
-                    variant="outline"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      setIsFlipped(true);
-                    }}
-                    className="rounded-full bg-white/95 hover:bg-white border-violet-300 text-violet-800 shadow-md px-6"
-                    type="button"
-                  >
-                    Reveal answer
-                  </Button>
-                </div>
-              </div>
-            </motion.div>
-
-            {/* Back of card */}
-            <motion.div
-              className={`absolute inset-0 w-full h-full bg-gradient-to-br ${cardStyles.back} rounded-2xl shadow-xl border border-indigo-200/80 ring-1 ring-white/60 p-4 sm:p-6 lg:p-8 flex flex-col overflow-hidden`}
-              style={{ 
-                backfaceVisibility: 'hidden',
-                WebkitBackfaceVisibility: 'hidden',
-                transform: 'rotateY(180deg)'
-              }}
-            >
-              <div className="pointer-events-none absolute -left-8 -bottom-8 h-32 w-32 rounded-full bg-indigo-300/20 blur-2xl" />
-              <div className="text-center space-y-4 w-full flex-1 flex flex-col items-center min-h-0 relative">
-                <div 
-                  className="cursor-pointer w-full flex flex-col flex-1 min-h-0"
-                  onClick={() => setIsFlipped(!isFlipped)}
-                >
-                  <div className="flex items-center justify-center shrink-0 mb-3">
-                    <span
-                      className={`inline-flex items-center rounded-full border border-indigo-200/80 bg-white/80 px-3 py-1 text-mini font-semibold uppercase tracking-widest ${cardStyles.label} shadow-sm`}
-                    >
-                      Back
-                    </span>
-                  </div>
-                  <div className="text-base sm:text-lg lg:text-xl font-medium text-slate-900 leading-relaxed flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-2 sm:px-4 [scrollbar-width:thin]">
-                    {currentCard.back}
-                  </div>
-                </div>
-              </div>
-              <div className="shrink-0 pt-3 relative z-50 flex justify-center" onClick={(e) => e.stopPropagation()}>
+        <div className="space-y-5 p-4 sm:p-6">
+          {showLegacyTypeTabs ? (
+            <div className="flex flex-wrap justify-center gap-2">
+              {(
+                [
+                  { id: 'all' as const, label: 'All', count: allCards.length },
+                  { id: 'question' as const, label: 'Questions', count: questionCount },
+                  { id: 'note' as const, label: 'Important Notes', count: noteCount },
+                  { id: 'fact' as const, label: 'Facts', count: factCount },
+                ] as const
+              ).map((tab) => (
                 <Button
-                  variant="outline"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    setIsFlipped(false);
-                  }}
-                  className="rounded-full bg-white/95 hover:bg-white border-indigo-300 text-indigo-800 shadow-md pointer-events-auto px-6"
-                  type="button"
+                  key={tab.id}
+                  variant={activeType === tab.id ? 'default' : 'outline'}
+                  size="sm"
+                  disabled={tab.id !== 'all' && tab.count === 0}
+                  onClick={() => setActiveType(tab.id)}
                 >
-                  <RotateCcw className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
-                  Show front
+                  {tab.label}
+                  <span className="ml-2 text-xs opacity-75">({tab.count})</span>
                 </Button>
-              </div>
-            </motion.div>
-          </motion.div>
-        </motion.div>
-      </div>
-
-      {/* Navigation */}
-      <div className="rounded-xl border border-slate-200/80 bg-white/80 p-3 shadow-sm">
-        <div className="flex items-center gap-3">
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            if (currentIndex > 0) {
-                setCurrentIndex((prev) => prev - 1);
-                setIsFlipped(false);
-            }
-          }}
-          disabled={currentIndex === 0}
-            className="h-9 w-9 shrink-0 rounded-full border-slate-200"
-          type="button"
-            aria-label="Previous card"
-        >
-            <ChevronLeft className="h-4 w-4" />
-        </Button>
-
-          <div className="flex-1 min-w-0 space-y-2">
-            <div className="h-2 overflow-hidden rounded-full bg-slate-100">
-          <motion.div
-                className={`h-full rounded-full bg-gradient-to-r ${
-                  currentCard.type === 'note'
-                    ? 'from-emerald-500 to-teal-500'
-                    : currentCard.type === 'fact'
-                      ? 'from-amber-500 to-orange-500'
-                      : 'from-violet-500 via-indigo-500 to-purple-600'
-            }`}
-            initial={{ width: 0 }}
-            animate={{ width: `${progress}%` }}
-            transition={{ duration: 0.3 }}
-          />
-            </div>
-            <div className="flex justify-center gap-1.5 flex-wrap">
-              {cards.map((_, idx) => (
-                <button
-                  key={idx}
-                  type="button"
-                  aria-label={`Go to card ${idx + 1}`}
-                  onClick={() => {
-                    setCurrentIndex(idx);
-                    setIsFlipped(false);
-                  }}
-                  className={`h-2 rounded-full transition-all ${
-                    idx === currentIndex
-                      ? 'w-6 bg-violet-600'
-                      : 'w-2 bg-slate-300 hover:bg-violet-300'
-                  }`}
-                />
               ))}
             </div>
-        </div>
+          ) : null}
 
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            if (currentIndex < cards.length - 1) {
-                setCurrentIndex((prev) => prev + 1);
-                setIsFlipped(false);
-            }
-          }}
-          disabled={currentIndex === cards.length - 1}
-            className="h-9 w-9 shrink-0 rounded-full border-slate-200"
-          type="button"
-            aria-label="Next card"
-        >
-            <ChevronRight className="h-4 w-4" />
-        </Button>
-        </div>
-      </div>
-
-      {showStudyPanel && studyFieldEntries.length > 0 ? (
-        <motion.div
-          key={`study-${currentIndex}`}
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.25 }}
-          className="space-y-3"
-        >
-          <div className="flex items-center gap-2">
-            <div className="h-px flex-1 bg-gradient-to-r from-transparent via-violet-200 to-transparent" />
-            <p className="text-mini font-semibold uppercase tracking-wider text-violet-600/90 shrink-0">
-              Study boosters
-            </p>
-            <div className="h-px flex-1 bg-gradient-to-r from-transparent via-violet-200 to-transparent" />
-          </div>
-          <div className="flex w-full flex-col gap-4">
-            {studyFieldEntries.map((field, i) => (
-              <StudyFieldTile
-                key={field.key}
-                sectionNum={String(i + 1)}
-                label={field.label}
-                value={field.value}
-                icon={field.icon}
+          {viewMode === 'list' ? (
+            <FlashcardListView cards={cards} />
+          ) : viewMode === 'study' ? (
+            <>
+              <DualFaceCardPair front={currentCard.front} back={currentCard.back} />
+              <CardSetPager
+                currentIndex={currentIndex}
+                total={cards.length}
+                onPrev={() => {
+                  setCurrentIndex((p) => p - 1);
+                  setIsFlipped(false);
+                }}
+                onNext={() => {
+                  setCurrentIndex((p) => p + 1);
+                  setIsFlipped(false);
+                }}
+                onJump={(idx) => {
+                  setCurrentIndex(idx);
+                  setIsFlipped(false);
+                }}
               />
-            ))}
-          </div>
-        </motion.div>
-      ) : null}
+            </>
+          ) : viewMode === 'print' ? (
+            <>
+              <DecorativeFrontBackPair front={currentCard.front} back={currentCard.back} />
+              <CardSetPager
+                currentIndex={currentIndex}
+                total={cards.length}
+                onPrev={() => {
+                  setCurrentIndex((p) => p - 1);
+                  setIsFlipped(false);
+                }}
+                onNext={() => {
+                  setCurrentIndex((p) => p + 1);
+                  setIsFlipped(false);
+                }}
+                onJump={(idx) => {
+                  setCurrentIndex(idx);
+                  setIsFlipped(false);
+                }}
+              />
+            </>
+          ) : (
+            <>
+              <p className="text-center text-xs text-slate-500">
+                <kbd className="rounded border border-slate-200 bg-white px-1.5 py-0.5 font-mono text-[10px]">Space</kbd>{' '}
+                flip · arrows navigate
+              </p>
+              <div className="relative w-full" style={{ perspective: '1000px' }}>
+                <motion.div
+                  className="relative h-[min(420px,65vh)] min-h-[320px] w-full"
+                  style={{ transformStyle: 'preserve-3d' }}
+                >
+                  <motion.div
+                    className="relative h-full w-full"
+                    animate={{ rotateY: isFlipped ? 180 : 0 }}
+                    transition={{ duration: 0.55, type: 'spring', stiffness: 200, damping: 22 }}
+                    style={{ transformStyle: 'preserve-3d' }}
+                  >
+                    <motion.div
+                      className={`absolute inset-0 flex cursor-pointer flex-col overflow-hidden rounded-2xl border bg-gradient-to-br p-5 shadow-xl ${cardStyles.front}`}
+                      onClick={() => setIsFlipped(!isFlipped)}
+                      style={{
+                        backfaceVisibility: 'hidden',
+                        WebkitBackfaceVisibility: 'hidden',
+                        transform: 'rotateY(0deg)',
+                      }}
+                    >
+                      <div className="mb-3 flex justify-center">
+                        <span
+                          className={`rounded-full border border-violet-200 bg-white/90 px-3 py-1 text-[10px] font-semibold uppercase tracking-widest ${cardStyles.label}`}
+                        >
+                          {cardStyles.labelText}
+                        </span>
+                      </div>
+                      <div className="flex flex-1 items-center justify-center overflow-y-auto px-2 text-center text-base font-medium leading-relaxed text-slate-900 sm:text-lg">
+                        {currentCard.front}
+                      </div>
+                      <div className="pt-3 text-center" onClick={(e) => e.stopPropagation()}>
+                        <Button type="button" variant="outline" className="rounded-full" onClick={() => setIsFlipped(true)}>
+                          Reveal answer
+                        </Button>
+                      </div>
+                    </motion.div>
+                    <motion.div
+                      className={`absolute inset-0 flex flex-col overflow-hidden rounded-2xl border bg-gradient-to-br p-5 shadow-xl ${cardStyles.back}`}
+                      style={{
+                        backfaceVisibility: 'hidden',
+                        WebkitBackfaceVisibility: 'hidden',
+                        transform: 'rotateY(180deg)',
+                      }}
+                    >
+                      <div className="mb-3 flex justify-center">
+                        <span
+                          className={`rounded-full border border-indigo-200 bg-white/90 px-3 py-1 text-[10px] font-semibold uppercase tracking-widest ${cardStyles.label}`}
+                        >
+                          Back
+                        </span>
+                      </div>
+                      <div
+                        className="flex flex-1 cursor-pointer items-center justify-center overflow-y-auto px-2 text-center text-base font-medium leading-relaxed text-slate-900 sm:text-lg"
+                        onClick={() => setIsFlipped(!isFlipped)}
+                      >
+                        {currentCard.back}
+                      </div>
+                      <div className="pt-3 text-center">
+                        <Button type="button" variant="outline" className="rounded-full" onClick={() => setIsFlipped(false)}>
+                          <RotateCcw className="mr-2 h-3.5 w-3.5" />
+                          Show front
+                        </Button>
+                      </div>
+                    </motion.div>
+                  </motion.div>
+                </motion.div>
+              </div>
+              <CardSetPager
+                currentIndex={currentIndex}
+                total={cards.length}
+                onPrev={() => {
+                  setCurrentIndex((p) => p - 1);
+                  setIsFlipped(false);
+                }}
+                onNext={() => {
+                  setCurrentIndex((p) => p + 1);
+                  setIsFlipped(false);
+                }}
+                onJump={(idx) => {
+                  setCurrentIndex(idx);
+                  setIsFlipped(false);
+                }}
+              />
+            </>
+          )}
+
+          {viewMode !== 'list' && showStudyPanel && studyFieldEntries.length > 0 ? (
+            <div className="space-y-3 border-t border-violet-100 pt-4">
+              <p className="text-center text-[10px] font-semibold uppercase tracking-wider text-violet-600">
+                Study boosters
+              </p>
+              <div className="flex w-full flex-col gap-4">
+                {studyFieldEntries.map((field, i) => (
+                  <StudyFieldTile
+                    key={field.key}
+                    sectionNum={String(i + 1)}
+                    label={field.label}
+                    value={field.value}
+                    icon={field.icon}
+                  />
+                ))}
+              </div>
+            </div>
+          ) : null}
         </div>
       </div>
     </div>

@@ -1,13 +1,17 @@
 import {
   useCallback,
   useEffect,
+  useImperativeHandle,
   useLayoutEffect,
   useRef,
   useState,
+  forwardRef,
   type RefObject,
 } from 'react';
 import type * as pdfjs from 'pdfjs-dist';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import PdfPagePinchFrame from '@/components/shared/PdfPagePinchFrame';
+import { Button } from '@/components/ui/button';
 
 function isIosOrIpadosBrowser(): boolean {
   if (typeof navigator === 'undefined') return false;
@@ -59,19 +63,45 @@ function getFitWidthScale(containerWidth: number, pageWidth: number): number {
   return availW / pageWidth;
 }
 
+export function pdfPageStorageKey(fileUrl: string): string {
+  return `asli:pdf-page:${String(fileUrl || '').trim()}`;
+}
+
+export function readStoredPdfPage(fileUrl: string): number {
+  if (!fileUrl || typeof window === 'undefined') return 1;
+  try {
+    const stored = Number(window.sessionStorage.getItem(pdfPageStorageKey(fileUrl)));
+    return Number.isFinite(stored) && stored >= 1 ? Math.floor(stored) : 1;
+  } catch {
+    return 1;
+  }
+}
+
+export function writeStoredPdfPage(fileUrl: string, page: number): void {
+  if (!fileUrl || typeof window === 'undefined') return;
+  const n = Math.floor(page);
+  if (!Number.isFinite(n) || n < 1) return;
+  try {
+    window.sessionStorage.setItem(pdfPageStorageKey(fileUrl), String(n));
+  } catch {
+    /* private mode */
+  }
+}
+
 async function renderPdfPageCanvas(
   pdf: pdfjs.PDFDocumentProxy,
   pageNum: number,
   containerWidth: number,
   canvas: HTMLCanvasElement,
-  displayWidth: number,
-  displayHeight: number,
 ): Promise<{ cssWidth: number; cssHeight: number } | null> {
   const page = await pdf.getPage(pageNum);
+  // Use the page's own rotation once (do not pass rotation again — that double-flips).
   const base = page.getViewport({ scale: 1 });
   const cssScale = getFitWidthScale(containerWidth, base.width);
   const cssWidth = Math.floor(base.width * cssScale);
   const cssHeight = Math.floor(base.height * cssScale);
+  if (cssWidth < 1 || cssHeight < 1) return null;
+
   const baseOutputScale = getSafeOutputScale(cssScale, base.width, base.height);
   const scaleAttempts = prefersDisableWorker()
     ? [baseOutputScale, baseOutputScale * 0.75, cssScale, cssScale * 0.65]
@@ -81,8 +111,10 @@ async function renderPdfPageCanvas(
     const viewport = page.getViewport({ scale: outputScale });
     canvas.width = Math.max(1, Math.floor(viewport.width));
     canvas.height = Math.max(1, Math.floor(viewport.height));
-    canvas.style.width = `${displayWidth}px`;
-    canvas.style.height = `${displayHeight}px`;
+    // Match CSS box to the true page aspect immediately — avoids a squashed/“flipped”
+    // first paint while waiting for React state to catch up.
+    canvas.style.width = `${cssWidth}px`;
+    canvas.style.height = `${cssHeight}px`;
     const ctx = canvas.getContext('2d', { alpha: false });
     if (!ctx) continue;
     try {
@@ -106,7 +138,7 @@ function PdfPageCanvas({
 }) {
   useLayoutEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvas || width < 1 || height < 1) return;
     canvas.style.width = `${width}px`;
     canvas.style.height = `${height}px`;
   }, [canvasRef, width, height]);
@@ -120,6 +152,7 @@ type PdfMobilePageProps = {
   containerWidth: number;
   defaultMinHeight: number;
   scrollRoot: RefObject<HTMLDivElement | null>;
+  forceRender?: boolean;
   onZoomChange: (pageNum: number, zoomed: boolean) => void;
 };
 
@@ -129,13 +162,14 @@ function PdfMobilePage({
   containerWidth,
   defaultMinHeight,
   scrollRoot,
+  forceRender = false,
   onZoomChange,
 }: PdfMobilePageProps) {
   const slotRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const renderedRef = useRef(false);
-  const [shouldRender, setShouldRender] = useState(pageNum === 1);
-  const [dims, setDims] = useState({ w: 0, h: defaultMinHeight });
+  const [shouldRender, setShouldRender] = useState(pageNum === 1 || forceRender);
+  const [dims, setDims] = useState({ w: 0, h: 0 });
 
   const pageHeight = dims.h > 0 ? dims.h : defaultMinHeight;
   const pageWidth = dims.w > 0 ? dims.w : Math.max(containerWidth - 8, 280);
@@ -146,6 +180,10 @@ function PdfMobilePage({
     (zoomed: boolean) => onZoomChange(pageNum, zoomed),
     [onZoomChange, pageNum],
   );
+
+  useEffect(() => {
+    if (forceRender) setShouldRender(true);
+  }, [forceRender]);
 
   useEffect(() => {
     const el = slotRef.current;
@@ -175,16 +213,8 @@ function PdfMobilePage({
     if (!canvas) return;
 
     let cancelled = false;
-    const fitW = Math.max(containerWidth - 24, 260);
     void (async () => {
-      const result = await renderPdfPageCanvas(
-        pdf,
-        pageNum,
-        containerWidth,
-        canvas,
-        fitW,
-        defaultMinHeight,
-      );
+      const result = await renderPdfPageCanvas(pdf, pageNum, containerWidth, canvas);
       if (cancelled || !result) return;
       renderedRef.current = true;
       setDims({ w: result.cssWidth, h: result.cssHeight });
@@ -193,7 +223,7 @@ function PdfMobilePage({
     return () => {
       cancelled = true;
     };
-  }, [shouldRender, pdf, pageNum, containerWidth, defaultMinHeight]);
+  }, [shouldRender, pdf, pageNum, containerWidth]);
 
   return (
     <div
@@ -215,24 +245,49 @@ function PdfMobilePage({
   );
 }
 
+export type PdfMobileScrollViewerHandle = {
+  goToPage: (page: number) => void;
+  getPage: () => number;
+};
+
 type PdfMobileScrollViewerProps = {
   pdf: pdfjs.PDFDocumentProxy;
   totalPages: number;
   containerWidth: number;
   defaultPageHeight?: number;
   className?: string;
+  /** Absolute file URL — used as sessionStorage key for the current page. */
+  storageKey?: string;
+  /**
+   * Floating overlay on the page (legacy). Prefer `false` and render controls
+   * outside the page so nothing sits on top of the textbook.
+   */
+  showPageHud?: boolean;
+  /** Fires when the visible page changes (for external page controls). */
+  onPageChange?: (page: number, totalPages: number) => void;
 };
 
-export default function PdfMobileScrollViewer({
-  pdf,
-  totalPages,
-  containerWidth,
-  defaultPageHeight = 280,
-  className = '',
-}: PdfMobileScrollViewerProps) {
+const PdfMobileScrollViewer = forwardRef<PdfMobileScrollViewerHandle, PdfMobileScrollViewerProps>(
+  function PdfMobileScrollViewer(
+    {
+      pdf,
+      totalPages,
+      containerWidth,
+      defaultPageHeight = 280,
+      className = '',
+      storageKey = '',
+      showPageHud = false,
+      onPageChange,
+    },
+    ref,
+  ) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const zoomedPagesRef = useRef(new Set<number>());
+  const restoredRef = useRef(false);
   const [scrollLocked, setScrollLocked] = useState(false);
+  const [currentPage, setCurrentPage] = useState(() =>
+    storageKey ? readStoredPdfPage(storageKey) : 1,
+  );
 
   const handleZoomChange = useCallback((pageNum: number, zoomed: boolean) => {
     if (zoomed) zoomedPagesRef.current.add(pageNum);
@@ -240,23 +295,176 @@ export default function PdfMobileScrollViewer({
     setScrollLocked(zoomedPagesRef.current.size > 0);
   }, []);
 
+  const persistPage = useCallback(
+    (page: number) => {
+      const clamped = Math.min(Math.max(1, Math.floor(page)), Math.max(1, totalPages));
+      setCurrentPage(clamped);
+      if (storageKey) writeStoredPdfPage(storageKey, clamped);
+      onPageChange?.(clamped, totalPages);
+    },
+    [storageKey, totalPages, onPageChange],
+  );
+
+  // Notify parent of initial / restored page once.
+  useEffect(() => {
+    if (totalPages < 1) return;
+    onPageChange?.(currentPage, totalPages);
+    // Only when doc/page count changes — avoid loops on every parent render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional mount/doc sync
+  }, [totalPages, pdf]);
+
+  // Restore scroll position after slots mount (refresh / reopen).
+  useEffect(() => {
+    if (restoredRef.current || !storageKey || totalPages < 1) return;
+    const host = scrollRef.current;
+    if (!host) return;
+    const targetPage = Math.min(readStoredPdfPage(storageKey), totalPages);
+    setCurrentPage(targetPage);
+    if (targetPage <= 1) {
+      restoredRef.current = true;
+      host.scrollTop = 0;
+      return;
+    }
+
+    let attempts = 0;
+    const jump = () => {
+      attempts += 1;
+      const slot = host.querySelector(`[data-page="${targetPage}"]`) as HTMLElement | null;
+      if (slot) {
+        slot.scrollIntoView({ block: 'start', behavior: 'auto' });
+        restoredRef.current = true;
+        return;
+      }
+      if (attempts < 40) {
+        window.setTimeout(jump, 50);
+      } else {
+        restoredRef.current = true;
+      }
+    };
+    // Wait a frame so page 1 layout exists, then jump.
+    window.requestAnimationFrame(jump);
+  }, [storageKey, totalPages, pdf]);
+
+  useEffect(() => {
+    const host = scrollRef.current;
+    if (!host) return;
+    let tick = 0;
+    const onScroll = () => {
+      window.clearTimeout(tick);
+      tick = window.setTimeout(() => {
+        const slots = Array.from(host.querySelectorAll<HTMLElement>('[data-page]'));
+        if (!slots.length) return;
+        const mid = host.scrollTop + host.clientHeight * 0.35;
+        let best = 1;
+        let bestDist = Number.POSITIVE_INFINITY;
+        for (const slot of slots) {
+          const page = Number(slot.dataset.page);
+          if (!Number.isFinite(page)) continue;
+          const center = slot.offsetTop + slot.offsetHeight / 2;
+          const dist = Math.abs(center - mid);
+          if (dist < bestDist) {
+            bestDist = dist;
+            best = page;
+          }
+        }
+        persistPage(best);
+      }, 120);
+    };
+    host.addEventListener('scroll', onScroll, { passive: true });
+    return () => {
+      window.clearTimeout(tick);
+      host.removeEventListener('scroll', onScroll);
+    };
+  }, [persistPage]);
+
+  const goToPage = useCallback(
+    (page: number) => {
+      const host = scrollRef.current;
+      const clamped = Math.min(Math.max(1, page), Math.max(1, totalPages));
+      persistPage(clamped);
+      const slot = host?.querySelector(`[data-page="${clamped}"]`) as HTMLElement | null;
+      slot?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+    },
+    [persistPage, totalPages],
+  );
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      goToPage,
+      getPage: () => currentPage,
+    }),
+    [goToPage, currentPage],
+  );
+
   return (
-    <div
-      ref={scrollRef}
-      className={`h-full w-full touch-manipulation overscroll-y-contain ${scrollLocked ? 'overflow-y-hidden overflow-x-hidden' : 'overflow-y-auto overflow-x-auto'} ${className}`}
-      style={{ WebkitOverflowScrolling: 'touch' }}
-    >
-      {Array.from({ length: totalPages }, (_, index) => (
-        <PdfMobilePage
-          key={index + 1}
-          pageNum={index + 1}
-          pdf={pdf}
-          containerWidth={containerWidth}
-          defaultMinHeight={defaultPageHeight}
-          scrollRoot={scrollRef}
-          onZoomChange={handleZoomChange}
-        />
-      ))}
+    <div className={`relative h-full w-full ${className}`}>
+      <div
+        ref={scrollRef}
+        className={`h-full w-full touch-manipulation overscroll-y-contain ${
+          scrollLocked
+            ? 'overflow-y-hidden overflow-x-hidden'
+            : 'overflow-y-auto overflow-x-auto'
+        }`}
+        style={{ WebkitOverflowScrolling: 'touch' }}
+      >
+        {Array.from({ length: totalPages }, (_, index) => {
+          const pageNum = index + 1;
+          const forceRender =
+            pageNum === currentPage ||
+            pageNum === currentPage - 1 ||
+            pageNum === currentPage + 1;
+          return (
+            <PdfMobilePage
+              key={pageNum}
+              pageNum={pageNum}
+              pdf={pdf}
+              containerWidth={containerWidth}
+              defaultMinHeight={defaultPageHeight}
+              scrollRoot={scrollRef}
+              forceRender={forceRender}
+              onZoomChange={handleZoomChange}
+            />
+          );
+        })}
+      </div>
+
+      {showPageHud && totalPages > 0 ? (
+        <div
+          className="pointer-events-none absolute inset-x-0 bottom-3 z-20 flex justify-center px-3"
+          data-pdf-page-hud=""
+        >
+          <div className="pointer-events-auto flex items-center gap-2 rounded-2xl border border-stone-200/90 bg-white/95 px-3 py-2.5 shadow-lg backdrop-blur-md sm:gap-3 sm:px-4 sm:py-3">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-10 min-w-10 rounded-xl px-0 sm:h-11 sm:min-w-11"
+              disabled={currentPage <= 1}
+              onClick={() => goToPage(currentPage - 1)}
+              aria-label="Previous page"
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </Button>
+            <p className="min-w-[7.5rem] text-center text-sm font-semibold tabular-nums text-stone-800 sm:min-w-[9rem] sm:text-base">
+              Page {currentPage} of {totalPages}
+            </p>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-10 min-w-10 rounded-xl px-0 sm:h-11 sm:min-w-11"
+              disabled={currentPage >= totalPages}
+              onClick={() => goToPage(currentPage + 1)}
+              aria-label="Next page"
+            >
+              <ChevronRight className="h-5 w-5" />
+            </Button>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
-}
+});
+
+export default PdfMobileScrollViewer;
