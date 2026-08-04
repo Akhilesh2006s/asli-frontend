@@ -1151,9 +1151,17 @@ export default function ExamManagement() {
         variant: keyUnusable ? 'destructive' : undefined,
       });
     } catch (error: any) {
+      const raw = String(error?.message || '').trim();
+      // Browser "Failed to fetch" = no HTTP response (network / CORS / proxy timeout / API down).
+      // Real Gemini/parse errors return JSON with a specific message.
+      const isNetwork =
+        /failed to fetch|networkerror|load failed|network request failed/i.test(raw) ||
+        (error?.name === 'TypeError' && /fetch/i.test(raw));
       toast({
         title: 'Extraction failed',
-        description: error?.message || 'Gemini failed to extract questions.',
+        description: isNetwork
+          ? 'Could not reach the API (connection dropped or timed out). Confirm api.aslilearn.ai is up, leave this tab open, and raise the reverse-proxy timeout for /pdf-convert — large papers often take several minutes.'
+          : raw || 'Gemini failed to extract questions.',
         variant: 'destructive',
       });
     } finally {
