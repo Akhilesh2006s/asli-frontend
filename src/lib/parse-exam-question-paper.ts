@@ -164,7 +164,20 @@ function collectOptionsFromRow(row: Record<string, unknown>): string[] {
   return fromArray;
 }
 
-function normalizeQuestion(value: unknown, idx: number): ExamQuestion {
+/** CBSE-style defaults when the model omits marks on a question. */
+const DEFAULT_SECTION_MARKS: Record<string, number> = {
+  a: 1,
+  b: 1,
+  c: 2,
+  d: 3,
+  e: 4,
+};
+
+function normalizeQuestion(
+  value: unknown,
+  idx: number,
+  sectionId?: string,
+): ExamQuestion {
   const row = value && typeof value === 'object' ? (value as Record<string, unknown>) : {};
   let question = stripVariantScaffoldFromQuestionText(
     stripEmbeddedExamTail(cleanText(row.question || row.prompt || row.statement || '')),
@@ -177,13 +190,18 @@ function normalizeQuestion(value: unknown, idx: number): ExamQuestion {
       options = inline.options;
     }
   }
+  const parsedMarks = parseMarks(row.marks ?? row.mark ?? row.marks_allotted);
+  const fallbackMarks =
+    sectionId && DEFAULT_SECTION_MARKS[sectionId] != null
+      ? DEFAULT_SECTION_MARKS[sectionId]
+      : null;
   return {
     questionNumber: cleanText(row.question_number || row.qNo || row.id || `${idx + 1}`),
     question,
     options,
     answer: cleanText(row.answer || row.correct_answer || row.answer_key || ''),
     explanation: cleanText(row.explanation || row.solution || row.step_by_step || ''),
-    marks: parseMarks(row.marks),
+    marks: parsedMarks != null ? parsedMarks : fallbackMarks,
     internalChoiceGroup: cleanText(row.internal_choice_group || row.internalChoiceGroup || ''),
   };
 }
@@ -234,7 +252,9 @@ function normalizeSection(record: Record<string, unknown>, id: string, title: st
     id,
     title,
     questions: dedupeExamQuestions(
-      list.map((q, i) => normalizeQuestion(q, i)).filter((q) => q.question || q.options.length > 0),
+      list
+        .map((q, i) => normalizeQuestion(q, i, id))
+        .filter((q) => q.question || q.options.length > 0),
     ),
   };
 }
@@ -256,7 +276,10 @@ function groupFlatQuestionsIntoSections(questions: ExamQuestion[]): ExamSection[
   const counts = { a: 4, b: 3, c: 3, d: 2, e: 1 };
   let idx = 0;
   const take = (n: number, sectionId: string) => {
-    const slice = questions.slice(idx, idx + n);
+    const slice = questions.slice(idx, idx + n).map((q) => ({
+      ...q,
+      marks: q.marks != null ? q.marks : DEFAULT_SECTION_MARKS[sectionId] ?? q.marks,
+    }));
     idx += n;
     const si = sections.findIndex((s) => s.id === sectionId);
     if (si >= 0 && slice.length) {
@@ -270,7 +293,13 @@ function groupFlatQuestionsIntoSections(questions: ExamQuestion[]): ExamSection[
   if (idx < questions.length) {
     const eIdx = sections.findIndex((s) => s.id === 'e');
     if (eIdx >= 0) {
-      sections[eIdx] = { ...sections[eIdx], questions: questions.slice(idx) };
+      sections[eIdx] = {
+        ...sections[eIdx],
+        questions: questions.slice(idx).map((q) => ({
+          ...q,
+          marks: q.marks != null ? q.marks : DEFAULT_SECTION_MARKS.e ?? q.marks,
+        })),
+      };
     }
   }
   return sections;

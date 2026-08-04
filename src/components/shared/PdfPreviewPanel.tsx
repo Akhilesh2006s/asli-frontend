@@ -461,6 +461,153 @@ export default function PdfPreviewPanel({
     return () => document.removeEventListener('fullscreenchange', onFsChange);
   }, []);
 
+  const jumpReaderPage = useCallback(
+    (page: number) => {
+      if (useMobileScrollLayout && mobileViewerRef.current) {
+        mobileViewerRef.current.goToPage(page);
+        return;
+      }
+      const host = scrollHostRef.current;
+      if (!host || host.childElementCount < 1) return;
+      const pageH = Math.max(1, host.clientHeight);
+      const max = totalPages > 0 ? totalPages : host.childElementCount;
+      const next = Math.min(Math.max(1, Math.floor(page)), max);
+      host.scrollTo({ top: (next - 1) * pageH, behavior: 'smooth' });
+      rememberedPageRef.current = next;
+      if (absoluteUrl) writeStoredPdfPage(absoluteUrl, next);
+    },
+    [useMobileScrollLayout, totalPages, absoluteUrl],
+  );
+
+  /** Resolve the element that should receive keyboard scrolling (canvas, not window). */
+  const getReaderScrollTarget = useCallback((): HTMLElement | null => {
+    if (useMobileScrollLayout) {
+      return mobileViewerRef.current?.getScrollElement() ?? null;
+    }
+    return scrollHostRef.current;
+  }, [useMobileScrollLayout]);
+
+  const scrollReaderCanvas = useCallback(
+    (dx: number, dy: number) => {
+      if (useMobileScrollLayout && mobileViewerRef.current) {
+        mobileViewerRef.current.scrollBy(dx, dy);
+        return;
+      }
+      const host = scrollHostRef.current;
+      if (!host) return;
+      host.scrollBy({ left: dx, top: dy, behavior: 'auto' });
+    },
+    [useMobileScrollLayout],
+  );
+
+  // Capture arrow/page keys so scrolling stays inside the textbook canvas.
+  useEffect(() => {
+    const isTypingTarget = (el: EventTarget | null) => {
+      if (!(el instanceof HTMLElement)) return false;
+      const tag = el.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return true;
+      if (el.isContentEditable) return true;
+      return Boolean(el.closest('[contenteditable="true"]'));
+    };
+
+    const shouldTrapKeys = () => {
+      const panel = panelRef.current;
+      if (!panel) return false;
+      if (document.fullscreenElement && panel.contains(document.fullscreenElement)) return true;
+      if (document.fullscreenElement === panel) return true;
+      if (panel.closest('[role="dialog"]')) return true;
+      if (panel.contains(document.activeElement)) return true;
+      if (panel.matches(':hover')) return true;
+      return false;
+    };
+
+    const lineStep = () => {
+      const el = getReaderScrollTarget();
+      const h = el?.clientHeight ?? 480;
+      return Math.max(48, Math.min(120, Math.round(h * 0.12)));
+    };
+
+    const pageStep = () => {
+      const el = getReaderScrollTarget();
+      const h = el?.clientHeight ?? 480;
+      return Math.max(160, Math.round(h * 0.85));
+    };
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey) return;
+      if (isTypingTarget(e.target)) return;
+      if (!shouldTrapKeys()) return;
+
+      const key = e.key;
+      if (
+        key !== 'ArrowDown' &&
+        key !== 'ArrowUp' &&
+        key !== 'ArrowLeft' &&
+        key !== 'ArrowRight' &&
+        key !== 'PageDown' &&
+        key !== 'PageUp' &&
+        key !== ' ' &&
+        key !== 'Home' &&
+        key !== 'End'
+      ) {
+        return;
+      }
+
+      // Keep focus/scroll inside the reader — never the dashboard behind.
+      e.preventDefault();
+      e.stopPropagation();
+
+      if (key === 'ArrowDown') {
+        scrollReaderCanvas(0, lineStep());
+      } else if (key === 'ArrowUp') {
+        scrollReaderCanvas(0, -lineStep());
+      } else if (key === 'ArrowRight') {
+        scrollReaderCanvas(lineStep(), 0);
+      } else if (key === 'ArrowLeft') {
+        scrollReaderCanvas(-lineStep(), 0);
+      } else if (key === 'PageDown' || key === ' ') {
+        scrollReaderCanvas(0, pageStep());
+      } else if (key === 'PageUp') {
+        scrollReaderCanvas(0, -pageStep());
+      } else if (key === 'Home') {
+        if (useMobileScrollLayout && mobileViewerRef.current) {
+          mobileViewerRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+        } else if (scrollHostRef.current) {
+          scrollHostRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+        } else {
+          jumpReaderPage(1);
+        }
+      } else if (key === 'End') {
+        const el = getReaderScrollTarget();
+        if (el) {
+          el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
+        } else {
+          jumpReaderPage(totalPages || readerPageCount || 1);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', onKeyDown, true);
+    return () => window.removeEventListener('keydown', onKeyDown, true);
+  }, [
+    scrollReaderCanvas,
+    getReaderScrollTarget,
+    jumpReaderPage,
+    useMobileScrollLayout,
+    totalPages,
+    readerPageCount,
+  ]);
+
+  // Put keyboard focus on the reader so arrow keys work immediately when opened.
+  useEffect(() => {
+    const panel = panelRef.current;
+    if (!panel) return;
+    const id = window.setTimeout(() => {
+      panel.focus({ preventScroll: true });
+    }, 0);
+    return () => window.clearTimeout(id);
+  }, [fileUrl]);
+
   const updateContainerSize = useCallback(() => {
     const el = containerRef.current;
     if (!el) return;
@@ -824,7 +971,13 @@ export default function PdfPreviewPanel({
   /** Desktop mouse/trackpad — embedded PDF iframe (never on touch tablets / book mode). */
   if (!useCanvasRendering && inlineIframeSupported) {
     return (
-      <div ref={panelRef} className={`flex h-full min-h-0 flex-1 flex-col bg-stone-100 ${className}`}>
+      <div
+        ref={panelRef}
+        tabIndex={0}
+        role="region"
+        aria-label={title ? `${title} textbook reader` : 'Textbook reader'}
+        className={`flex h-full min-h-0 flex-1 flex-col bg-stone-100 outline-none ${className}`}
+      >
         <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 border-b border-stone-200/80 bg-white px-3 py-2.5 sm:px-4">
           {allowFullscreen ? (
             <Button type="button" variant="outline" size="sm" onClick={() => void toggleFullscreen()}>
@@ -876,13 +1029,16 @@ export default function PdfPreviewPanel({
   return (
     <div
       ref={panelRef}
-      className={`flex h-full min-h-0 flex-1 flex-col bg-stone-100 ${className}`}
+      tabIndex={0}
+      role="region"
+      aria-label={title ? `${title} textbook reader` : 'Textbook reader'}
+      className={`flex h-full min-h-0 flex-1 flex-col bg-stone-100 outline-none ${className}`}
     >
       <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-stone-200/80 bg-white px-3 py-2.5 sm:px-4">
         <p className="text-xs font-medium text-stone-500 sm:text-sm">
           {useIframeFallback
             ? 'Use the scrollbar to move through pages'
-            : 'Scroll to turn pages · pinch to zoom'}
+            : '↑↓ scroll inside the book · pinch to zoom'}
         </p>
         <div className="flex flex-wrap items-center gap-2">
           {allowFullscreen ? (

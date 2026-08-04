@@ -21,15 +21,38 @@ export function enrichStudyDeckCards(cards: Flashcard[], rawContent?: unknown): 
     rawContent && typeof rawContent === 'object' && !Array.isArray(rawContent)
       ? (rawContent as Record<string, unknown>)
       : null;
-  const rawList = raw
-    ? (Array.isArray(raw.cards)
-        ? raw.cards
-        : Array.isArray(raw.flashcards)
-          ? raw.flashcards
-          : []) as Record<string, unknown>[]
-    : [];
+  const nested =
+    raw?.structuredContent &&
+    typeof raw.structuredContent === 'object' &&
+    !Array.isArray(raw.structuredContent)
+      ? (raw.structuredContent as Record<string, unknown>)
+      : null;
+  const cardRoots = [raw, nested].filter(Boolean) as Record<string, unknown>[];
+  const rawList: Record<string, unknown>[] = [];
+  for (const root of cardRoots) {
+    for (const key of [
+      'cards',
+      'flashcards',
+      'flashcard_set',
+      'application_hots_cards',
+      'application_cards',
+      'deck_cards',
+    ]) {
+      if (Array.isArray(root[key])) {
+        for (const item of root[key] as Record<string, unknown>[]) {
+          if (item && typeof item === 'object') rawList.push(item);
+        }
+      }
+    }
+  }
 
-  return cards.map((card, i) => {
+  let base = cards;
+  if (!base.length && raw) {
+    const fromEnvelope = getFlashcardsFromContent(JSON.stringify({ raw }));
+    if (fromEnvelope.length) base = fromEnvelope;
+  }
+
+  return base.map((card, i) => {
     const r = rawList[i];
     const difficultyFromRaw = r
       ? String(

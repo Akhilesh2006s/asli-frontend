@@ -119,6 +119,7 @@ export default function PdfPagePinchFrame({
     <div
       ref={frameRef}
       className="pdf-page-pinch-frame shrink-0 overflow-hidden rounded-sm bg-white shadow-md"
+      data-pdf-zoomed={zoomed ? 'true' : 'false'}
       style={{
         width: `${pageWidth}px`,
         height: `${pageHeight}px`,

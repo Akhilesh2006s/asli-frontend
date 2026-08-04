@@ -86,8 +86,24 @@ function structuredNodeToItem(node: Record<string, unknown>): ShortNoteItem {
 
   const objectives = listFrom(node, 'learning_objectives', 'learningObjectives', 'objectives');
   const summary = pickStr(node, 'short_note_summary', 'shortNoteSummary', 'summary', 'exam_summary', 'quick_recap');
-  const keyPoints = listFrom(node, 'key_points_to_remember', 'keyPointsToRemember', 'key_points', 'keyPoints');
-  const example = pickStr(node, 'example');
+  const keyPoints = listFrom(
+    node,
+    'key_points_to_remember',
+    'keyPointsToRemember',
+    'key_points',
+    'keyPoints',
+    'takeaways',
+    'highlights',
+    'key_ideas',
+    'keyIdeas',
+    'main_points',
+    'mainPoints',
+    'bullet_points',
+    'bulletPoints',
+    'revision_points',
+    'revisionPoints',
+  );
+  const example = pickStr(node, 'example', 'worked_example', 'workedExample', 'illustration');
   const misconception = pickStr(
     node,
     'common_misconception_correction',
@@ -100,6 +116,15 @@ function structuredNodeToItem(node: Record<string, unknown>): ShortNoteItem {
   const realLife = pickStr(node, 'real_life_application', 'realLifeApplication', 'real_life_link', 'real_life');
   const reflection = pickStr(node, 'reflection_exit_ticket', 'reflectionExitTicket', 'reflection_prompt');
 
+  const derivedKeyPoints =
+    keyPoints.length > 0
+      ? keyPoints
+      : summary
+          .split(/[.\n]+/)
+          .map((s) => s.replace(/^\s*[-*•]\s*/, '').trim())
+          .filter((s) => s.length >= 24)
+          .slice(0, 6);
+
   const sections: ShortNoteSection[] = [];
   const push = (num: number, label: string, body: string) => {
     if (body.trim()) sections.push({ num, label, body: body.trim() });
@@ -111,7 +136,7 @@ function structuredNodeToItem(node: Record<string, unknown>): ShortNoteItem {
   push(1, 'Alignment Block', alignment);
   pushList(2, 'Learning Objectives', objectives);
   push(3, 'Short Note / Summary', summary);
-  pushList(4, 'Key Points to Remember', keyPoints);
+  pushList(4, 'Key Points to Remember', derivedKeyPoints);
   push(5, 'Example', example);
   push(6, 'Common Misconception and Correction', misconception);
   pushList(7, 'Quick Check Questions', quickChecks);

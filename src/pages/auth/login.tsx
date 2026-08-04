@@ -98,6 +98,35 @@ const Login = () => {
     setIsLoading(true);
     setError('');
 
+    const email = String(formData.email || '').trim().toLowerCase();
+    const password = String(formData.password || '');
+
+    if (!email) {
+      setError('Email is required.');
+      setIsLoading(false);
+      return;
+    }
+    // Catch common domain typos before hitting the API (e.g. gmail.con).
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setError('Please enter a valid email address.');
+      setIsLoading(false);
+      return;
+    }
+    if (/\.(con|cpm|comm|coom|vom|xom)$/i.test(email)) {
+      setError('That email domain looks mistyped — did you mean .com?');
+      setIsLoading(false);
+      return;
+    }
+    if (!password || password.length < 6) {
+      setError('Password must be at least 6 characters.');
+      setIsLoading(false);
+      return;
+    }
+
+    if (email !== formData.email || password !== formData.password) {
+      setFormData({ email, password });
+    }
+
     const LOGIN_TIMEOUT_MS = 25_000;
 
     const attemptLogin = async (): Promise<Response> => {
@@ -110,7 +139,7 @@ const Login = () => {
             'Content-Type': 'application/json',
           },
           credentials: 'include',
-          body: JSON.stringify(formData),
+          body: JSON.stringify({ email, password }),
           signal: controller.signal,
         });
       } finally {
@@ -142,7 +171,13 @@ const Login = () => {
         response = await attemptLogin();
       }
 
-      let data: { message?: string; token?: string; user?: { role?: string; email?: string } } = {};
+      let data: {
+        message?: string;
+        errors?: string[];
+        token?: string;
+        refreshToken?: string;
+        user?: { role?: string; email?: string; paymentRequired?: boolean; isIndividualAccount?: boolean };
+      } = {};
       const contentType = response.headers.get('content-type') || '';
       if (contentType.includes('application/json')) {
         try {
@@ -190,8 +225,13 @@ const Login = () => {
           go('/dashboard');
         }
       } else {
-        // Real API error (wrong password, DB reconnecting, etc.). Never label as network.
-        setError(data.message || 'Login failed. Please check your email and password.');
+        const validationDetail =
+          Array.isArray(data.errors) && data.errors.length > 0 ? data.errors[0] : '';
+        setError(
+          validationDetail ||
+            data.message ||
+            'Login failed. Please check your email and password.',
+        );
       }
     } catch (err) {
       if ((err as Error)?.name === 'AbortError') {

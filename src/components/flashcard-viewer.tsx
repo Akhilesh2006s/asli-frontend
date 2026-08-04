@@ -1665,18 +1665,27 @@ function tryParseTeacherDeckMeta(content: string, rawContent?: unknown): Teacher
 }
 
 function collectCardsFromRaw(raw: Record<string, unknown>): Record<string, unknown>[] {
-  const lists = [
-    raw.application_hots_cards,
-    raw.application_cards,
-    raw.cards,
-    raw.flashcard_set,
-    raw.flashcards,
-    raw.concept_and_definition_cards,
-    raw.formula_rule_cards,
-    raw.formula_cards,
-    raw.visual_diagram_suggestion_cards,
-    raw.visual_cards,
-  ];
+  const nested =
+    raw.structuredContent && typeof raw.structuredContent === 'object' && !Array.isArray(raw.structuredContent)
+      ? (raw.structuredContent as Record<string, unknown>)
+      : null;
+  const roots = [raw, nested].filter(Boolean) as Record<string, unknown>[];
+  const lists: unknown[] = [];
+  for (const root of roots) {
+    lists.push(
+      root.application_hots_cards,
+      root.application_cards,
+      root.cards,
+      root.flashcard_set,
+      root.flashcards,
+      root.concept_and_definition_cards,
+      root.formula_rule_cards,
+      root.formula_cards,
+      root.visual_diagram_suggestion_cards,
+      root.visual_cards,
+      root.deck_cards,
+    );
+  }
   const out: Record<string, unknown>[] = [];
   for (const list of lists) {
     if (!Array.isArray(list)) continue;
@@ -1691,17 +1700,26 @@ function collectCardsFromRaw(raw: Record<string, unknown>): Record<string, unkno
 function cardFromLooseObject(item: Record<string, unknown>): Flashcard | null {
   const front =
     (item.front as string) ||
+    (item.Front as string) ||
     (item.task as string) ||
+    (item.Task as string) ||
     (item.question as string) ||
+    (item.Question as string) ||
     (item.term as string) ||
-    (item.title as string);
+    (item.Term as string) ||
+    (item.title as string) ||
+    (item.prompt as string);
   const back =
     (item.back as string) ||
+    (item.Back as string) ||
     (item.solution as string) ||
+    (item.Solution as string) ||
     (item.correct_answer as string) ||
     (item.answer as string) ||
+    (item.Answer as string) ||
     (item.content as string) ||
-    (item.explanation as string);
+    (item.explanation as string) ||
+    (item.definition as string);
   if (!front || !back) return null;
   const typeRaw = (item.type as string) || 'question';
   const type =

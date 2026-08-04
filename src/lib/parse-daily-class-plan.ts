@@ -335,17 +335,43 @@ function normalizeFromRaw(raw: Record<string, unknown>, idx: number): Normalized
     sl: idx + 1,
     title:
       coalesceText(raw.title) ||
-      coalesceText(raw.day_period_topic_breakup) ||
+      coalesceText(raw.day_period_topic_breakup || raw.dayPeriodTopicBreakup) ||
       `Day plan ${idx + 1}`,
-    dayPeriodBreakup: coalesceText(raw.day_period_topic_breakup),
-    objectives: coalesceLines(raw.objectives || raw.period_objectives),
-    teachingMethods: coalesceLines(raw.teaching_methods),
-    classroomActivities: coalesceLines(raw.classroom_activity),
-    exitTicket: coalesceText(raw.exit_ticket || raw.formative_check),
-    differentiatedSupport: coalesceText(raw.differentiated_support || raw.differentiation),
-    homeworkFollowup: coalesceText(raw.homework_followup),
-    teachingAids: coalesceLines(raw.teaching_aids || raw.materials),
-    teacherReflection: coalesceText(raw.teacher_reflection_notes || raw.reflection),
+    dayPeriodBreakup: coalesceText(
+      raw.day_period_topic_breakup || raw.dayPeriodTopicBreakup || raw.topic_breakup || raw.period_plan,
+    ),
+    objectives: coalesceLines(
+      raw.objectives ||
+        raw.period_objectives ||
+        raw.learning_objectives ||
+        raw.learningObjectives ||
+        raw.periodObjectives,
+    ),
+    teachingMethods: coalesceLines(
+      raw.teaching_methods || raw.teachingMethods || raw.methods || raw.pedagogy,
+    ),
+    classroomActivities: coalesceLines(
+      raw.classroom_activity ||
+        raw.classroom_activities ||
+        raw.classroomActivities ||
+        raw.activities ||
+        raw.student_tasks,
+    ),
+    exitTicket: coalesceText(
+      raw.exit_ticket || raw.exitTicket || raw.formative_check || raw.formativeCheck || raw.closure,
+    ),
+    differentiatedSupport: coalesceText(
+      raw.differentiated_support || raw.differentiation || raw.differentiation_plan || raw.support_plan,
+    ),
+    homeworkFollowup: coalesceText(
+      raw.homework_followup || raw.homeworkFollowup || raw.homework || raw.follow_up,
+    ),
+    teachingAids: coalesceLines(
+      raw.teaching_aids || raw.teachingAids || raw.materials || raw.resources || raw.aids,
+    ),
+    teacherReflection: coalesceText(
+      raw.teacher_reflection_notes || raw.teacherReflection || raw.reflection || raw.reflection_notes,
+    ),
     timeSlots: parseTimeSlotsFromRaw(raw),
     timeline: coalesceLines(raw.timeline || raw.schedule_lines),
   };

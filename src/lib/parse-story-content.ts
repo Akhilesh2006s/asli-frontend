@@ -145,14 +145,31 @@ function normalizeStoryFromObject(raw: Record<string, unknown>, fallbackTitle?: 
     alignment: alignment || undefined,
     learningObjectives: strArr(raw.learning_objectives || raw.objectives),
     passage: str(raw.passage || raw.content || raw.story_text),
-    vocabulary: strArr(raw.vocabulary_warmup || raw.vocabulary_support || raw.vocabulary),
-    vocabularyPractice: strArr(raw.vocabulary_practice || raw.vocabularyPractice),
+    vocabulary: strArr(
+      raw.vocabulary_warmup ||
+        raw.vocabulary_warm_up ||
+        raw.vocabularyWarmup ||
+        raw.vocabulary_support ||
+        raw.vocabularySupport ||
+        raw.vocab_warmup ||
+        raw.word_bank ||
+        raw.wordBank ||
+        raw.vocabulary,
+    ),
+    vocabularyPractice: strArr(
+      raw.vocabulary_practice ||
+        raw.vocabularyPractice ||
+        raw.vocab_practice ||
+        raw.vocabulary_and_grammar_practice ||
+        raw.grammar_practice,
+    ),
     readRecallQuestions: toQuestions(
       raw.read_and_recall_questions ||
         raw.read_recall_questions ||
         raw.recall_questions ||
         raw.readAndRecallQuestions ||
         raw.comprehension_questions ||
+        raw.literal_questions ||
         (!raw.think_and_infer_questions &&
         !raw.thinkAndInferQuestions &&
         !raw.apply_and_connect_questions &&
@@ -161,16 +178,27 @@ function normalizeStoryFromObject(raw: Record<string, unknown>, fallbackTitle?: 
           : undefined),
     ),
     thinkInferQuestions: toQuestions(
-      raw.think_and_infer_questions || raw.think_infer_questions || raw.infer_questions || raw.thinkAndInferQuestions,
+      raw.think_and_infer_questions ||
+        raw.think_infer_questions ||
+        raw.infer_questions ||
+        raw.thinkAndInferQuestions ||
+        raw.inference_questions,
     ),
     applyConnectQuestions: toQuestions(
       raw.apply_and_connect_questions ||
         raw.apply_connect_questions ||
         raw.connect_questions ||
-        raw.applyAndConnectQuestions,
+        raw.applyAndConnectQuestions ||
+        raw.application_questions,
     ),
     questions: toQuestions(raw.questions || raw.comprehension_questions),
-    vocabularyGrammarPractice: str(raw.vocabulary_grammar_practice || raw.vocabularyGrammarPractice) || undefined,
+    vocabularyGrammarPractice:
+      str(
+        raw.vocabulary_grammar_practice ||
+          raw.vocabularyGrammarPractice ||
+          raw.vocab_grammar_practice ||
+          raw.grammar_practice_text,
+      ) || undefined,
     creativeResponseActivity: str(raw.creative_response_activity || raw.creativeResponseActivity) || undefined,
     answerKeySuggestedResponses:
       str(raw.answer_key_suggested_responses || raw.answer_key || raw.answerKeySuggestedResponses) ||

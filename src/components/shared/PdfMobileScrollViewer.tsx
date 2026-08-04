@@ -248,6 +248,11 @@ function PdfMobilePage({
 export type PdfMobileScrollViewerHandle = {
   goToPage: (page: number) => void;
   getPage: () => number;
+  /** Scroll inside the textbook canvas (not the page behind the modal). */
+  scrollBy: (dx: number, dy: number) => void;
+  /** Jump scroll position within the canvas. */
+  scrollTo: (opts: { top?: number; left?: number; behavior?: ScrollBehavior }) => void;
+  getScrollElement: () => HTMLDivElement | null;
 };
 
 type PdfMobileScrollViewerProps = {
@@ -393,6 +398,31 @@ const PdfMobileScrollViewer = forwardRef<PdfMobileScrollViewerHandle, PdfMobileS
     () => ({
       goToPage,
       getPage: () => currentPage,
+      scrollBy: (dx: number, dy: number) => {
+        const host = scrollRef.current;
+        if (!host) return;
+        // When a page is pinch-zoomed, prefer scrolling that page's frame.
+        const zoomedFrame = host.querySelector(
+          '.pdf-page-pinch-frame[data-pdf-zoomed="true"]',
+        ) as HTMLElement | null;
+        const target =
+          zoomedFrame &&
+          (zoomedFrame.scrollHeight > zoomedFrame.clientHeight + 1 ||
+            zoomedFrame.scrollWidth > zoomedFrame.clientWidth + 1)
+            ? zoomedFrame
+            : host;
+        target.scrollBy({ left: dx, top: dy, behavior: 'auto' });
+      },
+      scrollTo: (opts) => {
+        const host = scrollRef.current;
+        if (!host) return;
+        host.scrollTo({
+          top: opts.top,
+          left: opts.left,
+          behavior: opts.behavior ?? 'auto',
+        });
+      },
+      getScrollElement: () => scrollRef.current,
     }),
     [goToPage, currentPage],
   );

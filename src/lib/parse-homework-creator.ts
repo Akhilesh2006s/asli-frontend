@@ -115,13 +115,22 @@ function toPracticeQuestions(value: unknown): HomeworkPracticeQuestion[] {
     const entry = row as Record<string, unknown>;
     const question = stripAiGeneratorLeakage(
       stripVariantScaffoldFromQuestionText(
-        coerceHomeworkText(entry.question || entry.prompt || entry.text || entry.statement),
+        coerceHomeworkText(
+          entry.question ||
+            entry.prompt ||
+            entry.text ||
+            entry.statement ||
+            entry.stem ||
+            entry.task ||
+            entry.q,
+        ),
       ),
     );
     if (!question || isHomeworkSectionHeaderLine(question) || !isValidQuestionLine(question)) continue;
-    const marksRaw = entry.marks ?? entry.mark;
-    const marks =
+    const marksRaw = entry.marks ?? entry.mark ?? entry.marks_allotted;
+    const marksParsed =
       marksRaw != null && !Number.isNaN(Number(marksRaw)) ? Number(marksRaw) : undefined;
+    const marks = Number.isFinite(marksParsed) ? marksParsed : 1;
     const imageUrl = String(entry.imageUrl || entry.image_url || entry.questionImage || '').trim();
     const imagePrompt = String(entry.imagePrompt || entry.image_prompt || entry.figurePrompt || '').trim();
     const needsDiagramRaw = entry.needsDiagram ?? entry.needs_diagram ?? entry.needsFigure;
@@ -131,8 +140,8 @@ function toPracticeQuestions(value: unknown): HomeworkPracticeQuestion[] {
       ['true', '1', 'yes'].includes(String(needsDiagramRaw || '').trim().toLowerCase());
     const matchPairs = normalizeMatchPairs(entry);
     const type =
-      coerceHomeworkText(entry.type || entry.question_type) ||
-      (matchPairs.length >= 2 || isMatchStemText(question) ? 'MATCH' : undefined);
+      coerceHomeworkText(entry.type || entry.question_type || entry.difficulty || entry.bloom_level) ||
+      (matchPairs.length >= 2 || isMatchStemText(question) ? 'MATCH' : 'Practice');
     const answer =
       coerceHomeworkText(entry.answer || entry.correctAnswer) ||
       (matchPairs.length >= 2 ? formatMatchAnswerKey(matchPairs) : '');
@@ -147,7 +156,7 @@ function toPracticeQuestions(value: unknown): HomeworkPracticeQuestion[] {
       options: matchPairs.length >= 2 ? [] : normalizeOptions(entry),
       answer,
       explanation: coerceHomeworkText(entry.explanation || entry.solution) || undefined,
-      marks: Number.isFinite(marks) ? marks : undefined,
+      marks,
       type,
       ...(imageUrl ? { imageUrl } : {}),
       ...(imagePrompt ? { imagePrompt } : {}),
