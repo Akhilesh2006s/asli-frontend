@@ -1275,6 +1275,8 @@ export default function ExamManagement() {
     try {
       const form = new FormData();
       form.append('file', questionPdfFile);
+      // Fast extract by default (photos still captured). Append thoroughMode=true for slower verify.
+      form.append('fastMode', 'true');
       const headers = authBearerHeaders();
       const examId = selectedExam._id;
       const startUrl = `${API_BASE_URL}/api/super-admin/exams/${examId}/questions/pdf-convert`;
@@ -3850,8 +3852,8 @@ export default function ExamManagement() {
                     )}
                   </Button>
                   <p className="text-xs text-slate-500">
-                    Tip: leave this tab open. Fast extraction is enabled to return questions sooner; you can still
-                    edit any answer/figure before uploading.
+                    Tip: leave this tab open. Uses fast extract (usually a few minutes) while still capturing
+                    figures and Match-the-Following table photos. Review flagged answers before uploading.
                   </p>
 
                   {pdfQuestionRows.length > 0 && (
