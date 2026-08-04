@@ -950,7 +950,20 @@ export default function ExamManagement() {
       if (response.ok) {
         const data = await response.json();
         if (data.success) {
-          setQuestions(data.data || []);
+          // Fill AR directions client-side so older saved questions still show them
+          const raw = Array.isArray(data.data) ? data.data : [];
+          setQuestions(
+            raw.map((q: any) => {
+              if (!questionLooksLikeAssertionReason(q)) return q;
+              return {
+                ...q,
+                questionType: 'assertion_reason',
+                sharedMatterKind: 'assertion_reason',
+                sharedMatterId: q.sharedMatterId || 'AR1',
+                sharedMatterText: arDirectionsForQuestion(q),
+              };
+            }),
+          );
         }
       } else {
         // If endpoint doesn't exist, fetch exam and get questions from there
@@ -4545,7 +4558,9 @@ export default function ExamManagement() {
                                   q.questionType !== 'match_following' &&
                                   !q.questionImage &&
                                   (q.hasFigure ||
-                                    /\b(diagram|figure|vernier|calliper|caliper|screw\s*gauge)\b/i.test(
+                                    (Array.isArray(q.validationFlags) &&
+                                      q.validationFlags.includes('needs_figure')) ||
+                                    /\b(diagram|figure|graph|vernier|calliper|caliper|screw\s*gauge|shown\s+below|as\s+shown|velocity[- ]time)\b/i.test(
                                       String(q.questionText || ''),
                                     )) ? (
                                   <div className="mb-4 flex h-24 items-center justify-center rounded-lg border border-dashed border-amber-300 bg-amber-50 text-center text-xs text-amber-800">
@@ -4932,7 +4947,7 @@ export default function ExamManagement() {
                 : editingQuestionId
                   ? 'Update Question'
                   : bulkQuestionUploadMode === 'pdf' && pdfQuestionRows.length > 0
-                    ? 'Upload Extracted Questions'
+                    ? 'Upload These Questions'
                     : 'Add Question'}
             </Button>
           </DialogFooter>
