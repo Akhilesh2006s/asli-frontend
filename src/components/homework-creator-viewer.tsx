@@ -40,7 +40,7 @@ export interface HomeworkCreatorViewerProps {
 
 function PlainField({ text }: { text: string }) {
   return (
-    <p className="text-sm whitespace-pre-wrap text-slate-800">{stripMarkdownSyntax(text)}</p>
+    <p className="text-base whitespace-pre-wrap text-slate-800">{stripMarkdownSyntax(text)}</p>
   );
 }
 
@@ -142,7 +142,7 @@ function BulletList({ items }: { items: string[] }) {
   return (
     <ul className="space-y-2">
       {items.map((line, i) => (
-        <li key={i} className="flex gap-2 text-sm text-slate-800">
+        <li key={i} className="flex gap-2 text-base text-slate-800">
           <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-orange-500" />
           <span className="whitespace-pre-wrap">{stripMarkdownSyntax(line)}</span>
         </li>
@@ -181,7 +181,7 @@ function PracticeQuestionList({ questions }: { questions: HomeworkPracticeQuesti
             key={i}
             className="rounded-xl border border-slate-200/90 bg-white p-3.5 shadow-sm space-y-2"
           >
-            <p className="text-sm font-medium text-slate-900 whitespace-pre-wrap leading-relaxed">
+            <p className="text-base font-medium text-slate-900 whitespace-pre-wrap leading-relaxed">
               <span className="inline-flex h-6 w-6 items-center justify-center rounded-lg bg-orange-600 text-xs font-bold text-white mr-2">
                 {num}
               </span>
@@ -205,19 +205,19 @@ function PracticeQuestionList({ questions }: { questions: HomeworkPracticeQuesti
             {q.options.length > 0 ? (
               <ul className="grid gap-2 sm:grid-cols-2 pl-8">
                 {q.options.map((opt, j) => (
-                  <li key={j} className="text-sm text-slate-700 rounded-lg bg-slate-50 px-2 py-1.5 whitespace-pre-wrap">
+                  <li key={j} className="text-base text-slate-700 rounded-lg bg-slate-50 px-2 py-1.5 whitespace-pre-wrap">
                     {opt}
                   </li>
                 ))}
               </ul>
             ) : null}
             {q.answer ? (
-              <p className="text-xs text-emerald-800 pl-8">
+              <p className="text-base text-emerald-800 pl-8">
                 <span className="font-semibold">Answer:</span> {q.answer}
               </p>
             ) : null}
             {q.explanation ? (
-              <p className="text-xs text-indigo-800 pl-8 whitespace-pre-wrap">
+              <p className="text-base text-indigo-800 pl-8 whitespace-pre-wrap">
                 <span className="font-semibold">Explanation:</span> {q.explanation}
               </p>
             ) : null}
@@ -285,7 +285,7 @@ export function HomeworkCreatorViewer({ content, rawContent, className }: Homewo
             <h3 className="text-2xl font-black tracking-tight text-slate-900 sm:text-3xl">
               {stripAiGeneratorLeakage(stripMarkdownSyntax(homework.title))}
             </h3>
-            <p className="mt-2 text-sm text-slate-600">
+            <p className="mt-2 text-base text-slate-600">
               {filled} section{filled === 1 ? '' : 's'} ready · {homework.practiceQuestions.length} practice
               questions
             </p>

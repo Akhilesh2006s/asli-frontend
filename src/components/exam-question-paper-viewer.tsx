@@ -111,16 +111,16 @@ function RichTextBlock({ text, className }: { text: string; className?: string }
     return (
       <div
         className={cn(
-          'prose prose-sm max-w-none text-slate-800',
-          'prose-table:w-full prose-table:border-collapse prose-th:border prose-th:border-indigo-200 prose-th:bg-indigo-50/90 prose-th:px-2 prose-th:py-1.5 prose-th:text-left prose-th:text-xs prose-th:font-semibold',
-          'prose-td:border prose-td:border-indigo-100 prose-td:px-2 prose-td:py-1.5 prose-td:text-xs prose-td:align-top',
+          'prose prose-base max-w-none text-slate-800',
+          'prose-table:w-full prose-table:border-collapse prose-th:border prose-th:border-indigo-200 prose-th:bg-indigo-50/90 prose-th:px-2 prose-th:py-1.5 prose-th:text-left prose-th:text-base prose-th:font-semibold',
+          'prose-td:border prose-td:border-indigo-100 prose-td:px-2 prose-td:py-1.5 prose-td:text-base prose-td:align-top',
           className,
         )}
         dangerouslySetInnerHTML={{ __html: renderMarkdown(text) }}
       />
     );
   }
-  return <p className="whitespace-pre-wrap text-sm leading-relaxed text-slate-800">{text}</p>;
+  return <p className="whitespace-pre-wrap text-base leading-relaxed text-slate-800">{text}</p>;
 }
 
 function OverviewStat({ label, value }: { label: string; value: string }) {
@@ -128,7 +128,7 @@ function OverviewStat({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-lg border border-indigo-100 bg-white/80 px-3 py-2">
       <p className="text-micro font-semibold uppercase tracking-wide text-indigo-500">{label}</p>
-      <p className="mt-0.5 text-sm font-medium text-slate-900">{value}</p>
+      <p className="mt-0.5 text-base font-medium text-slate-900">{value}</p>
     </div>
   );
 }
@@ -157,7 +157,7 @@ function QuestionCard({
   return (
     <article className="rounded-lg border border-indigo-100 bg-gradient-to-br from-white to-indigo-50/20 p-3 shadow-sm">
       <div className="mb-1.5 flex items-start justify-between gap-2">
-        <p className="text-sm font-semibold text-slate-900">
+        <p className="text-base font-semibold text-slate-900">
           <span className="mr-1.5 inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded bg-indigo-700 px-1 text-micro font-bold text-white">
             {qNo}
           </span>
@@ -178,7 +178,7 @@ function QuestionCard({
             return (
               <li
                 key={`${opt}-${i}`}
-                className="flex gap-2 rounded-md border border-slate-200/80 bg-white px-2.5 py-1.5 text-sm text-slate-700"
+                className="flex gap-2 rounded-md border border-slate-200/80 bg-white px-2.5 py-1.5 text-base text-slate-700"
               >
                 <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-xs font-bold text-indigo-800">
                   {label}
@@ -219,7 +219,7 @@ function ExamSectionBlock({
   return (
     <div className="rounded-xl border border-indigo-200/80 bg-white/90 p-3">
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2 border-b border-indigo-100 pb-2">
-        <h5 className="text-sm font-bold text-indigo-900">
+        <h5 className="text-base font-bold text-indigo-900">
           Section {section.id.toUpperCase()} — {section.title.replace(/^Section\s*[A-E]\s*[-–:]\s*/i, '')}
         </h5>
         <div className="flex flex-wrap gap-1.5">
@@ -359,7 +359,7 @@ export function ExamQuestionPaperViewer({
     return (
       <div className={className}>
         <div
-          className="prose prose-sm max-w-none rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
+          className="prose prose-base max-w-none rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
           dangerouslySetInnerHTML={{ __html: renderMarkdown(resolved.markdownFallback) }}
         />
       </div>
@@ -369,7 +369,7 @@ export function ExamQuestionPaperViewer({
   if (!paper) {
     return (
       <div className={cn('rounded-xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center', className)}>
-        <p className="text-sm font-medium text-slate-700">No exam paper content found.</p>
+        <p className="text-base font-medium text-slate-700">No exam paper content found.</p>
       </div>
     );
   }
@@ -423,7 +423,7 @@ export function ExamQuestionPaperViewer({
                 icon: Brain,
                 hasContent: mockMeta.learningObjectives.length > 0,
                 body: (
-                  <ul className="space-y-1 text-sm text-slate-800">
+                  <ul className="space-y-1 text-base text-slate-800">
                     {mockMeta.learningObjectives.map((line, i) => (
                       <li key={i} className="flex gap-2">
                         <span className="text-rose-500">•</span>

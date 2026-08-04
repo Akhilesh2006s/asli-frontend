@@ -56,13 +56,13 @@ function RichTextBlock({ text, className }: { text: string; className?: string }
   if (hasMarkdown) {
     return (
       <div
-        className={cn('prose prose-sm max-w-none text-slate-700 prose-li:text-sm', className)}
+        className={cn('prose prose-base max-w-none text-slate-700 prose-li:text-base', className)}
         dangerouslySetInnerHTML={{ __html: renderMarkdown(text) }}
       />
     );
   }
   return (
-    <p className={cn('whitespace-pre-wrap text-sm leading-relaxed text-slate-700', className)}>
+    <p className={cn('whitespace-pre-wrap text-base leading-relaxed text-slate-700', className)}>
       {text}
     </p>
   );
@@ -178,7 +178,7 @@ function PracticeQuestionCard({
         <span className="ml-auto text-mini font-semibold text-[#6C63FF]">⭐ +{xp} XP</span>
       </div>
 
-      <p className="text-sm font-semibold leading-snug text-slate-900 sm:text-base">{q.question}</p>
+      <p className="text-base font-semibold leading-snug text-slate-900 sm:text-base">{q.question}</p>
 
       {isMcq ? (
         <ul className="mt-3 grid gap-2 sm:grid-cols-2">
@@ -200,7 +200,7 @@ function PracticeQuestionCard({
                   type="button"
                   onClick={() => setPicked(label)}
                   className={cn(
-                    'flex w-full gap-2 rounded-2xl border px-3 py-2.5 text-left text-sm transition-all',
+                    'flex w-full gap-2 rounded-2xl border px-3 py-2.5 text-left text-base transition-all',
                     showCorrect
                       ? 'border-emerald-400 bg-emerald-50 text-emerald-900 shadow-[0_0_0_3px_rgba(34,197,94,0.15)]'
                       : showWrong
@@ -278,7 +278,7 @@ function PracticeQuestionCard({
             initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 6 }}
-            className="mt-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2.5 text-sm text-emerald-900"
+            className="mt-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2.5 text-base text-emerald-900"
           >
             <span className="font-semibold">Answer:</span> {answerText}
           </motion.div>
@@ -321,7 +321,7 @@ export function SmartStudyGuideViewer({ content, rawContent, className }: SmartS
     return (
       <div
         className={cn(
-          'rounded-[1.75rem] border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950',
+          'rounded-[1.75rem] border border-amber-200 bg-amber-50 px-4 py-3 text-base text-amber-950',
           className,
         )}
         role="status"
@@ -390,7 +390,7 @@ export function SmartStudyGuideViewer({ content, rawContent, className }: SmartS
       <div className="relative space-y-5 p-3 sm:space-y-6 sm:p-5 lg:p-6">
         {!complete && missingSections.length > 0 ? (
           <div
-            className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950"
+            className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-base text-amber-950"
             role="status"
           >
             <p className="font-semibold">Some sections are incomplete</p>
@@ -427,7 +427,7 @@ export function SmartStudyGuideViewer({ content, rawContent, className }: SmartS
                   Guide
                 </span>
               </h2>
-              <p className="mx-auto mt-2 max-w-xl text-sm leading-relaxed text-slate-600 lg:mx-0">
+              <p className="mx-auto mt-2 max-w-xl text-base leading-relaxed text-slate-600 lg:mx-0">
                 Transform any topic into an interactive learning experience powered by AI.
               </p>
               <h3 className="mt-4 text-lg font-bold text-slate-900 sm:text-xl">{guide.title}</h3>
@@ -527,7 +527,7 @@ export function SmartStudyGuideViewer({ content, rawContent, className }: SmartS
                 <h4 className="text-xl font-black leading-snug text-slate-900 sm:text-2xl">
                   {guide.title}
                 </h4>
-                <p className="mt-2 text-sm text-slate-600">
+                <p className="mt-2 text-base text-slate-600">
                   Your personalized path through this topic — concepts, practice, and revision in one
                   place.
                 </p>
@@ -580,7 +580,7 @@ export function SmartStudyGuideViewer({ content, rawContent, className }: SmartS
                       >
                         {i + 1}
                       </motion.span>
-                      <div className="min-w-0 flex-1 rounded-2xl border border-violet-100 bg-white/80 px-3 py-2 text-sm text-slate-800 shadow-sm">
+                      <div className="min-w-0 flex-1 rounded-2xl border border-violet-100 bg-white/80 px-3 py-2 text-base text-slate-800 shadow-sm">
                         {obj}
                       </div>
                     </li>
@@ -608,7 +608,7 @@ export function SmartStudyGuideViewer({ content, rawContent, className }: SmartS
                   <motion.div
                     key={i}
                     whileHover={{ scale: 1.02 }}
-                    className="flex gap-2 rounded-2xl border border-teal-100 bg-white px-3 py-2.5 text-sm text-slate-800 shadow-sm"
+                    className="flex gap-2 rounded-2xl border border-teal-100 bg-white px-3 py-2.5 text-base text-slate-800 shadow-sm"
                   >
                     <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
                     <span>{item}</span>
@@ -643,8 +643,8 @@ export function SmartStudyGuideViewer({ content, rawContent, className }: SmartS
                         />
                         <Badge className="border-0 bg-emerald-100 text-emerald-800">Concept</Badge>
                       </div>
-                      <p className="text-sm font-bold text-emerald-950">{c.name}</p>
-                      <p className="mt-1.5 text-sm leading-relaxed text-slate-700">{c.explanation}</p>
+                      <p className="text-base font-bold text-emerald-950">{c.name}</p>
+                      <p className="mt-1.5 text-base leading-relaxed text-slate-700">{c.explanation}</p>
                       <p className="mt-3 rounded-xl bg-white/80 px-2.5 py-1.5 text-mini font-medium text-emerald-800">
                         💡 Student tip: explain this idea in one sentence to a friend.
                       </p>
@@ -668,16 +668,16 @@ export function SmartStudyGuideViewer({ content, rawContent, className }: SmartS
                     key={`def-${i}`}
                     className="rounded-2xl border border-amber-100 bg-white px-4 py-3 shadow-sm"
                   >
-                    <span className="text-sm font-bold text-amber-900">{d.term}</span>
+                    <span className="text-base font-bold text-amber-900">{d.term}</span>
                     {d.definition ? (
-                      <span className="text-sm text-slate-700"> — {d.definition}</span>
+                      <span className="text-base text-slate-700"> — {d.definition}</span>
                     ) : null}
                   </div>
                 ))}
                 {guide.formulae.map((f, i) => (
                   <div
                     key={`fm-${i}`}
-                    className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 font-mono text-sm text-slate-800"
+                    className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 font-mono text-base text-slate-800"
                   >
                     {f.name ? <span className="font-sans font-semibold text-slate-900">{f.name}: </span> : null}
                     {f.formula}
@@ -712,7 +712,7 @@ export function SmartStudyGuideViewer({ content, rawContent, className }: SmartS
                 {guide.realLifeExamples.map((ex, i) => (
                   <div
                     key={i}
-                    className="flex items-start gap-2 rounded-2xl border border-lime-100 bg-white px-3 py-2.5 text-sm text-slate-800 shadow-sm"
+                    className="flex items-start gap-2 rounded-2xl border border-lime-100 bg-white px-3 py-2.5 text-base text-slate-800 shadow-sm"
                   >
                     <RealisticIcon name="lightbulb" alt="" className="mt-0.5 h-6 w-6 shrink-0" />
                     <span>{ex}</span>
@@ -738,7 +738,7 @@ export function SmartStudyGuideViewer({ content, rawContent, className }: SmartS
                   {guide.quickRevisionNotes.map((note, i) => (
                     <li
                       key={i}
-                      className="flex gap-2 rounded-2xl border border-amber-100 bg-white/90 px-3 py-2 text-sm text-slate-800 shadow-sm"
+                      className="flex gap-2 rounded-2xl border border-amber-100 bg-white/90 px-3 py-2 text-base text-slate-800 shadow-sm"
                     >
                       <RealisticIcon name="checklist" alt="" className="mt-0.5 h-5 w-5 shrink-0" />
                       <span className="whitespace-pre-wrap">{note}</span>
@@ -779,7 +779,7 @@ export function SmartStudyGuideViewer({ content, rawContent, className }: SmartS
                 {guide.improvementTips.map((tip, i) => (
                   <div
                     key={i}
-                    className="flex items-start gap-2 rounded-2xl border border-fuchsia-100 bg-white px-3 py-2.5 text-sm text-slate-800 shadow-sm"
+                    className="flex items-start gap-2 rounded-2xl border border-fuchsia-100 bg-white px-3 py-2.5 text-base text-slate-800 shadow-sm"
                   >
                     <RealisticIcon name="sparkle" alt="" className="mt-0.5 h-6 w-6 shrink-0" />
                     <span>{tip}</span>
@@ -816,11 +816,11 @@ export function SmartStudyGuideViewer({ content, rawContent, className }: SmartS
 
         {/* Footer gamification */}
         <div data-ai-focus-hide className="flex flex-col items-center justify-between gap-3 rounded-[1.75rem] border border-white/80 bg-white/80 px-4 py-4 text-center shadow-sm sm:flex-row sm:text-left">
-          <p className="flex items-center gap-2 text-sm font-medium text-slate-700">
+          <p className="flex items-center gap-2 text-base font-medium text-slate-700">
             <RealisticIcon name="rocket" alt="" className="h-8 w-8" />
             Keep exploring, keep learning! Your journey to knowledge starts here.
           </p>
-          <p className="flex items-center gap-2 text-sm font-semibold text-[#6C63FF]">
+          <p className="flex items-center gap-2 text-base font-semibold text-[#6C63FF]">
             <RealisticIcon name="trophy" alt="" className="h-8 w-8" />
             AI makes learning easier — you make it meaningful.
             <RealisticIcon name="star" alt="" className="h-7 w-7" />

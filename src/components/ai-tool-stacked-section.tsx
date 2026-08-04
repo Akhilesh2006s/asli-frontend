@@ -10,7 +10,25 @@ import {
   lucideTo3dName,
   type AiTool3dIconName,
 } from '@/components/ai-tool-3d-icons';
-import { paletteForSectionTitle } from '@/lib/ai-tool-section-palette';
+import {
+  paletteForSectionTitle,
+  type AiToolSectionPalette,
+} from '@/lib/ai-tool-section-palette';
+
+/** Shared body type scale + colored nested headings for every tool section. */
+export function aiToolSectionBodyClasses(palette: AiToolSectionPalette): string {
+  return cn(
+    'text-base sm:text-lg text-slate-800 leading-relaxed',
+    '[&_strong]:font-bold [&_strong]:text-slate-900',
+    '[&_p]:text-base [&_p]:sm:text-lg [&_p]:leading-relaxed',
+    '[&_li]:text-base [&_li]:sm:text-lg [&_li]:leading-relaxed',
+    cn('[&_li]:marker:font-semibold', palette.marker),
+    cn('[&_h1]:text-xl [&_h1]:sm:text-2xl [&_h1]:font-bold', palette.title),
+    cn('[&_h2]:text-lg [&_h2]:sm:text-xl [&_h2]:font-bold', palette.title),
+    cn('[&_h3]:text-base [&_h3]:sm:text-lg [&_h3]:font-bold', palette.label),
+    '[&_h4]:text-base [&_h4]:font-bold [&_h4]:text-slate-900',
+  );
+}
 
 /**
  * Full-width section card used by every AI tool viewer (teacher + student).
@@ -68,20 +86,20 @@ export function AiToolStackedSection({
       )}
     >
       {/* Solid color bar — brochure-style section signal */}
-      <div className={cn('h-1.5 w-full', palette.bar)} aria-hidden />
+      <div className={cn('h-2 w-full', palette.bar)} aria-hidden />
 
       <header
         className={cn(
-          'flex items-start justify-between gap-3 border-b px-4 py-3.5 sm:px-5',
+          'flex items-start justify-between gap-3 border-b px-4 py-4 sm:px-6 sm:py-5',
           'bg-gradient-to-br',
           palette.cardWash,
           palette.innerBorder,
         )}
       >
-        <div className="flex min-w-0 items-start gap-3">
+        <div className="flex min-w-0 items-start gap-3 sm:gap-4">
           <span
             className={cn(
-              'flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-sm font-bold text-white shadow-sm',
+              'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-base font-bold text-white shadow-sm',
               palette.bar,
             )}
             aria-hidden
@@ -89,11 +107,16 @@ export function AiToolStackedSection({
             {showNum ? numLabel.slice(0, 2) : '◆'}
           </span>
           <div className="min-w-0 pt-0.5">
-            <p className={cn('text-lg sm:text-xl font-bold leading-snug tracking-tight', palette.title)}>
+            <p
+              className={cn(
+                'text-xl sm:text-2xl font-bold leading-snug tracking-tight',
+                palette.title,
+              )}
+            >
               {displayTitle}
             </p>
             {displayDescription ? (
-              <p className={cn('mt-1 text-sm sm:text-[0.9375rem] leading-relaxed text-slate-600')}>
+              <p className={cn('mt-1.5 text-base leading-relaxed', palette.subtitle)}>
                 {displayDescription}
               </p>
             ) : null}
@@ -101,30 +124,26 @@ export function AiToolStackedSection({
         </div>
         <div
           className={cn(
-            'flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border shadow-sm',
+            'flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border shadow-sm',
             palette.iconTile,
           )}
         >
           {LucideIcon ? (
-            <LucideIcon className="h-5 w-5" aria-hidden />
+            <LucideIcon className="h-6 w-6" aria-hidden />
           ) : (
-            <RealisticIcon name={resolved} alt="" className="h-8 w-8" />
+            <RealisticIcon name={resolved} alt="" className="h-9 w-9" />
           )}
         </div>
       </header>
 
       {/* Nested soft box — layered content like Concept Mastery inner panels */}
-      <div className={cn('p-3 sm:p-4', 'bg-gradient-to-b from-white to-slate-50/40')} data-ai-section-body>
+      <div className={cn('p-3.5 sm:p-5', 'bg-gradient-to-b from-white to-slate-50/40')} data-ai-section-body>
         <div
           className={cn(
-            'ai-tool-section-body rounded-xl border px-4 py-4 sm:px-5 sm:py-5',
+            'ai-tool-section-body rounded-xl border px-5 py-5 sm:px-6 sm:py-6',
             palette.inner,
             palette.innerBorder,
-            'text-base text-slate-800 leading-relaxed',
-            '[&_strong]:font-bold [&_strong]:text-slate-900',
-            '[&_h1]:text-lg [&_h1]:font-bold [&_h1]:text-slate-900',
-            '[&_h2]:text-base [&_h2]:font-bold [&_h2]:text-slate-900',
-            '[&_li]:marker:font-semibold',
+            aiToolSectionBodyClasses(palette),
           )}
         >
           {children}
@@ -164,7 +183,13 @@ export function AiToolInnerBox({
     slate: 'border-slate-200 bg-slate-50/80',
   };
   return (
-    <div className={cn('rounded-xl border px-4 py-3.5 sm:px-5 sm:py-4', tones[tone], className)}>
+    <div
+      className={cn(
+        'rounded-xl border px-4 py-4 sm:px-5 sm:py-5 text-base sm:text-lg text-slate-800 leading-relaxed',
+        tones[tone],
+        className,
+      )}
+    >
       {children}
     </div>
   );
@@ -181,7 +206,7 @@ export function AiToolFormatChip({
   return (
     <span
       className={cn(
-        'inline-flex items-center rounded-lg border border-violet-200 bg-violet-100 px-2.5 py-1 text-xs font-semibold text-violet-950',
+        'inline-flex items-center rounded-lg border border-violet-200 bg-violet-100 px-3 py-1.5 text-sm font-semibold text-violet-950',
         className,
       )}
     >
@@ -189,6 +214,39 @@ export function AiToolFormatChip({
     </span>
   );
 }
+
+/** Brochure-style label (colored) + value (near-black). */
+export function AiToolMetaPair({
+  label,
+  value,
+  className,
+  tone = 'violet',
+}: {
+  label: string;
+  value: ReactNode;
+  className?: string;
+  tone?: keyof typeof META_PAIR_TONES;
+}) {
+  const t = META_PAIR_TONES[tone] || META_PAIR_TONES.violet;
+  return (
+    <div className={cn('min-w-0', className)}>
+      <p className={cn('text-sm font-bold uppercase tracking-wide', t.label)}>{label}</p>
+      <p className="mt-0.5 text-base sm:text-lg font-semibold text-slate-900">{value}</p>
+    </div>
+  );
+}
+
+const META_PAIR_TONES = {
+  violet: { label: 'text-violet-700' },
+  blue: { label: 'text-blue-700' },
+  amber: { label: 'text-amber-800' },
+  emerald: { label: 'text-emerald-700' },
+  rose: { label: 'text-rose-700' },
+  orange: { label: 'text-orange-700' },
+  teal: { label: 'text-teal-700' },
+  cyan: { label: 'text-cyan-700' },
+  indigo: { label: 'text-indigo-700' },
+} as const;
 
 /** Tip / callout banner used under tool results. */
 export function AiToolTipBanner({
@@ -201,11 +259,11 @@ export function AiToolTipBanner({
   return (
     <div
       className={cn(
-        'flex gap-3 rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-950',
+        'flex gap-3 rounded-xl border border-sky-200 bg-sky-50 px-4 py-3.5 text-base text-sky-950',
         className,
       )}
     >
-      <span className="mt-0.5 text-base" aria-hidden>
+      <span className="mt-0.5 text-lg" aria-hidden>
         ✨
       </span>
       <div className="min-w-0 leading-relaxed">{children}</div>

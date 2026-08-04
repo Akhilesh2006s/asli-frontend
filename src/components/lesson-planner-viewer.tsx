@@ -47,7 +47,7 @@ function BulletList({ items, icon: Icon, iconClass }: { items: string[]; icon: L
   return (
     <ul className="space-y-2">
       {items.map((line, i) => (
-        <li key={i} className="flex gap-2 text-sm text-slate-800">
+        <li key={i} className="flex gap-2 text-base text-slate-800">
           <ToolSectionIcon
             icon={Icon}
             size="sm"
@@ -78,7 +78,7 @@ const STUDY_SCHEDULE_SECTIONS: LessonSectionDef[] = [
     stripe: 'border-cyan-500',
     iconWrap: 'bg-cyan-100 text-cyan-800',
     hasContent: (l) => !!l.studyGoalSubtopicLink,
-    render: (l) => <p className="text-sm whitespace-pre-wrap text-slate-800">{l.studyGoalSubtopicLink}</p>,
+    render: (l) => <p className="text-base whitespace-pre-wrap text-slate-800">{l.studyGoalSubtopicLink}</p>,
   },
   {
     num: 3,
@@ -88,7 +88,7 @@ const STUDY_SCHEDULE_SECTIONS: LessonSectionDef[] = [
     iconWrap: 'bg-violet-100 text-violet-800',
     hasContent: (l) => !!l.priorKnowledgeReadiness || !!l.priorKnowledge,
     render: (l) => (
-      <p className="text-sm whitespace-pre-wrap text-slate-800">
+      <p className="text-base whitespace-pre-wrap text-slate-800">
         {l.priorKnowledgeReadiness || l.priorKnowledge}
       </p>
     ),
@@ -134,7 +134,7 @@ const STUDY_SCHEDULE_SECTIONS: LessonSectionDef[] = [
     iconWrap: 'bg-teal-100 text-teal-800',
     hasContent: (l) => !!l.conceptLearningSlot || !!l.introductionWarmup || !!l.teachingStrategy,
     render: (l) => (
-      <p className="text-sm whitespace-pre-wrap text-slate-800">
+      <p className="text-base whitespace-pre-wrap text-slate-800">
         {l.conceptLearningSlot ||
           [l.introductionWarmup, l.teachingStrategy].filter(Boolean).join('\n\n')}
       </p>
@@ -148,7 +148,7 @@ const STUDY_SCHEDULE_SECTIONS: LessonSectionDef[] = [
     iconWrap: 'bg-emerald-100 text-emerald-800',
     hasContent: (l) => !!l.practiceSlot || !!l.homeworkPractice || l.studentTasks.length > 0,
     render: (l) => (
-      <p className="text-sm whitespace-pre-wrap text-slate-800">
+      <p className="text-base whitespace-pre-wrap text-slate-800">
         {l.practiceSlot ||
           [l.homeworkPractice, ...l.studentTasks].filter(Boolean).join('\n\n')}
       </p>
@@ -161,7 +161,7 @@ const STUDY_SCHEDULE_SECTIONS: LessonSectionDef[] = [
     stripe: 'border-fuchsia-500',
     iconWrap: 'bg-fuchsia-100 text-fuchsia-800',
     hasContent: (l) => !!l.breaksFocusTips,
-    render: (l) => <p className="text-sm whitespace-pre-wrap text-slate-800">{l.breaksFocusTips}</p>,
+    render: (l) => <p className="text-base whitespace-pre-wrap text-slate-800">{l.breaksFocusTips}</p>,
   },
   {
     num: 10,
@@ -171,7 +171,7 @@ const STUDY_SCHEDULE_SECTIONS: LessonSectionDef[] = [
     iconWrap: 'bg-rose-100 text-rose-800',
     hasContent: (l) => !!l.selfAssessmentCheckpoint || l.formativeQuestions.length > 0,
     render: (l) => (
-      <p className="text-sm whitespace-pre-wrap text-slate-800">
+      <p className="text-base whitespace-pre-wrap text-slate-800">
         {l.selfAssessmentCheckpoint || l.formativeQuestions.join('\n')}
       </p>
     ),
@@ -184,7 +184,7 @@ const STUDY_SCHEDULE_SECTIONS: LessonSectionDef[] = [
     iconWrap: 'bg-pink-100 text-pink-800',
     hasContent: (l) => !!l.supportExtensionPlan || !!l.differentiationPlan,
     render: (l) => (
-      <p className="text-sm whitespace-pre-wrap text-slate-800">
+      <p className="text-base whitespace-pre-wrap text-slate-800">
         {l.supportExtensionPlan || l.differentiationPlan}
       </p>
     ),
@@ -208,7 +208,7 @@ const STUDY_SCHEDULE_SECTIONS: LessonSectionDef[] = [
     iconWrap: 'bg-cyan-100 text-cyan-900',
     hasContent: (l) => !!l.reflectionExitTicket || !!l.closureExitTicket,
     render: (l) => (
-      <p className="whitespace-pre-wrap rounded-lg border-l-4 border-cyan-400 bg-cyan-50/50 px-3 py-2.5 text-sm text-slate-800">
+      <p className="whitespace-pre-wrap rounded-lg border-l-4 border-cyan-400 bg-cyan-50/50 px-3 py-2.5 text-base text-slate-800">
         {l.reflectionExitTicket || l.closureExitTicket}
       </p>
     ),
@@ -242,7 +242,7 @@ const TEACHER_LESSON_SECTIONS: LessonSectionDef[] = [
     iconWrap: 'bg-violet-100 text-violet-800',
     hasContent: (l) => !!l.priorKnowledgeReadiness || !!l.priorKnowledge,
     render: (l) => (
-      <p className="text-sm whitespace-pre-wrap text-slate-800">
+      <p className="text-base whitespace-pre-wrap text-slate-800">
         {l.priorKnowledgeReadiness || l.priorKnowledge}
       </p>
     ),
@@ -254,7 +254,7 @@ const TEACHER_LESSON_SECTIONS: LessonSectionDef[] = [
     stripe: 'border-amber-500',
     iconWrap: 'bg-amber-100 text-amber-900',
     hasContent: (l) => !!l.introductionWarmup,
-    render: (l) => <p className="text-sm whitespace-pre-wrap text-slate-800">{l.introductionWarmup}</p>,
+    render: (l) => <p className="text-base whitespace-pre-wrap text-slate-800">{l.introductionWarmup}</p>,
   },
   {
     num: 6,
@@ -263,7 +263,7 @@ const TEACHER_LESSON_SECTIONS: LessonSectionDef[] = [
     stripe: 'border-teal-500',
     iconWrap: 'bg-teal-100 text-teal-800',
     hasContent: (l) => !!l.teachingStrategy,
-    render: (l) => <p className="text-sm whitespace-pre-wrap text-slate-800">{l.teachingStrategy}</p>,
+    render: (l) => <p className="text-base whitespace-pre-wrap text-slate-800">{l.teachingStrategy}</p>,
   },
   {
     num: 7,
@@ -314,7 +314,7 @@ const TEACHER_LESSON_SECTIONS: LessonSectionDef[] = [
     stripe: 'border-pink-500',
     iconWrap: 'bg-pink-100 text-pink-700',
     hasContent: (l) => !!l.differentiationPlan,
-    render: (l) => <p className="text-sm whitespace-pre-wrap text-slate-800">{l.differentiationPlan}</p>,
+    render: (l) => <p className="text-base whitespace-pre-wrap text-slate-800">{l.differentiationPlan}</p>,
   },
   {
     num: 12,
@@ -323,7 +323,7 @@ const TEACHER_LESSON_SECTIONS: LessonSectionDef[] = [
     stripe: 'border-orange-500',
     iconWrap: 'bg-orange-100 text-orange-800',
     hasContent: (l) => !!l.homeworkPractice,
-    render: (l) => <p className="text-sm whitespace-pre-wrap text-slate-800">{l.homeworkPractice}</p>,
+    render: (l) => <p className="text-base whitespace-pre-wrap text-slate-800">{l.homeworkPractice}</p>,
   },
   {
     num: 13,
@@ -342,7 +342,7 @@ const TEACHER_LESSON_SECTIONS: LessonSectionDef[] = [
     iconWrap: 'bg-cyan-100 text-cyan-900',
     hasContent: (l) => !!l.reflectionExitTicket || !!l.closureExitTicket,
     render: (l) => (
-      <p className="whitespace-pre-wrap rounded-lg border-l-4 border-cyan-400 bg-cyan-50/50 px-3 py-2.5 text-sm text-slate-800">
+      <p className="whitespace-pre-wrap rounded-lg border-l-4 border-cyan-400 bg-cyan-50/50 px-3 py-2.5 text-base text-slate-800">
         {l.reflectionExitTicket || l.closureExitTicket}
       </p>
     ),
@@ -596,7 +596,7 @@ function TeacherLessonShell({
 function TeacherMarkdownBody({ markdown }: { markdown: string }) {
   return (
     <div
-      className="prose prose-sm max-w-none rounded-xl border border-slate-200 bg-white/90 p-4 sm:p-5 shadow-sm prose-headings:font-serif prose-headings:text-slate-900 prose-p:text-slate-700 prose-li:text-slate-700"
+      className="prose prose-base max-w-none rounded-xl border border-slate-200 bg-white/90 p-4 sm:p-5 shadow-sm prose-headings:font-serif prose-headings:text-slate-900 prose-p:text-slate-700 prose-li:text-slate-700"
       dangerouslySetInnerHTML={{ __html: renderMarkdown(markdown) }}
     />
   );
@@ -655,7 +655,7 @@ function StudentLessonCard({ lesson }: { lesson: NormalizedLesson }) {
 function StudentMarkdownBody({ markdown }: { markdown: string }) {
   return (
     <div
-      className="prose prose-sm max-w-none rounded-2xl border border-cyan-100 bg-white p-4 shadow-sm prose-headings:text-slate-900 prose-p:text-slate-700 prose-li:text-slate-700"
+      className="prose prose-base max-w-none rounded-2xl border border-cyan-100 bg-white p-4 shadow-sm prose-headings:text-slate-900 prose-p:text-slate-700 prose-li:text-slate-700"
       dangerouslySetInnerHTML={{ __html: renderMarkdown(markdown) }}
     />
   );
@@ -810,7 +810,7 @@ export function LessonPlannerViewer({
         )}
       >
         <Calendar className="mx-auto h-10 w-10 text-amber-500/70 mb-3" aria-hidden />
-        <p className="text-sm font-medium text-stone-700">No lesson plan found for this selection</p>
+        <p className="text-base font-medium text-stone-700">No lesson plan found for this selection</p>
         <p className="text-xs text-stone-500 mt-1">Try generating again or pick another topic.</p>
       </div>
     );

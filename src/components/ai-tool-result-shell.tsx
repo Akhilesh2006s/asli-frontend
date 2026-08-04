@@ -2,7 +2,6 @@ import type { ReactNode } from 'react';
 import { motion } from 'framer-motion';
 import { Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { AiToolContentVisuals } from '@/components/ai-tool-content-visuals';
 import {
   RealisticIcon,
   heroIconForTool,
@@ -213,8 +212,8 @@ function MetaChip({
       )}
     >
       <RealisticIcon name={icon} alt="" float={false} className="h-4 w-4 shrink-0" />
-      <span className="text-xs font-bold uppercase tracking-wide opacity-70">{formatAiToolText(label)}</span>
-      <span className="min-w-0 break-words font-bold sm:max-w-[16rem]">{formatAiToolText(value)}</span>
+      <span className="text-sm font-bold uppercase tracking-wide opacity-70">{formatAiToolText(label)}</span>
+      <span className="min-w-0 break-words text-base font-bold sm:max-w-[16rem]">{formatAiToolText(value)}</span>
     </div>
   );
 }
@@ -369,34 +368,18 @@ export function AiToolResultShell({
               </div>
             </div>
           ) : children ? (
-            <>
-              {toolType !== 'worksheet-mcq-generator' &&
-              toolType !== 'exam-question-paper-generator' &&
-              toolType !== 'mock-test-builder' &&
-              toolType !== 'homework-creator' &&
-              toolType !== 'quick-assignment-builder' &&
-              toolType !== 'smart-qa-practice-generator' ? (
-                <AiToolContentVisuals
-                  meta={{
-                    subject,
-                    chapter,
-                    subtopic,
-                    toolType,
-                    title: displayToolName,
-                  }}
-                />
-              ) : null}
-              {/*
-                The card is overflow-hidden, so anything wider than it — a
-                generated table, a long formula, an unbroken URL — was clipped
-                with no way to reach it. min-w-0 lets this shrink inside its
-                flex parent, wide blocks scroll horizontally on their own, and
-                long words wrap instead of pushing the layout open.
-              */}
-              <div className="w-full min-w-0 break-words [&_pre]:overflow-x-auto [&_table]:block [&_table]:w-max [&_table]:min-w-full [&_table]:overflow-x-auto">
-                {children}
-              </div>
-            </>
+            /*
+              The card is overflow-hidden, so anything wider than it — a
+              generated table, a long formula, an unbroken URL — was clipped
+              with no way to reach it. min-w-0 lets this shrink inside its
+              flex parent, wide blocks scroll horizontally on their own, and
+              long words wrap instead of pushing the layout open.
+              Science Focus strip removed so results match Concept Mastery:
+              header + chips + stacked content boxes only.
+            */
+            <div className="w-full min-w-0 break-words [&_pre]:overflow-x-auto [&_table]:block [&_table]:w-max [&_table]:min-w-full [&_table]:overflow-x-auto">
+              {children}
+            </div>
           ) : (
             empty || (
               <div className="asli-state">

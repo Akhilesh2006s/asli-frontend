@@ -64,12 +64,12 @@ function RichTextBlock({ text }: { text: string }) {
   if (hasMarkdown) {
     return (
       <div
-        className="prose prose-sm max-w-none text-slate-800"
+        className="prose prose-base max-w-none text-slate-800"
         dangerouslySetInnerHTML={{ __html: renderMarkdown(text) }}
       />
     );
   }
-  return <p className="whitespace-pre-wrap text-sm leading-relaxed text-slate-800">{text}</p>;
+  return <p className="whitespace-pre-wrap text-base leading-relaxed text-slate-800">{text}</p>;
 }
 
 function BulletList({ items, accent = 'text-violet-500' }: { items: string[]; accent?: string }) {
@@ -77,7 +77,7 @@ function BulletList({ items, accent = 'text-violet-500' }: { items: string[]; ac
   return (
     <ul className="space-y-1.5">
       {items.map((line, i) => (
-        <li key={i} className="flex gap-2 text-sm text-slate-800">
+        <li key={i} className="flex gap-2 text-base text-slate-800">
           <span className={cn('mt-0.5 shrink-0', accent)}>•</span>
           <span className="whitespace-pre-wrap leading-relaxed">{line}</span>
         </li>
@@ -126,7 +126,7 @@ function buildSections(concept: ConceptBreakdownContent): {
           {concept.breakdownSteps.map((step, i) => (
             <li
               key={i}
-              className="flex gap-2 rounded-lg border border-indigo-100 bg-indigo-50/40 px-2.5 py-1.5 text-sm text-slate-800"
+              className="flex gap-2 rounded-lg border border-indigo-100 bg-indigo-50/40 px-2.5 py-1.5 text-base text-slate-800"
             >
               <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-indigo-600 text-xs font-bold text-white">
                 {i + 1}
@@ -162,9 +162,9 @@ function buildSections(concept: ConceptBreakdownContent): {
               key={`${term.term}-${i}`}
               className="rounded-lg border border-amber-100 bg-amber-50/50 px-2.5 py-1.5"
             >
-              <p className="text-sm font-semibold text-amber-900">{term.term}</p>
+              <p className="text-base font-semibold text-amber-900">{term.term}</p>
               {term.definition ? (
-                <p className="mt-0.5 text-sm text-slate-700">{term.definition}</p>
+                <p className="mt-0.5 text-base text-slate-700">{term.definition}</p>
               ) : null}
             </div>
           ))}
@@ -184,7 +184,7 @@ function buildSections(concept: ConceptBreakdownContent): {
           {concept.conceptCheckQuestions.map((q, i) => (
             <li
               key={i}
-              className="rounded-lg border border-cyan-100 bg-cyan-50/40 px-2.5 py-1.5 text-sm text-slate-800"
+              className="rounded-lg border border-cyan-100 bg-cyan-50/40 px-2.5 py-1.5 text-base text-slate-800"
             >
               <span className="mr-2 font-semibold text-cyan-700">Q{i + 1}.</span>
               {q}

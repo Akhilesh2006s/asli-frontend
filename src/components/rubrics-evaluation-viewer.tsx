@@ -78,7 +78,7 @@ function CriteriaTable({ rows }: { rows: RubricCriterionRow[] }) {
   if (!rows.length) return null;
   return (
     <div className="overflow-x-auto rounded-xl border border-slate-200">
-      <table className="min-w-[760px] w-full text-xs sm:text-sm">
+      <table className="min-w-[760px] w-full text-xs sm:text-base">
         <thead>
           <tr className="bg-slate-50">
             <th className="px-3 py-2 text-left font-semibold text-slate-800 border-b border-slate-200">
@@ -132,7 +132,7 @@ const RUBRIC_SECTIONS: SectionDef[] = [
     stripe: 'border-indigo-500',
     iconWrap: 'bg-indigo-100 text-indigo-900',
     hasContent: (r) => !!r.assessmentPurpose,
-    render: (r) => <p className="text-sm whitespace-pre-wrap text-slate-800">{r.assessmentPurpose}</p>,
+    render: (r) => <p className="text-base whitespace-pre-wrap text-slate-800">{r.assessmentPurpose}</p>,
   },
   {
     num: 2,
@@ -141,7 +141,7 @@ const RUBRIC_SECTIONS: SectionDef[] = [
     stripe: 'border-sky-500',
     iconWrap: 'bg-sky-100 text-sky-900',
     hasContent: (r) => !!r.competencyAssessed,
-    render: (r) => <p className="text-sm whitespace-pre-wrap text-slate-800">{r.competencyAssessed}</p>,
+    render: (r) => <p className="text-base whitespace-pre-wrap text-slate-800">{r.competencyAssessed}</p>,
   },
   {
     num: 3,
@@ -160,7 +160,7 @@ const RUBRIC_SECTIONS: SectionDef[] = [
     iconWrap: 'bg-amber-100 text-amber-950',
     hasContent: (r) => !!inferredGradingCriteriaText(r),
     render: (r) => (
-      <p className="text-sm whitespace-pre-wrap text-slate-800">{inferredGradingCriteriaText(r)}</p>
+      <p className="text-base whitespace-pre-wrap text-slate-800">{inferredGradingCriteriaText(r)}</p>
     ),
   },
   {
@@ -170,7 +170,7 @@ const RUBRIC_SECTIONS: SectionDef[] = [
     stripe: 'border-teal-500',
     iconWrap: 'bg-teal-100 text-teal-900',
     hasContent: (r) => !!r.strengthsObserved,
-    render: (r) => <p className="text-sm whitespace-pre-wrap text-slate-800">{r.strengthsObserved}</p>,
+    render: (r) => <p className="text-base whitespace-pre-wrap text-slate-800">{r.strengthsObserved}</p>,
   },
   {
     num: 6,
@@ -179,7 +179,7 @@ const RUBRIC_SECTIONS: SectionDef[] = [
     stripe: 'border-rose-500',
     iconWrap: 'bg-rose-100 text-rose-900',
     hasContent: (r) => !!r.areasForImprovement,
-    render: (r) => <p className="text-sm whitespace-pre-wrap text-slate-800">{r.areasForImprovement}</p>,
+    render: (r) => <p className="text-base whitespace-pre-wrap text-slate-800">{r.areasForImprovement}</p>,
   },
   {
     num: 7,
@@ -188,7 +188,7 @@ const RUBRIC_SECTIONS: SectionDef[] = [
     stripe: 'border-slate-500',
     iconWrap: 'bg-slate-100 text-slate-900',
     hasContent: (r) => !!r.teacherRemarks,
-    render: (r) => <p className="text-sm whitespace-pre-wrap text-slate-800">{r.teacherRemarks}</p>,
+    render: (r) => <p className="text-base whitespace-pre-wrap text-slate-800">{r.teacherRemarks}</p>,
   },
   {
     num: 8,
@@ -197,7 +197,7 @@ const RUBRIC_SECTIONS: SectionDef[] = [
     stripe: 'border-fuchsia-500',
     iconWrap: 'bg-fuchsia-100 text-fuchsia-900',
     hasContent: (r) => !!r.actionableSuggestions,
-    render: (r) => <p className="text-sm whitespace-pre-wrap text-slate-800">{r.actionableSuggestions}</p>,
+    render: (r) => <p className="text-base whitespace-pre-wrap text-slate-800">{r.actionableSuggestions}</p>,
   },
   {
     num: 9,
@@ -206,7 +206,7 @@ const RUBRIC_SECTIONS: SectionDef[] = [
     stripe: 'border-cyan-600',
     iconWrap: 'bg-cyan-100 text-cyan-900',
     hasContent: (r) => !!r.parentFriendlyFeedback,
-    render: (r) => <p className="text-sm whitespace-pre-wrap text-slate-800">{r.parentFriendlyFeedback}</p>,
+    render: (r) => <p className="text-base whitespace-pre-wrap text-slate-800">{r.parentFriendlyFeedback}</p>,
   },
   {
     num: 10,
@@ -215,7 +215,7 @@ const RUBRIC_SECTIONS: SectionDef[] = [
     stripe: 'border-lime-600',
     iconWrap: 'bg-lime-100 text-lime-900',
     hasContent: (r) => !!r.nextStepRemedialEnrichment,
-    render: (r) => <p className="text-sm whitespace-pre-wrap text-slate-800">{r.nextStepRemedialEnrichment}</p>,
+    render: (r) => <p className="text-base whitespace-pre-wrap text-slate-800">{r.nextStepRemedialEnrichment}</p>,
   },
 ];
 
@@ -235,7 +235,7 @@ export function RubricsEvaluationViewer({ content, rawContent, className }: Rubr
       return (
         <div className={className}>
           <div
-            className="prose prose-sm max-w-none rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
+            className="prose prose-base max-w-none rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
             dangerouslySetInnerHTML={{ __html: renderMarkdown(resolved.markdownFallback) }}
           />
         </div>
@@ -243,7 +243,7 @@ export function RubricsEvaluationViewer({ content, rawContent, className }: Rubr
     }
     return (
       <div className={cn('rounded-xl border border-dashed border-slate-300 bg-slate-50/60 px-6 py-10 text-center', className)}>
-        <p className="text-sm font-medium text-stone-700">No rubric content found</p>
+        <p className="text-base font-medium text-stone-700">No rubric content found</p>
       </div>
     );
   }
@@ -261,7 +261,7 @@ export function RubricsEvaluationViewer({ content, rawContent, className }: Rubr
           Performance Evaluation Studio
         </p>
         <h3 className="text-2xl font-bold leading-tight">{r.title}</h3>
-        <p className="mt-1.5 text-sm text-indigo-100/90">
+        <p className="mt-1.5 text-base text-indigo-100/90">
           Comprehensive rubric profile with strengths, gaps, and next-step actions.
         </p>
 

@@ -69,7 +69,7 @@ function BulletBlock({
   return (
     <ul className="space-y-2">
       {items.map((line, i) => (
-        <li key={i} className="flex gap-2.5 text-sm text-slate-800 leading-relaxed">
+        <li key={i} className="flex gap-2.5 text-base text-slate-800 leading-relaxed">
           <ToolSectionIcon
             icon={Icon}
             size="sm"
@@ -84,7 +84,7 @@ function BulletBlock({
 
 function TextBlock({ text }: { text: string }) {
   if (!text.trim()) return null;
-  return <p className="text-sm text-slate-800 whitespace-pre-wrap leading-relaxed">{text}</p>;
+  return <p className="text-base text-slate-800 whitespace-pre-wrap leading-relaxed">{text}</p>;
 }
 
 function BentoCard({
@@ -130,14 +130,14 @@ function PeriodTimeline({ slots }: { slots: DailyPlanTimeSlot[] }) {
             </div>
             <div className="min-w-0 flex-1 rounded-2xl border border-indigo-100/80 bg-white p-4 shadow-sm ring-1 ring-indigo-50">
               <div className="flex flex-wrap items-center gap-2 mb-2">
-                <span className="text-sm font-bold text-indigo-900">{slot.time || `Period ${i + 1}`}</span>
+                <span className="text-base font-bold text-indigo-900">{slot.time || `Period ${i + 1}`}</span>
                 {slot.type ? (
                   <Badge variant="outline" className={cn('text-micro font-semibold', slotTypeClass(slot.type))}>
                     {slot.type}
                   </Badge>
                 ) : null}
               </div>
-              <p className="text-sm text-slate-700 whitespace-pre-wrap leading-relaxed">{slot.activity}</p>
+              <p className="text-base text-slate-700 whitespace-pre-wrap leading-relaxed">{slot.activity}</p>
             </div>
           </motion.li>
         ))}
@@ -165,7 +165,7 @@ function DayPlanBoard({ plan }: { plan: NormalizedDailyPlan }) {
       {plan.timeSlots.length > 0 ? (
         <div className="rounded-2xl border border-indigo-100 bg-gradient-to-b from-indigo-50/50 to-white p-4 sm:p-5">
           <div className="mb-4 flex items-center justify-between gap-2">
-            <h4 className="text-sm font-bold text-indigo-950 flex items-center gap-2">
+            <h4 className="text-base font-bold text-indigo-950 flex items-center gap-2">
               <Clock3 className="h-4 w-4 text-indigo-600" aria-hidden />
               Period timeline
             </h4>
@@ -262,7 +262,7 @@ function DayPlanBoard({ plan }: { plan: NormalizedDailyPlan }) {
       </div>
 
       {periodCount === 0 && !planHasVisibleContent(plan) ? (
-        <p className="text-sm text-slate-500 italic text-center py-6">No structured sections in this plan.</p>
+        <p className="text-base text-slate-500 italic text-center py-6">No structured sections in this plan.</p>
       ) : null}
     </div>
   );
@@ -294,7 +294,7 @@ function DayBoardShell({
 function MarkdownFallback({ markdown }: { markdown: string }) {
   return (
     <div
-      className="prose prose-sm max-w-none rounded-2xl border border-indigo-100 bg-white p-4 shadow-sm prose-headings:text-slate-900 prose-p:text-slate-700"
+      className="prose prose-base max-w-none rounded-2xl border border-indigo-100 bg-white p-4 shadow-sm prose-headings:text-slate-900 prose-p:text-slate-700"
       dangerouslySetInnerHTML={{ __html: renderMarkdown(markdown) }}
     />
   );
@@ -340,7 +340,7 @@ export function DailyClassPlanViewer({
         )}
       >
         <CalendarDays className="mx-auto h-10 w-10 text-indigo-500/70 mb-3" aria-hidden />
-        <p className="text-sm font-medium text-slate-700">No daily class plan found</p>
+        <p className="text-base font-medium text-slate-700">No daily class plan found</p>
         <p className="text-xs text-slate-500 mt-1">Generate again or choose another topic.</p>
       </div>
     );

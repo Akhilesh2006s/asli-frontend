@@ -73,7 +73,7 @@ function BulletList({ items }: { items: string[] }) {
   return (
     <ul className="space-y-1">
       {items.map((line, i) => (
-        <li key={i} className="flex gap-2 text-sm text-slate-800">
+        <li key={i} className="flex gap-2 text-base text-slate-800">
           <span className="shrink-0 text-rose-500">•</span>
           <span className="whitespace-pre-wrap">{line}</span>
         </li>
@@ -94,17 +94,17 @@ function RichTextBlock({ text, className }: { text: string; className?: string }
     return (
       <div
         className={cn(
-          'prose prose-sm max-w-none text-slate-800',
-          'prose-table:w-full prose-table:border-collapse prose-th:border prose-th:border-amber-200 prose-th:bg-amber-50/90 prose-th:px-2 prose-th:py-1.5 prose-th:text-left prose-th:text-xs prose-th:font-semibold',
-          'prose-td:border prose-td:border-amber-100 prose-td:px-2 prose-td:py-1.5 prose-td:text-xs prose-td:align-top',
-          'prose-ol:my-1 prose-ul:my-1 prose-li:text-sm',
+          'prose prose-base max-w-none text-slate-800',
+          'prose-table:w-full prose-table:border-collapse prose-th:border prose-th:border-amber-200 prose-th:bg-amber-50/90 prose-th:px-2 prose-th:py-1.5 prose-th:text-left prose-th:text-base prose-th:font-semibold',
+          'prose-td:border prose-td:border-amber-100 prose-td:px-2 prose-td:py-1.5 prose-td:text-base prose-td:align-top',
+          'prose-ol:my-1 prose-ul:my-1 prose-li:text-base',
           className,
         )}
         dangerouslySetInnerHTML={{ __html: renderMarkdown(text) }}
       />
     );
   }
-  return <p className="whitespace-pre-wrap text-sm leading-relaxed text-slate-800">{text}</p>;
+  return <p className="whitespace-pre-wrap text-base leading-relaxed text-slate-800">{text}</p>;
 }
 
 function QuestionCard({
@@ -130,7 +130,7 @@ function QuestionCard({
   return (
     <article className="rounded-lg border border-rose-100 bg-gradient-to-br from-white to-rose-50/30 p-3">
       <div className="mb-1.5 flex items-start justify-between gap-2">
-        <p className="text-sm font-semibold text-slate-900">
+        <p className="text-base font-semibold text-slate-900">
           <span className="mr-1.5 inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded bg-rose-600 px-1 text-micro font-bold text-white">
             {qNo}
           </span>
@@ -150,7 +150,7 @@ function QuestionCard({
             return (
               <li
                 key={`${opt}-${i}`}
-                className="flex gap-2 rounded-md border border-slate-200/80 bg-white px-2.5 py-1.5 text-sm text-slate-700"
+                className="flex gap-2 rounded-md border border-slate-200/80 bg-white px-2.5 py-1.5 text-base text-slate-700"
               >
                 <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-rose-100 text-xs font-bold text-rose-800">
                   {label}
@@ -179,7 +179,7 @@ function ExamSectionBlock({ section, showAnswers }: { section: ExamSection; show
   return (
     <div className="rounded-xl border border-rose-200/80 bg-white/90 p-3">
       <div className="mb-2 flex items-center justify-between gap-2 border-b border-rose-100 pb-2">
-        <h5 className="text-sm font-bold text-rose-900">{section.title}</h5>
+        <h5 className="text-base font-bold text-rose-900">{section.title}</h5>
         <Badge variant="outline" className="border-rose-200 text-rose-700">
           {section.questions.length} Q
         </Badge>

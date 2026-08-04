@@ -172,29 +172,29 @@ export function AiToolDocumentShell({
             <div className="flex min-w-0 items-center gap-3">
               <div
                 className={cn(
-                  'flex h-12 w-12 shrink-0 items-center justify-center rounded-lg shadow-md rotate-[-2deg]',
+                  'flex h-14 w-14 shrink-0 items-center justify-center rounded-xl shadow-md rotate-[-2deg]',
                   theme.iconBg,
                 )}
               >
-                <Icon className="h-6 w-6" aria-hidden />
+                <Icon className="h-7 w-7" aria-hidden />
               </div>
               <div className="min-w-0 text-white">
                 <p
                   className={cn(
-                    'text-micro font-bold uppercase tracking-[0.22em]',
+                    'text-xs font-bold uppercase tracking-[0.2em]',
                     theme.label,
                   )}
                 >
                   {displayLabel}
                 </p>
-                <h3 className="truncate text-lg font-bold sm:text-xl">{displayTitle}</h3>
+                <h3 className="truncate text-2xl font-bold sm:text-3xl leading-tight">{displayTitle}</h3>
                 {displaySubtitle ? (
-                  <p className="mt-0.5 text-xs text-white/80">{displaySubtitle}</p>
+                  <p className="mt-1 text-sm sm:text-base text-white/85">{displaySubtitle}</p>
                 ) : null}
               </div>
             </div>
             {badge ? (
-              <div className="shrink-0 rounded-md bg-white/10 px-3 py-1.5 text-xs font-semibold text-white ring-1 ring-white/20">
+              <div className="shrink-0 rounded-md bg-white/10 px-3 py-2 text-sm font-semibold text-white ring-1 ring-white/20">
                 {badge}
               </div>
             ) : null}

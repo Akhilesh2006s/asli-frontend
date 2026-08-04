@@ -106,7 +106,7 @@ function QuestionCard({
           <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-teal-700 text-xs font-bold text-white">
             {num}
           </span>
-          <p className="text-sm font-medium text-slate-900 leading-relaxed pt-0.5">{q.question}</p>
+          <p className="text-base font-medium text-slate-900 leading-relaxed pt-0.5">{q.question}</p>
         </div>
         <div className="flex flex-wrap gap-1.5 shrink-0">
           {q.type ? (
@@ -127,7 +127,7 @@ function QuestionCard({
           {q.options.map((opt, i) => (
             <li
               key={i}
-              className="flex items-start gap-2 rounded-lg border border-slate-100 bg-slate-50/80 px-3 py-2 text-sm text-slate-800"
+              className="flex items-start gap-2 rounded-lg border border-slate-100 bg-slate-50/80 px-3 py-2 text-base text-slate-800"
             >
               <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 border-slate-400 text-micro font-bold text-slate-600">
                 {String.fromCharCode(65 + i)}
@@ -138,7 +138,7 @@ function QuestionCard({
         </ul>
       ) : null}
       {showAnswer && q.answer ? (
-        <p className="text-xs text-emerald-800 flex items-start gap-1.5 rounded-lg bg-emerald-50 border border-emerald-100 px-3 py-2">
+        <p className="text-base text-emerald-800 flex items-start gap-1.5 rounded-lg bg-emerald-50 border border-emerald-100 px-3 py-2">
           <CircleCheck className="h-4 w-4 shrink-0 mt-0.5" aria-hidden />
           <span>
             <span className="font-semibold">Answer:</span> {q.answer}
@@ -146,7 +146,7 @@ function QuestionCard({
         </p>
       ) : null}
       {q.explanation ? (
-        <p className="text-xs text-slate-600 rounded-lg bg-slate-50 px-3 py-2 border border-slate-100">
+        <p className="text-base text-slate-600 rounded-lg bg-slate-50 px-3 py-2 border border-slate-100">
           <span className="font-semibold text-slate-700">Explanation:</span> {q.explanation}
         </p>
       ) : null}
@@ -246,7 +246,7 @@ function buildTimelineBlocks(worksheet: NormalizedWorksheet): TimelineBlock[] {
       title: 'Answer Key',
       icon: CheckCircle2,
       content: (
-        <pre className="whitespace-pre-wrap font-sans text-sm text-slate-800 leading-relaxed">
+        <pre className="whitespace-pre-wrap font-sans text-base text-slate-800 leading-relaxed">
           {worksheet.answerKey}
         </pre>
       ),
@@ -395,7 +395,7 @@ function TeacherWorksheetCard({
 function TeacherMarkdownBody({ markdown }: { markdown: string }) {
   return (
     <div
-      className="prose prose-sm max-w-none rounded-xl border border-slate-200 bg-white/90 p-4 sm:p-5 shadow-sm prose-headings:font-serif prose-headings:text-slate-900 prose-p:text-slate-700 prose-li:text-slate-700"
+      className="prose prose-base max-w-none rounded-xl border border-slate-200 bg-white/90 p-4 sm:p-5 shadow-sm prose-headings:font-serif prose-headings:text-slate-900 prose-p:text-slate-700 prose-li:text-slate-700"
       dangerouslySetInnerHTML={{ __html: renderMarkdown(markdown) }}
     />
   );
@@ -405,7 +405,7 @@ function TeacherWorksheetShell({ title, children }: { title: string; children: R
   const displayTitle = formatAiToolText(title || 'Worksheet Pack');
   return (
     <div className="w-full space-y-4">
-      <p className="text-sm font-bold text-emerald-900">{displayTitle}</p>
+      <p className="text-base font-bold text-emerald-900">{displayTitle}</p>
       {children}
     </div>
   );

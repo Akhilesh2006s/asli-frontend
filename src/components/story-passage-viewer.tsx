@@ -52,12 +52,12 @@ function DefaultPassagesBundle({
       <div className="rounded-xl border border-amber-200 bg-amber-50/80 p-4">
         <h2 className="text-lg font-bold text-gray-900">{bundle.title}</h2>
         {(bundle.meta?.subject || bundle.meta?.chapter) && (
-          <p className="text-sm text-gray-600 mt-1">
+          <p className="text-base text-gray-600 mt-1">
             {[bundle.meta?.subject, bundle.meta?.book, bundle.meta?.chapter].filter(Boolean).join(' · ')}
           </p>
         )}
         {bundle.instructions ? (
-          <p className="mt-3 text-sm text-gray-700 bg-white rounded-lg p-3 border border-amber-100">
+          <p className="mt-3 text-base text-gray-700 bg-white rounded-lg p-3 border border-amber-100">
             {bundle.instructions}
           </p>
         ) : null}
@@ -65,7 +65,7 @@ function DefaultPassagesBundle({
       {bundle.passages.map((p) => (
         <div key={p.passageNumber} className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
           <div className="px-4 py-3 bg-gray-50 border-b">
-            <p className="text-sm font-semibold flex items-center gap-2">
+            <p className="text-base font-semibold flex items-center gap-2">
               <span className="flex h-7 w-7 items-center justify-center rounded-full bg-amber-500 text-white text-xs font-bold">
                 {p.passageNumber}
               </span>
@@ -73,9 +73,9 @@ function DefaultPassagesBundle({
             </p>
           </div>
           <div className="p-4 space-y-3">
-            <p className="text-sm leading-relaxed text-gray-800">{p.paragraph}</p>
+            <p className="text-base leading-relaxed text-gray-800">{p.paragraph}</p>
             {p.questions.length > 0 ? (
-              <ol className="list-decimal list-inside space-y-1 text-sm text-gray-800 border-t pt-3">
+              <ol className="list-decimal list-inside space-y-1 text-base text-gray-800 border-t pt-3">
                 {p.questions.map((q, i) => (
                   <li key={i}>{q}</li>
                 ))}
@@ -178,7 +178,7 @@ const READING_PRACTICE_SECTIONS: StorySectionDef[] = [
     stripe: 'border-indigo-500',
     iconWrap: 'bg-indigo-100 text-indigo-700',
     hasContent: (s) => !!s.title,
-    render: (s) => <p className="whitespace-pre-wrap text-sm leading-relaxed font-medium">{s.title}</p>,
+    render: (s) => <p className="whitespace-pre-wrap text-base leading-relaxed font-medium">{s.title}</p>,
   },
   {
     num: 2,
@@ -189,7 +189,7 @@ const READING_PRACTICE_SECTIONS: StorySectionDef[] = [
     hasContent: (s) =>
       !!s.subtopicLinkPriorKnowledge || !!s.topicSubtopicConnection || !!s.priorKnowledgeRequired,
     render: (s) => (
-      <p className="whitespace-pre-wrap text-sm leading-relaxed">
+      <p className="whitespace-pre-wrap text-base leading-relaxed">
         {s.subtopicLinkPriorKnowledge ||
           [s.topicSubtopicConnection, s.priorKnowledgeRequired].filter(Boolean).join('\n')}
       </p>
@@ -205,7 +205,7 @@ const READING_PRACTICE_SECTIONS: StorySectionDef[] = [
     render: (s) => (
       <ul className="space-y-2">
         {s.learningObjectives.map((o, i) => (
-          <li key={i} className="flex gap-2 rounded-lg bg-violet-50/80 px-3 py-2 text-sm">
+          <li key={i} className="flex gap-2 rounded-lg bg-violet-50/80 px-3 py-2 text-base">
             <Target className="h-4 w-4 shrink-0 text-violet-600 mt-0.5" aria-hidden />
             {o}
           </li>
@@ -220,7 +220,7 @@ const READING_PRACTICE_SECTIONS: StorySectionDef[] = [
     stripe: 'border-blue-500',
     iconWrap: 'bg-blue-100 text-blue-700',
     hasContent: (s) => !!s.ncfAlignment || !!s.alignment,
-    render: (s) => <p className="whitespace-pre-wrap text-sm leading-relaxed">{s.ncfAlignment || s.alignment}</p>,
+    render: (s) => <p className="whitespace-pre-wrap text-base leading-relaxed">{s.ncfAlignment || s.alignment}</p>,
   },
   {
     num: 5,
@@ -234,7 +234,7 @@ const READING_PRACTICE_SECTIONS: StorySectionDef[] = [
         {s.vocabulary.map((word, i) => (
           <span
             key={i}
-            className="rounded-xl border border-teal-100 bg-teal-50 px-3 py-2 text-sm text-teal-900"
+            className="rounded-xl border border-teal-100 bg-teal-50 px-3 py-2 text-base text-teal-900"
           >
             {word}
           </span>
@@ -272,7 +272,7 @@ const READING_PRACTICE_SECTIONS: StorySectionDef[] = [
             <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-indigo-600 text-xs font-bold text-white">
               {i + 1}
             </span>
-            <p className="text-sm text-slate-800 pt-0.5">{q.question}</p>
+            <p className="text-base text-slate-800 pt-0.5">{q.question}</p>
           </div>
         ))}
       </div>
@@ -292,7 +292,7 @@ const READING_PRACTICE_SECTIONS: StorySectionDef[] = [
             <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-sky-600 text-xs font-bold text-white">
               {i + 1}
             </span>
-            <p className="text-sm text-slate-800 pt-0.5">{q.question}</p>
+            <p className="text-base text-slate-800 pt-0.5">{q.question}</p>
           </div>
         ))}
       </div>
@@ -312,7 +312,7 @@ const READING_PRACTICE_SECTIONS: StorySectionDef[] = [
             <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-emerald-600 text-xs font-bold text-white">
               {i + 1}
             </span>
-            <p className="text-sm text-slate-800 pt-0.5">{q.question}</p>
+            <p className="text-base text-slate-800 pt-0.5">{q.question}</p>
           </div>
         ))}
       </div>
@@ -327,7 +327,7 @@ const READING_PRACTICE_SECTIONS: StorySectionDef[] = [
     hasContent: (s) => s.vocabularyPractice.length > 0 || !!s.vocabularyGrammarPractice,
     render: (s) =>
       s.vocabularyPractice.length > 0 ? (
-        <ul className="space-y-2 text-sm">
+        <ul className="space-y-2 text-base">
           {s.vocabularyPractice.map((item, i) => (
             <li key={i} className="rounded-lg bg-teal-50/80 px-3 py-2">
               {item}
@@ -335,7 +335,7 @@ const READING_PRACTICE_SECTIONS: StorySectionDef[] = [
           ))}
         </ul>
       ) : (
-        <p className="whitespace-pre-wrap text-sm leading-relaxed">{s.vocabularyGrammarPractice}</p>
+        <p className="whitespace-pre-wrap text-base leading-relaxed">{s.vocabularyGrammarPractice}</p>
       ),
   },
   {
@@ -346,7 +346,7 @@ const READING_PRACTICE_SECTIONS: StorySectionDef[] = [
     iconWrap: 'bg-yellow-100 text-yellow-800',
     hasContent: (s) => !!s.answerKeySuggestedResponses || s.answerHints.length > 0,
     render: (s) => (
-      <p className="whitespace-pre-wrap text-sm leading-relaxed">
+      <p className="whitespace-pre-wrap text-base leading-relaxed">
         {s.answerKeySuggestedResponses || s.answerHints.join('\n')}
       </p>
     ),
@@ -358,7 +358,7 @@ const READING_PRACTICE_SECTIONS: StorySectionDef[] = [
     stripe: 'border-violet-500',
     iconWrap: 'bg-violet-100 text-violet-700',
     hasContent: (s) => !!s.expectedLearningOutcomes,
-    render: (s) => <p className="whitespace-pre-wrap text-sm">{s.expectedLearningOutcomes}</p>,
+    render: (s) => <p className="whitespace-pre-wrap text-base">{s.expectedLearningOutcomes}</p>,
   },
   {
     num: 13,
@@ -367,7 +367,7 @@ const READING_PRACTICE_SECTIONS: StorySectionDef[] = [
     stripe: 'border-fuchsia-500',
     iconWrap: 'bg-fuchsia-100 text-fuchsia-700',
     hasContent: (s) => !!s.reflection,
-    render: (s) => <p className="whitespace-pre-wrap text-sm leading-relaxed">{s.reflection}</p>,
+    render: (s) => <p className="whitespace-pre-wrap text-base leading-relaxed">{s.reflection}</p>,
   },
 ];
 
@@ -384,7 +384,7 @@ function renderStoryQuestionList(questions: StoryQuestion[], accent: string, bad
           >
             {i + 1}
           </span>
-          <p className="text-sm text-slate-800 pt-0.5">{q.question}</p>
+          <p className="text-base text-slate-800 pt-0.5">{q.question}</p>
         </div>
       ))}
     </div>
@@ -399,7 +399,7 @@ const TEACHER_STORY_PASSAGE_SECTIONS: StorySectionDef[] = [
     stripe: 'border-indigo-500',
     iconWrap: 'bg-indigo-100 text-indigo-700',
     hasContent: (s) => !!s.title,
-    render: (s) => <p className="whitespace-pre-wrap text-sm leading-relaxed font-medium">{s.title}</p>,
+    render: (s) => <p className="whitespace-pre-wrap text-base leading-relaxed font-medium">{s.title}</p>,
   },
   {
     num: 2,
@@ -408,7 +408,7 @@ const TEACHER_STORY_PASSAGE_SECTIONS: StorySectionDef[] = [
     stripe: 'border-cyan-500',
     iconWrap: 'bg-cyan-100 text-cyan-700',
     hasContent: (s) => !!s.topicSubtopicConnection,
-    render: (s) => <p className="whitespace-pre-wrap text-sm leading-relaxed">{s.topicSubtopicConnection}</p>,
+    render: (s) => <p className="whitespace-pre-wrap text-base leading-relaxed">{s.topicSubtopicConnection}</p>,
   },
   {
     num: 3,
@@ -417,7 +417,7 @@ const TEACHER_STORY_PASSAGE_SECTIONS: StorySectionDef[] = [
     stripe: 'border-sky-500',
     iconWrap: 'bg-sky-100 text-sky-700',
     hasContent: (s) => !!s.priorKnowledgeRequired,
-    render: (s) => <p className="whitespace-pre-wrap text-sm leading-relaxed">{s.priorKnowledgeRequired}</p>,
+    render: (s) => <p className="whitespace-pre-wrap text-base leading-relaxed">{s.priorKnowledgeRequired}</p>,
   },
   {
     num: 4,
@@ -429,7 +429,7 @@ const TEACHER_STORY_PASSAGE_SECTIONS: StorySectionDef[] = [
     render: (s) => (
       <ul className="space-y-2">
         {s.learningObjectives.map((o, i) => (
-          <li key={i} className="flex gap-2 rounded-lg bg-violet-50/80 px-3 py-2 text-sm">
+          <li key={i} className="flex gap-2 rounded-lg bg-violet-50/80 px-3 py-2 text-base">
             <Target className="h-4 w-4 shrink-0 text-violet-600 mt-0.5" aria-hidden />
             {o}
           </li>
@@ -444,7 +444,7 @@ const TEACHER_STORY_PASSAGE_SECTIONS: StorySectionDef[] = [
     stripe: 'border-blue-500',
     iconWrap: 'bg-blue-100 text-blue-700',
     hasContent: (s) => !!s.ncfAlignment,
-    render: (s) => <p className="whitespace-pre-wrap text-sm leading-relaxed">{s.ncfAlignment}</p>,
+    render: (s) => <p className="whitespace-pre-wrap text-base leading-relaxed">{s.ncfAlignment}</p>,
   },
   {
     num: 6,
@@ -458,7 +458,7 @@ const TEACHER_STORY_PASSAGE_SECTIONS: StorySectionDef[] = [
         {s.vocabulary.map((word, i) => (
           <span
             key={i}
-            className="rounded-xl border border-teal-100 bg-teal-50 px-3 py-2 text-sm text-teal-900"
+            className="rounded-xl border border-teal-100 bg-teal-50 px-3 py-2 text-base text-teal-900"
           >
             {word}
           </span>
@@ -473,7 +473,7 @@ const TEACHER_STORY_PASSAGE_SECTIONS: StorySectionDef[] = [
     stripe: 'border-amber-500',
     iconWrap: 'bg-amber-100 text-amber-800',
     hasContent: (s) => !!s.preReadingPrompt,
-    render: (s) => <p className="whitespace-pre-wrap text-sm leading-relaxed">{s.preReadingPrompt}</p>,
+    render: (s) => <p className="whitespace-pre-wrap text-base leading-relaxed">{s.preReadingPrompt}</p>,
   },
   {
     num: 8,
@@ -527,9 +527,9 @@ const TEACHER_STORY_PASSAGE_SECTIONS: StorySectionDef[] = [
     hasContent: (s) => !!s.vocabularyGrammarPractice || s.vocabularyPractice.length > 0,
     render: (s) =>
       s.vocabularyGrammarPractice ? (
-        <p className="whitespace-pre-wrap text-sm leading-relaxed">{s.vocabularyGrammarPractice}</p>
+        <p className="whitespace-pre-wrap text-base leading-relaxed">{s.vocabularyGrammarPractice}</p>
       ) : (
-        <ul className="space-y-2 text-sm">
+        <ul className="space-y-2 text-base">
           {s.vocabularyPractice.map((item, i) => (
             <li key={i} className="rounded-lg bg-teal-50/80 px-3 py-2">
               {item}
@@ -545,7 +545,7 @@ const TEACHER_STORY_PASSAGE_SECTIONS: StorySectionDef[] = [
     stripe: 'border-purple-500',
     iconWrap: 'bg-purple-100 text-purple-700',
     hasContent: (s) => !!s.creativeResponseActivity,
-    render: (s) => <p className="whitespace-pre-wrap text-sm leading-relaxed">{s.creativeResponseActivity}</p>,
+    render: (s) => <p className="whitespace-pre-wrap text-base leading-relaxed">{s.creativeResponseActivity}</p>,
   },
   {
     num: 14,
@@ -555,7 +555,7 @@ const TEACHER_STORY_PASSAGE_SECTIONS: StorySectionDef[] = [
     iconWrap: 'bg-yellow-100 text-yellow-800',
     hasContent: (s) => !!s.answerKeySuggestedResponses || s.answerHints.length > 0,
     render: (s) => (
-      <p className="whitespace-pre-wrap text-sm leading-relaxed">
+      <p className="whitespace-pre-wrap text-base leading-relaxed">
         {s.answerKeySuggestedResponses || s.answerHints.join('\n')}
       </p>
     ),
@@ -567,7 +567,7 @@ const TEACHER_STORY_PASSAGE_SECTIONS: StorySectionDef[] = [
     stripe: 'border-rose-500',
     iconWrap: 'bg-rose-100 text-rose-700',
     hasContent: (s) => !!s.commonMistakesToAvoid,
-    render: (s) => <p className="whitespace-pre-wrap text-sm leading-relaxed">{s.commonMistakesToAvoid}</p>,
+    render: (s) => <p className="whitespace-pre-wrap text-base leading-relaxed">{s.commonMistakesToAvoid}</p>,
   },
   {
     num: 16,
@@ -576,7 +576,7 @@ const TEACHER_STORY_PASSAGE_SECTIONS: StorySectionDef[] = [
     stripe: 'border-emerald-500',
     iconWrap: 'bg-emerald-100 text-emerald-700',
     hasContent: (s) => !!s.differentiationSupport,
-    render: (s) => <p className="whitespace-pre-wrap text-sm leading-relaxed">{s.differentiationSupport}</p>,
+    render: (s) => <p className="whitespace-pre-wrap text-base leading-relaxed">{s.differentiationSupport}</p>,
   },
   {
     num: 17,
@@ -585,7 +585,7 @@ const TEACHER_STORY_PASSAGE_SECTIONS: StorySectionDef[] = [
     stripe: 'border-violet-500',
     iconWrap: 'bg-violet-100 text-violet-700',
     hasContent: (s) => !!s.expectedLearningOutcomes,
-    render: (s) => <p className="whitespace-pre-wrap text-sm">{s.expectedLearningOutcomes}</p>,
+    render: (s) => <p className="whitespace-pre-wrap text-base">{s.expectedLearningOutcomes}</p>,
   },
   {
     num: 18,
@@ -594,7 +594,7 @@ const TEACHER_STORY_PASSAGE_SECTIONS: StorySectionDef[] = [
     stripe: 'border-orange-500',
     iconWrap: 'bg-orange-100 text-orange-800',
     hasContent: (s) => !!s.realLifeApplication,
-    render: (s) => <p className="whitespace-pre-wrap text-sm leading-relaxed">{s.realLifeApplication}</p>,
+    render: (s) => <p className="whitespace-pre-wrap text-base leading-relaxed">{s.realLifeApplication}</p>,
   },
   {
     num: 19,
@@ -603,7 +603,7 @@ const TEACHER_STORY_PASSAGE_SECTIONS: StorySectionDef[] = [
     stripe: 'border-fuchsia-500',
     iconWrap: 'bg-fuchsia-100 text-fuchsia-700',
     hasContent: (s) => !!s.reflection,
-    render: (s) => <p className="whitespace-pre-wrap text-sm leading-relaxed">{s.reflection}</p>,
+    render: (s) => <p className="whitespace-pre-wrap text-base leading-relaxed">{s.reflection}</p>,
   },
 ];
 
@@ -672,7 +672,7 @@ function StudentPassagesBundle({ bundle }: { bundle: ParsedPassagesBundle }) {
       <div className="rounded-2xl border border-indigo-100 bg-white p-3 sm:p-4 shadow-sm">
         <h4 className="text-lg font-bold text-slate-900">{bundle.title}</h4>
         {bundle.instructions ? (
-          <p className="mt-2 text-sm text-slate-600">{bundle.instructions}</p>
+          <p className="mt-2 text-base text-slate-600">{bundle.instructions}</p>
         ) : null}
       </div>
 
@@ -744,7 +744,7 @@ function StudentPassagesBundle({ bundle }: { bundle: ParsedPassagesBundle }) {
                   <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-indigo-600 text-xs font-bold text-white">
                     {i + 1}
                   </span>
-                  <p className="text-sm text-slate-800 pt-0.5">{q}</p>
+                  <p className="text-base text-slate-800 pt-0.5">{q}</p>
                 </div>
               ))}
             </div>
@@ -808,14 +808,14 @@ export function StoryPassageViewer({
           )}
         >
           <BookOpen className="mx-auto h-10 w-10 text-indigo-300 mb-3" aria-hidden />
-          <p className="text-sm font-medium text-slate-700">No story content yet</p>
+          <p className="text-base font-medium text-slate-700">No story content yet</p>
           <p className="text-xs text-slate-500 mt-1">Generate again to load your reading passage.</p>
         </div>
       );
     }
     return (
       <div
-        className={cn('prose prose-sm max-w-none max-h-[80vh] overflow-y-auto p-4', className)}
+        className={cn('prose prose-base max-w-none max-h-[80vh] overflow-y-auto p-4', className)}
         dangerouslySetInnerHTML={{ __html: renderMarkdown(content) }}
       />
     );

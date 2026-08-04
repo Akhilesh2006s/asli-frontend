@@ -9,6 +9,7 @@ import {
   paletteForSectionTitle,
   type AiToolSectionPalette,
 } from '@/lib/ai-tool-section-palette';
+import { aiToolSectionBodyClasses } from '@/components/ai-tool-stacked-section';
 
 export type AiToolV2SectionProps = {
   num: number | string;
@@ -71,19 +72,19 @@ export function AiToolV2Section({
         className,
       )}
     >
-      <div className={cn('h-1.5 w-full', palette.bar)} aria-hidden />
+      <div className={cn('h-2 w-full', palette.bar)} aria-hidden />
       <header
         className={cn(
-          'flex items-start justify-between gap-3 border-b px-4 py-3.5 sm:px-5',
+          'flex items-start justify-between gap-3 border-b px-4 py-4 sm:px-6 sm:py-5',
           'bg-gradient-to-br',
           palette.cardWash,
           palette.innerBorder,
         )}
       >
-        <div className="flex min-w-0 items-start gap-3">
+        <div className="flex min-w-0 items-start gap-3 sm:gap-4">
           <span
             className={cn(
-              'flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-sm font-bold text-white shadow-sm',
+              'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-base font-bold text-white shadow-sm',
               palette.bar,
             )}
             aria-hidden
@@ -91,30 +92,37 @@ export function AiToolV2Section({
             {numLabel}
           </span>
           <div className="min-w-0 pt-0.5">
-            <h3 className={cn('text-lg sm:text-xl font-bold leading-snug tracking-tight', palette.title)}>
+            <h3
+              className={cn(
+                'text-xl sm:text-2xl font-bold leading-snug tracking-tight',
+                palette.title,
+              )}
+            >
               {displayTitle}
             </h3>
             {displayDescription ? (
-              <p className="mt-1 text-sm leading-relaxed text-slate-600">{displayDescription}</p>
+              <p className={cn('mt-1.5 text-base leading-relaxed', palette.subtitle)}>
+                {displayDescription}
+              </p>
             ) : null}
           </div>
         </div>
         <div
           className={cn(
-            'flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border shadow-sm',
+            'flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border shadow-sm',
             palette.iconTile,
           )}
         >
-          <Icon className="h-5 w-5" aria-hidden />
+          <Icon className="h-6 w-6" aria-hidden />
         </div>
       </header>
-      <div className={cn('p-3 sm:p-4 bg-gradient-to-b from-white to-slate-50/40')}>
+      <div className={cn('p-3.5 sm:p-5 bg-gradient-to-b from-white to-slate-50/40')}>
         <div
           className={cn(
-            'rounded-xl border px-4 py-4 sm:px-5 sm:py-5',
+            'rounded-xl border px-5 py-5 sm:px-6 sm:py-6',
             palette.inner,
             palette.innerBorder,
-            'text-base text-slate-800 leading-relaxed',
+            aiToolSectionBodyClasses(palette),
           )}
         >
           {children}

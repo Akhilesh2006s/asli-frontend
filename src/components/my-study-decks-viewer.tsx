@@ -296,7 +296,7 @@ function BulletList({ items }: { items: string[] }) {
   return (
     <ul className="space-y-1">
       {items.map((line, i) => (
-        <li key={i} className="flex gap-2 text-sm text-slate-800">
+        <li key={i} className="flex gap-2 text-base text-slate-800">
           <span className="text-violet-500 shrink-0">•</span>
           <span className="whitespace-pre-wrap">{line}</span>
         </li>
@@ -321,7 +321,7 @@ function PerCardList({
   return (
     <ul className="space-y-1">
       {rows.map(({ i, text }) => (
-        <li key={i} className="rounded-md border border-violet-100 bg-violet-50/40 px-2 py-1 text-sm text-slate-800 leading-snug">
+        <li key={i} className="rounded-md border border-violet-100 bg-violet-50/40 px-2 py-1 text-base text-slate-800 leading-snug">
           <span className="text-micro font-bold uppercase tracking-wide text-violet-700">
             {label(i)}
           </span>
@@ -420,7 +420,7 @@ export function MyStudyDecksViewer({ content, rawContent, className }: MyStudyDe
       iconName: 'openBook',
       hasContent: !!meta.subtopicLinkPriorKnowledge,
       body: (
-        <p className="text-sm whitespace-pre-wrap text-slate-800">{meta.subtopicLinkPriorKnowledge}</p>
+        <p className="text-base whitespace-pre-wrap text-slate-800">{meta.subtopicLinkPriorKnowledge}</p>
       ),
     },
     {
@@ -435,7 +435,7 @@ export function MyStudyDecksViewer({ content, rawContent, className }: MyStudyDe
       title: 'NCF Competency / Learning Outcome Alignment',
       iconName: 'graduation',
       hasContent: !!meta.ncfAlignment,
-      body: <p className="text-sm whitespace-pre-wrap text-slate-800">{meta.ncfAlignment}</p>,
+      body: <p className="text-base whitespace-pre-wrap text-slate-800">{meta.ncfAlignment}</p>,
     },
     {
       num: 5,
@@ -487,7 +487,7 @@ export function MyStudyDecksViewer({ content, rawContent, className }: MyStudyDe
       body: (
         <>
           {meta.selfCheckRound ? (
-            <p className="text-sm whitespace-pre-wrap text-slate-800 mb-1">{meta.selfCheckRound}</p>
+            <p className="text-base whitespace-pre-wrap text-slate-800 mb-1">{meta.selfCheckRound}</p>
           ) : null}
           {hasSelfCheck ? (
             <PerCardList
@@ -519,7 +519,7 @@ export function MyStudyDecksViewer({ content, rawContent, className }: MyStudyDe
       iconName: 'globe',
       hasContent: !!meta.realLifeApplication,
       body: (
-        <p className="text-sm whitespace-pre-wrap text-slate-800">{meta.realLifeApplication}</p>
+        <p className="text-base whitespace-pre-wrap text-slate-800">{meta.realLifeApplication}</p>
       ),
     },
     {
@@ -528,7 +528,7 @@ export function MyStudyDecksViewer({ content, rawContent, className }: MyStudyDe
       iconName: 'memo',
       hasContent: !!meta.reflectionExitTicket,
       body: (
-        <p className="text-sm whitespace-pre-wrap text-slate-800">{meta.reflectionExitTicket}</p>
+        <p className="text-base whitespace-pre-wrap text-slate-800">{meta.reflectionExitTicket}</p>
       ),
     },
   ];

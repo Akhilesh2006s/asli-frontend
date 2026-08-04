@@ -251,7 +251,7 @@ const TEACHER_TEMPLATE_SECTIONS: TemplateSectionDef[] = [
     render: (a) => (
       <ol className="space-y-2.5 list-none pl-0 m-0">
         {a.steps.map((step, i) => (
-          <li key={i} className="flex gap-3 text-sm leading-relaxed text-stone-700">
+          <li key={i} className="flex gap-3 text-base leading-relaxed text-stone-700">
             <span
               className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-xs font-semibold text-white"
               aria-hidden
@@ -443,7 +443,7 @@ const TEMPLATE_SECTIONS: TemplateSectionDef[] = [
     render: (a) => (
       <ol className="space-y-2.5 list-none pl-0 m-0">
         {a.steps.map((step, i) => (
-          <li key={i} className="flex gap-3 text-sm leading-relaxed text-stone-700">
+          <li key={i} className="flex gap-3 text-base leading-relaxed text-stone-700">
             <span
               className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-xs font-semibold text-white"
               aria-hidden
@@ -578,7 +578,7 @@ function JournalBlock({
   return (
     <div id={id} className={className}>
       <AiToolStackedSection num={sectionNum} title={title} icon={Icon}>
-        <div className={cn('text-sm leading-relaxed text-stone-700', bodyClassName)}>{children}</div>
+        <div className={cn('text-base leading-relaxed text-stone-700', bodyClassName)}>{children}</div>
       </AiToolStackedSection>
     </div>
   );
@@ -738,7 +738,7 @@ export function ActivityProjectViewer({
         )}
       >
         <FlaskConical className="mx-auto h-10 w-10 text-gray-300 mb-3" aria-hidden />
-        <p className="text-sm font-medium text-gray-700">No activity found for this selection</p>
+        <p className="text-base font-medium text-gray-700">No activity found for this selection</p>
         <p className="text-xs text-gray-500 mt-1">Try generating again or pick another topic.</p>
       </div>
     );

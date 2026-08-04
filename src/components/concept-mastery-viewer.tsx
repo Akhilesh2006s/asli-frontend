@@ -52,7 +52,7 @@ type ConceptSectionDef = {
 };
 
 const CONCEPT_PROSE_CLASS =
-  'prose prose-sm max-w-none break-words text-slate-800 [&_p]:leading-relaxed [&_p]:mb-2 [&_p:last-child]:mb-0 [&_ul]:my-2 [&_ol]:my-2 [&_strong]:font-semibold [&_pre]:overflow-x-auto';
+  'prose prose-base max-w-none break-words text-slate-800 [&_p]:leading-relaxed [&_p]:mb-2 [&_p:last-child]:mb-0 [&_ul]:my-2 [&_ol]:my-2 [&_strong]:font-semibold [&_pre]:overflow-x-auto';
 
 function ConceptProse({ text, className }: { text: string; className?: string }) {
   if (!String(text || '').trim()) return null;
@@ -145,7 +145,7 @@ const CONCEPT_TEMPLATE_SECTIONS: ConceptSectionDef[] = [
         {c.misconceptions.map((line, i) => (
           <li
             key={i}
-            className="flex gap-2 rounded-lg border border-amber-100 bg-amber-50/50 px-3 py-2 text-sm text-slate-800"
+            className="flex gap-2 rounded-lg border border-amber-100 bg-amber-50/50 px-3 py-2 text-base text-slate-800"
           >
             <span className="font-bold text-amber-700 shrink-0">!</span>
             <ConceptInline text={line} />
@@ -164,7 +164,7 @@ const CONCEPT_TEMPLATE_SECTIONS: ConceptSectionDef[] = [
     render: (c) => (
       <ol className="space-y-2 list-none pl-0">
         {c.conceptCheckQuestions.map((q, i) => (
-          <li key={i} className="flex gap-2.5 text-sm text-slate-800">
+          <li key={i} className="flex gap-2.5 text-base text-slate-800">
             <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-rose-600 text-mini font-bold text-white">
               {i + 1}
             </span>
@@ -184,7 +184,7 @@ const CONCEPT_TEMPLATE_SECTIONS: ConceptSectionDef[] = [
     render: (c) => (
       <ul className="space-y-2">
         {c.keyPoints.map((point, i) => (
-          <li key={i} className="flex gap-2 text-sm text-slate-800">
+          <li key={i} className="flex gap-2 text-base text-slate-800">
             <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-500" />
             <ConceptInline text={point} />
           </li>
@@ -417,7 +417,7 @@ function TeacherConceptCard({ concept }: { concept: NormalizedConcept }) {
 function TeacherMarkdownBody({ markdown }: { markdown: string }) {
   return (
     <div
-      className="prose prose-sm max-w-none rounded-xl border border-slate-200 bg-white/90 p-4 sm:p-5 shadow-sm prose-headings:font-serif prose-headings:text-slate-900 prose-p:text-slate-700 prose-li:text-slate-700"
+      className="prose prose-base max-w-none rounded-xl border border-slate-200 bg-white/90 p-4 sm:p-5 shadow-sm prose-headings:font-serif prose-headings:text-slate-900 prose-p:text-slate-700 prose-li:text-slate-700"
       dangerouslySetInnerHTML={{ __html: renderMarkdown(markdown) }}
     />
   );
@@ -498,7 +498,7 @@ function FlipCardConceptView({ concepts }: { concepts: NormalizedConcept[] }) {
                 </span>
               ) : null}
             </div>
-            <div className="space-y-4 max-h-[420px] overflow-y-auto text-sm text-slate-700">
+            <div className="space-y-4 max-h-[420px] overflow-y-auto text-base text-slate-700">
               {current.explanation ? (
                 <div>
                   <h3 className="font-semibold text-indigo-700 mb-1">Explanation</h3>
@@ -642,7 +642,7 @@ export function ConceptMasteryViewer({
     return (
       <div className={cn('w-full', className)}>
         <div
-          className="prose prose-sm max-w-none rounded-xl border border-fuchsia-100 bg-white p-4 sm:p-5 shadow-sm"
+          className="prose prose-base max-w-none rounded-xl border border-fuchsia-100 bg-white p-4 sm:p-5 shadow-sm"
           dangerouslySetInnerHTML={{ __html: renderMarkdown(preferMarkdownBody) }}
         />
       </div>
@@ -658,7 +658,7 @@ export function ConceptMasteryViewer({
         )}
       >
         <Brain className="mx-auto h-10 w-10 text-fuchsia-500/70 mb-3" aria-hidden />
-        <p className="text-sm font-medium text-stone-700">No concepts found for this selection</p>
+        <p className="text-base font-medium text-stone-700">No concepts found for this selection</p>
         <p className="text-xs text-stone-500 mt-1">Try generating again or pick another topic.</p>
       </div>
     );

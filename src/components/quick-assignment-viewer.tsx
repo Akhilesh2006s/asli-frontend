@@ -65,12 +65,12 @@ function RichTextBlock({ text }: { text: string }) {
   if (hasMarkdown) {
     return (
       <div
-        className="prose prose-sm max-w-none text-slate-800 prose-li:text-sm"
+        className="prose prose-base max-w-none text-slate-800 prose-li:text-base"
         dangerouslySetInnerHTML={{ __html: renderMarkdown(text) }}
       />
     );
   }
-  return <p className="whitespace-pre-wrap text-sm leading-relaxed text-slate-800">{text}</p>;
+  return <p className="whitespace-pre-wrap text-base leading-relaxed text-slate-800">{text}</p>;
 }
 
 function BulletList({ items, accent = 'text-rose-500' }: { items: string[]; accent?: string }) {
@@ -78,7 +78,7 @@ function BulletList({ items, accent = 'text-rose-500' }: { items: string[]; acce
   return (
     <ul className="space-y-1.5">
       {items.map((line, i) => (
-        <li key={i} className="flex gap-2 text-sm text-slate-800">
+        <li key={i} className="flex gap-2 text-base text-slate-800">
           <span className={cn('mt-0.5 shrink-0', accent)}>•</span>
           <span className="whitespace-pre-wrap leading-relaxed">{line}</span>
         </li>
@@ -91,14 +91,14 @@ function QuestionCard({ q, index }: { q: AssignmentQuestion; index: number }) {
   const num = displayQuestionSerial(index);
   return (
     <div className="rounded-lg border border-rose-100 bg-rose-50/30 px-3 py-2.5 space-y-2">
-      <p className="text-sm font-medium text-slate-900">
+      <p className="text-base font-medium text-slate-900">
         <span className="mr-1.5 font-bold text-rose-700">Q{num}.</span>
         {q.question}
       </p>
       {q.options.length > 0 ? (
         <ul className="space-y-1 pl-1">
           {q.options.map((opt, i) => (
-            <li key={i} className="text-sm text-slate-700">
+            <li key={i} className="text-base text-slate-700">
               <span className="font-semibold text-rose-600">{String.fromCharCode(65 + i)}.</span> {opt}
             </li>
           ))}

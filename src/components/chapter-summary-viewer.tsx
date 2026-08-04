@@ -64,12 +64,12 @@ function RichTextBlock({ text }: { text: string }) {
   if (hasMarkdown) {
     return (
       <div
-        className="prose prose-sm max-w-none text-slate-800 prose-li:text-sm"
+        className="prose prose-base max-w-none text-slate-800 prose-li:text-base"
         dangerouslySetInnerHTML={{ __html: renderMarkdown(text) }}
       />
     );
   }
-  return <p className="whitespace-pre-wrap text-sm leading-relaxed text-slate-800">{text}</p>;
+  return <p className="whitespace-pre-wrap text-base leading-relaxed text-slate-800">{text}</p>;
 }
 
 function BulletList({ items, accent = 'text-blue-500' }: { items: string[]; accent?: string }) {
@@ -77,7 +77,7 @@ function BulletList({ items, accent = 'text-blue-500' }: { items: string[]; acce
   return (
     <ul className="space-y-1.5">
       {items.map((line, i) => (
-        <li key={i} className="flex gap-2 text-sm text-slate-800">
+        <li key={i} className="flex gap-2 text-base text-slate-800">
           <span className={cn('mt-0.5 shrink-0', accent)}>•</span>
           <span className="whitespace-pre-wrap leading-relaxed">{line}</span>
         </li>
@@ -128,9 +128,9 @@ function buildBodySections(summary: ChapterSummaryContent): ReactNode[] {
               key={`${c.name}-${i}`}
               className="rounded-lg border border-violet-100 bg-violet-50/30 px-3 py-2"
             >
-              <p className="text-sm font-semibold text-violet-900">{c.name}</p>
+              <p className="text-base font-semibold text-violet-900">{c.name}</p>
               {c.explanation ? (
-                <p className="mt-1 text-sm leading-relaxed text-slate-700">{c.explanation}</p>
+                <p className="mt-1 text-base leading-relaxed text-slate-700">{c.explanation}</p>
               ) : null}
             </div>
           ))}
@@ -148,8 +148,8 @@ function buildBodySections(summary: ChapterSummaryContent): ReactNode[] {
         <div className="space-y-2">
           {summary.definitions.map((d, i) => (
             <div key={`def-${i}`} className="rounded-md border border-purple-100 bg-purple-50/50 px-3 py-2">
-              <span className="text-sm font-semibold text-purple-900">{d.term}</span>
-              {d.definition ? <span className="text-sm text-slate-700"> — {d.definition}</span> : null}
+              <span className="text-base font-semibold text-purple-900">{d.term}</span>
+              {d.definition ? <span className="text-base text-slate-700"> — {d.definition}</span> : null}
             </div>
           ))}
         </div>
@@ -167,7 +167,7 @@ function buildBodySections(summary: ChapterSummaryContent): ReactNode[] {
           {summary.formulae.map((f, i) => (
             <div
               key={`fm-${i}`}
-              className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 font-mono text-sm text-slate-800"
+              className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 font-mono text-base text-slate-800"
             >
               {f.name ? <span className="font-sans font-semibold text-slate-900">{f.name}: </span> : null}
               {f.formula}
@@ -207,7 +207,7 @@ function buildBodySections(summary: ChapterSummaryContent): ReactNode[] {
           {summary.quickRevisionNotes.map((note, i) => (
             <li
               key={i}
-              className="flex gap-2 rounded-md border border-amber-100 bg-amber-50/60 px-2 py-1.5 text-sm text-slate-800"
+              className="flex gap-2 rounded-md border border-amber-100 bg-amber-50/60 px-2 py-1.5 text-base text-slate-800"
             >
               <span className="mt-0.5 shrink-0 font-bold text-amber-600">{i + 1}.</span>
               <span className="whitespace-pre-wrap">{note}</span>
@@ -228,7 +228,7 @@ function buildBodySections(summary: ChapterSummaryContent): ReactNode[] {
           {summary.practiceRecallQuestions.map((q, i) => (
             <li
               key={i}
-              className="rounded-lg border border-blue-100 bg-blue-50/40 px-3 py-2 text-sm text-slate-800"
+              className="rounded-lg border border-blue-100 bg-blue-50/40 px-3 py-2 text-base text-slate-800"
             >
               <span className="mr-2 font-semibold text-blue-700">Q{i + 1}.</span>
               {q}

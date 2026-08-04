@@ -38,7 +38,7 @@ function SectionCard({ section, index }: { section: ShortNoteSection; index: num
       iconName={icon}
     >
       <div
-        className="short-notes-markdown prose prose-sm max-w-none text-slate-700 leading-relaxed prose-p:text-slate-700 prose-li:text-slate-700 prose-li:marker:text-indigo-400 prose-strong:text-slate-900"
+        className="short-notes-markdown prose prose-base max-w-none text-slate-700 leading-relaxed prose-p:text-slate-700 prose-li:text-slate-700 prose-li:marker:text-indigo-400 prose-strong:text-slate-900"
         dangerouslySetInnerHTML={{ __html: renderMarkdown(section.body || '') }}
       />
     </AiToolStackedSection>
@@ -104,12 +104,12 @@ function LegacyNoteBody({ note }: { note: LegacyShortNote }) {
         {note.summary ? (
           <div className="p-5">
             <div
-              className="short-notes-markdown prose prose-sm max-w-none text-slate-700 leading-relaxed prose-headings:text-slate-900 prose-p:text-slate-700 prose-li:text-slate-700"
+              className="short-notes-markdown prose prose-base max-w-none text-slate-700 leading-relaxed prose-headings:text-slate-900 prose-p:text-slate-700 prose-li:text-slate-700"
               dangerouslySetInnerHTML={{ __html: renderMarkdown(note.summary) }}
             />
           </div>
         ) : (
-          <div className="p-4 text-sm italic text-slate-400">No summary available.</div>
+          <div className="p-4 text-base italic text-slate-400">No summary available.</div>
         )}
       </section>
       {hasSideContent ? (
@@ -120,7 +120,7 @@ function LegacyNoteBody({ note }: { note: LegacyShortNote }) {
                 Why it matters
               </p>
               <div
-                className="short-notes-markdown prose prose-sm max-w-none text-slate-700"
+                className="short-notes-markdown prose prose-base max-w-none text-slate-700"
                 dangerouslySetInnerHTML={{ __html: renderMarkdown(note.importance) }}
               />
             </section>
@@ -132,7 +132,7 @@ function LegacyNoteBody({ note }: { note: LegacyShortNote }) {
               </p>
               <ul className="space-y-2">
                 {note.quick_facts.map((fact, idx) => (
-                  <li key={`${fact}-${idx}`} className="flex items-start gap-2 text-sm text-slate-700">
+                  <li key={`${fact}-${idx}`} className="flex items-start gap-2 text-base text-slate-700">
                     <span className="mt-0.5 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-emerald-100 text-mini font-bold text-emerald-700">
                       {idx + 1}
                     </span>
@@ -379,7 +379,7 @@ export function ShortNotesViewer({ content, rawContent }: ShortNotesViewerProps)
     <div className="w-full space-y-5">
       <div className="rounded-xl border border-violet-100 bg-violet-50/70 px-4 py-3">
         <div className="flex items-center justify-between gap-3">
-          <p className="text-sm font-bold text-violet-950">
+          <p className="text-base font-bold text-violet-950">
             Note {currentIndex + 1} of {pages.length}
           </p>
           <div className="h-2 w-28 overflow-hidden rounded-full bg-violet-200">

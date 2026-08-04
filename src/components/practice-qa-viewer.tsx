@@ -132,12 +132,12 @@ function RichTextBlock({ text }: { text: string }) {
   if (hasMarkdown) {
     return (
       <div
-        className="prose prose-sm max-w-none text-slate-800 prose-li:text-sm"
+        className="prose prose-base max-w-none text-slate-800 prose-li:text-base"
         dangerouslySetInnerHTML={{ __html: renderMarkdown(text) }}
       />
     );
   }
-  return <p className="whitespace-pre-wrap text-sm leading-relaxed text-slate-800">{text}</p>;
+  return <p className="whitespace-pre-wrap text-base leading-relaxed text-slate-800">{text}</p>;
 }
 
 function QuestionCard({ q, index }: { q: PracticeQaQuestion; index: number }) {
@@ -195,7 +195,7 @@ function QuestionCard({ q, index }: { q: PracticeQaQuestion; index: number }) {
           </Badge>
         ) : null}
       </div>
-      <p className="text-sm font-medium leading-snug text-slate-900">{q.question}</p>
+      <p className="text-base font-medium leading-snug text-slate-900">{q.question}</p>
       <QuestionFigure imageUrl={q.imageUrl} alt="Practice question figure" />
       {isMcq ? (
         <ul className="mt-2 grid gap-2 md:grid-cols-2">
@@ -205,7 +205,7 @@ function QuestionCard({ q, index }: { q: PracticeQaQuestion; index: number }) {
             return (
               <li
                 key={`${opt}-${i}`}
-                className="flex gap-2 rounded-md border border-slate-200/80 bg-white px-2.5 py-1.5 text-sm text-slate-700"
+                className="flex gap-2 rounded-md border border-slate-200/80 bg-white px-2.5 py-1.5 text-base text-slate-700"
               >
                 <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-xs font-bold text-emerald-800">
                   {label}
@@ -286,7 +286,7 @@ function PracticeQaBody({
       >
         <ul className="space-y-1.5">
           {practice.learningObjectives.map((line, i) => (
-            <li key={i} className="flex gap-2 text-sm text-slate-800">
+            <li key={i} className="flex gap-2 text-base text-slate-800">
               <span className="mt-0.5 shrink-0 text-teal-500">•</span>
               <span className="leading-relaxed">{line}</span>
             </li>

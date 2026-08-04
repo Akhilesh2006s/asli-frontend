@@ -218,7 +218,7 @@ function StudyFieldTile({
 }) {
   return (
     <AiToolStackedSection num={sectionNum} title={label} icon={Icon}>
-      <p className="text-sm leading-relaxed text-slate-800">{value}</p>
+      <p className="text-base leading-relaxed text-slate-800">{value}</p>
     </AiToolStackedSection>
   );
 }
@@ -266,7 +266,7 @@ function DualFaceCardPair({
         <p className="relative mb-3 text-[11px] font-bold uppercase tracking-[0.14em] text-emerald-700">
           {solutionLabel}
         </p>
-        <p className="relative text-[15px] leading-relaxed text-slate-800 break-words [overflow-wrap:anywhere] sm:text-base">
+        <p className="relative text-base leading-relaxed text-slate-800 break-words [overflow-wrap:anywhere] sm:text-lg">
           {back}
         </p>
       </div>
@@ -313,7 +313,7 @@ function DecorativeFrontBackPair({ front, back }: { front: string; back: string 
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
             <div className="h-px flex-1 bg-emerald-300" />
           </div>
-          <p className="relative font-serif text-[15px] leading-relaxed text-slate-800 sm:text-base">
+          <p className="relative font-serif text-base leading-relaxed text-slate-800 sm:text-lg">
             {back}
           </p>
           <div className="mx-auto mt-3 flex w-full max-w-[85%] items-center gap-2">
@@ -333,10 +333,10 @@ function FlashcardListView({ cards }: { cards: Flashcard[] }) {
       {cards.map((card, idx) => (
         <div key={`${idx}-${card.front.slice(0, 24)}`} className="space-y-1.5">
           <p className="text-lg font-semibold text-sky-600">Card {idx + 1}</p>
-          <p className="text-sm leading-relaxed text-slate-900">
+          <p className="text-base leading-relaxed text-slate-900">
             <span className="font-bold">Front:</span> {card.front}
           </p>
-          <p className="text-sm leading-relaxed text-slate-800">
+          <p className="text-base leading-relaxed text-slate-800">
             <span className="font-bold">Back:</span> {card.back}
           </p>
         </div>
@@ -578,7 +578,7 @@ export function FlashcardViewer({
     return (
       <div className="w-full max-w-3xl mx-auto rounded-2xl border border-dashed border-slate-200 bg-slate-50/80 px-6 py-14 text-center">
         <Layers className="mx-auto h-10 w-10 text-slate-300 mb-3" aria-hidden />
-        <p className="text-sm font-medium text-slate-700">No flashcards in this content</p>
+        <p className="text-base font-medium text-slate-700">No flashcards in this content</p>
         <p className="text-xs text-slate-500 mt-1">Generate or upload a deck with front and back on each card.</p>
       </div>
     );
@@ -587,7 +587,7 @@ export function FlashcardViewer({
   if (cards.length === 0) {
     return (
       <div className="w-full max-w-3xl mx-auto rounded-2xl border border-dashed border-slate-200 bg-slate-50/80 px-6 py-14 text-center">
-        <p className="text-sm font-medium text-slate-700">No {activeType} cards in this filter</p>
+        <p className="text-base font-medium text-slate-700">No {activeType} cards in this filter</p>
         <p className="text-xs text-slate-500 mt-1">Try another category above.</p>
       </div>
     );
@@ -694,7 +694,7 @@ export function FlashcardViewer({
                   </span>
                 </div>
                 <div className="flex flex-1 items-center justify-center px-3 py-2 text-center min-h-0">
-                  <p className="text-sm font-semibold text-slate-900 leading-snug overflow-y-auto max-h-full line-clamp-6">
+                  <p className="text-base font-semibold text-slate-900 leading-snug overflow-y-auto max-h-full line-clamp-6">
                     {currentCard.front}
                   </p>
                 </div>
@@ -732,7 +732,7 @@ export function FlashcardViewer({
                   className="flex flex-1 flex-col items-center justify-center gap-2 px-3 py-2 text-center min-h-0 cursor-pointer overflow-y-auto"
                   onClick={() => setIsFlipped(!isFlipped)}
                 >
-                  <p className="text-sm font-semibold text-slate-900 leading-snug line-clamp-5">
+                  <p className="text-base font-semibold text-slate-900 leading-snug line-clamp-5">
                     {currentCard.back}
                   </p>
                   {embeddedExtras.length > 0 ? (
@@ -938,7 +938,7 @@ export function FlashcardViewer({
             <div className={blockHead}>
               <p className={blockTitle}>{foundationsNum} · Foundations</p>
             </div>
-            <div className="p-4 sm:p-5 space-y-3 text-sm text-slate-800">
+            <div className="p-4 sm:p-5 space-y-3 text-base text-slate-800">
               {meta?.priorKnowledgeRequired ? (
                 <div>
                   <p className="text-mini font-semibold uppercase text-slate-500">Prior Knowledge</p>
@@ -969,10 +969,10 @@ export function FlashcardViewer({
         <section className="rounded-2xl border border-violet-200/80 bg-white shadow-md overflow-hidden">
           <div className="border-b border-violet-100 bg-white px-4 py-3.5 sm:px-6 flex flex-wrap items-center justify-between gap-2">
             <div>
-              <p className="text-sm sm:text-base font-bold uppercase tracking-wide text-violet-700">
+              <p className="text-base sm:text-lg font-bold uppercase tracking-wide text-violet-700">
                 {cardsNum} · The Card Set: Application &amp; HOTS
               </p>
-              <p className="text-sm text-slate-500 mt-0.5">
+              <p className="text-base text-slate-500 mt-0.5">
                 {allCards.length} task{allCards.length === 1 ? '' : 's'}
               </p>
             </div>
@@ -1014,7 +1014,7 @@ export function FlashcardViewer({
             <div className={blockHead}>
               <p className={blockTitle}>{studyAidsNum} · Study Aids</p>
             </div>
-            <div className="p-4 sm:p-5 space-y-3 text-sm text-slate-800">
+            <div className="p-4 sm:p-5 space-y-3 text-base text-slate-800">
               {meta?.deckMemoryHook ? (
                 <div className="flex gap-3 rounded-lg border border-amber-100 bg-amber-50/60 p-3">
                   <Lightbulb className="h-5 w-5 shrink-0 text-amber-600 mt-0.5" aria-hidden />
@@ -1052,7 +1052,7 @@ export function FlashcardViewer({
             <div className={blockHead}>
               <p className={blockTitle}>{wrapUpNum} · Wrap-Up</p>
             </div>
-            <div className="p-4 sm:p-5 grid gap-3 sm:grid-cols-3 text-sm text-slate-800">
+            <div className="p-4 sm:p-5 grid gap-3 sm:grid-cols-3 text-base text-slate-800">
               {meta?.realLifeConnection ? (
                 <div className="rounded-lg border border-slate-100 bg-slate-50/80 p-3">
                   <p className="text-mini font-semibold uppercase text-slate-500">Real-life</p>
@@ -1084,13 +1084,13 @@ export function FlashcardViewer({
         <div className="border-b border-violet-100 bg-white px-4 py-3.5 sm:px-6">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="min-w-0">
-              <p className="text-sm font-bold uppercase tracking-wide text-violet-700">
+              <p className="text-base font-bold uppercase tracking-wide text-violet-700">
                 The Card Set: Application &amp; HOTS
               </p>
               <h3 className="mt-0.5 truncate text-base font-semibold text-slate-900 sm:text-lg">
                 {deckTitle || 'Study cards'}
               </h3>
-              <p className="mt-0.5 text-sm text-slate-500">
+              <p className="mt-0.5 text-base text-slate-500">
                 {allCards.length} task{allCards.length === 1 ? '' : 's'}
               </p>
             </div>

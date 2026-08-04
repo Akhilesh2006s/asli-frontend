@@ -48,7 +48,7 @@ function BulletList({ items }: { items: string[] }) {
   return (
     <ul className="space-y-2">
       {items.map((line, i) => (
-        <li key={i} className="flex gap-2 text-sm text-slate-800 leading-relaxed">
+        <li key={i} className="flex gap-2 text-base text-slate-800 leading-relaxed">
           <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-amber-500" />
           <span className="whitespace-pre-wrap">{line}</span>
         </li>
@@ -69,7 +69,7 @@ function buildSections(kp: KeyPointsContent) {
           {kp.importantConcepts.map((c, i) => (
             <div key={i} className="rounded-xl border border-amber-100 bg-amber-50/50 p-3">
               <p className="font-semibold text-amber-950">{c.name}</p>
-              {c.explanation ? <p className="mt-1 text-sm text-slate-700">{c.explanation}</p> : null}
+              {c.explanation ? <p className="mt-1 text-base text-slate-700">{c.explanation}</p> : null}
             </div>
           ))}
         </div>
@@ -99,7 +99,7 @@ function buildSections(kp: KeyPointsContent) {
           {kp.formulae.map((f, i) => (
             <div key={i} className="rounded-xl border border-violet-100 bg-violet-50/40 px-3 py-2.5">
               <p className="text-xs font-bold uppercase tracking-wide text-violet-700">{f.name}</p>
-              <p className="mt-1 font-mono text-sm text-slate-900">{f.formula}</p>
+              <p className="mt-1 font-mono text-base text-slate-900">{f.formula}</p>
               {f.note ? <p className="mt-1 text-xs text-slate-600">{f.note}</p> : null}
             </div>
           ))}
@@ -161,7 +161,7 @@ function buildSections(kp: KeyPointsContent) {
   if (kp.revisionSummary) {
     sections.push(
       <SectionCard key="summary" sectionNum={next()} title="One-minute Revision Summary" icon={Sparkles}>
-        <p className="whitespace-pre-wrap text-sm leading-relaxed text-slate-800">{kp.revisionSummary}</p>
+        <p className="whitespace-pre-wrap text-base leading-relaxed text-slate-800">{kp.revisionSummary}</p>
       </SectionCard>,
     );
   }
