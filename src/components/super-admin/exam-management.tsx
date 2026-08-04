@@ -1413,13 +1413,19 @@ export default function ExamManagement() {
 
     if (type === 'integer') {
       const raw = String(row.correctAnswer ?? row.integerAnswer ?? '').trim();
-      // Pull first integer token (handles "Ans: 12", "12.0", "-3 marks")
       const m = raw.replace(/,/g, '').match(/[+-]?\d+/);
       const n = m ? parseInt(m[0], 10) : Number.NaN;
+      const needsReview = !Number.isFinite(n);
+      const note = needsReview
+        ? `⚠ Integer answer needs review (extracted: "${raw || 'empty'}").`
+        : '';
       return {
         ...base,
         options: [],
-        correctAnswer: Number.isFinite(n) ? n : raw,
+        correctAnswer: needsReview ? 0 : n,
+        explanation: [String(row.explanation || base.explanation || '').trim(), note]
+          .filter(Boolean)
+          .join('\n') || undefined,
       };
     }
 
