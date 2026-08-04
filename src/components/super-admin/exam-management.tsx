@@ -1127,6 +1127,13 @@ export default function ExamManagement() {
         data = { success: false, message: raw || `Request failed (${res.status})` };
       }
       if (!res.ok || !data?.success) {
+        if (res.status === 504 || res.status === 502 || res.status === 408) {
+          throw new Error(
+            `Gateway timed out after waiting for extraction (${res.status}). ` +
+              'Nginx proxy_read_timeout on api.aslilearn.ai must be raised for /api/super-admin/exams ' +
+              '(see backend/deploy/patch-nginx-ai-timeouts.sh). Large papers often need >5 minutes.',
+          );
+        }
         throw new Error(data?.message || `Failed to extract questions from PDF (${res.status})`);
       }
       const rows = Array.isArray(data?.data) ? data.data : [];
@@ -1160,7 +1167,7 @@ export default function ExamManagement() {
       toast({
         title: 'Extraction failed',
         description: isNetwork
-          ? 'Could not reach the API (connection dropped or timed out). Confirm api.aslilearn.ai is up, leave this tab open, and raise the reverse-proxy timeout for /pdf-convert — large papers often take several minutes.'
+          ? 'Request died at the API gateway (often a 504 after ~5 minutes). The CORS console error is a side effect of nginx’s timeout page — not a CORS misconfiguration. On the API server, apply backend/deploy/patch-nginx-ai-timeouts.sh (proxy_read_timeout 1800s for /api/super-admin/exams) and reload nginx.'
           : raw || 'Gemini failed to extract questions.',
         variant: 'destructive',
       });
@@ -3623,8 +3630,9 @@ export default function ExamManagement() {
                     )}
                   </Button>
                   <p className="text-xs text-slate-500">
-                    Tip: leave this tab open — extraction has no time limit. Multi-page papers often need several
-                    minutes (model processing, not file size). The button shows a spinner while it runs.
+                    Tip: leave this tab open. Multi-page papers often need several minutes (model processing, not
+                    file size). If extraction fails at ~5 minutes with a 504, the API nginx timeout must be raised
+                    (see deploy/patch-nginx-ai-timeouts.sh).
                   </p>
 
                   {pdfQuestionRows.length > 0 && (
