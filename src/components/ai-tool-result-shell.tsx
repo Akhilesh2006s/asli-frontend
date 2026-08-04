@@ -208,13 +208,13 @@ function MetaChip({
   return (
     <div
       className={cn(
-        'inline-flex min-h-9 max-w-full items-center gap-2 rounded-xl border px-3 py-2 text-[0.9375rem] font-medium shadow-sm',
+        'inline-flex min-h-9 max-w-full items-center gap-2 rounded-xl border px-3 py-2 text-sm font-semibold shadow-sm',
         className,
       )}
     >
       <RealisticIcon name={icon} alt="" float={false} className="h-4 w-4 shrink-0" />
-      <span className="font-semibold opacity-70">{formatAiToolText(label)}</span>
-      <span className="min-w-0 break-words font-semibold sm:max-w-[16rem]">{formatAiToolText(value)}</span>
+      <span className="text-xs font-bold uppercase tracking-wide opacity-70">{formatAiToolText(label)}</span>
+      <span className="min-w-0 break-words font-bold sm:max-w-[16rem]">{formatAiToolText(value)}</span>
     </div>
   );
 }
@@ -320,7 +320,10 @@ export function AiToolResultShell({
         </div>
 
         {hasMeta && !inputSummary ? (
-          <div className="border-b border-slate-100 bg-slate-50/70 px-4 py-3 sm:px-5">
+          <div className="border-b border-slate-100 bg-gradient-to-r from-violet-50/80 via-white to-sky-50/60 px-4 py-3.5 sm:px-5">
+            <p className="mb-2 text-micro font-bold uppercase tracking-[0.16em] text-slate-500">
+              At a glance
+            </p>
             <div className="flex flex-wrap gap-2">
               {META_ICONS.map((item) => (
                 <MetaChip

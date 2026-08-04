@@ -73,8 +73,8 @@ export function AiToolGeneratePageChrome({
           transition={{ duration: 0.28 }}
           className="asli-card-premium asli-ai-glow overflow-hidden p-0"
         >
-          <div className="h-1.5 w-full bg-gradient-to-r from-indigo-blue-600 via-sky-500 to-orange-400" />
-          <div className="flex flex-col gap-5 p-5 sm:gap-6 sm:p-8">
+          <div className="h-1.5 w-full bg-gradient-to-r from-orange-500 via-violet-600 to-teal-500" />
+          <div className="flex flex-col gap-5 bg-gradient-to-br from-violet-50/90 via-white to-orange-50/40 p-5 sm:gap-6 sm:p-8">
             <Button
               type="button"
               variant="outline"
@@ -85,23 +85,23 @@ export function AiToolGeneratePageChrome({
               {backLabel}
             </Button>
             <div className="flex min-w-0 items-start gap-3 sm:items-center sm:gap-4">
-              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-blue-600 to-sky-500 shadow-lg shadow-indigo-blue-500/20 sm:h-16 sm:w-16">
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-violet-700 shadow-lg shadow-violet-500/25 sm:h-16 sm:w-16">
                 <Icon className="h-7 w-7 text-white sm:h-8 sm:w-8" aria-hidden />
               </div>
               <div className="min-w-0 flex-1 space-y-1.5">
                 <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
-                  <h1 className="font-display text-2xl font-bold tracking-tight text-ink sm:text-3xl lg:text-4xl">
+                  <h1 className="font-display text-2xl font-bold tracking-tight text-violet-950 sm:text-3xl lg:text-4xl">
                     {displayTitle}
                   </h1>
                   {displayBadge ? (
-                    <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/10 px-2.5 py-0.5 text-sm font-semibold text-primary sm:px-3 sm:py-1 sm:text-[0.9375rem]">
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-violet-200 bg-violet-100 px-2.5 py-0.5 text-sm font-semibold text-violet-950 sm:px-3 sm:py-1 sm:text-[0.9375rem]">
                       <Sparkles className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                       {displayBadge}
                     </span>
                   ) : null}
                 </div>
                 {displayDescription ? (
-                  <p className="w-full max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-lg">
+                  <p className="w-full max-w-2xl text-base leading-relaxed text-slate-600 sm:text-lg">
                     {displayDescription}
                   </p>
                 ) : null}
@@ -151,27 +151,33 @@ export function AiToolGenerateFormCard({
       className={cn(
         AI_V2.radius.cardLg,
         AI_V2.shadow.card,
-        'overflow-hidden border border-white/90 bg-white/95',
+        'overflow-hidden border border-slate-200/80 bg-white',
         className,
       )}
     >
-      <div className="border-b border-slate-100 bg-gradient-to-r from-indigo-blue-50/80 via-white to-orange-50/50 px-5 py-5 sm:px-7">
-        <h2 className="font-display text-2xl font-bold tracking-tight text-slate-900">{displayTitle}</h2>
+      <div className="h-1.5 w-full bg-gradient-to-r from-orange-500 via-violet-600 to-teal-500" aria-hidden />
+      <div className="border-b border-violet-100 bg-gradient-to-r from-violet-50 via-white to-orange-50/60 px-5 py-5 sm:px-7">
+        <p className="mb-1 text-micro font-bold uppercase tracking-[0.18em] text-violet-700/80">
+          Generate
+        </p>
+        <h2 className="font-display text-2xl font-bold tracking-tight text-violet-950">{displayTitle}</h2>
         {displaySubtitle ? (
           <p className="mt-2 text-base leading-relaxed text-slate-600 sm:text-lg">{displaySubtitle}</p>
         ) : null}
       </div>
-      <div className="space-y-6 p-5 sm:p-7">
+      <div className="space-y-6 bg-gradient-to-b from-white to-slate-50/50 p-5 sm:p-7">
         {notices}
-        <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {children}
+        <div className="rounded-xl border border-slate-200/80 bg-white p-4 shadow-sm sm:p-5">
+          <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {children}
+          </div>
         </div>
         <motion.div whileTap={{ scale: 0.985 }}>
           <Button
             type="button"
             onClick={onGenerate}
             disabled={isGenerating || generateDisabled}
-            className="h-14 w-full rounded-xl bg-indigo-blue-600 text-lg font-bold text-white shadow-lg shadow-indigo-blue-500/20 transition hover:bg-indigo-blue-700 disabled:opacity-70"
+            className="h-14 w-full rounded-xl bg-violet-700 text-lg font-bold text-white shadow-lg shadow-violet-500/25 transition hover:bg-violet-800 disabled:opacity-70"
           >
             {isGenerating ? (
               <>

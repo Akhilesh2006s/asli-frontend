@@ -4,6 +4,11 @@ import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { formatAiToolText } from '@/lib/title-case';
 import { AI_V2 } from '@/lib/ai-tool-design-tokens';
+import {
+  AI_TOOL_SECTION_PALETTES,
+  paletteForSectionTitle,
+  type AiToolSectionPalette,
+} from '@/lib/ai-tool-section-palette';
 
 export type AiToolV2SectionProps = {
   num: number | string;
@@ -17,25 +22,24 @@ export type AiToolV2SectionProps = {
   printSafe?: boolean;
 };
 
-const ACCENT_STYLES: Record<NonNullable<AiToolV2SectionProps['accent']>, string> = {
-  indigo: 'from-indigo-500 to-blue-600',
-  violet: 'from-violet-500 to-purple-600',
-  emerald: 'from-emerald-500 to-green-600',
-  amber: 'from-amber-500 to-orange-500',
-  rose: 'from-rose-500 to-pink-600',
-  cyan: 'from-cyan-500 to-teal-600',
-  slate: 'from-slate-600 to-slate-800',
+const ACCENT_TO_PALETTE_ID: Record<NonNullable<AiToolV2SectionProps['accent']>, string> = {
+  indigo: 'indigo',
+  violet: 'violet',
+  emerald: 'emerald',
+  amber: 'amber',
+  rose: 'rose',
+  cyan: 'cyan',
+  slate: 'blue',
 };
 
-const ACCENT_BG: Record<NonNullable<AiToolV2SectionProps['accent']>, string> = {
-  indigo: 'from-indigo-50/80 to-blue-50/50',
-  violet: 'from-violet-50/80 to-purple-50/50',
-  emerald: 'from-emerald-50/80 to-lime-50/50',
-  amber: 'from-amber-50/80 to-orange-50/50',
-  rose: 'from-rose-50/80 to-pink-50/50',
-  cyan: 'from-cyan-50/80 to-teal-50/50',
-  slate: 'from-slate-50/80 to-slate-100/50',
-};
+function paletteForAccent(
+  accent: NonNullable<AiToolV2SectionProps['accent']>,
+  title: string,
+  num: string,
+): AiToolSectionPalette {
+  const want = ACCENT_TO_PALETTE_ID[accent];
+  return AI_TOOL_SECTION_PALETTES.find((p) => p.id === want) || paletteForSectionTitle(title, num);
+}
 
 export function AiToolV2Section({
   num,
@@ -49,6 +53,8 @@ export function AiToolV2Section({
 }: AiToolV2SectionProps) {
   const displayTitle = formatAiToolText(title);
   const displayDescription = description ? formatAiToolText(description) : undefined;
+  const numLabel = String(num);
+  const palette = paletteForAccent(accent, title, numLabel);
 
   return (
     <motion.article
@@ -56,43 +62,64 @@ export function AiToolV2Section({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.25 }}
       className={cn(
-        'overflow-hidden border border-white/90 bg-gradient-to-br',
+        'overflow-hidden border border-slate-200/80 bg-white',
         AI_V2.radius.cardLg,
         AI_V2.shadow.card,
         AI_V2.shadow.cardHover,
         'transition-shadow duration-200',
-        ACCENT_BG[accent],
         printSafe && 'print:break-inside-avoid',
         className,
       )}
     >
-      <header className="flex items-start justify-between gap-3 border-b border-white/80 bg-white/70 px-4 py-3 sm:px-5">
+      <div className={cn('h-1.5 w-full', palette.bar)} aria-hidden />
+      <header
+        className={cn(
+          'flex items-start justify-between gap-3 border-b px-4 py-3.5 sm:px-5',
+          'bg-gradient-to-br',
+          palette.cardWash,
+          palette.innerBorder,
+        )}
+      >
         <div className="flex min-w-0 items-start gap-3">
           <span
             className={cn(
-              'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br text-sm font-bold text-white shadow-sm',
-              ACCENT_STYLES[accent],
+              'flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-sm font-bold text-white shadow-sm',
+              palette.bar,
             )}
             aria-hidden
           >
-            ◆
+            {numLabel}
           </span>
-          <div className="min-w-0">
-            <h3 className={AI_V2.typography.sectionTitle}>{displayTitle}</h3>
+          <div className="min-w-0 pt-0.5">
+            <h3 className={cn('text-lg sm:text-xl font-bold leading-snug tracking-tight', palette.title)}>
+              {displayTitle}
+            </h3>
             {displayDescription ? (
-              <p className={cn('mt-0.5', AI_V2.typography.sectionDesc)}>{displayDescription}</p>
+              <p className="mt-1 text-sm leading-relaxed text-slate-600">{displayDescription}</p>
             ) : null}
           </div>
         </div>
         <div
           className={cn(
-            'flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/90 bg-white/90 shadow-sm',
+            'flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border shadow-sm',
+            palette.iconTile,
           )}
         >
-          <Icon className="h-4 w-4 text-slate-600" aria-hidden />
+          <Icon className="h-5 w-5" aria-hidden />
         </div>
       </header>
-      <div className={cn('bg-white/60', AI_V2.spacing.cardPadding)}>{children}</div>
+      <div className={cn('p-3 sm:p-4 bg-gradient-to-b from-white to-slate-50/40')}>
+        <div
+          className={cn(
+            'rounded-xl border px-4 py-4 sm:px-5 sm:py-5',
+            palette.inner,
+            palette.innerBorder,
+            'text-base text-slate-800 leading-relaxed',
+          )}
+        >
+          {children}
+        </div>
+      </div>
     </motion.article>
   );
 }

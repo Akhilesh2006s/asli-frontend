@@ -21,15 +21,20 @@ export const AI_V2 = {
     grid: 'gap-4 sm:gap-5 lg:gap-6',
   },
   typography: {
-    sectionTitle: 'text-xl sm:text-2xl font-bold text-slate-900',
-    sectionDesc: 'text-base text-slate-600 leading-relaxed',
+    /** Colored section titles are applied via palette — this is the neutral fallback */
+    sectionTitle: 'text-lg sm:text-xl font-bold leading-snug tracking-tight text-slate-900',
+    sectionDesc: 'text-sm sm:text-[0.9375rem] text-slate-600 leading-relaxed',
     body: 'text-base text-slate-800 leading-relaxed',
-    label: 'text-[0.9375rem] font-semibold uppercase tracking-wide text-slate-600',
-    meta: 'text-[0.9375rem] sm:text-base font-medium text-slate-700',
+    label: 'text-xs font-bold uppercase tracking-wide text-slate-500',
+    meta: 'text-sm font-semibold text-slate-700',
+    /** Brochure-style emphasis for key numbers / prices / scores */
+    highlight: 'text-lg sm:text-xl font-extrabold text-orange-600',
   },
   badge: {
     ai: 'inline-flex min-h-8 items-center gap-2 rounded-full border px-3 py-1 text-[0.9375rem] font-semibold uppercase tracking-wide',
   },
+  /** Nested content panel (light wash inside white cards) */
+  innerBox: 'rounded-xl border px-4 py-3.5 sm:px-5 sm:py-4',
 } as const;
 
 export const BLOOM_LEVEL_STYLES: Record<
