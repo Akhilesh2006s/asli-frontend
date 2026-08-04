@@ -1100,42 +1100,80 @@ export default function ExamManagement() {
     setPdfShowFlaggedOnly(false);
     setPdfPreviewPage(1);
     try {
-      // No client abort timeout — extraction time depends on Gemini/pages, not file MB.
       const form = new FormData();
       form.append('file', questionPdfFile);
       const headers = authBearerHeaders();
-      let res: Response = await fetch(`${API_BASE_URL}/api/super-admin/exams/${selectedExam._id}/questions/pdf-convert`, {
+      const examId = selectedExam._id;
+      const startUrl = `${API_BASE_URL}/api/super-admin/exams/${examId}/questions/pdf-convert`;
+      const startUrlAlt = `${API_BASE_URL}/api/super-admin/protected/exams/${examId}/questions/pdf-convert`;
+
+      let res: Response = await fetch(startUrl, {
         method: 'POST',
         headers,
         credentials: 'include',
         body: form,
       });
-      // Some deployments expose super-admin routes only under /protected.
+      let usedProtected = false;
       if (res.status === 404) {
-        res = await fetch(`${API_BASE_URL}/api/super-admin/protected/exams/${selectedExam._id}/questions/pdf-convert`, {
+        usedProtected = true;
+        res = await fetch(startUrlAlt, {
           method: 'POST',
           headers,
           credentials: 'include',
           body: form,
         });
       }
-      const raw = await res.text();
-      let data: any = null;
-      try {
-        data = raw ? JSON.parse(raw) : null;
-      } catch {
-        data = { success: false, message: raw || `Request failed (${res.status})` };
-      }
+
+      const parseJson = async (response: Response) => {
+        const raw = await response.text();
+        try {
+          return raw ? JSON.parse(raw) : null;
+        } catch {
+          return { success: false, message: raw || `Request failed (${response.status})` };
+        }
+      };
+
+      let data: any = await parseJson(res);
       if (!res.ok || !data?.success) {
         if (res.status === 504 || res.status === 502 || res.status === 408) {
           throw new Error(
-            `Gateway timed out after waiting for extraction (${res.status}). ` +
-              'Nginx proxy_read_timeout on api.aslilearn.ai must be raised for /api/super-admin/exams ' +
-              '(see backend/deploy/patch-nginx-ai-timeouts.sh). Large papers often need >5 minutes.',
+            `Gateway timed out (${res.status}). Redeploy the API with async pdf-convert, or raise nginx proxy_read_timeout.`,
           );
         }
         throw new Error(data?.message || `Failed to extract questions from PDF (${res.status})`);
       }
+
+      // Async job (202): short POST + poll — avoids the ~5 min nginx 504.
+      if (data?.async && data?.jobId) {
+        const jobId = String(data.jobId);
+        const jobBase = usedProtected
+          ? `${API_BASE_URL}/api/super-admin/protected/exams/${examId}/questions/pdf-convert/jobs/${jobId}`
+          : `${API_BASE_URL}/api/super-admin/exams/${examId}/questions/pdf-convert/jobs/${jobId}`;
+        const deadline = Date.now() + 30 * 60 * 1000;
+        while (Date.now() < deadline) {
+          await new Promise((r) => setTimeout(r, 2500));
+          const pollRes = await fetch(jobBase, {
+            method: 'GET',
+            headers: authBearerHeaders(),
+            credentials: 'include',
+          });
+          const poll = await parseJson(pollRes);
+          if (pollRes.status === 404) {
+            throw new Error(poll?.message || 'Extraction job expired. Please try again.');
+          }
+          if (poll?.status === 'failed' || poll?.success === false) {
+            throw new Error(poll?.message || 'Extraction failed');
+          }
+          if (poll?.status === 'completed' && Array.isArray(poll?.data)) {
+            data = poll;
+            break;
+          }
+        }
+        if (data?.status !== 'completed' && !Array.isArray(data?.data)) {
+          throw new Error('Extraction is still running after 30 minutes. Check API logs and try again.');
+        }
+      }
+
       const rows = Array.isArray(data?.data) ? data.data : [];
       if (rows.length === 0) {
         throw new Error('No extractable questions found in this PDF. Please try a clearer PDF or different pages.');
@@ -1159,15 +1197,13 @@ export default function ExamManagement() {
       });
     } catch (error: any) {
       const raw = String(error?.message || '').trim();
-      // Browser "Failed to fetch" = no HTTP response (network / CORS / proxy timeout / API down).
-      // Real Gemini/parse errors return JSON with a specific message.
       const isNetwork =
         /failed to fetch|networkerror|load failed|network request failed/i.test(raw) ||
         (error?.name === 'TypeError' && /fetch/i.test(raw));
       toast({
         title: 'Extraction failed',
         description: isNetwork
-          ? 'Request died at the API gateway (often a 504 after ~5 minutes). The CORS console error is a side effect of nginx’s timeout page — not a CORS misconfiguration. On the API server, apply backend/deploy/patch-nginx-ai-timeouts.sh (proxy_read_timeout 1800s for /api/super-admin/exams) and reload nginx.'
+          ? 'Could not reach the API during upload/poll. Confirm api.aslilearn.ai is up, then redeploy the backend (async pdf-convert) if this still hits a 5-minute gateway timeout.'
           : raw || 'Gemini failed to extract questions.',
         variant: 'destructive',
       });
@@ -3630,9 +3666,8 @@ export default function ExamManagement() {
                     )}
                   </Button>
                   <p className="text-xs text-slate-500">
-                    Tip: leave this tab open. Multi-page papers often need several minutes (model processing, not
-                    file size). If extraction fails at ~5 minutes with a 504, the API nginx timeout must be raised
-                    (see deploy/patch-nginx-ai-timeouts.sh).
+                    Tip: leave this tab open. Extraction runs in the background on the API (you can wait several
+                    minutes). The button shows a spinner until questions appear.
                   </p>
 
                   {pdfQuestionRows.length > 0 && (
