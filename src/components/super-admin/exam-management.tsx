@@ -1711,15 +1711,24 @@ export default function ExamManagement() {
                   error: `Row ${idx + 1}: ${data?.message || `failed (${res.status})`}`,
                 };
               }
-              return { ok: true };
+              const warn =
+                payload?.questionType === 'integer' &&
+                /Integer answer needs review/i.test(String(payload?.explanation || ''))
+                  ? `Row ${idx + 1}: Integer answer missing/invalid — saved as 0 (needs review)`
+                  : undefined;
+              return { ok: true, warn };
             } catch (e: any) {
               return { ok: false, error: `Row ${idx + 1}: ${e?.message || 'network error'}` };
             }
           }),
         );
         for (const r of results) {
-          if (r.ok) created += 1;
-          else if (r.error) errors.push(r.error);
+          if (r.ok) {
+            created += 1;
+            if (r.warn) errors.push(r.warn);
+          } else if (r.error) {
+            errors.push(r.error);
+          }
         }
       }
 
