@@ -515,7 +515,7 @@ export function MyStudyDecksViewer({ content, rawContent, className }: MyStudyDe
   return (
     <div className={cn('w-full space-y-2', className)}>
       <div
-        className="relative overflow-hidden rounded-3xl border border-violet-200/80 shadow-xl shadow-violet-200/25"
+        className="w-full space-y-4 shadow-violet-200/25"
         style={{
           backgroundColor: '#f5f3ff',
           backgroundImage: 'radial-gradient(circle, rgba(139,92,246,0.12) 1px, transparent 1px)',

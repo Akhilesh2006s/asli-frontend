@@ -377,38 +377,21 @@ export function ShortNotesViewer({ content, rawContent }: ShortNotesViewerProps)
 
   return (
     <div className="w-full space-y-5">
-      <section className="relative overflow-hidden rounded-[28px] border border-violet-200/70 bg-gradient-to-br from-slate-950 via-violet-950 to-fuchsia-900 px-5 py-5 text-white shadow-[0_24px_60px_-24px_rgba(79,70,229,0.75)] sm:px-7 sm:py-6">
-        <div className="pointer-events-none absolute -right-12 -top-14 h-44 w-44 rounded-full bg-cyan-300/25 blur-3xl" />
-        <div className="pointer-events-none absolute -left-10 -bottom-12 h-48 w-56 rounded-full bg-fuchsia-400/20 blur-3xl" />
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.14),transparent_58%)]" />
-        <div className="relative space-y-3">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <p className="mb-1 text-micro font-bold uppercase tracking-[0.22em] text-violet-200">
-                Revision Studio
-              </p>
-              <h2 className="text-2xl font-bold leading-tight sm:text-3xl">Short Notes & Summaries</h2>
-            </div>
-            <div className="rounded-2xl border border-white/20 bg-white/10 px-3 py-2 text-right backdrop-blur-md">
-              <p className="text-micro uppercase tracking-[0.18em] text-violet-200">Progress</p>
-              <p className="text-sm font-semibold text-violet-50">
-                {currentIndex + 1} / {pages.length}
-              </p>
-            </div>
-          </div>
-          <p className="max-w-2xl text-sm text-violet-100/90 sm:text-[15px]">
-            Premium revision cards with focused summaries, key ideas, and exam-ready understanding.
+      <div className="rounded-xl border border-violet-100 bg-violet-50/70 px-4 py-3">
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-sm font-bold text-violet-950">
+            Note {currentIndex + 1} of {pages.length}
           </p>
-          <div className="mt-3 h-2.5 overflow-hidden rounded-full bg-white/20">
+          <div className="h-2 w-28 overflow-hidden rounded-full bg-violet-200">
             <motion.div
-              className="h-full bg-gradient-to-r from-cyan-300 via-emerald-300 to-lime-300 shadow-[0_0_20px_rgba(110,231,183,0.65)]"
+              className="h-full bg-violet-600"
               initial={{ width: 0 }}
               animate={{ width: `${progress}%` }}
               transition={{ duration: 0.4 }}
             />
           </div>
         </div>
-      </section>
+      </div>
 
       {pages.length > 1 ? (
         <section className="rounded-2xl border border-slate-200 bg-white/85 p-3 shadow-[0_10px_30px_-18px_rgba(15,23,42,0.35)] backdrop-blur-sm">

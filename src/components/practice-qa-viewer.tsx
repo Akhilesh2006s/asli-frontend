@@ -417,7 +417,7 @@ export function PracticeQaViewer({ content, rawContent, className }: PracticeQaV
   return (
     <div className={cn('w-full min-w-0 space-y-2', className)}>
       <div
-        className="relative overflow-hidden rounded-3xl border border-emerald-200/80 shadow-xl shadow-emerald-200/25"
+        className="w-full space-y-4 shadow-emerald-200/25"
         style={{
           backgroundColor: '#ecfdf5',
           backgroundImage: 'radial-gradient(circle, rgba(16,185,129,0.09) 1px, transparent 1px)',

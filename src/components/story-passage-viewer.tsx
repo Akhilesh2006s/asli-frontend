@@ -770,38 +770,13 @@ function StudentStoryShell({
         : 0;
 
   return (
-    <div className="w-full">
-      <div
-        className="relative overflow-hidden rounded-3xl border border-indigo-200/80 shadow-xl shadow-indigo-200/30"
-        style={{
-          backgroundColor: '#f5f3ff',
-          backgroundImage:
-            'radial-gradient(circle, rgba(99,102,241,0.08) 1px, transparent 1px)',
-          backgroundSize: '22px 22px',
-        }}
-      >
-        <div className="border-b border-indigo-100 bg-gradient-to-r from-indigo-600 via-violet-600 to-indigo-500 px-4 py-4 sm:px-6">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-3 text-white">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/20 backdrop-blur-sm">
-                <BookMarked className="h-5 w-5" aria-hidden />
-              </div>
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-widest text-indigo-100">
-                  Reading studio
-                </p>
-                <h3 className="text-lg font-bold">Reading Practice Room</h3>
-              </div>
-            </div>
-            {count > 0 ? (
-              <span className="rounded-full bg-white/20 px-3 py-1 text-xs font-medium text-white">
-                {count} {resolved.mode === 'passages' ? 'passages' : 'stories'}
-              </span>
-            ) : null}
-          </div>
-        </div>
-        <div className="p-3 sm:p-4">{children}</div>
-      </div>
+    <div className="w-full space-y-4">
+      {count > 0 ? (
+        <p className="text-xs font-semibold text-teal-900">
+          {count} {resolved.mode === 'passages' ? 'passages' : 'stories'}
+        </p>
+      ) : null}
+      {children}
     </div>
   );
 }

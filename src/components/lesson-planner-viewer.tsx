@@ -578,54 +578,17 @@ function TeacherLessonShell({
   classLabel: string;
   children: ReactNode;
 }) {
+  // Document chrome provided by AiToolDocumentShell
   return (
-    <div className="w-full">
-      <div className="relative overflow-hidden rounded-2xl border-2 border-amber-200/80 shadow-lg shadow-amber-900/5">
-        {/* Ruled planner paper */}
-        <div
-          className="absolute inset-0 pointer-events-none opacity-[0.35]"
-          style={{
-            backgroundImage:
-              'linear-gradient(rgba(148,163,184,0.35) 1px, transparent 1px)',
-            backgroundSize: '100% 28px',
-            backgroundPosition: '0 72px',
-          }}
-          aria-hidden
-        />
-        <div className="relative border-b border-slate-700/20 bg-gradient-to-br from-slate-800 via-teal-900 to-sky-900 px-4 py-4 sm:px-6">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-amber-400/90 text-slate-900 shadow-md rotate-[-2deg]">
-                <Calendar className="h-6 w-6" aria-hidden />
-              </div>
-              <div className="text-white">
-                <p className="text-micro font-bold uppercase tracking-[0.25em] text-amber-200/90">
-                  Lesson Planner
-                </p>
-                <h3 className="text-lg font-bold sm:text-xl font-serif">Classroom day flow</h3>
-                {(classLabel || bookName) && (
-                  <p className="text-xs text-sky-100/85 mt-0.5">
-                    {[classLabel && `Class ${classLabel}`, bookName].filter(Boolean).join(' · ')}
-                  </p>
-                )}
-              </div>
-            </div>
-            {lessonCount > 1 ? (
-              <span className="rounded-md bg-white/10 px-3 py-1.5 text-xs font-semibold text-amber-100 ring-1 ring-white/20">
-                {lessonCount} periods
-              </span>
-            ) : lessonCount === 1 ? (
-              <span className="inline-flex items-center gap-1.5 rounded-md bg-amber-400/20 px-3 py-1.5 text-xs font-semibold text-amber-100 ring-1 ring-amber-300/30">
-                <Clock className="h-3.5 w-3.5" aria-hidden />
-                One lesson block
-              </span>
-            ) : null}
-          </div>
-        </div>
-        <div className="relative bg-[#fffdf8]/95 p-3 sm:p-5 max-h-[min(80vh,900px)] overflow-y-auto">
-          {children}
-        </div>
-      </div>
+    <div className="w-full space-y-5">
+      {(classLabel || bookName || lessonCount > 0) && (
+        <p className="text-xs font-semibold text-amber-900">
+          {[classLabel && `Class ${classLabel}`, bookName, lessonCount > 1 ? `${lessonCount} periods` : null]
+            .filter(Boolean)
+            .join(' · ')}
+        </p>
+      )}
+      {children}
     </div>
   );
 }
@@ -710,40 +673,15 @@ function StudentLessonShell({
   children: ReactNode;
 }) {
   return (
-    <div className="w-full">
-      <div
-        className="relative overflow-hidden rounded-3xl border border-cyan-200/80 shadow-xl shadow-cyan-200/30"
-        style={{
-          backgroundColor: '#ecfeff',
-          backgroundImage: 'radial-gradient(circle, rgba(6,182,212,0.1) 1px, transparent 1px)',
-          backgroundSize: '22px 22px',
-        }}
-      >
-        <div className="border-b border-cyan-100 bg-gradient-to-r from-cyan-600 via-sky-600 to-teal-500 px-4 py-4 sm:px-6">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-3 text-white">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/20 backdrop-blur-sm">
-                <Calendar className="h-5 w-5" aria-hidden />
-              </div>
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-widest text-cyan-100">Lesson studio</p>
-                <h3 className="text-lg font-bold">Study Schedule Maker</h3>
-                {(classLabel || bookName) && (
-                  <p className="text-xs text-cyan-100/90 mt-0.5">
-                    {[classLabel && `Class ${classLabel}`, bookName].filter(Boolean).join(' · ')}
-                  </p>
-                )}
-              </div>
-            </div>
-            {lessonCount > 0 ? (
-              <span className="rounded-full bg-white/20 px-3 py-1 text-xs font-medium text-white">
-                {lessonCount} lesson{lessonCount !== 1 ? 's' : ''}
-              </span>
-            ) : null}
-          </div>
-        </div>
-        <div className="p-3 sm:p-4">{children}</div>
-      </div>
+    <div className="w-full space-y-5">
+      {(classLabel || bookName || lessonCount > 0) && (
+        <p className="text-xs font-semibold text-cyan-900">
+          {[classLabel && `Class ${classLabel}`, bookName, lessonCount > 0 ? `${lessonCount} lesson${lessonCount !== 1 ? 's' : ''}` : null]
+            .filter(Boolean)
+            .join(' · ')}
+        </p>
+      )}
+      {children}
     </div>
   );
 }

@@ -751,7 +751,7 @@ export function ActivityProjectViewer({
     return (
       <div className={cn('w-full', className)}>
         <div
-          className="relative overflow-hidden rounded-3xl border border-indigo-200/80 shadow-xl shadow-indigo-200/25"
+          className="w-full space-y-4 shadow-indigo-200/25"
           style={{
             backgroundColor: '#f8fafc',
             backgroundImage:
@@ -824,7 +824,7 @@ export function ActivityProjectViewer({
     return (
       <div className={cn('w-full', className)}>
         <div
-          className="relative overflow-hidden rounded-3xl border border-orange-200/80 shadow-xl shadow-orange-200/30"
+          className="w-full space-y-4 shadow-orange-200/30"
           style={{
             backgroundColor: '#faf7f2',
             backgroundImage:

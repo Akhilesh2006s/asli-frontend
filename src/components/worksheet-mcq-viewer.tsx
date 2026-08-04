@@ -404,32 +404,9 @@ function TeacherMarkdownBody({ markdown }: { markdown: string }) {
 function TeacherWorksheetShell({ title, children }: { title: string; children: ReactNode }) {
   const displayTitle = formatAiToolText(title || 'Worksheet Pack');
   return (
-    <div className="w-full">
-      <div className="relative overflow-hidden rounded-xl border border-emerald-200/90 shadow-md shadow-emerald-900/5">
-        <div className="relative border-b border-slate-700/20 bg-gradient-to-br from-slate-800 via-teal-900 to-emerald-900 px-3 py-3 sm:px-4">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-emerald-400/90 text-slate-900 shadow-sm">
-                <ClipboardList className="h-5 w-5" aria-hidden />
-              </div>
-              <div className="min-w-0 text-white">
-                <p className="text-micro font-bold uppercase tracking-[0.22em] text-emerald-200">
-                  Worksheet &amp; MCQ Generator
-                </p>
-                <h3 className="text-base sm:text-lg font-bold text-white leading-snug truncate">
-                  {displayTitle}
-                </h3>
-                <p className="text-mini text-emerald-100/90 mt-0.5">Sections A–E, Answer Key &amp; Tags</p>
-              </div>
-            </div>
-            <span className="inline-flex items-center gap-1.5 rounded-md bg-emerald-400/20 px-2.5 py-1 text-mini font-semibold text-emerald-50 ring-1 ring-emerald-300/30 shrink-0">
-              <ListChecks className="h-3.5 w-3.5" aria-hidden />
-              Teacher View
-            </span>
-          </div>
-        </div>
-        <div className="relative bg-[#f8fffb]/95 p-2 sm:p-3">{children}</div>
-      </div>
+    <div className="w-full space-y-4">
+      <p className="text-sm font-bold text-emerald-900">{displayTitle}</p>
+      {children}
     </div>
   );
 }

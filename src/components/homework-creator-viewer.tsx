@@ -274,7 +274,7 @@ export function HomeworkCreatorViewer({ content, rawContent, className }: Homewo
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         data-ai-focus-hide
-        className="relative overflow-hidden rounded-[2rem] border border-white/80 bg-gradient-to-br from-orange-50 via-white to-amber-50/60 p-5 shadow-[0_20px_50px_-28px_rgba(249,115,22,0.35)] sm:p-7"
+        className="w-full space-y-3 rounded-xl border border-orange-100 bg-orange-50/50 p-4"
       >
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0 flex-1">

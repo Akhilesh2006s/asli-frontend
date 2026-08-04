@@ -405,7 +405,7 @@ export function SmartStudyGuideViewer({ content, rawContent, className }: SmartS
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           data-ai-focus-hide
-          className="relative overflow-hidden rounded-[2rem] border border-white/80 bg-white/80 p-5 shadow-[0_20px_50px_-28px_rgba(108,99,255,0.45)] backdrop-blur sm:p-7"
+          className="w-full space-y-3 rounded-xl border border-violet-100 bg-violet-50/50 p-4"
         >
           <div className="grid items-center gap-5 lg:grid-cols-[1fr_1.2fr_1fr]">
             <div className="flex justify-center">

@@ -424,48 +424,15 @@ function TeacherMarkdownBody({ markdown }: { markdown: string }) {
 }
 
 function TeacherConceptShell({ conceptCount, children }: { conceptCount: number; children: ReactNode }) {
+  // Outer document chrome lives in AiToolDocumentShell (resolveInteractiveAiToolViewer).
   return (
-    <div className="w-full">
-      <div className="relative overflow-hidden rounded-2xl border-2 border-fuchsia-200/80 shadow-lg shadow-fuchsia-900/5">
-        <div
-          className="absolute inset-0 pointer-events-none opacity-[0.35]"
-          style={{
-            backgroundImage: 'linear-gradient(rgba(148,163,184,0.35) 1px, transparent 1px)',
-            backgroundSize: '100% 28px',
-            backgroundPosition: '0 72px',
-          }}
-          aria-hidden
-        />
-        <div className="relative border-b border-slate-700/20 bg-gradient-to-br from-slate-800 via-violet-900 to-fuchsia-900 px-4 py-4 sm:px-6">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-fuchsia-400/90 text-slate-900 shadow-md rotate-[-2deg]">
-                <Brain className="h-6 w-6" aria-hidden />
-              </div>
-              <div className="text-white">
-                <p className="text-micro font-bold uppercase tracking-[0.25em] text-fuchsia-200/90">
-                  Concept Mastery Helper
-                </p>
-                <h3 className="text-lg font-bold sm:text-xl font-serif">Concept teaching flow</h3>
-                <p className="text-xs text-fuchsia-100/85 mt-0.5">12-part breakdown for your class</p>
-              </div>
-            </div>
-            {conceptCount > 1 ? (
-              <span className="rounded-md bg-white/10 px-3 py-1.5 text-xs font-semibold text-fuchsia-100 ring-1 ring-white/20">
-                {conceptCount} concepts
-              </span>
-            ) : conceptCount === 1 ? (
-              <span className="inline-flex items-center gap-1.5 rounded-md bg-fuchsia-400/20 px-3 py-1.5 text-xs font-semibold text-fuchsia-100 ring-1 ring-fuchsia-300/30">
-                <Sparkles className="h-3.5 w-3.5" aria-hidden />
-                One concept
-              </span>
-            ) : null}
-          </div>
-        </div>
-        <div className="relative bg-[#fdfaff]/95 p-3 sm:p-5 max-h-[min(80vh,900px)] overflow-y-auto">
-          {children}
-        </div>
-      </div>
+    <div className="w-full space-y-5">
+      {conceptCount > 1 ? (
+        <p className="text-xs font-semibold text-violet-800">
+          {conceptCount} concepts in this pack
+        </p>
+      ) : null}
+      {children}
     </div>
   );
 }

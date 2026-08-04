@@ -305,7 +305,7 @@ export function QuickAssignmentViewer({ content, rawContent, className }: QuickA
   return (
     <div className={cn('w-full space-y-1', className)}>
       <div
-        className="relative overflow-hidden rounded-3xl border border-rose-200/80 shadow-xl shadow-rose-200/25"
+        className="w-full space-y-4 shadow-rose-200/25"
         style={{
           backgroundColor: '#fff1f2',
           backgroundImage: 'radial-gradient(circle, rgba(244,63,94,0.09) 1px, transparent 1px)',

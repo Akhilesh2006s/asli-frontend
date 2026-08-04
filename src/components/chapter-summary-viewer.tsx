@@ -295,7 +295,7 @@ export function ChapterSummaryViewer({ content, rawContent, className }: Chapter
   return (
     <div className={cn('w-full space-y-1', className)}>
       <div
-        className="relative overflow-hidden rounded-3xl border border-blue-200/80 shadow-xl shadow-blue-200/25"
+        className="w-full space-y-4 shadow-blue-200/25"
         style={{
           backgroundColor: '#eff6ff',
           backgroundImage: 'radial-gradient(circle, rgba(59,130,246,0.09) 1px, transparent 1px)',

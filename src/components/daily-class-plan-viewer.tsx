@@ -278,48 +278,15 @@ function DayBoardShell({
   activeTitle?: string;
 }) {
   return (
-    <div
-      className="w-full overflow-hidden rounded-3xl border border-indigo-200/80 shadow-xl shadow-indigo-200/25"
-      style={{
-        backgroundColor: '#f5f3ff',
-        backgroundImage:
-          'linear-gradient(135deg, rgba(99,102,241,0.06) 0%, transparent 50%), radial-gradient(circle at 20% 80%, rgba(14,165,233,0.08) 0%, transparent 40%)',
-      }}
-    >
-      <div className="relative overflow-hidden border-b border-indigo-900/10 bg-gradient-to-r from-violet-700 via-indigo-700 to-sky-600 px-4 py-5 sm:px-6">
-        <div
-          className="pointer-events-none absolute -right-8 -top-8 h-32 w-32 rounded-full bg-white/10 blur-2xl"
-          aria-hidden
-        />
-        <div
-          className="pointer-events-none absolute bottom-0 left-1/3 h-20 w-40 rounded-full bg-sky-400/20 blur-xl"
-          aria-hidden
-        />
-        <div className="relative flex flex-wrap items-start justify-between gap-4">
-          <div className="flex items-start gap-3 text-white">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/15 backdrop-blur-md ring-1 ring-white/25">
-              <CalendarDays className="h-6 w-6" aria-hidden />
-            </div>
-            <div>
-              <p className="text-micro font-bold uppercase tracking-[0.2em] text-violet-200">
-                Day board
-              </p>
-              <h3 className="text-xl font-bold tracking-tight">Daily Class Plan</h3>
-              {activeTitle ? (
-                <p className="mt-1 max-w-xl text-sm text-indigo-100/95 line-clamp-2">{activeTitle}</p>
-              ) : (
-                <p className="mt-1 text-sm text-indigo-100/90">Your teaching day, period by period</p>
-              )}
-            </div>
-          </div>
-          {planCount > 0 ? (
-            <span className="rounded-full bg-white/15 px-3 py-1.5 text-xs font-semibold text-white ring-1 ring-white/20">
-              {planCount} plan{planCount !== 1 ? 's' : ''}
-            </span>
-          ) : null}
-        </div>
-      </div>
-      <div className="p-3 sm:p-5">{children}</div>
+    <div className="w-full space-y-4">
+      {(activeTitle || planCount > 0) && (
+        <p className="text-xs font-semibold text-indigo-900">
+          {[activeTitle, planCount > 0 ? `${planCount} plan${planCount !== 1 ? 's' : ''}` : null]
+            .filter(Boolean)
+            .join(' · ')}
+        </p>
+      )}
+      {children}
     </div>
   );
 }

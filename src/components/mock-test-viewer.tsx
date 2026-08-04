@@ -392,59 +392,24 @@ export function MockTestViewer({ content, rawContent, className }: MockTestViewe
   const visibleCount = 1 + bodySections.length;
 
   return (
-    <div className={cn('w-full space-y-2', className)}>
-      <div
-        className="relative overflow-hidden rounded-3xl border border-rose-200/80 shadow-xl shadow-rose-200/20"
-        style={{
-          backgroundColor: '#fff1f2',
-          backgroundImage: 'radial-gradient(circle, rgba(244,63,94,0.1) 1px, transparent 1px)',
-          backgroundSize: '22px 22px',
-        }}
-      >
-        <div className="border-b border-rose-100 bg-gradient-to-r from-rose-700 via-red-600 to-rose-800 px-4 py-4 sm:px-6">
-          <div className="flex flex-wrap items-center gap-3 text-white">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/20 backdrop-blur-sm">
-              <FileQuestion className="h-5 w-5" aria-hidden />
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-xs font-semibold uppercase tracking-widest text-rose-100">
-                Mock Test Builder
-              </p>
-              <h3 className="truncate text-lg font-bold">{meta.title}</h3>
-              <div className="mt-1.5 flex flex-wrap gap-1.5">
-                <Badge className="border-0 bg-white/20 text-white hover:bg-white/20 text-micro">
-                  {totalQuestions} questions
-                </Badge>
-                {totalMarks > 0 ? (
-                  <Badge className="border-0 bg-white/20 text-white hover:bg-white/20 text-micro">
-                    {totalMarks} marks
-                  </Badge>
-                ) : null}
-                <Badge className="border-0 bg-white/20 text-white hover:bg-white/20 text-micro">
-                  {activeSections.length} sections
-                </Badge>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="space-y-1 p-2 sm:p-3">
-          <div className="relative overflow-hidden rounded-xl border border-rose-200 bg-white shadow-sm">
-            <div className="absolute inset-0 bg-gradient-to-br from-rose-50/90 via-white to-red-50/40" />
-            <div className="relative p-2.5 sm:p-3">
-              <p className="mb-0.5 text-micro font-bold uppercase tracking-wider text-rose-700">
-                Section 1
-              </p>
-              <Badge className="mb-1 border-0 bg-rose-100 text-rose-900 hover:bg-rose-100 text-xs">
-                Mock Test
-              </Badge>
-              <h4 className="text-lg font-bold leading-snug text-slate-900 sm:text-xl">{meta.title}</h4>
-            </div>
-          </div>
-
-          <AiToolMockTestSectionLayout>{bodySections}</AiToolMockTestSectionLayout>
+    <div className={cn('w-full space-y-4', className)}>
+      <div className="rounded-xl border border-rose-100 bg-rose-50/70 px-4 py-3">
+        <h4 className="text-lg font-bold text-rose-950">{meta.title}</h4>
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          <Badge className="border-0 bg-rose-100 text-rose-900 hover:bg-rose-100 text-micro">
+            {totalQuestions} questions
+          </Badge>
+          {totalMarks > 0 ? (
+            <Badge className="border-0 bg-rose-100 text-rose-900 hover:bg-rose-100 text-micro">
+              {totalMarks} marks
+            </Badge>
+          ) : null}
+          <Badge className="border-0 bg-rose-100 text-rose-900 hover:bg-rose-100 text-micro">
+            {activeSections.length} sections
+          </Badge>
         </div>
       </div>
+      <AiToolMockTestSectionLayout>{bodySections}</AiToolMockTestSectionLayout>
 
       <AiToolV2InsightTail
         rawContent={payload.rawContent}
