@@ -4598,16 +4598,18 @@ export default function ExamManagement() {
                                     />
                                   </div>
                                 ) : !questionLooksLikeAssertionReason(q) &&
-                                  q.questionType !== 'match_following' &&
                                   !q.questionImage &&
-                                  (q.hasFigure ||
+                                  (q.questionType === 'match_following' ||
+                                    q.hasFigure ||
                                     (Array.isArray(q.validationFlags) &&
                                       q.validationFlags.includes('needs_figure')) ||
-                                    /\b(diagram|figure|graph|vernier|calliper|caliper|screw\s*gauge|shown\s+below|as\s+shown|velocity[- ]time)\b/i.test(
+                                    /\b(diagram|figure|graph|vernier|calliper|caliper|screw\s*gauge|shown\s+below|as\s+shown|velocity[- ]time|Column\s*I|match\s+the\s+following)\b/i.test(
                                       String(q.questionText || ''),
                                     )) ? (
                                   <div className="mb-4 flex h-24 items-center justify-center rounded-lg border border-dashed border-amber-300 bg-amber-50 text-center text-xs text-amber-800">
-                                    Diagram expected — click Edit to upload the figure if it did not extract
+                                    {q.questionType === 'match_following'
+                                      ? 'Match table expected — click Edit to upload if it did not extract'
+                                      : 'Diagram expected — click Edit to upload the figure if it did not extract'}
                                   </div>
                                 ) : null}
                                 {q.questionText ? (
