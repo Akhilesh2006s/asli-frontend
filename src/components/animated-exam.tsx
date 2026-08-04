@@ -891,10 +891,21 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
 (d) A is false, but R is true.`;
 
   const arMatterText = (() => {
-    if (currentQuestion.questionType !== 'assertion_reason') {
+    const isAr =
+      currentQuestion.questionType === 'assertion_reason' ||
+      Boolean(currentQuestion.assertionText || currentQuestion.reasonText) ||
+      (/\bA\s*[:：]/.test(String(currentQuestion.questionText || '')) &&
+        /\bR\s*[:：]/.test(String(currentQuestion.questionText || ''))) ||
+      (() => {
+        const blob = (currentQuestion.options || [])
+          .map((o: any) => (typeof o === 'string' ? o : o?.text || ''))
+          .join('\n');
+        return /Both A and R are true/i.test(blob) && /correct explanation of A/i.test(blob);
+      })();
+    if (!isAr) {
       return String(currentQuestion.sharedMatterText || currentQuestion.passageText || '').trim();
     }
-    const raw = String(currentQuestion.sharedMatterText || currentQuestion.passageText || '').trim();
+    const raw = String(currentQuestion.sharedMatterText || '').trim();
     const ok =
       /correct explanation of A/i.test(raw) ||
       (/Both A and R are true/i.test(raw) && /A is false,\s*but R is true/i.test(raw));
@@ -1283,7 +1294,9 @@ const normalizeExamText = (value: unknown, subject?: string): string =>
                       {arMatterText ? (
                         <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950">
                           <div className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-amber-800">
-                            {currentQuestion.questionType === 'assertion_reason' || currentQuestion.sharedMatterKind === 'assertion_reason'
+                            {currentQuestion.questionType === 'assertion_reason' ||
+                            currentQuestion.sharedMatterKind === 'assertion_reason' ||
+                            /Both A and R are true/i.test(arMatterText)
                               ? 'Assertion–Reason directions'
                               : currentQuestion.sharedMatterKind === 'match_following'
                                 ? 'Match the Following'

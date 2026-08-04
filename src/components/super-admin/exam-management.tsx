@@ -100,6 +100,114 @@ function looksLikeArDirectionsText(text?: string) {
     (/Both A and R are true/i.test(t) && /A is false,\s*but R is true/i.test(t))
   );
 }
+
+function questionLooksLikeAssertionReason(q: {
+  questionType?: string;
+  assertionText?: string;
+  reasonText?: string;
+  questionText?: string;
+  options?: Array<string | { text?: string }>;
+  option1?: string;
+  option2?: string;
+  option3?: string;
+  option4?: string;
+}) {
+  if (q.questionType === 'assertion_reason') return true;
+  if (q.assertionText || q.reasonText) return true;
+  const stem = String(q.questionText || '');
+  if (/\bA\s*[:：]/.test(stem) && /\bR\s*[:：]/.test(stem)) return true;
+  const fromOptions = (q.options || [])
+    .map((o) => (typeof o === 'string' ? o : o?.text || ''))
+    .join('\n');
+  const fromFields = [q.option1, q.option2, q.option3, q.option4].map((o) => String(o || '')).join('\n');
+  const blob = `${fromOptions}\n${fromFields}`;
+  return /Both A and R are true/i.test(blob) && /correct explanation of A/i.test(blob);
+}
+
+/** Normalize extract rows in the browser so AR directions always show even if API is old. */
+function normalizeExtractedPdfRows(rows: any[]): any[] {
+  return (rows || []).map((row, idx) => {
+    const optionFields = [row.option1, row.option2, row.option3, row.option4];
+    const fromOpts = row.options as Array<string | { text?: string }> | undefined;
+    const blob = [
+      ...optionFields,
+      ...(fromOpts || []).map((o) => (typeof o === 'string' ? o : o?.text || '')),
+    ]
+      .map((o) => String(o || ''))
+      .join('\n');
+    const stem = String(row.questionText || '');
+    const isAr =
+      row.questionType === 'assertion_reason' ||
+      (/\bA\s*[:：]/.test(stem) && /\bR\s*[:：]/.test(stem)) ||
+      (/Both A and R are true/i.test(blob) && /correct explanation of A/i.test(blob));
+    const isRealMatch =
+      row.questionType === 'match_following' ||
+      (/Column\s*I\b/i.test(stem) && /Column\s*II\b/i.test(stem)) ||
+      /match\s+the\s+following/i.test(stem);
+
+    // Drop false Match matter / flags stamped onto normal MCQs
+    let next = { ...row, row: row.row || idx + 1 };
+    if (!isRealMatch && (next.sharedMatterKind === 'match_following' || /Match table columns missing/i.test(String(next.validationNote || '')))) {
+      const flags = (next.validationFlags || []).filter((f: string) => f !== 'needs_figure');
+      next = {
+        ...next,
+        sharedMatterKind: next.sharedMatterKind === 'match_following' ? '' : next.sharedMatterKind,
+        sharedMatterText:
+          next.sharedMatterKind === 'match_following' ? '' : next.sharedMatterText,
+        sharedMatterId: next.sharedMatterKind === 'match_following' ? '' : next.sharedMatterId,
+        validationFlags: flags,
+        validationNote: flags.length ? next.validationNote : '',
+        solvable: flags.length === 0 && next.answerConflict !== true,
+      };
+    }
+
+    if (!isAr) return next;
+
+    const matter = String(next.sharedMatterText || '').trim();
+    const directions = looksLikeArDirectionsText(matter)
+      ? matter
+      : DEFAULT_ASSERTION_REASON_DIRECTIONS;
+    const flags = (next.validationFlags || []).filter((f: string) => f !== 'needs_figure');
+
+    return {
+      ...next,
+      questionType: 'assertion_reason',
+      sharedMatterKind: 'assertion_reason',
+      sharedMatterId: next.sharedMatterId || 'AR1',
+      sharedMatterText: directions,
+      questionImage: '',
+      hasFigure: false,
+      validationFlags: flags,
+      validationNote:
+        flags.length === 0
+          ? ''
+          : flags.includes('missing_answer')
+            ? 'Correct answer missing'
+            : String(next.validationNote || '').replace(/Match table columns missing.*/i, '').trim(),
+      solvable: flags.length === 0 && next.answerConflict !== true,
+    };
+  });
+}
+
+function arDirectionsForQuestion(q: {
+  questionType?: string;
+  sharedMatterText?: string;
+  passageText?: string;
+  assertionText?: string;
+  reasonText?: string;
+  questionText?: string;
+  options?: Array<string | { text?: string }>;
+  option1?: string;
+  option2?: string;
+  option3?: string;
+  option4?: string;
+}) {
+  if (!questionLooksLikeAssertionReason(q)) {
+    return String(q.sharedMatterText || q.passageText || '').trim();
+  }
+  const raw = String(q.sharedMatterText || '').trim();
+  return looksLikeArDirectionsText(raw) ? raw : DEFAULT_ASSERTION_REASON_DIRECTIONS;
+}
 function subjectSectionLabel(subject?: string) {
   const key = String(subject || '').trim().toLowerCase();
   return SUBJECT_SECTION_LABELS[key] || (key ? key.charAt(0).toUpperCase() + key.slice(1) : 'General');
@@ -546,6 +654,7 @@ type PdfQuestionRow = {
   correctAnswer: string;
   explanation: string;
   questionImage?: string;
+  hasFigure?: boolean;
   passageId?: string;
   passageText?: string;
   sharedMatterId?: string;
@@ -1194,11 +1303,30 @@ export default function ExamManagement() {
       .map((x) => String(x || '').trim())
       .filter(Boolean);
     const options = optionTexts.map((text) => ({ text, isCorrect: false }));
-    const type = row.questionType;
+    let type = row.questionType;
+    const looksAr = questionLooksLikeAssertionReason({
+      questionType: type,
+      questionText: row.questionText,
+      assertionText: row.assertionText,
+      reasonText: row.reasonText,
+      option1: row.option1,
+      option2: row.option2,
+      option3: row.option3,
+      option4: row.option4,
+    });
+    if (looksAr) type = 'assertion_reason';
+
     const imageUrl = String(row.questionImage || '').trim();
-    const sharedMatterText = String(row.sharedMatterText || row.passageText || '').trim();
-    const sharedMatterId = String(row.sharedMatterId || row.passageId || '').trim();
-    const sharedMatterKind = String(row.sharedMatterKind || '').trim();
+    let sharedMatterText = String(row.sharedMatterText || row.passageText || '').trim();
+    let sharedMatterId = String(row.sharedMatterId || row.passageId || '').trim();
+    let sharedMatterKind = String(row.sharedMatterKind || '').trim();
+    if (looksAr) {
+      sharedMatterText = looksLikeArDirectionsText(sharedMatterText)
+        ? sharedMatterText
+        : DEFAULT_ASSERTION_REASON_DIRECTIONS;
+      sharedMatterKind = 'assertion_reason';
+      sharedMatterId = sharedMatterId || 'AR1';
+    }
     const base = {
       questionText: String(row.questionText || '').trim(),
       questionType: type,
@@ -1214,8 +1342,7 @@ export default function ExamManagement() {
       reasonText: String(row.reasonText || '').trim() || undefined,
       matchColumnI: Array.isArray(row.matchColumnI) && row.matchColumnI.length ? row.matchColumnI : undefined,
       matchColumnII: Array.isArray(row.matchColumnII) && row.matchColumnII.length ? row.matchColumnII : undefined,
-      // Keep relative /uploads/... so student proxy + auth work consistently
-      ...(imageUrl
+      ...(imageUrl && type !== 'assertion_reason'
         ? {
             questionImage: imageUrl.startsWith('http')
               ? imageUrl.replace(API_BASE_URL, '')
@@ -1257,10 +1384,18 @@ export default function ExamManagement() {
     // mcq / assertion_reason / match_following
     const idx = options.findIndex((o) => String(o.text || '').trim().toLowerCase() === answerText.toLowerCase());
     if (idx >= 0) options[idx].isCorrect = true;
+    else {
+      // letter answer a/b/c/d
+      const letter = answerText.match(/^([a-dA-D])(?:[\).:]|$)/)?.[1];
+      if (letter) {
+        const li = letter.toUpperCase().charCodeAt(0) - 65;
+        if (li >= 0 && li < options.length) options[li].isCorrect = true;
+      }
+    }
     return {
       ...base,
       options,
-      correctAnswer: idx >= 0 ? options[idx].text : answerText,
+      correctAnswer: options.find((o) => o.isCorrect)?.text || answerText,
     };
   };
 
@@ -1355,7 +1490,7 @@ export default function ExamManagement() {
         }
       }
 
-      const rows = Array.isArray(data?.data) ? data.data : [];
+      const rows = normalizeExtractedPdfRows(Array.isArray(data?.data) ? data.data : []);
       if (rows.length === 0) {
         throw new Error('No extractable questions found in this PDF. Please try a clearer PDF or different pages.');
       }
@@ -1459,172 +1594,69 @@ export default function ExamManagement() {
       return;
     }
     const shouldUpload = window.confirm(
-      `Upload ${pdfQuestionRows.length} extracted question(s) to this exam now?\n\nThis will immediately save them to the database (including figures).`
+      `Upload ${pdfQuestionRows.length} extracted question(s) to this exam now?\n\nThis will immediately save them to the database (including figures and Assertion–Reason directions).`
     );
     if (!shouldUpload) return;
     setIsUploadingExtractedQuestions(true);
     try {
-      const headers = [
-        'questionText',
-        'questionType',
-        'subject',
-        'marks',
-        'option1',
-        'option2',
-        'option3',
-        'option4',
-        'correctAnswer',
-        'explanation',
-        'questionImage',
-        'displayOrder',
-        'sectionHeading',
-        'needsReview',
-        'reviewNote',
-      ];
-      const sanitizeCsvCell = (v: unknown) =>
-        String(v ?? '')
-          .replace(/\r\n/g, '\n')
-          .replace(/\r/g, '\n')
-          .replace(/\t/g, ' ')
-          .trim();
-      const escapeCsv = (v: unknown) => `"${sanitizeCsvCell(v).replace(/"/g, '""')}"`;
-
-      const normalizeType = (raw: unknown): 'mcq' | 'multiple' | 'integer' => {
-        const value = String(raw || '')
-          .trim()
-          .toLowerCase()
-          .replace(/[^a-z]/g, '');
-        if (['msq', 'multiple', 'multipleselect', 'multiselect', 'multiplechoice'].includes(value)) return 'multiple';
-        if (['integer', 'numeric', 'number'].includes(value)) return 'integer';
-        return 'mcq';
+      // IMPORTANT: do NOT route through CSV bulk-upload — that path only accepts
+      // mcq/multiple/integer and drops sharedMatter / assertion / match / images.
+      const rows = normalizeExtractedPdfRows(pdfQuestionRows);
+      const errors: string[] = [];
+      let created = 0;
+      const headers = {
+        ...authBearerHeaders(),
+        'Content-Type': 'application/json',
       };
 
-      const letterToOption = (answer: string, opts: string[]) => {
-        const a = String(answer || '').trim();
-        const letter = a.match(/^([a-dA-D])(?:[\).:]|$)/)?.[1];
-        if (letter) {
-          const idx = letter.toUpperCase().charCodeAt(0) - 65;
-          if (idx >= 0 && idx < opts.length && opts[idx]) return opts[idx];
-        }
-        return a;
-      };
-
-      const preValidationErrors: string[] = [];
-      const normalizedRows = pdfQuestionRows
-        .map((r, idx) => {
-          const questionText = sanitizeCsvCell(r.questionText);
-          if (!questionText) {
-            preValidationErrors.push(`Row ${idx + 1}: questionText is required`);
-            return null;
-          }
-
-          let questionType = normalizeType(r.questionType);
-          const optionValues = [r.option1, r.option2, r.option3, r.option4].map((x) => sanitizeCsvCell(x));
-          const nonEmptyOptions = optionValues.filter(Boolean);
-          let correctAnswer = sanitizeCsvCell(r.correctAnswer);
-          const correctAnswerNumber = Number(correctAnswer);
-
-          if ((questionType === 'mcq' || questionType === 'multiple') && nonEmptyOptions.length === 0) {
-            if (correctAnswer && Number.isFinite(correctAnswerNumber)) {
-              questionType = 'integer';
-            } else {
-              preValidationErrors.push(`Row ${idx + 1}: At least one option is required for ${questionType} questions`);
-              return null;
+      // Upload in small batches so we keep figures + AR fields without hammering the API
+      const CONCURRENCY = 4;
+      for (let i = 0; i < rows.length; i += CONCURRENCY) {
+        const chunk = rows.slice(i, i + CONCURRENCY);
+        const results = await Promise.all(
+          chunk.map(async (row, chunkIdx) => {
+            const idx = i + chunkIdx;
+            try {
+              if (!String(row.questionText || '').trim() && !String(row.questionImage || '').trim()) {
+                return { ok: false, error: `Row ${idx + 1}: questionText is required` };
+              }
+              const payload = mapPdfRowToQuestionPayload(row as PdfQuestionRow);
+              let res = await fetch(`${API_BASE_URL}/api/super-admin/exams/${selectedExam._id}/questions`, {
+                method: 'POST',
+                credentials: 'include',
+                headers,
+                body: JSON.stringify(payload),
+              });
+              if (res.status === 404) {
+                res = await fetch(
+                  `${API_BASE_URL}/api/super-admin/protected/exams/${selectedExam._id}/questions`,
+                  {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers,
+                    body: JSON.stringify(payload),
+                  },
+                );
+              }
+              const data = await res.json().catch(() => null);
+              if (!res.ok || !data?.success) {
+                return {
+                  ok: false,
+                  error: `Row ${idx + 1}: ${data?.message || `failed (${res.status})`}`,
+                };
+              }
+              return { ok: true };
+            } catch (e: any) {
+              return { ok: false, error: `Row ${idx + 1}: ${e?.message || 'network error'}` };
             }
-          }
-
-          if (questionType === 'mcq' || questionType === 'multiple') {
-            correctAnswer = letterToOption(correctAnswer, optionValues);
-          }
-
-          const imageUrl = String(r.questionImage || '').trim();
-          const relativeImage = imageUrl
-            ? imageUrl.startsWith('http')
-              ? (() => {
-                  try {
-                    const u = new URL(imageUrl);
-                    return u.pathname.startsWith('/uploads/') ? u.pathname : imageUrl;
-                  } catch {
-                    return imageUrl;
-                  }
-                })()
-              : imageUrl
-            : '';
-
-          const qn = Number(r.questionNumber);
-          return {
-            questionText,
-            questionType,
-            subject: sanitizeCsvCell(normalizePdfRowSubjectSlug(r.subject)),
-            marks: Number(r.marks || 1) > 0 ? Number(r.marks) : 1,
-            option1: questionType === 'integer' ? '' : optionValues[0],
-            option2: questionType === 'integer' ? '' : optionValues[1],
-            option3: questionType === 'integer' ? '' : optionValues[2],
-            option4: questionType === 'integer' ? '' : optionValues[3],
-            correctAnswer,
-            explanation: sanitizeCsvCell(r.explanation),
-            questionImage: relativeImage,
-            displayOrder: Number.isFinite(qn) && qn >= 1 ? Math.floor(qn) : idx + 1,
-            sectionHeading: subjectSectionLabel(normalizePdfRowSubjectSlug(r.subject)),
-            // Carry the review warning onto the saved question so it survives upload
-            needsReview: r.solvable === false,
-            reviewNote: sanitizeCsvCell(r.validationNote),
-          };
-        })
-        .filter((r): r is NonNullable<typeof r> => Boolean(r));
-
-      if (normalizedRows.length === 0) {
-        setQuestionCsvUploadResults({ success: 0, errors: preValidationErrors.length > 0 ? preValidationErrors : ['No valid extracted rows to upload'] });
-        throw new Error('No valid extracted rows to upload');
+          }),
+        );
+        for (const r of results) {
+          if (r.ok) created += 1;
+          else if (r.error) errors.push(r.error);
+        }
       }
 
-      const csvRows = normalizedRows.map((r) => [
-        r.questionText,
-        r.questionType,
-        r.subject,
-        r.marks,
-        r.option1,
-        r.option2,
-        r.option3,
-        r.option4,
-        r.correctAnswer,
-        r.explanation,
-        r.questionImage,
-        r.displayOrder,
-        r.sectionHeading,
-        r.needsReview ? 'true' : 'false',
-        r.reviewNote,
-      ].map(escapeCsv).join(','));
-      const csv = [headers.join(','), ...csvRows].join('\n');
-      const csvBlob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-      const file = new File([csvBlob], `pdf-extracted-${Date.now()}.csv`, { type: 'text/csv' });
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('allowDuplicates', allowDuplicateQuestionsInCsv ? 'true' : 'false');
-
-      let res = await fetch(`${API_BASE_URL}/api/super-admin/exams/${selectedExam._id}/questions/bulk-upload`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: authBearerHeaders(),
-        body: formData,
-      });
-      if (res.status === 404) {
-        res = await fetch(`${API_BASE_URL}/api/super-admin/protected/exams/${selectedExam._id}/questions/bulk-upload`, {
-          method: 'POST',
-          credentials: 'include',
-          headers: authBearerHeaders(),
-          body: formData,
-        });
-      }
-      const data = await res.json().catch(() => null);
-      const created = Number(data?.created || data?.data?.length || 0);
-      const errors: string[] = [
-        ...preValidationErrors,
-        ...(Array.isArray(data?.errors) ? data.errors : []),
-      ];
-      if (!res.ok || !data?.success) {
-        throw new Error(data?.message || `Bulk upload failed (${res.status})`);
-      }
       setQuestionCsvUploadResults({ success: created, errors });
       toast({
         title: created > 0 ? 'Upload complete' : 'Upload failed',
@@ -1633,6 +1665,9 @@ export default function ExamManagement() {
       });
       await fetchQuestions(selectedExam._id);
       await fetchExams();
+      if (created > 0) {
+        setPdfQuestionRows([]);
+      }
     } catch (error: any) {
       toast({
         title: 'Upload failed',
@@ -3858,8 +3893,9 @@ export default function ExamManagement() {
                     )}
                   </Button>
                   <p className="text-xs text-slate-500">
-                    Tip: leave this tab open. Diagrams use embedded figures only (not full-page shots).
-                    Match-the-Following uses Column I/II text. Flagged rows need review before upload.
+                    Tip: leave this tab open. Diagram questions get the figure image (or a top-of-page
+                    crop if the PDF has no embedded picture). Assertion–Reason gets directions text;
+                    Match uses Column I/II. Flagged rows need review before upload.
                   </p>
 
                   {pdfQuestionRows.length > 0 && (
@@ -4404,7 +4440,7 @@ export default function ExamManagement() {
                               <Badge variant="secondary">
                                 {q.marks || 0} marks
                               </Badge>
-                              {q.questionType === 'assertion_reason' ? (
+                              {questionLooksLikeAssertionReason(q) ? (
                                 <Badge className="bg-violet-100 text-violet-800 hover:bg-violet-100">
                                   Assertion–Reason
                                 </Badge>
@@ -4428,14 +4464,12 @@ export default function ExamManagement() {
                               <div className="min-w-0 flex-1">
                                 <SharedMatterCard
                                   text={
-                                    q.questionType === 'assertion_reason'
-                                      ? looksLikeArDirectionsText(q.sharedMatterText || q.passageText)
-                                        ? q.sharedMatterText || q.passageText
-                                        : DEFAULT_ASSERTION_REASON_DIRECTIONS
+                                    questionLooksLikeAssertionReason(q)
+                                      ? arDirectionsForQuestion(q)
                                       : q.sharedMatterText || q.passageText || ''
                                   }
                                   kind={
-                                    q.questionType === 'assertion_reason'
+                                    questionLooksLikeAssertionReason(q)
                                       ? 'assertion_reason'
                                       : q.sharedMatterKind || (q.passageText ? 'case' : '')
                                   }
@@ -4493,7 +4527,7 @@ export default function ExamManagement() {
                                 )
                                   : null}
 
-                                {q.questionImage && q.questionType !== 'assertion_reason' ? (
+                                {q.questionImage && !questionLooksLikeAssertionReason(q) ? (
                                   <div className="mb-4">
                                     <AuthenticatedUploadImage
                                       src={q.questionImage}
@@ -4507,9 +4541,15 @@ export default function ExamManagement() {
                                       fallbackLabel="Figure failed to load"
                                     />
                                   </div>
-                                ) : q.questionType !== 'assertion_reason' && !q.questionImage ? (
-                                  <div className="mb-4 flex h-24 items-center justify-center rounded-lg border border-dashed border-slate-300 bg-slate-50 text-center text-xs text-slate-500">
-                                    No figure on this question — click Edit to upload an image
+                                ) : !questionLooksLikeAssertionReason(q) &&
+                                  q.questionType !== 'match_following' &&
+                                  !q.questionImage &&
+                                  (q.hasFigure ||
+                                    /\b(diagram|figure|vernier|calliper|caliper|screw\s*gauge)\b/i.test(
+                                      String(q.questionText || ''),
+                                    )) ? (
+                                  <div className="mb-4 flex h-24 items-center justify-center rounded-lg border border-dashed border-amber-300 bg-amber-50 text-center text-xs text-amber-800">
+                                    Diagram expected — click Edit to upload the figure if it did not extract
                                   </div>
                                 ) : null}
                                 {q.questionText ? (
