@@ -87,6 +87,13 @@ const SUBJECT_SECTION_LABELS: Record<string, string> = {
   social_science: 'Social Science',
 };
 
+const DEFAULT_ASSERTION_REASON_DIRECTIONS = `Directions: Each question is followed by four options: a), b), c), and d).
+Choose the correct answer based on the given Assertion (A) and Reason (R).
+a) Both A and R are true, and R is the correct explanation of A.
+b) Both A and R are true, but R is not the correct explanation of A.
+c) A is true, but R is false.
+d) A is false, but R is true.`;
+
 function subjectSectionLabel(subject?: string) {
   const key = String(subject || '').trim().toLowerCase();
   return SUBJECT_SECTION_LABELS[key] || (key ? key.charAt(0).toUpperCase() + key.slice(1) : 'General');
@@ -1268,8 +1275,6 @@ export default function ExamManagement() {
     try {
       const form = new FormData();
       form.append('file', questionPdfFile);
-      // Fast mode skips slow verification/enrichment passes for quicker first results.
-      form.append('fastMode', 'true');
       const headers = authBearerHeaders();
       const examId = selectedExam._id;
       const startUrl = `${API_BASE_URL}/api/super-admin/exams/${examId}/questions/pdf-convert`;
@@ -1994,7 +1999,7 @@ export default function ExamManagement() {
       sectionHeading: subjectSectionLabel(questionFormData.subject),
       board: selectedExam.board,
       sharedMatterId: questionFormData.sharedMatterId.trim() || undefined,
-      sharedMatterText: questionFormData.sharedMatterText.trim() || undefined,
+      sharedMatterText: (questionFormData.sharedMatterText.trim() || (questionFormData.questionType === 'assertion_reason' ? DEFAULT_ASSERTION_REASON_DIRECTIONS : '') || undefined),
       sharedMatterKind: questionFormData.sharedMatterKind || undefined,
       assertionText: questionFormData.assertionText.trim() || undefined,
       reasonText: questionFormData.reasonText.trim() || undefined,
@@ -4414,7 +4419,7 @@ export default function ExamManagement() {
                               </span>
                               <div className="min-w-0 flex-1">
                                 <SharedMatterCard
-                                  text={q.sharedMatterText || q.passageText}
+                                  text={q.sharedMatterText || q.passageText || (q.questionType === 'assertion_reason' ? DEFAULT_ASSERTION_REASON_DIRECTIONS : '')}
                                   kind={q.sharedMatterKind || (q.passageText ? 'case' : '')}
                                   subject={q.subject}
                                 />

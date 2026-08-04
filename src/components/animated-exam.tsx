@@ -884,7 +884,14 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
     return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const normalizeExamText = (value: unknown, subject?: string): string =>
+  const DEFAULT_ASSERTION_REASON_DIRECTIONS = `Directions: Each question is followed by four options: a), b), c), and d).
+Choose the correct answer based on the given Assertion (A) and Reason (R).
+a) Both A and R are true, and R is the correct explanation of A.
+b) Both A and R are true, but R is not the correct explanation of A.
+c) A is true, but R is false.
+d) A is false, but R is true.`;
+
+const normalizeExamText = (value: unknown, subject?: string): string =>
     normalizeAndFormatExamDisplayText(value, subject);
 
   if (isLoading) {
@@ -1262,7 +1269,7 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
                         : currentQuestionIndex + 1}.
                     </span>
                     <div className="flex-1">
-                      {String(currentQuestion.sharedMatterText || currentQuestion.passageText || '').trim() ? (
+                      {String(currentQuestion.sharedMatterText || currentQuestion.passageText || (currentQuestion.questionType === 'assertion_reason' ? DEFAULT_ASSERTION_REASON_DIRECTIONS : '') || '').trim() ? (
                         <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950">
                           <div className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-amber-800">
                             {currentQuestion.sharedMatterKind === 'assertion_reason'
@@ -1275,7 +1282,7 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
                           </div>
                           <p className="whitespace-pre-wrap leading-relaxed">
                             {normalizeExamText(
-                              currentQuestion.sharedMatterText || currentQuestion.passageText,
+                              currentQuestion.sharedMatterText || currentQuestion.passageText || (currentQuestion.questionType === 'assertion_reason' ? DEFAULT_ASSERTION_REASON_DIRECTIONS : ''),
                               currentQuestion.subject,
                             )}
                           </p>
