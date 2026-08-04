@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { FlashcardViewer } from '@/components/flashcard-viewer';
-import { MyStudyDecksViewer, deckViewerPayloadFromRecord } from '@/components/my-study-decks-viewer';
+import { MyStudyDecksViewer, deckViewerPayloadFromRecord, resolveStudentDeckMeta } from '@/components/my-study-decks-viewer';
 import { WorksheetMcqViewer } from '@/components/worksheet-mcq-viewer';
 import { HomeworkCreatorViewer } from '@/components/homework-creator-viewer';
 import { MockTestViewer } from '@/components/mock-test-viewer';
@@ -30,6 +30,11 @@ import {
   isV2SixSectionStructured,
   mapV2StructuredToLegacy,
 } from '@/lib/v2-structured-to-legacy';
+import { stripStructuredAiToolMetadata } from '@/lib/strip-ai-tool-metadata';
+import { resolveChapterSummaryFromPayload } from '@/lib/parse-chapter-summary';
+import { resolveConceptBreakdownFromPayload } from '@/lib/parse-concept-breakdown';
+import { resolveQuickAssignmentFromPayload } from '@/lib/parse-quick-assignment';
+import { resolvePracticeQaFromPayload } from '@/lib/parse-practice-qa';
 
 export type InteractiveAiToolAudience = 'teacher' | 'student';
 
@@ -91,7 +96,7 @@ const TOOL_DOC_META: Record<string, { label: string; title: string; subtitle?: s
   },
   'chapter-summary-creator': {
     label: 'Chapter Summary',
-    title: 'Chapter overview',
+    title: 'Chapter summary',
     subtitle: 'Key ideas in one place',
   },
   'key-points-formula-extractor': {
@@ -185,7 +190,11 @@ export function interactiveViewerPayload(
   return { content: base.content, rawContent: rawContent ?? null };
 }
 
-function wrapViewer(slug: string, node: ReactNode, badge?: ReactNode): ReactNode {
+function wrapViewer(
+  slug: string,
+  node: ReactNode,
+  opts?: { badge?: ReactNode; title?: string; subtitle?: string },
+): ReactNode {
   const meta = TOOL_DOC_META[slug] || {
     label: String(slug || 'AI Tool').replace(/-/g, ' '),
     title: 'Generated content',
@@ -193,10 +202,10 @@ function wrapViewer(slug: string, node: ReactNode, badge?: ReactNode): ReactNode
   return (
     <AiToolDocumentShell
       toolLabel={meta.label}
-      title={meta.title}
-      subtitle={meta.subtitle}
+      title={opts?.title?.trim() || meta.title}
+      subtitle={opts?.subtitle ?? meta.subtitle}
       accent={accentForToolSlug(slug)}
-      badge={badge}
+      badge={opts?.badge}
     >
       {node}
     </AiToolDocumentShell>
@@ -229,12 +238,13 @@ export function resolveInteractiveAiToolViewer(
       );
     case 'my-study-decks': {
       const deck = deckViewerPayloadFromRecord(record);
+      const deckContent = deck.content || content;
+      const deckRaw = deck.rawContent ?? rawContent;
+      const deckMeta = resolveStudentDeckMeta(deckContent, deckRaw);
       return wrapViewer(
         slug,
-        <MyStudyDecksViewer
-          content={deck.content || content}
-          rawContent={deck.rawContent ?? rawContent}
-        />,
+        <MyStudyDecksViewer content={deckContent} rawContent={deckRaw} />,
+        deckMeta.title ? { title: deckMeta.title } : undefined,
       );
     }
     case 'worksheet-mcq-generator':
@@ -250,16 +260,51 @@ export function resolveInteractiveAiToolViewer(
       return wrapViewer(slug, <HomeworkCreatorViewer content={content} rawContent={rawContent} />);
     case 'mock-test-builder':
       return wrapViewer(slug, <MockTestViewer content={content} rawContent={rawContent} />);
-    case 'exam-question-paper-generator':
-      return wrapViewer(slug, <ExamQuestionPaperViewer content={content} rawContent={rawContent} />);
-    case 'smart-qa-practice-generator':
-      return wrapViewer(slug, <PracticeQaViewer content={content} rawContent={rawContent} />);
-    case 'quick-assignment-builder':
-      return wrapViewer(slug, <QuickAssignmentViewer content={content} rawContent={rawContent} />);
+    case 'exam-question-paper-generator': {
+      const paperTitle =
+        (typeof record.title === 'string' && record.title.trim()) ||
+        (rawContent &&
+        typeof rawContent === 'object' &&
+        !Array.isArray(rawContent) &&
+        typeof (rawContent as { paperTitle?: unknown }).paperTitle === 'string'
+          ? String((rawContent as { paperTitle: string }).paperTitle)
+          : '');
+      return wrapViewer(
+        slug,
+        <ExamQuestionPaperViewer content={content} rawContent={rawContent} />,
+        paperTitle ? { title: paperTitle } : undefined,
+      );
+    }
+    case 'smart-qa-practice-generator': {
+      const text = stripStructuredAiToolMetadata(content);
+      const { practice } = resolvePracticeQaFromPayload(text, rawContent);
+      return wrapViewer(
+        slug,
+        <PracticeQaViewer content={content} rawContent={rawContent} />,
+        practice?.title ? { title: practice.title } : undefined,
+      );
+    }
+    case 'quick-assignment-builder': {
+      const text = stripStructuredAiToolMetadata(content);
+      const { assignment } = resolveQuickAssignmentFromPayload(text, rawContent);
+      return wrapViewer(
+        slug,
+        <QuickAssignmentViewer content={content} rawContent={rawContent} />,
+        assignment?.title ? { title: assignment.title } : undefined,
+      );
+    }
     case 'smart-study-guide-generator':
       return wrapViewer(slug, <SmartStudyGuideViewer content={content} rawContent={rawContent} />);
-    case 'concept-breakdown-explainer':
-      return wrapViewer(slug, <ConceptBreakdownViewer content={content} rawContent={rawContent} />);
+    case 'concept-breakdown-explainer': {
+      const text = stripStructuredAiToolMetadata(content);
+      const { concepts } = resolveConceptBreakdownFromPayload(text, rawContent);
+      const primaryTitle = concepts[0]?.conceptTitle?.trim();
+      return wrapViewer(
+        slug,
+        <ConceptBreakdownViewer content={content} rawContent={rawContent} />,
+        primaryTitle ? { title: primaryTitle } : undefined,
+      );
+    }
     case 'concept-mastery-helper':
       return wrapViewer(
         slug,
@@ -269,8 +314,15 @@ export function resolveInteractiveAiToolViewer(
           variant={isStudent ? 'student' : 'teacher'}
         />,
       );
-    case 'chapter-summary-creator':
-      return wrapViewer(slug, <ChapterSummaryViewer content={content} rawContent={rawContent} />);
+    case 'chapter-summary-creator': {
+      const text = stripStructuredAiToolMetadata(content);
+      const { summary } = resolveChapterSummaryFromPayload(text, rawContent);
+      return wrapViewer(
+        slug,
+        <ChapterSummaryViewer content={content} rawContent={rawContent} />,
+        summary?.title ? { title: summary.title } : undefined,
+      );
+    }
     case 'key-points-formula-extractor':
       return wrapViewer(slug, <KeyPointsViewer content={content} rawContent={rawContent} />);
     case 'short-notes-summaries-maker':

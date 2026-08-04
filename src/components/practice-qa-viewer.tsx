@@ -415,65 +415,24 @@ export function PracticeQaViewer({ content, rawContent, className }: PracticeQaV
     ?.questions.filter((q) => q.options.length >= 2).length ?? 0;
 
   return (
-    <div className={cn('w-full min-w-0 space-y-2', className)}>
-      <div
-        className="w-full space-y-4 shadow-emerald-200/25"
-        style={{
-          backgroundColor: '#ecfdf5',
-          backgroundImage: 'radial-gradient(circle, rgba(16,185,129,0.09) 1px, transparent 1px)',
-          backgroundSize: '22px 22px',
-        }}
-      >
-        <div className="border-b border-emerald-100 bg-gradient-to-r from-emerald-700 via-green-600 to-teal-600 px-4 py-4 sm:px-6">
-          <div className="flex flex-wrap items-center gap-3 text-white">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/20 backdrop-blur-sm">
-              <HelpCircle className="h-5 w-5" aria-hidden />
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-xs font-semibold uppercase tracking-widest text-emerald-100">
-                Smart Q&amp;A Practice Generator
-              </p>
-              <h3 className="text-base font-bold leading-snug text-white sm:text-lg break-words">
-                {practice.title}
-              </h3>
-              <div className="mt-1.5 flex flex-wrap gap-1.5">
-                <Badge className="border-0 bg-white/20 text-white hover:bg-white/20 text-micro">
-                  {totalQs} question{totalQs !== 1 ? 's' : ''}
-                </Badge>
-                {mcqCount > 0 ? (
-                  <Badge className="border-0 bg-white/20 text-white hover:bg-white/20 text-micro">
-                    {mcqCount} MCQs
-                  </Badge>
-                ) : null}
-                {practice.sections.filter((s) => s.questions.length > 0).length > 0 ? (
-                  <Badge className="border-0 bg-white/20 text-white hover:bg-white/20 text-micro">
-                    {practice.sections.filter((s) => s.questions.length > 0).length} sections
-                  </Badge>
-                ) : null}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="space-y-2 p-3 sm:p-4 lg:p-5">
-          <div className="relative overflow-hidden rounded-xl border border-emerald-200 bg-white shadow-sm">
-            <div className="absolute inset-0 bg-gradient-to-br from-emerald-50/90 via-white to-teal-50/40" />
-            <div className="relative p-3 sm:p-4">
-              <p className="mb-0.5 text-micro font-bold uppercase tracking-wider text-emerald-700">
-                Section 1
-              </p>
-              <Badge className="mb-1 border-0 bg-emerald-100 text-emerald-900 hover:bg-emerald-100 text-xs">
-                Practice Set Title
-              </Badge>
-              <h4 className="text-lg font-bold leading-snug text-slate-900 sm:text-xl lg:text-2xl break-words">
-                {practice.title}
-              </h4>
-            </div>
-          </div>
-
-          <PracticeQaBody practice={practice} rawContent={payload.rawContent} />
-        </div>
+    <div className={cn('w-full min-w-0 space-y-5', className)}>
+      <div className="flex flex-wrap items-center gap-2">
+        <Badge className="border-0 bg-emerald-100 text-emerald-900 hover:bg-emerald-100 text-xs font-semibold">
+          {totalQs} question{totalQs !== 1 ? 's' : ''}
+        </Badge>
+        {mcqCount > 0 ? (
+          <Badge className="border-0 bg-teal-100 text-teal-900 hover:bg-teal-100 text-xs font-semibold">
+            {mcqCount} MCQs
+          </Badge>
+        ) : null}
+        {practice.sections.filter((s) => s.questions.length > 0).length > 0 ? (
+          <Badge className="border-0 bg-green-100 text-green-900 hover:bg-green-100 text-xs font-semibold">
+            {practice.sections.filter((s) => s.questions.length > 0).length} sections
+          </Badge>
+        ) : null}
       </div>
+
+      <PracticeQaBody practice={practice} rawContent={payload.rawContent} />
     </div>
   );
 }

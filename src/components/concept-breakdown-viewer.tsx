@@ -340,54 +340,32 @@ export function ConceptBreakdownViewer({ content, rawContent, className }: Conce
   const termCount = primary?.importantTerms.length ?? 0;
 
   return (
-    <div className={cn('w-full space-y-1', className)}>
-      <div
-        className="w-full space-y-4 shadow-violet-200/25"
-        style={{
-          backgroundColor: '#f5f3ff',
-          backgroundImage: 'radial-gradient(circle, rgba(139,92,246,0.09) 1px, transparent 1px)',
-          backgroundSize: '22px 22px',
-        }}
-      >
-        <div className="border-b border-violet-100 bg-gradient-to-r from-violet-700 via-purple-600 to-indigo-600 px-4 py-4 sm:px-6">
-          <div className="flex flex-wrap items-center gap-3 text-white">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/20 backdrop-blur-sm">
-              <Brain className="h-5 w-5" aria-hidden />
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-xs font-semibold uppercase tracking-widest text-violet-100">
-                Concept Breakdown Explainer
-              </p>
-              <h3 className="truncate text-lg font-bold">{primary?.conceptTitle || 'Concept'}</h3>
-              <div className="mt-1.5 flex flex-wrap gap-1.5">
-                <Badge className="border-0 bg-white/20 text-white hover:bg-white/20 text-micro">
-                  {concepts.length} concept{concepts.length !== 1 ? 's' : ''}
-                </Badge>
-                {stepCount > 0 ? (
-                  <Badge className="border-0 bg-white/20 text-white hover:bg-white/20 text-micro">
-                    {stepCount} steps
-                  </Badge>
-                ) : null}
-                {termCount > 0 ? (
-                  <Badge className="border-0 bg-white/20 text-white hover:bg-white/20 text-micro">
-                    {termCount} terms
-                  </Badge>
-                ) : null}
-              </div>
-            </div>
-          </div>
-        </div>
+    <div className={cn('w-full space-y-5', className)}>
+      <div className="flex flex-wrap items-center gap-2">
+        <Badge className="border-0 bg-violet-100 text-violet-900 hover:bg-violet-100 text-xs font-semibold">
+          {concepts.length} concept{concepts.length !== 1 ? 's' : ''}
+        </Badge>
+        {stepCount > 0 ? (
+          <Badge className="border-0 bg-purple-100 text-purple-900 hover:bg-purple-100 text-xs font-semibold">
+            {stepCount} steps
+          </Badge>
+        ) : null}
+        {termCount > 0 ? (
+          <Badge className="border-0 bg-indigo-100 text-indigo-900 hover:bg-indigo-100 text-xs font-semibold">
+            {termCount} terms
+          </Badge>
+        ) : null}
+      </div>
 
-        <div className="space-y-0.5 p-1.5 sm:p-2">
-          {concepts.map((concept, i) => (
-            <ConceptBreakdownPanel
-              key={`${concept.conceptTitle}-${i}`}
-              concept={concept}
-              index={i}
-              total={concepts.length}
-            />
-          ))}
-        </div>
+      <div className="flex flex-col gap-4">
+        {concepts.map((concept, i) => (
+          <ConceptBreakdownPanel
+            key={`${concept.conceptTitle}-${i}`}
+            concept={concept}
+            index={i}
+            total={concepts.length}
+          />
+        ))}
       </div>
     </div>
   );

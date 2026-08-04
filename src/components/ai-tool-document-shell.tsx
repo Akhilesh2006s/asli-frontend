@@ -189,7 +189,7 @@ export function AiToolDocumentShell({
                 </p>
                 <h3 className="truncate text-2xl font-bold sm:text-3xl leading-tight">{displayTitle}</h3>
                 {displaySubtitle ? (
-                  <p className="mt-1 text-sm sm:text-base text-white/85">{displaySubtitle}</p>
+                  <p className="mt-1 text-base sm:text-lg text-white/90">{displaySubtitle}</p>
                 ) : null}
               </div>
             </div>

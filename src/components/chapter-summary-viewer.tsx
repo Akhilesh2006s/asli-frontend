@@ -3,7 +3,6 @@ import { ToolSectionIcon } from '@/components/ai-tool-3d-icons';
 import { useMemo, type ReactNode } from 'react';
 import {
   BookOpen,
-  BookText,
   FileQuestion,
   GitBranch,
   Lightbulb,
@@ -291,63 +290,39 @@ export function ChapterSummaryViewer({ content, rawContent, className }: Chapter
     summary.quickRevisionNotes.length,
     summary.practiceRecallQuestions.length,
   ].filter(Boolean).length;
+  const conceptChips = summary.importantConcepts
+    .map((c) => c.name?.trim())
+    .filter(Boolean)
+    .slice(0, 6);
 
+  // Outer document chrome lives in AiToolDocumentShell (resolveInteractiveAiToolViewer).
   return (
-    <div className={cn('w-full space-y-1', className)}>
-      <div
-        className="w-full space-y-4 shadow-blue-200/25"
-        style={{
-          backgroundColor: '#eff6ff',
-          backgroundImage: 'radial-gradient(circle, rgba(59,130,246,0.09) 1px, transparent 1px)',
-          backgroundSize: '22px 22px',
-        }}
-      >
-        <div className="border-b border-blue-100 bg-gradient-to-r from-blue-700 via-sky-600 to-indigo-600 px-4 py-4 sm:px-6">
-          <div className="flex flex-wrap items-center gap-3 text-white">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/20 backdrop-blur-sm">
-              <BookText className="h-5 w-5" aria-hidden />
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-xs font-semibold uppercase tracking-widest text-blue-100">
-                Chapter Summary Creator
-              </p>
-              <h3 className="truncate text-lg font-bold">{summary.title}</h3>
-              <div className="mt-1.5 flex flex-wrap gap-1.5">
-                <Badge className="border-0 bg-white/20 text-white hover:bg-white/20 text-micro">
-                  {filledSections + 1} section{filledSections + 1 === 1 ? '' : 's'}
-                </Badge>
-                {summary.importantConcepts.length > 0 ? (
-                  <Badge className="border-0 bg-white/20 text-white hover:bg-white/20 text-micro">
-                    {summary.importantConcepts.length} concepts
-                  </Badge>
-                ) : null}
-              </div>
-            </div>
-          </div>
-        </div>
+    <div className={cn('w-full space-y-5', className)}>
+      <div className="flex flex-wrap items-center gap-2">
+        <Badge className="border-0 bg-blue-100 text-blue-900 hover:bg-blue-100 text-xs font-semibold">
+          {filledSections} section{filledSections === 1 ? '' : 's'}
+        </Badge>
+        {summary.importantConcepts.length > 0 ? (
+          <Badge className="border-0 bg-sky-100 text-sky-900 hover:bg-sky-100 text-xs font-semibold">
+            {summary.importantConcepts.length} concepts
+          </Badge>
+        ) : null}
+        {conceptChips.map((name) => (
+          <Badge
+            key={name}
+            className="border border-blue-200 bg-white text-blue-800 hover:bg-white text-xs font-medium"
+          >
+            {name}
+          </Badge>
+        ))}
+      </div>
 
-        <div className="space-y-0.5 p-1.5 sm:p-2">
-          <div className="relative overflow-hidden rounded-xl border border-blue-200 bg-white shadow-sm">
-            <div className="absolute inset-0 bg-gradient-to-br from-blue-50/90 via-white to-sky-50/40" />
-            <div className="relative p-2.5 sm:p-3">
-              <p className="mb-0.5 text-micro font-bold uppercase tracking-wider text-blue-700">
-                Section 1
-              </p>
-              <Badge className="mb-1 border-0 bg-blue-100 text-blue-900 hover:bg-blue-100 text-xs">
-                Chapter Summary Title
-              </Badge>
-              <h4 className="text-lg font-bold leading-snug text-slate-900 sm:text-xl">{summary.title}</h4>
-            </div>
+      <div className="flex flex-col gap-4">
+        {bodySections.map((section, i) => (
+          <div key={(section as { key?: string }).key || `section-${i}`} className="w-full min-w-0">
+            {section}
           </div>
-
-          <div className="mt-0.5 flex flex-col gap-0.5">
-            {bodySections.map((section) => (
-              <div key={(section as { key?: string }).key} className="w-full min-w-0">
-                {section}
-              </div>
-            ))}
-          </div>
-        </div>
+        ))}
       </div>
     </div>
   );

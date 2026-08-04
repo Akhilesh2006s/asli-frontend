@@ -391,16 +391,18 @@ export function ExamQuestionPaperViewer({
 
   if (variant === 'student' && mockMeta) {
     return (
-      <div className={cn('space-y-4', className)}>
-        <header className="overflow-hidden rounded-2xl border border-rose-200 bg-gradient-to-r from-rose-900 via-rose-800 to-orange-900 p-5 text-white shadow-lg">
-          <p className="text-mini uppercase tracking-[0.18em] text-rose-200">Mock Test Builder</p>
-          <h2 className="mt-1 text-xl font-bold">{paperTitle}</h2>
-          <div className="mt-3 flex flex-wrap gap-2">
-            <Badge className="bg-white/15 text-white hover:bg-white/15">{totalQuestions} Questions</Badge>
-            <Badge className="bg-white/15 text-white hover:bg-white/15">{totalMarks || '—'} Total Marks</Badge>
-            <Badge className="bg-white/15 text-white hover:bg-white/15">{activeSections.length} Sections</Badge>
-          </div>
-        </header>
+      <div className={cn('space-y-5', className)}>
+        <div className="flex flex-wrap gap-2">
+          <Badge className="border-0 bg-rose-100 text-rose-900 hover:bg-rose-100 text-xs font-semibold">
+            {totalQuestions} Questions
+          </Badge>
+          <Badge className="border-0 bg-orange-100 text-orange-900 hover:bg-orange-100 text-xs font-semibold">
+            {totalMarks || '—'} Total Marks
+          </Badge>
+          <Badge className="border-0 bg-amber-100 text-amber-900 hover:bg-amber-100 text-xs font-semibold">
+            {activeSections.length} Sections
+          </Badge>
+        </div>
         <AiToolMockTestSectionLayout>
           {(() => {
             const defs: Array<{
@@ -489,18 +491,18 @@ export function ExamQuestionPaperViewer({
   }
 
   return (
-    <div className={cn('space-y-4', className)} data-ai-tool-export>
-      <header className="overflow-hidden rounded-2xl border border-indigo-200 bg-gradient-to-r from-slate-900 via-indigo-900 to-slate-800 p-5 text-white shadow-lg print:hidden">
-        <p className="text-mini uppercase tracking-[0.18em] text-indigo-200">
-          Exam Question Paper Generator
-        </p>
-        <h2 className="mt-1 text-xl font-bold">{paperTitle}</h2>
-        <div className="mt-3 flex flex-wrap gap-2">
-          <Badge className="bg-white/15 text-white hover:bg-white/15">{totalQuestions} Questions</Badge>
-          <Badge className="bg-white/15 text-white hover:bg-white/15">{totalMarks || '—'} Total Marks</Badge>
-          <Badge className="bg-white/15 text-white hover:bg-white/15">{activeSections.length} Sections</Badge>
-        </div>
-      </header>
+    <div className={cn('space-y-5', className)} data-ai-tool-export>
+      <div className="flex flex-wrap gap-2 print:hidden">
+        <Badge className="border-0 bg-indigo-100 text-indigo-900 hover:bg-indigo-100 text-xs font-semibold">
+          {totalQuestions} Questions
+        </Badge>
+        <Badge className="border-0 bg-violet-100 text-violet-900 hover:bg-violet-100 text-xs font-semibold">
+          {totalMarks || '—'} Total Marks
+        </Badge>
+        <Badge className="border-0 bg-sky-100 text-sky-900 hover:bg-sky-100 text-xs font-semibold">
+          {activeSections.length} Sections
+        </Badge>
+      </div>
 
       <AiToolV2SectionStack>
         {(() => {

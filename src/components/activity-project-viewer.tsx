@@ -749,143 +749,85 @@ export function ActivityProjectViewer({
 
   if (variant === 'teacher') {
     return (
-      <div className={cn('w-full', className)}>
-        <div
-          className="w-full space-y-4 shadow-indigo-200/25"
-          style={{
-            backgroundColor: '#f8fafc',
-            backgroundImage:
-              'radial-gradient(circle, rgba(99,102,241,0.06) 1px, transparent 1px)',
-            backgroundSize: '22px 22px',
-          }}
-        >
-          <div className="border-b border-indigo-100 bg-gradient-to-r from-indigo-700 via-violet-700 to-indigo-600 px-4 py-4 sm:px-6">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="flex items-center gap-3 text-white">
-                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/15 backdrop-blur-sm ring-1 ring-white/20">
-                  <FlaskConical className="h-5 w-5" aria-hidden />
-                </div>
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-widest text-indigo-200">
-                    Activity &amp; Project Generator
-                  </p>
-                  <h3 className="text-lg font-bold sm:text-xl">Teacher lesson kit</h3>
-                </div>
-              </div>
-              {resolved.length > 1 ? (
-                <div className="flex flex-wrap gap-2">
-                  {resolved.map((act, idx) => (
-                    <button
-                      key={act.sl}
-                      type="button"
-                      onClick={() => setActiveIdx(idx)}
-                      className={cn(
-                        'rounded-full px-4 py-1.5 text-xs font-bold transition-all',
-                        idx === safeIdx
-                          ? 'bg-white text-indigo-700 shadow-md'
-                          : 'bg-white/15 text-white hover:bg-white/25 ring-1 ring-white/20',
-                      )}
-                    >
-                      {act.title?.trim() ? act.title.slice(0, 28) : `Item ${idx + 1}`}
-                    </button>
-                  ))}
-                </div>
-              ) : (
-                <span className="inline-flex items-center gap-1 rounded-full bg-white/15 px-3 py-1 text-xs font-medium text-white ring-1 ring-white/20">
-                  <CheckCircle2 className="h-3.5 w-3.5" aria-hidden />
-                  Ready to teach
-                </span>
-              )}
-            </div>
-          </div>
-
-          <div className="p-3 sm:p-5 max-h-[min(80vh,900px)] overflow-y-auto">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={`teacher-act-${safeIdx}`}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -6 }}
-                transition={{ duration: 0.2 }}
+      <div className={cn('w-full space-y-5', className)}>
+        {resolved.length > 1 ? (
+          <div className="flex flex-wrap gap-2">
+            {resolved.map((act, idx) => (
+              <button
+                key={act.sl}
+                type="button"
+                onClick={() => setActiveIdx(idx)}
+                className={cn(
+                  'rounded-full px-4 py-1.5 text-xs font-bold transition-all',
+                  idx === safeIdx
+                    ? 'bg-indigo-700 text-white shadow-md'
+                    : 'bg-indigo-50 text-indigo-800 hover:bg-indigo-100 ring-1 ring-indigo-200',
+                )}
               >
-                <TeacherActivityCard
-                  activity={current}
-                  prefix={`teacher-act-${safeIdx}`}
-                />
-              </motion.div>
-            </AnimatePresence>
+                {act.title?.trim() ? act.title.slice(0, 28) : `Item ${idx + 1}`}
+              </button>
+            ))}
           </div>
-        </div>
+        ) : (
+          <span className="inline-flex items-center gap-1 rounded-full bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-800 ring-1 ring-indigo-200">
+            <CheckCircle2 className="h-3.5 w-3.5" aria-hidden />
+            Ready to teach
+          </span>
+        )}
+
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={`teacher-act-${safeIdx}`}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.2 }}
+          >
+            <TeacherActivityCard
+              activity={current}
+              prefix={`teacher-act-${safeIdx}`}
+            />
+          </motion.div>
+        </AnimatePresence>
       </div>
     );
   }
 
   if (variant === 'student') {
     return (
-      <div className={cn('w-full', className)}>
-        <div
-          className="w-full space-y-4 shadow-orange-200/30"
-          style={{
-            backgroundColor: '#faf7f2',
-            backgroundImage:
-              'radial-gradient(circle, rgba(251,146,60,0.07) 1px, transparent 1px)',
-            backgroundSize: '20px 20px',
-          }}
-        >
-          <div className="border-b border-orange-100 bg-gradient-to-r from-orange-500 via-amber-500 to-orange-400 px-4 py-4 sm:px-6">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="flex items-center gap-3 text-white">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/20 backdrop-blur-sm">
-                  <FlaskConical className="h-5 w-5" aria-hidden />
-                </div>
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-widest text-orange-100">
-                    Lab journal
-                  </p>
-                  <h3 className="text-lg font-bold">Project Idea Lab</h3>
-                </div>
-              </div>
-              {resolved.length > 1 ? (
-                <div className="flex flex-wrap gap-2">
-                  {resolved.map((act, idx) => (
-                    <button
-                      key={act.sl}
-                      type="button"
-                      onClick={() => setActiveIdx(idx)}
-                      className={cn(
-                        'rounded-full px-4 py-1.5 text-xs font-bold transition-all',
-                        idx === safeIdx
-                          ? 'bg-white text-orange-700 shadow-md'
-                          : 'bg-white/20 text-white hover:bg-white/30',
-                      )}
-                    >
-                      {act.title?.trim() ? act.title.slice(0, 28) : `Item ${idx + 1}`}
-                    </button>
-                  ))}
-                </div>
-              ) : (
-                <span className="rounded-full bg-white/20 px-3 py-1 text-xs font-medium text-white">
-                  Ready
-                </span>
-              )}
-            </div>
-          </div>
-
-          <div className="p-3 sm:p-4">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={`act-${safeIdx}`}
-                className="h-fit"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -6 }}
-                transition={{ duration: 0.2 }}
+      <div className={cn('w-full space-y-5', className)}>
+        {resolved.length > 1 ? (
+          <div className="flex flex-wrap gap-2">
+            {resolved.map((act, idx) => (
+              <button
+                key={act.sl}
+                type="button"
+                onClick={() => setActiveIdx(idx)}
+                className={cn(
+                  'rounded-full px-4 py-1.5 text-xs font-bold transition-all',
+                  idx === safeIdx
+                    ? 'bg-orange-600 text-white shadow-md'
+                    : 'bg-orange-50 text-orange-900 hover:bg-orange-100 ring-1 ring-orange-200',
+                )}
               >
-                <StudentActivityCard activity={current} prefix={`act-${safeIdx}`} />
-              </motion.div>
-            </AnimatePresence>
+                {act.title?.trim() ? act.title.slice(0, 28) : `Item ${idx + 1}`}
+              </button>
+            ))}
           </div>
-        </div>
+        ) : null}
+
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={`act-${safeIdx}`}
+            className="h-fit"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.2 }}
+          >
+            <StudentActivityCard activity={current} prefix={`act-${safeIdx}`} />
+          </motion.div>
+        </AnimatePresence>
       </div>
     );
   }

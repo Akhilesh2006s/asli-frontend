@@ -1,4 +1,4 @@
-import { RealisticIcon, type AiTool3dIconName } from '@/components/ai-tool-3d-icons';
+import { type AiTool3dIconName } from '@/components/ai-tool-3d-icons';
 import {
   AiToolStackedList,
   AiToolStackedSection,
@@ -536,42 +536,13 @@ export function MyStudyDecksViewer({ content, rawContent, className }: MyStudyDe
   const visibleSections = orderedSections.filter((sec) => sec.hasContent);
 
   return (
-    <div className={cn('w-full space-y-2', className)}>
-      <div
-        className="w-full space-y-4 shadow-violet-200/25"
-        style={{
-          backgroundColor: '#f5f3ff',
-          backgroundImage: 'radial-gradient(circle, rgba(139,92,246,0.12) 1px, transparent 1px)',
-          backgroundSize: '22px 22px',
-        }}
-      >
-        <div className="border-b border-violet-100 bg-gradient-to-r from-violet-600 via-indigo-600 to-purple-600 px-4 py-4 sm:px-6">
-          <div className="flex flex-wrap items-center gap-3 text-white">
-            <RealisticIcon name="books" alt="" className="h-12 w-12 sm:h-14 sm:w-14" />
-            <div className="min-w-0">
-              <p className="text-xs font-semibold uppercase tracking-widest text-violet-100">
-                My Study Decks
-              </p>
-              <h3 className="text-lg font-bold truncate">{meta.title}</h3>
-              {cards.length > 0 ? (
-                <p className="text-xs text-violet-100/90 mt-0.5">{cards.length} flashcards in deck</p>
-              ) : null}
-            </div>
-          </div>
-        </div>
-
-        <div className="p-3 sm:p-4">
-          <AiToolStackedList>
-            <AiToolStackedSection num="1" title="Deck Title" iconName="books">
-              <Badge className="mb-2 border-0 bg-violet-100 text-violet-900 hover:bg-violet-100 text-xs">
-                Deck
-              </Badge>
-              <h4 className="text-lg sm:text-xl font-bold text-slate-900 leading-snug">{meta.title}</h4>
-            </AiToolStackedSection>
-            {visibleSections.map((sec, i) => renderDeckSection(sec, i + 2))}
-          </AiToolStackedList>
-        </div>
-      </div>
+    <div className={cn('w-full space-y-5', className)}>
+      {cards.length > 0 ? (
+        <p className="text-sm font-semibold text-violet-800">{cards.length} flashcards in deck</p>
+      ) : null}
+      <AiToolStackedList>
+        {visibleSections.map((sec, i) => renderDeckSection(sec, i + 1))}
+      </AiToolStackedList>
     </div>
   );
 }
