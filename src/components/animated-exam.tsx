@@ -884,13 +884,24 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
     return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const DEFAULT_ASSERTION_REASON_DIRECTIONS = `Directions: Each question is followed by four options: a), b), c), and d).
-Choose the correct answer based on the given Assertion (A) and Reason (R).
-a) Both A and R are true, and R is the correct explanation of A.
-b) Both A and R are true, but R is not the correct explanation of A.
-c) A is true, but R is false.
-d) A is false, but R is true.`;
+  const DEFAULT_ASSERTION_REASON_DIRECTIONS = `Directions: Each question below consists of an Assertion (A) and a Reason (R). Choose the correct option:
+(a) Both A and R are true, and R is the correct explanation of A.
+(b) Both A and R are true, but R is not the correct explanation of A.
+(c) A is true, but R is false.
+(d) A is false, but R is true.`;
 
+  const arMatterText = (() => {
+    if (currentQuestion.questionType !== 'assertion_reason') {
+      return String(currentQuestion.sharedMatterText || currentQuestion.passageText || '').trim();
+    }
+    const raw = String(currentQuestion.sharedMatterText || currentQuestion.passageText || '').trim();
+    const ok =
+      /correct explanation of A/i.test(raw) ||
+      (/Both A and R are true/i.test(raw) && /A is false,\s*but R is true/i.test(raw));
+    return ok ? raw : DEFAULT_ASSERTION_REASON_DIRECTIONS;
+  })();
+  const showQuestionImage =
+    Boolean(currentQuestion.questionImage) && currentQuestion.questionType !== 'assertion_reason';
 const normalizeExamText = (value: unknown, subject?: string): string =>
     normalizeAndFormatExamDisplayText(value, subject);
 
@@ -1269,10 +1280,10 @@ const normalizeExamText = (value: unknown, subject?: string): string =>
                         : currentQuestionIndex + 1}.
                     </span>
                     <div className="flex-1">
-                      {String(currentQuestion.sharedMatterText || currentQuestion.passageText || (currentQuestion.questionType === 'assertion_reason' ? DEFAULT_ASSERTION_REASON_DIRECTIONS : '') || '').trim() ? (
+                      {arMatterText ? (
                         <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950">
                           <div className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-amber-800">
-                            {currentQuestion.sharedMatterKind === 'assertion_reason'
+                            {currentQuestion.questionType === 'assertion_reason' || currentQuestion.sharedMatterKind === 'assertion_reason'
                               ? 'Assertion–Reason directions'
                               : currentQuestion.sharedMatterKind === 'match_following'
                                 ? 'Match the Following'
@@ -1281,10 +1292,7 @@ const normalizeExamText = (value: unknown, subject?: string): string =>
                                   : 'Shared matter'}
                           </div>
                           <p className="whitespace-pre-wrap leading-relaxed">
-                            {normalizeExamText(
-                              currentQuestion.sharedMatterText || currentQuestion.passageText || (currentQuestion.questionType === 'assertion_reason' ? DEFAULT_ASSERTION_REASON_DIRECTIONS : ''),
-                              currentQuestion.subject,
-                            )}
+                            {normalizeExamText(arMatterText, currentQuestion.subject)}
                           </p>
                         </div>
                       ) : null}
@@ -1308,7 +1316,7 @@ const normalizeExamText = (value: unknown, subject?: string): string =>
 
                       {((Array.isArray(currentQuestion.matchColumnI) && currentQuestion.matchColumnI.length > 0) ||
                         (Array.isArray(currentQuestion.matchColumnII) && currentQuestion.matchColumnII.length > 0)) &&
-                        !currentQuestion.questionImage && (
+                        !showQuestionImage && (
                         <div className="mb-4 grid gap-3 sm:grid-cols-2">
                           <div className="rounded-lg border border-teal-100 bg-teal-50/60 p-3 text-sm">
                             <div className="mb-1 text-[10px] font-semibold uppercase text-teal-800">Column I</div>
@@ -1335,7 +1343,7 @@ const normalizeExamText = (value: unknown, subject?: string): string =>
                         </div>
                       )}
 
-                      {currentQuestion.questionImage && (
+                      {showQuestionImage && (
                         <AuthenticatedUploadImage
                           src={currentQuestion.questionImage}
                           alt={

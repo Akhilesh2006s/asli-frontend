@@ -87,13 +87,19 @@ const SUBJECT_SECTION_LABELS: Record<string, string> = {
   social_science: 'Social Science',
 };
 
-const DEFAULT_ASSERTION_REASON_DIRECTIONS = `Directions: Each question is followed by four options: a), b), c), and d).
-Choose the correct answer based on the given Assertion (A) and Reason (R).
-a) Both A and R are true, and R is the correct explanation of A.
-b) Both A and R are true, but R is not the correct explanation of A.
-c) A is true, but R is false.
-d) A is false, but R is true.`;
+const DEFAULT_ASSERTION_REASON_DIRECTIONS = `Directions: Each question below consists of an Assertion (A) and a Reason (R). Choose the correct option:
+(a) Both A and R are true, and R is the correct explanation of A.
+(b) Both A and R are true, but R is not the correct explanation of A.
+(c) A is true, but R is false.
+(d) A is false, but R is true.`;
 
+function looksLikeArDirectionsText(text?: string) {
+  const t = String(text || '');
+  return (
+    /correct explanation of A/i.test(t) ||
+    (/Both A and R are true/i.test(t) && /A is false,\s*but R is true/i.test(t))
+  );
+}
 function subjectSectionLabel(subject?: string) {
   const key = String(subject || '').trim().toLowerCase();
   return SUBJECT_SECTION_LABELS[key] || (key ? key.charAt(0).toUpperCase() + key.slice(1) : 'General');
@@ -3852,8 +3858,8 @@ export default function ExamManagement() {
                     )}
                   </Button>
                   <p className="text-xs text-slate-500">
-                    Tip: leave this tab open. Uses fast extract (usually a few minutes) while still capturing
-                    figures and Match-the-Following table photos. Review flagged answers before uploading.
+                    Tip: leave this tab open. Diagrams use embedded figures only (not full-page shots).
+                    Match-the-Following uses Column I/II text. Flagged rows need review before upload.
                   </p>
 
                   {pdfQuestionRows.length > 0 && (
@@ -4421,8 +4427,18 @@ export default function ExamManagement() {
                               </span>
                               <div className="min-w-0 flex-1">
                                 <SharedMatterCard
-                                  text={q.sharedMatterText || q.passageText || (q.questionType === 'assertion_reason' ? DEFAULT_ASSERTION_REASON_DIRECTIONS : '')}
-                                  kind={q.sharedMatterKind || (q.passageText ? 'case' : '')}
+                                  text={
+                                    q.questionType === 'assertion_reason'
+                                      ? looksLikeArDirectionsText(q.sharedMatterText || q.passageText)
+                                        ? q.sharedMatterText || q.passageText
+                                        : DEFAULT_ASSERTION_REASON_DIRECTIONS
+                                      : q.sharedMatterText || q.passageText || ''
+                                  }
+                                  kind={
+                                    q.questionType === 'assertion_reason'
+                                      ? 'assertion_reason'
+                                      : q.sharedMatterKind || (q.passageText ? 'case' : '')
+                                  }
                                   subject={q.subject}
                                 />
 
@@ -4477,7 +4493,7 @@ export default function ExamManagement() {
                                 )
                                   : null}
 
-                                {q.questionImage ? (
+                                {q.questionImage && q.questionType !== 'assertion_reason' ? (
                                   <div className="mb-4">
                                     <AuthenticatedUploadImage
                                       src={q.questionImage}
@@ -4491,12 +4507,11 @@ export default function ExamManagement() {
                                       fallbackLabel="Figure failed to load"
                                     />
                                   </div>
-                                ) : (
+                                ) : q.questionType !== 'assertion_reason' && !q.questionImage ? (
                                   <div className="mb-4 flex h-24 items-center justify-center rounded-lg border border-dashed border-slate-300 bg-slate-50 text-center text-xs text-slate-500">
                                     No figure on this question — click Edit to upload an image
                                   </div>
-                                )}
-
+                                ) : null}
                                 {q.questionText ? (
                                   <p className="mb-4 text-base text-gray-900 sm:text-lg">
                                     {formatChemistryText(q.questionText, q.subject)}
