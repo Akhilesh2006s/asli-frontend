@@ -1416,11 +1416,14 @@ export default function ExamManagement() {
     } as any;
 
     if (type === 'integer') {
-      const n = Number(String(row.correctAnswer || '').trim());
+      const raw = String(row.correctAnswer ?? row.integerAnswer ?? '').trim();
+      // Pull first integer token (handles "Ans: 12", "12.0", "-3 marks")
+      const m = raw.replace(/,/g, '').match(/[+-]?\d+/);
+      const n = m ? parseInt(m[0], 10) : Number.NaN;
       return {
         ...base,
         options: [],
-        correctAnswer: Number.isFinite(n) ? n : String(row.correctAnswer || '').trim(),
+        correctAnswer: Number.isFinite(n) ? n : raw,
       };
     }
 
