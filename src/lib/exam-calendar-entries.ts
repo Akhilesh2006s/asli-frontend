@@ -35,6 +35,16 @@ export function eachLocalDayInRange(start: Date, end: Date): Date[] {
   return days;
 }
 
+/** Start + end calendar days only (same day → one entry). Used for exam red-dot markers. */
+export function examMarkerDays(start: Date, end: Date): Date[] {
+  const startDay = new Date(start);
+  startDay.setHours(0, 0, 0, 0);
+  const endDay = new Date(end);
+  endDay.setHours(0, 0, 0, 0);
+  if (startDay.getTime() === endDay.getTime()) return [startDay];
+  return [startDay, endDay];
+}
+
 export function isDateWithinExamWindow(day: Date, exam: any): boolean {
   const start = parseCalendarDate(exam?.startDate);
   const end = parseCalendarDate(exam?.endDate) || start;
@@ -43,6 +53,17 @@ export function isDateWithinExamWindow(day: Date, exam: any): boolean {
   const startKey = formatCalendarDateKey(start);
   const endKey = formatCalendarDateKey(end);
   return key >= startKey && key <= endKey;
+}
+
+/** True when day is the exam open or close date (calendar red-dot days). */
+export function isExamMarkerDate(day: Date, exam: any): boolean {
+  const start = parseCalendarDate(exam?.startDate);
+  const end = parseCalendarDate(exam?.endDate) || start;
+  if (!start) return false;
+  const key = formatCalendarDateKey(day);
+  const startKey = formatCalendarDateKey(start);
+  const endKey = formatCalendarDateKey(end);
+  return key === startKey || key === endKey;
 }
 
 export type ExamCalendarEntry = {
@@ -54,7 +75,7 @@ export type ExamCalendarEntry = {
   source: any;
 };
 
-/** One timetable row per day the exam is open (uses exam start time on every listed day). */
+/** One calendar marker on start date and one on end date (not every day in between). */
 export function buildExamCalendarEntries(exams: any[]): ExamCalendarEntry[] {
   const entries: ExamCalendarEntry[] = [];
 
@@ -66,10 +87,17 @@ export function buildExamCalendarEntries(exams: any[]): ExamCalendarEntry[] {
     const examId = String(exam._id || exam.id || '');
     if (!examId) continue;
 
-    const days = eachLocalDayInRange(start, end);
-    for (const day of days) {
+    for (const day of examMarkerDays(start, end)) {
       const slot = new Date(day);
-      slot.setHours(start.getHours(), start.getMinutes(), 0, 0);
+      const isEnd =
+        formatCalendarDateKey(day) === formatCalendarDateKey(end) &&
+        formatCalendarDateKey(start) !== formatCalendarDateKey(end);
+      // Start marker uses open time; end marker uses close time
+      if (isEnd) {
+        slot.setHours(end.getHours(), end.getMinutes(), 0, 0);
+      } else {
+        slot.setHours(start.getHours(), start.getMinutes(), 0, 0);
+      }
       entries.push({
         id: examId,
         type: 'exam',

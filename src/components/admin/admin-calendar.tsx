@@ -169,17 +169,11 @@ export default function AdminCalendar() {
       const startStr = `${normalizedStartDate.getFullYear()}-${String(normalizedStartDate.getMonth() + 1).padStart(2, '0')}-${String(normalizedStartDate.getDate()).padStart(2, '0')}`;
       const endStr = `${normalizedEndDate.getFullYear()}-${String(normalizedEndDate.getMonth() + 1).padStart(2, '0')}-${String(normalizedEndDate.getDate()).padStart(2, '0')}`;
 
-      const matches = dateStr >= startStr && dateStr <= endStr;
-      if (matches) {
-        console.log('Event matched for date:', {
-          calendarDate: dateStr,
-          eventStartDate: startStr,
-          eventEndDate: endStr,
-          eventName: event.name,
-          eventId: event._id || event.id
-        });
+      // Exams: show on start + end dates only (not every day in the window)
+      if (event.type === 'exam') {
+        return dateStr === startStr || dateStr === endStr;
       }
-      return matches;
+      return dateStr >= startStr && dateStr <= endStr;
     });
   };
 

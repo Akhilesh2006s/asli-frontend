@@ -163,6 +163,15 @@ export function TeacherDashboardSchedule({
     []
   );
 
+  /** Red dots: exam window endpoints only (not every day in between). */
+  const isExamMarkerDate = useCallback((date: Date, entry: UnifiedScheduleEntry) => {
+    if (!isValid(date) || entry.eventType !== 'exam') return false;
+    const current = format(date, 'yyyy-MM-dd');
+    const start = entry.date;
+    const end = entry.endDateKey || entry.date;
+    return current === start || current === end;
+  }, []);
+
   const classEntries = useMemo<UnifiedScheduleEntry[]>(
     () =>
       entries.map((entry) => ({
@@ -180,6 +189,7 @@ export function TeacherDashboardSchedule({
         .filter((e) => {
           if (e.eventType === 'class') return e.date === dateKey;
           if (!dateKey) return false;
+          // Still list exams/admin events that are active on the selected day
           return dateKey >= e.date && dateKey <= (e.endDateKey || e.date);
         })
         .sort((a, b) => a.startTime.localeCompare(b.startTime)),
@@ -189,14 +199,15 @@ export function TeacherDashboardSchedule({
   const scheduleMatcher = useCallback(
     (date: Date) =>
       classEntries.some((e) => e.date === format(date, 'yyyy-MM-dd')) ||
-      externalEvents.some((e) => isDateWithinEvent(date, e)),
+      externalEvents.some(
+        (e) => e.eventType === 'admin_event' && isDateWithinEvent(date, e),
+      ),
     [classEntries, externalEvents, isDateWithinEvent]
   );
 
   const examMatcher = useCallback(
-    (date: Date) =>
-      externalEvents.some((e) => e.eventType === 'exam' && isDateWithinEvent(date, e)),
-    [externalEvents, isDateWithinEvent]
+    (date: Date) => externalEvents.some((e) => isExamMarkerDate(date, e)),
+    [externalEvents, isExamMarkerDate]
   );
 
   const adminEventMatcher = useCallback(

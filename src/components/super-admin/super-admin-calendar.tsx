@@ -307,6 +307,16 @@ export default function SuperAdminCalendar({ onNavigateToExams }: SuperAdminCale
     events.forEach((ev) => {
       const start = stripTime(new Date(ev.startDate));
       const end = stripTime(new Date(ev.endDate));
+      // Exams: mark start + end only (not every day in the window)
+      if (ev.type === 'exam') {
+        for (const t of start === end ? [start] : [start, end]) {
+          if (t < visibleStart || t > visibleEnd) continue;
+          const key = new Date(t).toDateString();
+          if (!map[key]) map[key] = [];
+          map[key].push(ev);
+        }
+        return;
+      }
       const boundedStart = Math.max(start, visibleStart);
       const boundedEnd = Math.min(end, visibleEnd);
       if (boundedEnd < boundedStart) return;
