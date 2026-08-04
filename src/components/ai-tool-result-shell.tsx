@@ -295,11 +295,13 @@ export function AiToolResultShell({
                   <span
                     className={cn(
                       'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-sm font-semibold sm:px-3 sm:py-1 sm:text-[0.9375rem]',
-                      theme.badge,
+                      !isLoading && children
+                        ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+                        : theme.badge,
                     )}
                   >
                     <Sparkles className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                    {formatAiToolText('Interactive')}
+                    {formatAiToolText(!isLoading && children ? 'Generated' : 'Interactive')}
                   </span>
                 </div>
               </div>

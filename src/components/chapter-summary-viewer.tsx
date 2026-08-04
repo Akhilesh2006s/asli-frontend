@@ -197,7 +197,7 @@ function buildBodySections(summary: ChapterSummaryContent): ReactNode[] {
     {
       key: 'revision',
       title: 'Quick Revision Notes',
-      icon: BookText,
+      icon: BookOpen,
       stripe: 'border-amber-500',
       iconWrap: 'bg-amber-100 text-amber-900',
       hasContent: summary.quickRevisionNotes.length > 0,

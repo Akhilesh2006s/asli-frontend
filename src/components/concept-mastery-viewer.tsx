@@ -236,49 +236,6 @@ const CONCEPT_TEMPLATE_SECTIONS: ConceptSectionDef[] = [
   },
 ];
 
-function countFilledSections(c: NormalizedConcept): number {
-  return CONCEPT_TEMPLATE_SECTIONS.filter((s) => s.hasContent(c)).length;
-}
-
-const CONCEPT_FLOW_PHASES = [
-  {
-    id: 'understand',
-    label: 'Build understanding',
-    hint: 'Definition, importance & prerequisites',
-    dotClass: 'bg-fuchsia-600 ring-fuchsia-200',
-    badgeClass: 'bg-fuchsia-100 text-fuchsia-950 border-fuchsia-200',
-  },
-  {
-    id: 'learn',
-    label: 'Teach the concept',
-    hint: 'Explanation, visuals & examples',
-    dotClass: 'bg-violet-600 ring-violet-200',
-    badgeClass: 'bg-violet-100 text-violet-950 border-violet-200',
-  },
-  {
-    id: 'master',
-    label: 'Check mastery',
-    hint: 'Questions, tips & reflection',
-    dotClass: 'bg-indigo-600 ring-indigo-200',
-    badgeClass: 'bg-indigo-100 text-indigo-950 border-indigo-200',
-  },
-] as const;
-
-const SECTION_PHASE: Record<number, (typeof CONCEPT_FLOW_PHASES)[number]['id']> = {
-  1: 'understand',
-  2: 'understand',
-  3: 'understand',
-  4: 'learn',
-  5: 'learn',
-  6: 'learn',
-  7: 'master',
-  8: 'master',
-  9: 'master',
-  10: 'master',
-  11: 'master',
-  12: 'master',
-};
-
 /** Step-by-step explanation — render full markdown so no sub-step is dropped. */
 function ExplanationBody({ text }: { text: string }) {
   return (
@@ -323,93 +280,44 @@ function ConceptTimelineStep({
 }
 
 function TeacherConceptCard({ concept }: { concept: NormalizedConcept }) {
-  const filled = countFilledSections(concept);
-  const progressPct = Math.round((filled / Math.max(CONCEPT_TEMPLATE_SECTIONS.length, 1)) * 100);
   return (
     <div className="space-y-5">
-      <div className="rounded-xl border-2 border-dashed border-fuchsia-300/70 bg-gradient-to-br from-fuchsia-50/90 via-white to-violet-50/40 px-4 py-4 sm:px-5 sm:py-5">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-          <div className="min-w-0">
-            <p className="text-micro font-bold uppercase tracking-[0.2em] text-fuchsia-800/80 mb-1">
-              Concept · Teaching reference
-            </p>
-            <h4 className="text-xl sm:text-2xl font-bold text-slate-900 leading-tight font-serif">
-              {concept.conceptName}
-            </h4>
-            <div className="mt-2 flex flex-wrap items-center gap-2">
-              <Badge className="rounded border-fuchsia-200 bg-fuchsia-100/80 text-fuchsia-950 hover:bg-fuchsia-100/80 font-medium">
-                Concept {concept.sl}
-              </Badge>
-              {concept.difficulty ? (
-                <span
-                  className={cn(
-                    'rounded-full px-2.5 py-0.5 text-micro font-bold uppercase tracking-wide',
-                    difficultyStyles(concept.difficulty),
-                  )}
-                >
-                  {concept.difficulty}
-                </span>
-              ) : null}
-            </div>
-          </div>
-          <div className="shrink-0 w-full sm:w-36">
-            <p className="text-micro font-semibold uppercase text-slate-500 mb-1">Sections ready</p>
-            <div className="h-2.5 rounded-full bg-slate-200 overflow-hidden">
-              <div
-                className="h-full rounded-full bg-gradient-to-r from-fuchsia-500 via-violet-500 to-indigo-500"
-                style={{ width: `${progressPct}%` }}
-              />
-            </div>
-            <p className="text-mini text-slate-500 mt-1 text-right">
-              {filled} block{filled === 1 ? '' : 's'}
-            </p>
-          </div>
+      <div className="rounded-xl border border-fuchsia-200 bg-gradient-to-br from-fuchsia-50/90 via-white to-violet-50/40 px-4 py-3.5 sm:px-5">
+        <p className="text-micro font-bold uppercase tracking-[0.2em] text-fuchsia-800/80 mb-1">
+          Concept · Teaching reference
+        </p>
+        <h4 className="text-xl sm:text-2xl font-bold text-slate-900 leading-tight">
+          {concept.conceptName}
+        </h4>
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          <Badge className="rounded border-fuchsia-200 bg-fuchsia-100/80 text-fuchsia-950 hover:bg-fuchsia-100/80 font-medium">
+            Concept {concept.sl}
+          </Badge>
+          {concept.difficulty ? (
+            <span
+              className={cn(
+                'rounded-full px-2.5 py-0.5 text-micro font-bold uppercase tracking-wide',
+                difficultyStyles(concept.difficulty),
+              )}
+            >
+              {concept.difficulty}
+            </span>
+          ) : null}
         </div>
       </div>
 
-      {(() => {
-        let sectionIndex = 0;
-        return CONCEPT_FLOW_PHASES.map((phase) => {
-          const phaseSections = CONCEPT_TEMPLATE_SECTIONS.filter(
-            (sec) => SECTION_PHASE[sec.num] === phase.id && sec.hasContent(concept),
-          );
-          if (!phaseSections.length) return null;
-
-          return (
-            <section key={phase.id} aria-label={phase.label}>
-              <div
-                className={cn(
-                  'mb-3 flex flex-wrap items-center gap-2 rounded-lg border px-3 py-2',
-                  phase.badgeClass,
-                )}
-              >
-                <span className={cn('h-2.5 w-2.5 rounded-full shrink-0', phase.dotClass.split(' ')[0])} />
-                <div>
-                  <p className="text-xs font-bold uppercase tracking-wide">{phase.label}</p>
-                  <p className="text-mini opacity-80">{phase.hint}</p>
-                </div>
-              </div>
-              <div className="flex flex-col gap-4">
-                {phaseSections.map((sec, idx) => {
-                  sectionIndex += 1;
-                  return (
-                    <ConceptTimelineStep
-                      key={sec.num}
-                      sectionNum={sectionIndex}
-                      title={sec.title}
-                      icon={sec.icon}
-                      dotClass={phase.dotClass}
-                      isLast={idx === phaseSections.length - 1}
-                    >
-                      {sec.render(concept)}
-                    </ConceptTimelineStep>
-                  );
-                })}
-              </div>
-            </section>
-          );
-        });
-      })()}
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-5">
+        {CONCEPT_TEMPLATE_SECTIONS.filter((sec) => sec.hasContent(concept)).map((sec, idx) => (
+          <ConceptTimelineStep
+            key={sec.num}
+            sectionNum={idx + 1}
+            title={sec.title}
+            icon={sec.icon}
+          >
+            {sec.render(concept)}
+          </ConceptTimelineStep>
+        ))}
+      </div>
     </div>
   );
 }

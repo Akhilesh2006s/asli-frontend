@@ -1,6 +1,6 @@
-import type { ReactNode } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import { motion } from 'framer-motion';
-import type { LucideIcon } from 'lucide-react';
+import { Check, Copy, Pencil, type LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatAiToolText } from '@/lib/title-case';
 import { AI_V2 } from '@/lib/ai-tool-design-tokens';
@@ -45,6 +45,7 @@ export function AiToolStackedSection({
   gradient: _gradient,
   children,
   className,
+  hideActions = false,
 }: {
   num: string;
   title: string;
@@ -57,6 +58,8 @@ export function AiToolStackedSection({
   gradient?: string;
   children: ReactNode;
   className?: string;
+  /** Hide Edit / Copy (e.g. print-only blocks) */
+  hideActions?: boolean;
 }) {
   const resolved = iconName || lucideTo3dName(icon);
   const numLabel = String(num).replace(/^section\s*/i, '').trim() || num;
@@ -66,6 +69,27 @@ export function AiToolStackedSection({
   const displayTitle = formatAiToolText(title);
   const displayDescription = description ? formatAiToolText(description) : undefined;
   const showNum = Boolean(numLabel) && !/^◆|•|-|$/.test(numLabel);
+  const bodyRef = useRef<HTMLDivElement>(null);
+  const [editing, setEditing] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const onCopy = async () => {
+    const text = bodyRef.current?.innerText?.trim() || displayTitle;
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1600);
+    } catch {
+      /* ignore */
+    }
+  };
+
+  const onEdit = () => {
+    setEditing(true);
+    window.setTimeout(() => {
+      bodyRef.current?.focus();
+    }, 30);
+  };
 
   return (
     <motion.section
@@ -90,13 +114,13 @@ export function AiToolStackedSection({
 
       <header
         className={cn(
-          'flex items-start justify-between gap-3 border-b px-4 py-4 sm:px-6 sm:py-5',
+          'flex items-start justify-between gap-3 border-b px-4 py-3.5 sm:px-5 sm:py-4',
           'bg-gradient-to-br',
           palette.cardWash,
           palette.innerBorder,
         )}
       >
-        <div className="flex min-w-0 items-start gap-3 sm:gap-4">
+        <div className="flex min-w-0 items-start gap-3">
           <span
             className={cn(
               'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-base font-bold text-white shadow-sm',
@@ -107,45 +131,87 @@ export function AiToolStackedSection({
             {showNum ? numLabel.slice(0, 2) : '◆'}
           </span>
           <div className="min-w-0 pt-0.5">
-            <p
-              className={cn(
-                'text-xl sm:text-2xl font-bold leading-snug tracking-tight',
-                palette.title,
-              )}
-            >
-              {displayTitle}
-            </p>
+            <div className="flex flex-wrap items-center gap-2">
+              <div
+                className={cn(
+                  'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border shadow-sm',
+                  palette.iconTile,
+                )}
+              >
+                {LucideIcon ? (
+                  <LucideIcon className="h-5 w-5" aria-hidden />
+                ) : (
+                  <RealisticIcon name={resolved} alt="" className="h-7 w-7" />
+                )}
+              </div>
+              <p className="text-lg font-bold leading-snug tracking-tight text-slate-900 sm:text-xl">
+                {displayTitle}
+              </p>
+            </div>
             {displayDescription ? (
-              <p className={cn('mt-1.5 text-base leading-relaxed', palette.subtitle)}>
+              <p className={cn('mt-1 text-sm leading-relaxed sm:text-base', palette.subtitle)}>
                 {displayDescription}
               </p>
             ) : null}
           </div>
         </div>
-        <div
-          className={cn(
-            'flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border shadow-sm',
-            palette.iconTile,
-          )}
-        >
-          {LucideIcon ? (
-            <LucideIcon className="h-6 w-6" aria-hidden />
-          ) : (
-            <RealisticIcon name={resolved} alt="" className="h-9 w-9" />
-          )}
-        </div>
+        {!hideActions ? (
+          <div className="flex shrink-0 items-center gap-1.5 print:hidden">
+            <button
+              type="button"
+              onClick={onEdit}
+              className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 shadow-sm hover:bg-slate-50"
+            >
+              <Pencil className="h-3.5 w-3.5" aria-hidden />
+              Edit
+            </button>
+            <button
+              type="button"
+              onClick={() => void onCopy()}
+              className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 shadow-sm hover:bg-slate-50"
+            >
+              {copied ? (
+                <Check className="h-3.5 w-3.5 text-emerald-600" aria-hidden />
+              ) : (
+                <Copy className="h-3.5 w-3.5" aria-hidden />
+              )}
+              {copied ? 'Copied' : 'Copy'}
+            </button>
+          </div>
+        ) : (
+          <div
+            className={cn(
+              'flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border shadow-sm',
+              palette.iconTile,
+            )}
+          >
+            {LucideIcon ? (
+              <LucideIcon className="h-5 w-5" aria-hidden />
+            ) : (
+              <RealisticIcon name={resolved} alt="" className="h-8 w-8" />
+            )}
+          </div>
+        )}
       </header>
 
-      {/* Nested soft box — layered content like Concept Mastery inner panels */}
+      {/* Nested soft box — Concept Mastery inner panel with colored title */}
       <div className={cn('p-3.5 sm:p-5', 'bg-gradient-to-b from-white to-slate-50/40')} data-ai-section-body>
         <div
+          ref={bodyRef}
+          contentEditable={editing}
+          suppressContentEditableWarning
+          onBlur={() => setEditing(false)}
           className={cn(
-            'ai-tool-section-body rounded-xl border px-5 py-5 sm:px-6 sm:py-6',
+            'ai-tool-section-body rounded-xl border px-5 py-5 sm:px-6 sm:py-6 outline-none',
+            editing && 'ring-2 ring-violet-300',
             palette.inner,
             palette.innerBorder,
             aiToolSectionBodyClasses(palette),
           )}
         >
+          <p className={cn('mb-3 text-xl font-bold leading-snug sm:text-2xl', palette.title)}>
+            {displayTitle}
+          </p>
           {children}
         </div>
       </div>
@@ -153,7 +219,7 @@ export function AiToolStackedSection({
   );
 }
 
-/** Vertical stack — one section after another. */
+/** Two-column section grid on desktop (Concept Mastery mock). */
 export function AiToolStackedList({
   children,
   className,
@@ -161,7 +227,11 @@ export function AiToolStackedList({
   children: ReactNode;
   className?: string;
 }) {
-  return <div className={cn(AI_V2.spacing.section, className)}>{children}</div>;
+  return (
+    <div className={cn('grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-5', className)}>
+      {children}
+    </div>
+  );
 }
 
 /** Soft nested content panel for use inside custom viewers. */

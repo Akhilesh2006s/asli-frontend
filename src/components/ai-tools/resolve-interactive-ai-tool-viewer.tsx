@@ -20,10 +20,7 @@ import {
   activityViewerPayloadFromRecord,
 } from '@/components/activity-project-viewer';
 import { StoryPassageViewer } from '@/components/story-passage-viewer';
-import {
-  AiToolDocumentShell,
-  accentForToolSlug,
-} from '@/components/ai-tool-document-shell';
+import { AiToolKitLayout } from '@/components/ai-tools/ai-tool-kit-layout';
 import { normalizeAiToolSlug } from '@/lib/normalize-ai-tool-slug';
 import { viewerPayloadFromRecord } from '@/lib/resolve-ai-structured-content';
 import {
@@ -199,22 +196,23 @@ function wrapViewer(
     label: String(slug || 'AI Tool').replace(/-/g, ' '),
     title: 'Generated content',
   };
+  // Concept Mastery kit chrome for every tool (tabs / glance / tip).
+  // Keep a light title strip; drop the old dark DocumentShell double-header.
   return (
-    <AiToolDocumentShell
+    <AiToolKitLayout
       toolLabel={meta.label}
       title={opts?.title?.trim() || meta.title}
       subtitle={opts?.subtitle ?? meta.subtitle}
-      accent={accentForToolSlug(slug)}
-      badge={opts?.badge}
     >
+      {opts?.badge ? <div className="mb-3 flex justify-end">{opts.badge}</div> : null}
       {node}
-    </AiToolDocumentShell>
+    </AiToolKitLayout>
   );
 }
 
 /**
  * Resolve an interactive specialized viewer for teacher/student dashboards.
- * Every tool is wrapped in the same AiToolDocumentShell format.
+ * Every tool is wrapped in the same Concept Mastery–style AiToolKitLayout.
  */
 export function resolveInteractiveAiToolViewer(
   record: Record<string, unknown>,
