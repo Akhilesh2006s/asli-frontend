@@ -94,7 +94,17 @@ const DEFAULT_ASSERTION_REASON_DIRECTIONS = `Directions: Each question below con
 (d) A is false, but R is true.`;
 
 function looksLikeArDirectionsText(text?: string) {
-  const t = String(text || '');
+  const t = String(text || '').trim();
+  if (!t) return false;
+  // Reject PDF page dumps that merely contain the a/b/c/d lines somewhere
+  if (t.length > 550) return false;
+  if (/\bCODE\s*:/i.test(t)) return false;
+  if (/www\.asliprep\.com/i.test(t)) return false;
+  if (/--\s*\d+\s*of\s*\d+\s*--/i.test(t)) return false;
+  if (/Case\s*[-–]?\s*Based/i.test(t)) return false;
+  if (/Integer\s+Type|Single\s+Correct|Match\s+the\s+Following/i.test(t)) return false;
+  const qStems = t.match(/(?:^|\n)\s*\d{1,3}\.\s+\S/g);
+  if (qStems && qStems.length >= 2) return false;
   return (
     /correct explanation of A/i.test(t) ||
     (/Both A and R are true/i.test(t) && /A is false,\s*but R is true/i.test(t))
