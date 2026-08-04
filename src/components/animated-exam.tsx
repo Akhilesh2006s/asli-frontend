@@ -474,7 +474,7 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
     });
     setSelectedAnswer(null);
     setShowAnswerFeedback(false);
-    if (q.questionType === 'mcq') {
+    if (q.questionType === 'mcq' || q.questionType === 'assertion_reason' || q.questionType === 'match_following') {
       setMcqRadioNonce((n) => n + 1);
     }
   };
@@ -852,7 +852,11 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
       return userResolved === correctResolved;
     }
 
-    if (question.questionType === 'mcq') {
+    if (
+      question.questionType === 'mcq' ||
+      question.questionType === 'assertion_reason' ||
+      question.questionType === 'match_following'
+    ) {
       const correctAnswer = Array.isArray(question.correctAnswer)
         ? resolveAnswerToken(question.correctAnswer[0])
         : resolveAnswerToken(question.correctAnswer);
@@ -1258,6 +1262,71 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
                         : currentQuestionIndex + 1}.
                     </span>
                     <div className="flex-1">
+                      {String(currentQuestion.sharedMatterText || currentQuestion.passageText || '').trim() ? (
+                        <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950">
+                          <div className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-amber-800">
+                            {currentQuestion.sharedMatterKind === 'assertion_reason'
+                              ? 'Assertion–Reason directions'
+                              : currentQuestion.sharedMatterKind === 'match_following'
+                                ? 'Match the Following'
+                                : currentQuestion.sharedMatterKind === 'case'
+                                  ? 'Case / Passage'
+                                  : 'Shared matter'}
+                          </div>
+                          <p className="whitespace-pre-wrap leading-relaxed">
+                            {normalizeExamText(
+                              currentQuestion.sharedMatterText || currentQuestion.passageText,
+                              currentQuestion.subject,
+                            )}
+                          </p>
+                        </div>
+                      ) : null}
+
+                      {(currentQuestion.assertionText || currentQuestion.reasonText) && (
+                        <div className="mb-4 space-y-2 rounded-lg border border-violet-100 bg-violet-50/70 p-3 text-sm text-gray-900">
+                          {currentQuestion.assertionText ? (
+                            <p>
+                              <span className="font-semibold">A:</span>{' '}
+                              {normalizeExamText(currentQuestion.assertionText, currentQuestion.subject)}
+                            </p>
+                          ) : null}
+                          {currentQuestion.reasonText ? (
+                            <p>
+                              <span className="font-semibold">R:</span>{' '}
+                              {normalizeExamText(currentQuestion.reasonText, currentQuestion.subject)}
+                            </p>
+                          ) : null}
+                        </div>
+                      )}
+
+                      {((Array.isArray(currentQuestion.matchColumnI) && currentQuestion.matchColumnI.length > 0) ||
+                        (Array.isArray(currentQuestion.matchColumnII) && currentQuestion.matchColumnII.length > 0)) && (
+                        <div className="mb-4 grid gap-3 sm:grid-cols-2">
+                          <div className="rounded-lg border border-teal-100 bg-teal-50/60 p-3 text-sm">
+                            <div className="mb-1 text-[10px] font-semibold uppercase text-teal-800">Column I</div>
+                            <ul className="space-y-1">
+                              {(currentQuestion.matchColumnI || []).map((c: any, i: number) => (
+                                <li key={i}>
+                                  <span className="font-semibold">{c.key || String.fromCharCode(65 + i)}.</span>{' '}
+                                  {normalizeExamText(c.text, currentQuestion.subject)}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                          <div className="rounded-lg border border-teal-100 bg-teal-50/60 p-3 text-sm">
+                            <div className="mb-1 text-[10px] font-semibold uppercase text-teal-800">Column II</div>
+                            <ul className="space-y-1">
+                              {(currentQuestion.matchColumnII || []).map((c: any, i: number) => (
+                                <li key={i}>
+                                  <span className="font-semibold">{c.key || String(i + 1)}.</span>{' '}
+                                  {normalizeExamText(c.text, currentQuestion.subject)}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        </div>
+                      )}
+
                       {currentQuestion.questionText && (
                         <p className="text-sm sm:text-base text-gray-900 mb-4 leading-relaxed">
                           {normalizeExamText(currentQuestion.questionText, currentQuestion.subject)}
@@ -1276,7 +1345,9 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
                   </div>
 
                   {/* Answer Options */}
-                  {currentQuestion.questionType === 'mcq' && currentQuestion.options && (
+                  {(currentQuestion.questionType === 'mcq' ||
+                    currentQuestion.questionType === 'assertion_reason' ||
+                    currentQuestion.questionType === 'match_following') && currentQuestion.options && (
                     <RadioGroup
                       key={`mcq-${currentQid}-${mcqRadioNonce}`}
                       value={

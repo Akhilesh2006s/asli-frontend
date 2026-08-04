@@ -100,7 +100,7 @@ function resolveQuestionSectionHeading(q: { sectionHeading?: string; subject?: s
 const EMPTY_QUESTION_FORM = {
   questionText: '',
   questionImage: '',
-  questionType: 'mcq' as 'mcq' | 'multiple' | 'integer',
+  questionType: 'mcq' as 'mcq' | 'multiple' | 'integer' | 'assertion_reason' | 'match_following',
   subject: 'maths',
   marks: '1',
   negativeMarks: '0',
@@ -109,6 +109,13 @@ const EMPTY_QUESTION_FORM = {
   correctAnswer: '',
   correctAnswers: [] as string[],
   integerAnswer: '',
+  sharedMatterId: '',
+  sharedMatterText: '',
+  sharedMatterKind: '' as '' | 'case' | 'assertion_reason' | 'match_following',
+  assertionText: '',
+  reasonText: '',
+  matchColumnIText: '',
+  matchColumnIIText: '',
 };
 
 function optionText(opt: unknown): string {
@@ -117,6 +124,65 @@ function optionText(opt: unknown): string {
     return String((opt as { text?: unknown }).text ?? '');
   }
   return '';
+}
+
+function formatMatchColumnLines(
+  cols: Array<{ key?: string; text?: string }> | undefined,
+): string {
+  if (!Array.isArray(cols) || cols.length === 0) return '';
+  return cols
+    .map((c) => {
+      const key = String(c?.key || '').trim();
+      const text = String(c?.text || '').trim();
+      if (!text) return '';
+      return key ? `${key}. ${text}` : text;
+    })
+    .filter(Boolean)
+    .join('\n');
+}
+
+function parseMatchColumnLines(raw: string): Array<{ key: string; text: string }> {
+  return String(raw || '')
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      const m = line.match(/^([A-D]|\d{1,2})\s*[.):\-]?\s*(.*)$/i);
+      if (m) return { key: m[1], text: String(m[2] || '').trim() };
+      return { key: '', text: line };
+    })
+    .filter((x) => x.text);
+}
+
+function SharedMatterCard({
+  text,
+  kind,
+  subject,
+}: {
+  text?: string;
+  kind?: string;
+  subject?: string;
+}) {
+  const matter = String(text || '').trim();
+  if (!matter) return null;
+  const label =
+    kind === 'assertion_reason'
+      ? 'Assertion–Reason directions'
+      : kind === 'match_following'
+        ? 'Match the Following'
+        : kind === 'case'
+          ? 'Case / Passage'
+          : 'Shared matter';
+  return (
+    <div className="mb-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950">
+      <div className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-amber-800">
+        {label}
+      </div>
+      <div className="whitespace-pre-wrap leading-relaxed">
+        {formatChemistryText(matter, subject)}
+      </div>
+    </div>
+  );
 }
 
 /**
@@ -138,7 +204,11 @@ function InlineQuestionEditor({
   onCancel: () => void;
 }) {
   const patch = (p: Partial<typeof EMPTY_QUESTION_FORM>) => setForm((prev) => ({ ...prev, ...p }));
-  const isChoice = form.questionType === 'mcq' || form.questionType === 'multiple';
+  const isChoice =
+    form.questionType === 'mcq' ||
+    form.questionType === 'multiple' ||
+    form.questionType === 'assertion_reason' ||
+    form.questionType === 'match_following';
 
   return (
     <div className="space-y-4 rounded-lg border-2 border-sky-300 bg-sky-50/50 p-3 sm:p-4">
@@ -162,6 +232,68 @@ function InlineQuestionEditor({
           </Button>
         </div>
       </div>
+
+      <div>
+        <Label className="text-xs">Shared matter (shown on every linked question)</Label>
+        <Textarea
+          className="mt-1 bg-white"
+          rows={3}
+          value={form.sharedMatterText}
+          placeholder="Case passage / AR directions / Match directions"
+          onChange={(e) => patch({ sharedMatterText: e.target.value })}
+        />
+        {form.sharedMatterId ? (
+          <p className="mt-1 text-[10px] text-slate-500">
+            Group id: {form.sharedMatterId} — saving updates this text for all questions in the group.
+          </p>
+        ) : null}
+      </div>
+
+      {(form.questionType === 'assertion_reason' || form.assertionText || form.reasonText) && (
+        <div className="grid gap-2 sm:grid-cols-2">
+          <div>
+            <Label className="text-xs">Assertion (A)</Label>
+            <Textarea
+              className="mt-1 bg-white"
+              rows={2}
+              value={form.assertionText}
+              onChange={(e) => patch({ assertionText: e.target.value })}
+            />
+          </div>
+          <div>
+            <Label className="text-xs">Reason (R)</Label>
+            <Textarea
+              className="mt-1 bg-white"
+              rows={2}
+              value={form.reasonText}
+              onChange={(e) => patch({ reasonText: e.target.value })}
+            />
+          </div>
+        </div>
+      )}
+
+      {(form.questionType === 'match_following' || form.matchColumnIText || form.matchColumnIIText) && (
+        <div className="grid gap-2 sm:grid-cols-2">
+          <div>
+            <Label className="text-xs">Column I (one per line)</Label>
+            <Textarea
+              className="mt-1 bg-white"
+              rows={4}
+              value={form.matchColumnIText}
+              onChange={(e) => patch({ matchColumnIText: e.target.value })}
+            />
+          </div>
+          <div>
+            <Label className="text-xs">Column II (one per line)</Label>
+            <Textarea
+              className="mt-1 bg-white"
+              rows={4}
+              value={form.matchColumnIIText}
+              onChange={(e) => patch({ matchColumnIIText: e.target.value })}
+            />
+          </div>
+        </div>
+      )}
 
       <div>
         <Label className="text-xs">Question text</Label>
@@ -258,9 +390,15 @@ function buildQuestionFormFromExisting(q: any): typeof EMPTY_QUESTION_FORM {
   const options = rawOptions.map(optionText);
   while (options.length < 4) options.push('');
 
-  const type = (['mcq', 'multiple', 'integer'].includes(String(q?.questionType))
+  const type = ([
+    'mcq',
+    'multiple',
+    'integer',
+    'assertion_reason',
+    'match_following',
+  ].includes(String(q?.questionType))
     ? q.questionType
-    : 'mcq') as 'mcq' | 'multiple' | 'integer';
+    : 'mcq') as typeof EMPTY_QUESTION_FORM.questionType;
 
   let correctAnswer = '';
   let correctAnswers: string[] = [];
@@ -294,10 +432,10 @@ function buildQuestionFormFromExisting(q: any): typeof EMPTY_QUESTION_FORM {
       (o) => o.trim().toLowerCase() === String(ans ?? '').trim().toLowerCase()
     );
     if (idx >= 0) {
-      correctAnswer = String(idx);
+      correctAnswer = options[idx];
     } else {
       const flagged = rawOptions.findIndex((opt: any) => opt?.isCorrect);
-      if (flagged >= 0) correctAnswer = String(flagged);
+      if (flagged >= 0) correctAnswer = options[flagged];
     }
   }
 
@@ -313,6 +451,17 @@ function buildQuestionFormFromExisting(q: any): typeof EMPTY_QUESTION_FORM {
     correctAnswer,
     correctAnswers,
     integerAnswer,
+    sharedMatterId: String(q?.sharedMatterId || q?.passageId || ''),
+    sharedMatterText: String(q?.sharedMatterText || q?.passageText || ''),
+    sharedMatterKind: (['case', 'assertion_reason', 'match_following'].includes(
+      String(q?.sharedMatterKind || ''),
+    )
+      ? q.sharedMatterKind
+      : '') as typeof EMPTY_QUESTION_FORM.sharedMatterKind,
+    assertionText: String(q?.assertionText || ''),
+    reasonText: String(q?.reasonText || ''),
+    matchColumnIText: formatMatchColumnLines(q?.matchColumnI),
+    matchColumnIIText: formatMatchColumnLines(q?.matchColumnII),
   };
 }
 
@@ -374,7 +523,7 @@ type PdfQuestionRow = {
   row: number;
   questionNumber?: number;
   questionText: string;
-  questionType: 'mcq' | 'multiple' | 'integer';
+  questionType: 'mcq' | 'multiple' | 'integer' | 'assertion_reason' | 'match_following';
   subject: string;
   marks: number;
   option1: string;
@@ -386,6 +535,13 @@ type PdfQuestionRow = {
   questionImage?: string;
   passageId?: string;
   passageText?: string;
+  sharedMatterId?: string;
+  sharedMatterText?: string;
+  sharedMatterKind?: '' | 'case' | 'assertion_reason' | 'match_following';
+  assertionText?: string;
+  reasonText?: string;
+  matchColumnI?: Array<{ key?: string; text?: string }>;
+  matchColumnII?: Array<{ key?: string; text?: string }>;
   solvable?: boolean;
   validationFlags?: string[];
   validationNote?: string;
@@ -1027,6 +1183,9 @@ export default function ExamManagement() {
     const options = optionTexts.map((text) => ({ text, isCorrect: false }));
     const type = row.questionType;
     const imageUrl = String(row.questionImage || '').trim();
+    const sharedMatterText = String(row.sharedMatterText || row.passageText || '').trim();
+    const sharedMatterId = String(row.sharedMatterId || row.passageId || '').trim();
+    const sharedMatterKind = String(row.sharedMatterKind || '').trim();
     const base = {
       questionText: String(row.questionText || '').trim(),
       questionType: type,
@@ -1035,6 +1194,13 @@ export default function ExamManagement() {
       negativeMarks: 0,
       explanation: String(row.explanation || '').trim() || undefined,
       board: selectedExam?.board,
+      sharedMatterId: sharedMatterId || undefined,
+      sharedMatterText: sharedMatterText || undefined,
+      sharedMatterKind: sharedMatterKind || undefined,
+      assertionText: String(row.assertionText || '').trim() || undefined,
+      reasonText: String(row.reasonText || '').trim() || undefined,
+      matchColumnI: Array.isArray(row.matchColumnI) && row.matchColumnI.length ? row.matchColumnI : undefined,
+      matchColumnII: Array.isArray(row.matchColumnII) && row.matchColumnII.length ? row.matchColumnII : undefined,
       // Keep relative /uploads/... so student proxy + auth work consistently
       ...(imageUrl
         ? {
@@ -1075,7 +1241,7 @@ export default function ExamManagement() {
       };
     }
 
-    // mcq
+    // mcq / assertion_reason / match_following
     const idx = options.findIndex((o) => String(o.text || '').trim().toLowerCase() === answerText.toLowerCase());
     if (idx >= 0) options[idx].isCorrect = true;
     return {
@@ -1757,7 +1923,10 @@ export default function ExamManagement() {
       return;
     }
 
-    if ((questionFormData.questionType === 'mcq' || questionFormData.questionType === 'multiple') && 
+    if ((questionFormData.questionType === 'mcq' ||
+        questionFormData.questionType === 'multiple' ||
+        questionFormData.questionType === 'assertion_reason' ||
+        questionFormData.questionType === 'match_following') &&
         questionFormData.options.every(opt => !opt.trim())) {
       toast({
         title: 'Validation Error',
@@ -1824,6 +1993,14 @@ export default function ExamManagement() {
       subject: questionFormData.subject,
       sectionHeading: subjectSectionLabel(questionFormData.subject),
       board: selectedExam.board,
+      sharedMatterId: questionFormData.sharedMatterId.trim() || undefined,
+      sharedMatterText: questionFormData.sharedMatterText.trim() || undefined,
+      sharedMatterKind: questionFormData.sharedMatterKind || undefined,
+      assertionText: questionFormData.assertionText.trim() || undefined,
+      reasonText: questionFormData.reasonText.trim() || undefined,
+      matchColumnI: parseMatchColumnLines(questionFormData.matchColumnIText),
+      matchColumnII: parseMatchColumnLines(questionFormData.matchColumnIIText),
+      applySharedMatterToGroup: Boolean(questionFormData.sharedMatterId.trim()),
       replaceDuplicate,
     });
 
@@ -4214,6 +4391,16 @@ export default function ExamManagement() {
                               <Badge variant="secondary">
                                 {q.marks || 0} marks
                               </Badge>
+                              {q.questionType === 'assertion_reason' ? (
+                                <Badge className="bg-violet-100 text-violet-800 hover:bg-violet-100">
+                                  Assertion–Reason
+                                </Badge>
+                              ) : null}
+                              {q.questionType === 'match_following' ? (
+                                <Badge className="bg-teal-100 text-teal-800 hover:bg-teal-100">
+                                  Match the Following
+                                </Badge>
+                              ) : null}
                               {(q.negativeMarks || 0) > 0 && (
                                 <Badge variant="destructive">
                                   -{q.negativeMarks} for wrong
@@ -4226,6 +4413,61 @@ export default function ExamManagement() {
                                 Q{orderValue}.
                               </span>
                               <div className="min-w-0 flex-1">
+                                <SharedMatterCard
+                                  text={q.sharedMatterText || q.passageText}
+                                  kind={q.sharedMatterKind || (q.passageText ? 'case' : '')}
+                                  subject={q.subject}
+                                />
+
+                                {(q.assertionText || q.reasonText) && (
+                                  <div className="mb-4 space-y-2 rounded-md border border-violet-100 bg-violet-50/60 p-3 text-sm text-slate-900">
+                                    {q.assertionText ? (
+                                      <p>
+                                        <span className="font-semibold">A:</span>{' '}
+                                        {formatChemistryText(q.assertionText, q.subject)}
+                                      </p>
+                                    ) : null}
+                                    {q.reasonText ? (
+                                      <p>
+                                        <span className="font-semibold">R:</span>{' '}
+                                        {formatChemistryText(q.reasonText, q.subject)}
+                                      </p>
+                                    ) : null}
+                                  </div>
+                                )}
+
+                                {(Array.isArray(q.matchColumnI) && q.matchColumnI.length > 0) ||
+                                (Array.isArray(q.matchColumnII) && q.matchColumnII.length > 0) ? (
+                                  <div className="mb-4 grid gap-3 sm:grid-cols-2">
+                                    <div className="rounded-md border border-teal-100 bg-teal-50/50 p-3 text-sm">
+                                      <div className="mb-1 text-[10px] font-semibold uppercase text-teal-800">
+                                        Column I
+                                      </div>
+                                      <ul className="space-y-1">
+                                        {(q.matchColumnI || []).map((c: any, i: number) => (
+                                          <li key={i}>
+                                            <span className="font-semibold">{c.key || String.fromCharCode(65 + i)}.</span>{' '}
+                                            {formatChemistryText(c.text, q.subject)}
+                                          </li>
+                                        ))}
+                                      </ul>
+                                    </div>
+                                    <div className="rounded-md border border-teal-100 bg-teal-50/50 p-3 text-sm">
+                                      <div className="mb-1 text-[10px] font-semibold uppercase text-teal-800">
+                                        Column II
+                                      </div>
+                                      <ul className="space-y-1">
+                                        {(q.matchColumnII || []).map((c: any, i: number) => (
+                                          <li key={i}>
+                                            <span className="font-semibold">{c.key || String(i + 1)}.</span>{' '}
+                                            {formatChemistryText(c.text, q.subject)}
+                                          </li>
+                                        ))}
+                                      </ul>
+                                    </div>
+                                  </div>
+                                ) : null}
+
                                 {q.questionText ? (
                                   <p className="mb-4 text-base text-gray-900 sm:text-lg">
                                     {formatChemistryText(q.questionText, q.subject)}
@@ -4254,7 +4496,10 @@ export default function ExamManagement() {
                                   </div>
                                 ) : null}
 
-                                {(q.questionType === 'mcq' || q.questionType === 'multiple') &&
+                                {(q.questionType === 'mcq' ||
+                                  q.questionType === 'multiple' ||
+                                  q.questionType === 'assertion_reason' ||
+                                  q.questionType === 'match_following') &&
                                   q.options &&
                                   q.options.length > 0 && (
                                     <div className="space-y-3">
@@ -4376,6 +4621,8 @@ export default function ExamManagement() {
                     <SelectItem value="mcq">Single MCQ</SelectItem>
                     <SelectItem value="multiple">Multiple MCQ</SelectItem>
                     <SelectItem value="integer">Integer Type</SelectItem>
+                    <SelectItem value="assertion_reason">Assertion–Reason</SelectItem>
+                    <SelectItem value="match_following">Match the Following</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -4460,7 +4707,10 @@ export default function ExamManagement() {
               </div>
 
               {/* Options for MCQ/Multiple */}
-              {(questionFormData.questionType === 'mcq' || questionFormData.questionType === 'multiple') && (
+              {(questionFormData.questionType === 'mcq' ||
+                questionFormData.questionType === 'multiple' ||
+                questionFormData.questionType === 'assertion_reason' ||
+                questionFormData.questionType === 'match_following') && (
                 <div className="space-y-3">
                   <Label>Options</Label>
                   {questionFormData.options.map((option, index) => (
@@ -4474,12 +4724,22 @@ export default function ExamManagement() {
                         }}
                         placeholder={`Option ${index + 1}`}
                       />
-                      {questionFormData.questionType === 'mcq' && (
+                      {(questionFormData.questionType === 'mcq' ||
+                        questionFormData.questionType === 'assertion_reason' ||
+                        questionFormData.questionType === 'match_following') && (
                         <input
                           type="radio"
                           name="correctAnswer"
-                          checked={questionFormData.correctAnswer === String(index)}
-                          onChange={() => setQuestionFormData({ ...questionFormData, correctAnswer: String(index) })}
+                          checked={
+                            questionFormData.correctAnswer === String(index) ||
+                            questionFormData.correctAnswer === option
+                          }
+                          onChange={() =>
+                            setQuestionFormData({
+                              ...questionFormData,
+                              correctAnswer: String(index),
+                            })
+                          }
                           className="h-3 w-3 sm:h-4 sm:w-4 border border-gray-400 accent-orange-500"
                         />
                       )}
