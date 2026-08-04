@@ -204,10 +204,6 @@ function normalizeExtractedPdfRows(rows: any[]): any[] {
         questionText: stripDuplicateMatterFromStemClient(String(next.questionText || ''), matter),
       };
     }
-    // Case questions should not show auto text-dump images
-    if (next.sharedMatterKind === 'case' || next.passageId) {
-      next = { ...next, questionImage: '', hasFigure: false };
-    }
 
     if (!isAr) return next;
 
