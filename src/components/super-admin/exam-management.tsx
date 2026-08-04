@@ -206,9 +206,9 @@ function normalizeExtractedPdfRows(rows: any[]): any[] {
 
     if (!isAr) return next;
 
-    const matter = String(next.sharedMatterText || '').trim();
-    const directions = looksLikeArDirectionsText(matter)
-      ? matter
+    const arMatter = String(next.sharedMatterText || '').trim();
+    const directions = looksLikeArDirectionsText(arMatter)
+      ? arMatter
       : DEFAULT_ASSERTION_REASON_DIRECTIONS;
     const flags = (next.validationFlags || []).filter((f: string) => f !== 'needs_figure');
 
