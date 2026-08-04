@@ -135,6 +135,24 @@ function questionLooksLikeAssertionReason(q: {
 }
 
 /** Normalize extract rows in the browser so AR directions always show even if API is old. */
+function stripDuplicateMatterFromStemClient(stem: string, matter: string) {
+  let s = String(stem || '').trim();
+  const m = String(matter || '').trim();
+  if (!s || !m || m.length < 20) return s;
+  const sLower = s.toLowerCase();
+  const mLower = m.toLowerCase();
+  if (sLower.startsWith(mLower)) {
+    return s.slice(m.length).replace(/^[\s\n:;.\-–—]+/, '').trim() || s;
+  }
+  if (/^Case\s*(?:I{1,3}|IV|\d+)/i.test(m) && /^Case\s*(?:I{1,3}|IV|\d+)/i.test(s)) {
+    const qStart = s.search(
+      /\b(?:Using|According|For|Which|What|Calculate|Find|The magnitude|In the|Based on|From the)\b/i,
+    );
+    if (qStart > 40) return s.slice(qStart).trim();
+  }
+  return s;
+}
+
 function normalizeExtractedPdfRows(rows: any[]): any[] {
   return (rows || []).map((row, idx) => {
     const optionFields = [row.option1, row.option2, row.option3, row.option4];
@@ -168,6 +186,21 @@ function normalizeExtractedPdfRows(rows: any[]): any[] {
         validationFlags: flags,
         validationNote: flags.length ? next.validationNote : '',
         solvable: flags.length === 0 && next.answerConflict !== true,
+      };
+    }
+
+    // Case card already shows the passage — strip it from the question body
+    const matter = String(next.sharedMatterText || next.passageText || '').trim();
+    if (
+      matter &&
+      !isAr &&
+      (next.sharedMatterKind === 'case' ||
+        next.passageId ||
+        /^Case\s*(?:I{1,3}|IV|\d+)/i.test(matter))
+    ) {
+      next = {
+        ...next,
+        questionText: stripDuplicateMatterFromStemClient(String(next.questionText || ''), matter),
       };
     }
 
