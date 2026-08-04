@@ -1307,7 +1307,8 @@ const normalizeExamText = (value: unknown, subject?: string): string =>
                       )}
 
                       {((Array.isArray(currentQuestion.matchColumnI) && currentQuestion.matchColumnI.length > 0) ||
-                        (Array.isArray(currentQuestion.matchColumnII) && currentQuestion.matchColumnII.length > 0)) && (
+                        (Array.isArray(currentQuestion.matchColumnII) && currentQuestion.matchColumnII.length > 0)) &&
+                        !currentQuestion.questionImage && (
                         <div className="mb-4 grid gap-3 sm:grid-cols-2">
                           <div className="rounded-lg border border-teal-100 bg-teal-50/60 p-3 text-sm">
                             <div className="mb-1 text-[10px] font-semibold uppercase text-teal-800">Column I</div>
@@ -1334,21 +1335,25 @@ const normalizeExamText = (value: unknown, subject?: string): string =>
                         </div>
                       )}
 
+                      {currentQuestion.questionImage && (
+                        <AuthenticatedUploadImage
+                          src={currentQuestion.questionImage}
+                          alt={
+                            currentQuestion.questionType === 'match_following'
+                              ? 'Match the Following table'
+                              : 'Question figure'
+                          }
+                          wrapperClassName="mb-4 bg-gray-50 p-2"
+                          className="rounded-lg"
+                        />
+                      )}
+
                       {currentQuestion.questionText && (
                         <p className="text-sm sm:text-base text-gray-900 mb-4 leading-relaxed">
                           {normalizeExamText(currentQuestion.questionText, currentQuestion.subject)}
                         </p>
                       )}
-                      
-                      {currentQuestion.questionImage && (
-                        <AuthenticatedUploadImage
-                          src={currentQuestion.questionImage}
-                          alt="Question figure"
-                          wrapperClassName="mb-4 bg-gray-50 p-2"
-                          className="rounded-lg"
-                        />
-                      )}
-                    </div>
+                      </div>
                   </div>
 
                   {/* Answer Options */}

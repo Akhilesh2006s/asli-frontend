@@ -4442,7 +4442,8 @@ export default function ExamManagement() {
                                 )}
 
                                 {(Array.isArray(q.matchColumnI) && q.matchColumnI.length > 0) ||
-                                (Array.isArray(q.matchColumnII) && q.matchColumnII.length > 0) ? (
+                                (Array.isArray(q.matchColumnII) && q.matchColumnII.length > 0)
+                                  ? !q.questionImage && (
                                   <div className="mb-4 grid gap-3 sm:grid-cols-2">
                                     <div className="rounded-md border border-teal-100 bg-teal-50/50 p-3 text-sm">
                                       <div className="mb-1 text-[10px] font-semibold uppercase text-teal-800">
@@ -4471,19 +4472,18 @@ export default function ExamManagement() {
                                       </ul>
                                     </div>
                                   </div>
-                                ) : null}
-
-                                {q.questionText ? (
-                                  <p className="mb-4 text-base text-gray-900 sm:text-lg">
-                                    {formatChemistryText(q.questionText, q.subject)}
-                                  </p>
-                                ) : null}
+                                )
+                                  : null}
 
                                 {q.questionImage ? (
                                   <div className="mb-4">
                                     <AuthenticatedUploadImage
                                       src={q.questionImage}
-                                      alt={`Question ${orderValue} figure`}
+                                      alt={
+                                        q.questionType === 'match_following'
+                                          ? `Question ${orderValue} match table`
+                                          : `Question ${orderValue} figure`
+                                      }
                                       wrapperClassName="p-2 border-gray-200 bg-gray-50"
                                       className="max-h-[420px]"
                                       fallbackLabel="Figure failed to load"
@@ -4494,6 +4494,12 @@ export default function ExamManagement() {
                                     No figure on this question — click Edit to upload an image
                                   </div>
                                 )}
+
+                                {q.questionText ? (
+                                  <p className="mb-4 text-base text-gray-900 sm:text-lg">
+                                    {formatChemistryText(q.questionText, q.subject)}
+                                  </p>
+                                ) : null}
 
                                 {!q.questionText && !q.questionImage ? (
                                   <div className="mb-4 flex h-24 items-center justify-center rounded-lg border border-gray-200 bg-gray-100 text-sm text-gray-500">
