@@ -195,6 +195,7 @@ function normalizeExtractedPdfRows(rows: any[]): any[] {
       matter &&
       !isAr &&
       (next.sharedMatterKind === 'case' ||
+        next.sharedMatterKind === 'match_following' ||
         next.passageId ||
         /^Case\s*(?:I{1,3}|IV|\d+)/i.test(matter))
     ) {
@@ -202,6 +203,10 @@ function normalizeExtractedPdfRows(rows: any[]): any[] {
         ...next,
         questionText: stripDuplicateMatterFromStemClient(String(next.questionText || ''), matter),
       };
+    }
+    // Case questions should not show auto text-dump images
+    if (next.sharedMatterKind === 'case' || next.passageId) {
+      next = { ...next, questionImage: '', hasFigure: false };
     }
 
     if (!isAr) return next;
