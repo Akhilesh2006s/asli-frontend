@@ -387,6 +387,7 @@ function InlineQuestionEditor({
   onRemoveImage,
   uploadingImage,
   imageFileName,
+  paperImages = [],
 }: {
   form: typeof EMPTY_QUESTION_FORM;
   setForm: React.Dispatch<React.SetStateAction<typeof EMPTY_QUESTION_FORM>>;
@@ -397,6 +398,7 @@ function InlineQuestionEditor({
   onRemoveImage: () => void;
   uploadingImage: boolean;
   imageFileName?: string | null;
+  paperImages?: Array<{ url: string; name?: string; order?: number; key?: string }>;
 }) {
   const patch = (p: Partial<typeof EMPTY_QUESTION_FORM>) => setForm((prev) => ({ ...prev, ...p }));
   const isChoice =
@@ -502,8 +504,47 @@ function InlineQuestionEditor({
 
       <div>
         <Label className="text-xs">Figure / question image</Label>
+        {paperImages.length > 0 ? (
+          <div className="mt-2 space-y-2">
+            <p className="text-[10px] text-slate-600">
+              Pick from this paper ({paperImages.length}) — preferred over uploading a new file.
+            </p>
+            <div className="flex gap-2 overflow-x-auto pb-1">
+              {paperImages.map((img, i) => {
+                const selected = form.questionImage === img.url;
+                return (
+                  <button
+                    key={img.key || img.url || i}
+                    type="button"
+                    disabled={saving || uploadingImage}
+                    className={`relative shrink-0 rounded-md border bg-white p-1 ${
+                      selected
+                        ? 'border-sky-500 ring-2 ring-sky-200'
+                        : 'border-slate-200 hover:border-sky-300'
+                    }`}
+                    onClick={() => patch({ questionImage: img.url })}
+                    title={img.name || `Figure ${i + 1}`}
+                  >
+                    <AuthenticatedUploadImage
+                      src={img.url}
+                      alt={img.name || `Paper figure ${i + 1}`}
+                      wrapperClassName="h-16 w-24 p-0"
+                      className="h-[60px] w-full object-contain"
+                      fallbackLabel="—"
+                    />
+                    {selected ? (
+                      <span className="absolute right-1 top-1 rounded bg-sky-600 px-1 text-[9px] font-semibold text-white">
+                        selected
+                      </span>
+                    ) : null}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ) : null}
         <Input
-          className="mt-1 bg-white"
+          className="mt-2 bg-white"
           type="file"
           accept="image/*"
           disabled={saving || uploadingImage}
@@ -517,7 +558,9 @@ function InlineQuestionEditor({
           <p className="mt-1 text-xs text-blue-600">Uploading image...</p>
         ) : (
           <p className="mt-1 text-[10px] text-slate-500">
-            Replace or remove the figure here. Click Save after removing so the change is stored.
+            {paperImages.length
+              ? 'Or upload a file if the figure is missing from the paper pool. Click Save after changing.'
+              : 'Replace or remove the figure here. Click Save after removing so the change is stored.'}
           </p>
         )}
         {form.questionImage ? (
@@ -940,6 +983,10 @@ export default function ExamManagement() {
   const [isDeletingAllQuestions, setIsDeletingAllQuestions] = useState(false);
   const [questionCsvUploadResults, setQuestionCsvUploadResults] = useState<{ success: number; errors: string[] } | null>(null);
   const [pdfQuestionRows, setPdfQuestionRows] = useState<PdfQuestionRow[]>([]);
+  const [pdfPaperImages, setPdfPaperImages] = useState<
+    Array<{ url: string; name?: string; order?: number; key?: string }>
+  >([]);
+  const [pdfAssignTargetIdx, setPdfAssignTargetIdx] = useState<number | null>(null);
   const [pdfAnswerKeyMeta, setPdfAnswerKeyMeta] = useState<{
     found?: boolean;
     applied?: boolean;
@@ -954,6 +1001,8 @@ export default function ExamManagement() {
   const selectQuestionPaperFile = (file: File | null) => {
     setQuestionPdfFile(file);
     setPdfQuestionRows([]);
+    setPdfPaperImages([]);
+    setPdfAssignTargetIdx(null);
     setPdfAnswerKeyMeta(null);
     setPdfShowFlaggedOnly(false);
     setPdfPreviewPage(1);
@@ -970,6 +1019,19 @@ export default function ExamManagement() {
   const pdfPreviewTotalPages = Math.max(1, Math.ceil(pdfVisibleRows.length / 10));
   const updatePdfRow = (index: number, patch: Partial<PdfQuestionRow>) =>
     setPdfQuestionRows((prev) => prev.map((x, j) => (j === index ? { ...x, ...patch } : x)));
+  const assignPaperImageToPdfRow = (index: number, url: string) => {
+    updatePdfRow(index, { questionImage: url });
+    setPdfAssignTargetIdx(null);
+  };
+  const paperImageUsageCount = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const row of pdfQuestionRows) {
+      const u = String(row.questionImage || '').trim();
+      if (!u) continue;
+      counts.set(u, (counts.get(u) || 0) + 1);
+    }
+    return counts;
+  }, [pdfQuestionRows]);
   /**
    * Choosing an answer resolves an "answer needs checking" flag — a human just
    * decided it. Any other flag on the row (missing figure/passage) stays.
@@ -1556,6 +1618,8 @@ export default function ExamManagement() {
     }
     setIsExtractingPdfQuestions(true);
     setPdfQuestionRows([]);
+    setPdfPaperImages([]);
+    setPdfAssignTargetIdx(null);
     setPdfAnswerKeyMeta(null);
     setPdfShowFlaggedOnly(false);
     setPdfPreviewPage(1);
@@ -1641,20 +1705,35 @@ export default function ExamManagement() {
         throw new Error('No extractable questions found in this PDF. Please try a clearer PDF or different pages.');
       }
       setPdfQuestionRows(rows);
+      const paperImages = Array.isArray(data?.meta?.paperImages)
+        ? data.meta.paperImages
+            .map((img: any) => ({
+              url: String(img?.url || '').trim(),
+              name: String(img?.name || '').trim() || undefined,
+              order: Number.isFinite(Number(img?.order)) ? Number(img.order) : undefined,
+              key: String(img?.key || '').trim() || undefined,
+            }))
+            .filter((img: { url: string }) => Boolean(img.url))
+        : [];
+      setPdfPaperImages(paperImages);
+      setPdfAssignTargetIdx(null);
       const answerKeyMeta = data?.meta?.answerKey || null;
       setPdfAnswerKeyMeta(answerKeyMeta);
       const flagged = rows.filter((r: PdfQuestionRow) => r.solvable === false).length;
-      const withImages = rows.filter((r: PdfQuestionRow) => String(r.questionImage || '').trim()).length;
+      const assigned = rows.filter((r: PdfQuestionRow) => String(r.questionImage || '').trim()).length;
       const keyUnusable = answerKeyMeta?.found && !answerKeyMeta?.applied;
       toast({
         title: keyUnusable ? 'Extracted — check the answers' : 'Extraction complete',
         description:
           `Extracted ${rows.length} question(s)` +
-          (withImages ? `, ${withImages} with figure` : '') +
+          (paperImages.length
+            ? `, ${paperImages.length} figure(s) ready — assign from the strip above`
+            : '') +
+          (assigned ? `, ${assigned} already assigned` : '') +
           (flagged ? `, ${flagged} need review` : '') +
           '. ' +
           (keyUnusable ? `The printed answer key was not used: ${answerKeyMeta?.reason}. ` : '') +
-          'Not saved yet — click Upload These Questions.',
+          'Not saved yet — assign figures, then click Upload These Questions.',
         variant: keyUnusable ? 'destructive' : undefined,
       });
     } catch (error: any) {
@@ -1822,6 +1901,8 @@ export default function ExamManagement() {
       await fetchExams();
       if (created > 0) {
         setPdfQuestionRows([]);
+        setPdfPaperImages([]);
+        setPdfAssignTargetIdx(null);
       }
     } catch (error: any) {
       toast({
@@ -3874,6 +3955,8 @@ export default function ExamManagement() {
           setQuestionPdfFile(null);
           setQuestionCsvUploadResults(null);
           setPdfQuestionRows([]);
+          setPdfPaperImages([]);
+          setPdfAssignTargetIdx(null);
           setPdfAnswerKeyMeta(null);
           setPdfShowFlaggedOnly(false);
           setPdfPreviewPage(1);
@@ -4056,9 +4139,9 @@ export default function ExamManagement() {
                     )}
                   </Button>
                   <p className="text-xs text-slate-500">
-                    Tip: leave this tab open. PDF and Word (.docx) both work — diagrams/photos,
-                    Assertion–Reason, and Match Column I/II are detected. Flagged rows need review
-                    before upload.
+                    Tip: leave this tab open. PDF and Word (.docx) both work. Figures from the paper
+                    appear in a strip at the top — use <span className="font-semibold">From paper</span>{' '}
+                    on each question to assign. Flagged rows need review before upload.
                   </p>
 
                   {pdfQuestionRows.length > 0 && (
@@ -4066,6 +4149,99 @@ export default function ExamManagement() {
                       <p className="text-xs text-blue-700">
                         Preview only: extracted questions are not saved until you click <span className="font-semibold">Upload These Questions</span>.
                       </p>
+                      {pdfPaperImages.length > 0 ? (
+                        <div
+                          className={`rounded-md border p-3 ${
+                            pdfAssignTargetIdx != null
+                              ? 'border-sky-400 bg-sky-50/80 ring-2 ring-sky-100'
+                              : 'border-violet-200 bg-violet-50/40'
+                          }`}
+                        >
+                          <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                            <div>
+                              <p className="text-xs font-semibold text-violet-950">
+                                Images from this paper ({pdfPaperImages.length})
+                              </p>
+                              <p className="text-[11px] text-violet-800">
+                                {pdfAssignTargetIdx != null
+                                  ? `Click a figure to assign it to Q${
+                                      Number(pdfQuestionRows[pdfAssignTargetIdx]?.questionNumber) > 0
+                                        ? pdfQuestionRows[pdfAssignTargetIdx].questionNumber
+                                        : pdfAssignTargetIdx + 1
+                                    }.`
+                                  : 'Click From paper on a question row, then pick a figure here.'}
+                              </p>
+                            </div>
+                            {pdfAssignTargetIdx != null ? (
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                className="h-7 text-xs"
+                                onClick={() => setPdfAssignTargetIdx(null)}
+                              >
+                                Cancel pick
+                              </Button>
+                            ) : null}
+                          </div>
+                          <div className="flex gap-2 overflow-x-auto pb-1">
+                            {pdfPaperImages.map((img, i) => {
+                              const used = paperImageUsageCount.get(img.url) || 0;
+                              return (
+                                <button
+                                  key={img.key || img.url || i}
+                                  type="button"
+                                  title={
+                                    pdfAssignTargetIdx != null
+                                      ? `Assign to selected question`
+                                      : img.name || `Figure ${i + 1}`
+                                  }
+                                  className={`relative shrink-0 rounded-md border bg-white p-1 transition ${
+                                    pdfAssignTargetIdx != null
+                                      ? 'cursor-pointer border-sky-300 hover:border-sky-500 hover:ring-2 hover:ring-sky-200'
+                                      : 'border-slate-200'
+                                  }`}
+                                  onClick={() => {
+                                    if (pdfAssignTargetIdx == null) {
+                                      toast({
+                                        title: 'Pick a question first',
+                                        description:
+                                          'Click “From paper” on a row in the table, then select an image here.',
+                                      });
+                                      return;
+                                    }
+                                    assignPaperImageToPdfRow(pdfAssignTargetIdx, img.url);
+                                  }}
+                                >
+                                  <AuthenticatedUploadImage
+                                    src={img.url}
+                                    alt={img.name || `Paper figure ${i + 1}`}
+                                    wrapperClassName="h-20 w-28 p-0"
+                                    className="h-[76px] w-full object-contain"
+                                    fallbackLabel="—"
+                                  />
+                                  <span className="mt-0.5 block truncate text-[10px] text-slate-600">
+                                    {img.name || `Fig ${i + 1}`}
+                                  </span>
+                                  <span
+                                    className={`absolute right-1 top-1 rounded px-1 text-[9px] font-semibold ${
+                                      used
+                                        ? 'bg-emerald-100 text-emerald-800'
+                                        : 'bg-slate-100 text-slate-600'
+                                    }`}
+                                  >
+                                    {used ? `used×${used}` : 'free'}
+                                  </span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="rounded-md border border-dashed border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
+                          No figures were found in this paper. You can still upload an image per question if needed.
+                        </p>
+                      )}
                       {pdfAnswerKeyMeta?.found && !pdfAnswerKeyMeta?.applied && (
                         <div
                           role="alert"
@@ -4137,8 +4313,11 @@ export default function ExamManagement() {
                       <div className="flex items-center justify-between gap-2">
                         <p className="text-xs sm:text-sm font-semibold text-slate-800">
                           Preview ({pdfQuestionRows.length} question{pdfQuestionRows.length === 1 ? '' : 's'}
+                          {pdfPaperImages.length
+                            ? `, ${pdfPaperImages.length} paper figure${pdfPaperImages.length === 1 ? '' : 's'}`
+                            : ''}
                           {pdfQuestionRows.filter((r) => r.questionImage).length
-                            ? `, ${pdfQuestionRows.filter((r) => r.questionImage).length} with figure`
+                            ? `, ${pdfQuestionRows.filter((r) => r.questionImage).length} assigned`
                             : ''}
                           )
                         </p>
@@ -4202,18 +4381,105 @@ export default function ExamManagement() {
                                     </div>
                                   ) : null}
                                 </td>
-                                <td className="p-2">
-                                  {imgSrc ? (
-                                    <AuthenticatedUploadImage
-                                      src={imgSrc}
-                                      alt={`Q${row.questionNumber || globalIdx + 1} figure`}
-                                      wrapperClassName="h-14 w-20 p-0.5"
-                                      className="h-12 w-full object-contain"
-                                      fallbackLabel="—"
-                                    />
-                                  ) : (
-                                    <span className="text-slate-400">—</span>
-                                  )}
+                                <td className="p-2 align-top min-w-[140px]">
+                                  <div className="space-y-1.5">
+                                    {imgSrc ? (
+                                      <AuthenticatedUploadImage
+                                        src={imgSrc}
+                                        alt={`Q${row.questionNumber || globalIdx + 1} figure`}
+                                        wrapperClassName="h-14 w-20 p-0.5"
+                                        className="h-12 w-full object-contain"
+                                        fallbackLabel="—"
+                                      />
+                                    ) : (
+                                      <span className="text-slate-400">—</span>
+                                    )}
+                                    <div className="flex flex-wrap gap-1">
+                                      {pdfPaperImages.length > 0 ? (
+                                        <Button
+                                          type="button"
+                                          size="sm"
+                                          variant={
+                                            pdfAssignTargetIdx === globalIdx ? 'default' : 'outline'
+                                          }
+                                          className={`h-6 px-1.5 text-[10px] ${
+                                            pdfAssignTargetIdx === globalIdx
+                                              ? 'bg-sky-600 text-white hover:bg-sky-700'
+                                              : ''
+                                          }`}
+                                          onClick={() =>
+                                            setPdfAssignTargetIdx((prev) =>
+                                              prev === globalIdx ? null : globalIdx,
+                                            )
+                                          }
+                                        >
+                                          {pdfAssignTargetIdx === globalIdx ? 'Picking…' : 'From paper'}
+                                        </Button>
+                                      ) : null}
+                                      {imgSrc ? (
+                                        <Button
+                                          type="button"
+                                          size="sm"
+                                          variant="ghost"
+                                          className="h-6 px-1.5 text-[10px] text-red-600"
+                                          onClick={() =>
+                                            updatePdfRow(globalIdx, { questionImage: '' })
+                                          }
+                                        >
+                                          Clear
+                                        </Button>
+                                      ) : null}
+                                    </div>
+                                    <label className="block cursor-pointer text-[10px] text-slate-500 underline underline-offset-2">
+                                      Upload file…
+                                      <input
+                                        type="file"
+                                        accept="image/*"
+                                        className="hidden"
+                                        onChange={async (e) => {
+                                          const file = e.target.files?.[0];
+                                          e.target.value = '';
+                                          if (!file) return;
+                                          try {
+                                            const token = getAuthToken();
+                                            const formData = new FormData();
+                                            formData.append('image', file);
+                                            const response = await fetch(
+                                              `${API_BASE_URL}/api/super-admin/upload-question-image`,
+                                              {
+                                                method: 'POST',
+                                                credentials: 'include',
+                                                headers: authBearerHeaders(),
+                                                body: formData,
+                                              },
+                                            );
+                                            const data = await response.json();
+                                            if (!response.ok || !data.success) {
+                                              throw new Error(data.message || 'Upload failed');
+                                            }
+                                            let storedUrl = String(data.imageUrl || '').trim();
+                                            try {
+                                              if (storedUrl.startsWith('http')) {
+                                                const u = new URL(storedUrl);
+                                                if (u.pathname.startsWith('/uploads/')) {
+                                                  storedUrl = u.pathname;
+                                                }
+                                              }
+                                            } catch {
+                                              /* keep */
+                                            }
+                                            updatePdfRow(globalIdx, { questionImage: storedUrl });
+                                          } catch (err: any) {
+                                            toast({
+                                              title: 'Upload failed',
+                                              description: err?.message || 'Could not upload image',
+                                              variant: 'destructive',
+                                            });
+                                          }
+                                        }}
+                                      />
+                                    </label>
+                                  </div>
                                 </td>
                                 <td className="p-2">{String(row.questionType || '').toUpperCase()}</td>
                                 <td className="p-1 align-middle min-w-[120px]">
@@ -4601,6 +4867,7 @@ export default function ExamManagement() {
                                 onRemoveImage={handleRemoveQuestionImage}
                                 uploadingImage={isUploadingQuestionImage}
                                 imageFileName={questionImageFile?.name}
+                                paperImages={pdfPaperImages}
                               />
                             ) : (
                             <>

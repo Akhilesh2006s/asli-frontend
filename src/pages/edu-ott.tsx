@@ -209,6 +209,7 @@ export default function EduOTT() {
   const [liveSessions, setLiveSessions] = useState<LiveSession[]>([]);
   const [videoCatalog, setVideoCatalog] = useState<Video[]>([]);
   const [sessionCatalog, setSessionCatalog] = useState<LiveSession[]>([]);
+  const [videosEmptyMessage, setVideosEmptyMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [loadingSessions, setLoadingSessions] = useState(true);
   const [isRefreshingVideos, setIsRefreshingVideos] = useState(false);
@@ -241,6 +242,9 @@ export default function EduOTT() {
           const data = await vRes.json();
           const list = data.data || data || [];
           setVideoCatalog(list.map(mapContentToVideo));
+          if (!list.length && data?.message) {
+            setVideosEmptyMessage(String(data.message));
+          }
         } else {
           setVideoCatalog([]);
         }
@@ -292,8 +296,12 @@ export default function EduOTT() {
           const data = await response.json();
           const videosList = data.data || data || [];
           setVideos(videosList.map(mapContentToVideo));
+          setVideosEmptyMessage(
+            videosList.length === 0 && data?.message ? String(data.message) : '',
+          );
         } else {
           setVideos([]);
+          setVideosEmptyMessage('');
         }
       } catch (error) {
         console.error('Failed to fetch videos:', error);
@@ -499,7 +507,8 @@ export default function EduOTT() {
                 </h3>
                 <p className="mx-auto max-w-md text-lg text-muted-foreground">
                   {videos.length === 0
-                    ? 'No videos have been assigned to your subjects yet.'
+                    ? videosEmptyMessage ||
+                      'No IIT videos for your class and assigned tracks yet. Board videos stay in Learning Paths.'
                     : hasGlobalFilters || searchTerm
                       ? 'No content available for the selected filters. Try clearing filters or adjusting your search.'
                       : 'Try adjusting your search.'}
