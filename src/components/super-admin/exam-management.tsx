@@ -1469,7 +1469,7 @@ export default function ExamManagement() {
     if (!selectedExam || !questionPdfFile) {
       toast({
         title: 'Validation Error',
-        description: 'Please select a PDF file and exam.',
+        description: 'Please select a PDF or Word (.docx) file and an exam.',
         variant: 'destructive'
       });
       return;
@@ -3843,7 +3843,7 @@ export default function ExamManagement() {
                   variant={bulkQuestionUploadMode === 'pdf' ? 'default' : 'outline'}
                   onClick={() => setBulkQuestionUploadMode('pdf')}
                 >
-                  Upload from PDF
+                  Upload from PDF / Word
                 </Button>
               </div>
               {bulkQuestionUploadMode === 'csv' ? (
@@ -3961,16 +3961,16 @@ export default function ExamManagement() {
                     {isExtractingPdfQuestions ? (
                       <span className="inline-flex items-center justify-center gap-2">
                         <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 shrink-0 animate-spin" aria-hidden />
-                        <span>Extracting questions from PDF...</span>
+                        <span>Extracting questions from PDF/Word...</span>
                       </span>
                     ) : (
-                      'Extract Questions from PDF'
+                      'Extract Questions from PDF or Word'
                     )}
                   </Button>
                   <p className="text-xs text-slate-500">
-                    Tip: leave this tab open. Diagram questions get the figure image (or a top-of-page
-                    crop if the PDF has no embedded picture). Assertion–Reason gets directions text;
-                    Match uses Column I/II. Flagged rows need review before upload.
+                    Tip: leave this tab open. PDF and Word (.docx) both work — diagrams/photos,
+                    Assertion–Reason, and Match Column I/II are detected. Flagged rows need review
+                    before upload.
                   </p>
 
                   {pdfQuestionRows.length > 0 && (
