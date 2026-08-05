@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { getAuthToken } from '@/lib/auth-utils';
 import { AuthenticatedUploadImage } from '@/components/AuthenticatedUploadImage';
+import { MatchColumnsTable } from '@/components/exam/MatchColumnsTable';
 import {
   Clock, 
   CheckCircle, 
@@ -1330,30 +1331,11 @@ const normalizeExamText = (value: unknown, subject?: string): string =>
                       {((Array.isArray(currentQuestion.matchColumnI) && currentQuestion.matchColumnI.length > 0) ||
                         (Array.isArray(currentQuestion.matchColumnII) && currentQuestion.matchColumnII.length > 0)) &&
                         !showQuestionImage && (
-                        <div className="mb-4 grid gap-3 sm:grid-cols-2">
-                          <div className="rounded-lg border border-teal-100 bg-teal-50/60 p-3 text-sm">
-                            <div className="mb-1 text-[10px] font-semibold uppercase text-teal-800">Column I</div>
-                            <ul className="space-y-1">
-                              {(currentQuestion.matchColumnI || []).map((c: any, i: number) => (
-                                <li key={i}>
-                                  <span className="font-semibold">{c.key || String.fromCharCode(65 + i)}.</span>{' '}
-                                  {normalizeExamText(c.text, currentQuestion.subject)}
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                          <div className="rounded-lg border border-teal-100 bg-teal-50/60 p-3 text-sm">
-                            <div className="mb-1 text-[10px] font-semibold uppercase text-teal-800">Column II</div>
-                            <ul className="space-y-1">
-                              {(currentQuestion.matchColumnII || []).map((c: any, i: number) => (
-                                <li key={i}>
-                                  <span className="font-semibold">{c.key || String(i + 1)}.</span>{' '}
-                                  {normalizeExamText(c.text, currentQuestion.subject)}
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        </div>
+                        <MatchColumnsTable
+                          columnI={currentQuestion.matchColumnI}
+                          columnII={currentQuestion.matchColumnII}
+                          formatText={(t) => normalizeExamText(t, currentQuestion.subject)}
+                        />
                       )}
 
                       {showQuestionImage && (

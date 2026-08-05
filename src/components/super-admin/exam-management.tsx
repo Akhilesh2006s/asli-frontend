@@ -37,6 +37,7 @@ import { API_BASE_URL } from '@/lib/api-config';
 import { getExamClassStrings } from '@/lib/exam-classes';
 import { normalizeAndFormatExamDisplayText } from '@/lib/exam-text-normalize';
 import { AuthenticatedUploadImage } from '@/components/AuthenticatedUploadImage';
+import { MatchColumnsTable } from '@/components/exam/MatchColumnsTable';
 import { Plus, Trash2, Edit, Eye, Calendar, Clock, BookOpen, FileQuestion, X, Upload, Download, School, GraduationCap, Loader2, ChevronUp, ChevronDown, Save, Search } from 'lucide-react';
 
 type ExamSubjectValue =
@@ -4666,34 +4667,11 @@ export default function ExamManagement() {
                                 {(Array.isArray(q.matchColumnI) && q.matchColumnI.length > 0) ||
                                 (Array.isArray(q.matchColumnII) && q.matchColumnII.length > 0)
                                   ? !q.questionImage && (
-                                  <div className="mb-4 grid gap-3 sm:grid-cols-2">
-                                    <div className="rounded-md border border-teal-100 bg-teal-50/50 p-3 text-sm">
-                                      <div className="mb-1 text-[10px] font-semibold uppercase text-teal-800">
-                                        Column I
-                                      </div>
-                                      <ul className="space-y-1">
-                                        {(q.matchColumnI || []).map((c: any, i: number) => (
-                                          <li key={i}>
-                                            <span className="font-semibold">{c.key || String.fromCharCode(65 + i)}.</span>{' '}
-                                            {formatChemistryText(c.text, q.subject)}
-                                          </li>
-                                        ))}
-                                      </ul>
-                                    </div>
-                                    <div className="rounded-md border border-teal-100 bg-teal-50/50 p-3 text-sm">
-                                      <div className="mb-1 text-[10px] font-semibold uppercase text-teal-800">
-                                        Column II
-                                      </div>
-                                      <ul className="space-y-1">
-                                        {(q.matchColumnII || []).map((c: any, i: number) => (
-                                          <li key={i}>
-                                            <span className="font-semibold">{c.key || String(i + 1)}.</span>{' '}
-                                            {formatChemistryText(c.text, q.subject)}
-                                          </li>
-                                        ))}
-                                      </ul>
-                                    </div>
-                                  </div>
+                                  <MatchColumnsTable
+                                    columnI={q.matchColumnI}
+                                    columnII={q.matchColumnII}
+                                    formatText={(t) => formatChemistryText(t, q.subject)}
+                                  />
                                 )
                                   : null}
 
