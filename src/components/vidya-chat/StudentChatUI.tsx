@@ -118,8 +118,10 @@ export function StudentChatUI({ model, className }: StudentChatUIProps) {
             <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-100">
               <Sparkles className="h-5 w-5 text-indigo-600" />
             </div>
-            <h4 className="text-sm font-semibold text-slate-900">What do you want to learn?</h4>
-            <p className="mt-1 text-xs text-slate-500">Tap a prompt to start</p>
+            <h4 className="text-sm font-semibold text-slate-900">Ask about your learning on Asli</h4>
+            <p className="mt-1 text-xs text-slate-500">
+              Progress, videos watched, exam status, weak areas — or any subject doubt
+            </p>
             <div className="mt-4 grid grid-cols-1 gap-2">
               {model.quickQuestions.map((question, index) => (
                 <button
