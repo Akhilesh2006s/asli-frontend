@@ -1318,6 +1318,91 @@ export default function ExamManagement() {
     );
   };
 
+  /** Click an option in the preview card to set (and persist) the correct answer. */
+  const handleSetCorrectOption = async (question: any, optionTextValue: string) => {
+    if (!selectedExam?._id || !question?._id) return;
+    const text = String(optionTextValue || '').trim();
+    if (!text) return;
+    if (editingQuestionId) {
+      toast({
+        title: 'Finish editing first',
+        description: 'Save or cancel the open editor, then click an option to change the answer.',
+      });
+      return;
+    }
+    const questionId = String(question._id);
+    const qType = String(question.questionType || 'mcq');
+    const rawOptions = Array.isArray(question.options) ? question.options : [];
+    const optionTexts = rawOptions
+      .map((o: unknown) => optionText(o).trim())
+      .filter(Boolean);
+
+    setSavingQuestionId(questionId);
+    try {
+      const token = getAuthToken();
+      let correctAnswer: string | string[] = text;
+      if (qType === 'multiple') {
+        const prev = Array.isArray(question.correctAnswer)
+          ? question.correctAnswer.map((a: unknown) => String(a ?? '').trim()).filter(Boolean)
+          : question.correctAnswer != null && question.correctAnswer !== ''
+            ? [String(question.correctAnswer).trim()]
+            : [];
+        const lower = text.toLowerCase();
+        correctAnswer = prev.some((a: string) => a.toLowerCase() === lower)
+          ? prev.filter((a: string) => a.toLowerCase() !== lower)
+          : [...prev, text];
+        if ((correctAnswer as string[]).length === 0) {
+          toast({
+            title: 'Keep at least one',
+            description: 'Multiple-choice questions need at least one correct option.',
+            variant: 'destructive',
+          });
+          return;
+        }
+      }
+
+      const response = await fetch(
+        `${API_BASE_URL}/api/super-admin/exams/${selectedExam._id}/questions/${questionId}`,
+        {
+          method: 'PUT',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            questionType: qType,
+            options: optionTexts.map((t: string) => ({ text: t, isCorrect: false })),
+            correctAnswer,
+          }),
+        },
+      );
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || data.success === false) {
+        throw new Error(data.message || 'Failed to update correct answer');
+      }
+      if (Array.isArray(data.questions) && data.questions.length > 0) {
+        setQuestions(data.questions);
+      } else {
+        await fetchQuestions(selectedExam._id);
+      }
+      toast({
+        title: 'Correct answer updated',
+        description:
+          qType === 'multiple'
+            ? 'Toggled correct option(s).'
+            : `Marked “${text}” as correct.`,
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to update correct answer',
+        variant: 'destructive',
+      });
+    } finally {
+      setSavingQuestionId(null);
+    }
+  };
+
   const handleSaveQuestionMeta = async (question: any) => {
     if (!selectedExam?._id || !question?._id) return;
     const questionId = String(question._id);
@@ -5279,29 +5364,66 @@ export default function ExamManagement() {
                                   q.options &&
                                   q.options.length > 0 && (
                                     <div className="space-y-3">
+                                      <p className="text-[11px] text-slate-500">
+                                        Click an option to mark it correct
+                                        {q.questionType === 'multiple' ? ' (toggle)' : ''}.
+                                      </p>
                                       {q.options.map((option: any, optIdx: number) => {
                                         const optText = String(option?.text ?? option ?? '').trim();
+                                        const allTexts = (q.options || []).map((o: any) =>
+                                          String(o?.text ?? o ?? '').trim(),
+                                        );
                                         const answers = Array.isArray(q.correctAnswer)
                                           ? q.correctAnswer
                                           : q.correctAnswer != null && q.correctAnswer !== ''
                                             ? [q.correctAnswer]
                                             : [];
-                                        const isCorrect = answers.some((ans: unknown) => {
-                                          const raw = String(ans ?? '').trim();
-                                          if (!raw) return false;
-                                          if (raw.toLowerCase() === optText.toLowerCase()) return true;
-                                          if (/^\d+$/.test(raw) && parseInt(raw, 10) === optIdx) return true;
-                                          return false;
-                                        }) || Boolean(option?.isCorrect);
+                                        const answerStrs = answers
+                                          .map((ans: unknown) => String(ans ?? '').trim())
+                                          .filter(Boolean);
+                                        const answerMatchesSomeOption = answerStrs.some((raw) =>
+                                          allTexts.some(
+                                            (t: string) => t.toLowerCase() === raw.toLowerCase(),
+                                          ),
+                                        );
+                                        const isCorrect = answerStrs.length
+                                          ? answerStrs.some((raw) => {
+                                              if (raw.toLowerCase() === optText.toLowerCase()) {
+                                                return true;
+                                              }
+                                              // Digit-as-index only when answer is not itself an option text
+                                              // (avoids marking both "1" and index-1 when options are 1/2/3/4)
+                                              if (answerMatchesSomeOption) return false;
+                                              if (
+                                                /^\d+$/.test(raw) &&
+                                                parseInt(raw, 10) === optIdx
+                                              ) {
+                                                return true;
+                                              }
+                                              return false;
+                                            })
+                                          : Boolean(option?.isCorrect);
                                         const letter = String.fromCharCode(65 + optIdx);
+                                        const busy =
+                                          Boolean(savingQuestionId) ||
+                                          isReorderingQuestions ||
+                                          Boolean(editingQuestionId);
                                         return (
-                                          <div
+                                          <button
                                             key={optIdx}
-                                            className={`flex items-center gap-3 rounded-lg border px-3 py-2.5 ${
+                                            type="button"
+                                            disabled={busy || !optText}
+                                            onClick={() => void handleSetCorrectOption(q, optText)}
+                                            title={
+                                              busy
+                                                ? 'Wait until saving finishes'
+                                                : `Mark ${letter} as correct`
+                                            }
+                                            className={`flex w-full items-center gap-3 rounded-lg border px-3 py-2.5 text-left transition-colors ${
                                               isCorrect
                                                 ? 'border-emerald-300 bg-emerald-50'
-                                                : 'border-transparent'
-                                            }`}
+                                                : 'border-transparent hover:border-slate-200 hover:bg-slate-50'
+                                            } ${busy ? 'cursor-not-allowed opacity-70' : 'cursor-pointer'}`}
                                           >
                                             <span
                                               className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 text-[10px] font-bold ${
@@ -5320,7 +5442,7 @@ export default function ExamManagement() {
                                                 Correct
                                               </Badge>
                                             ) : null}
-                                          </div>
+                                          </button>
                                         );
                                       })}
                                     </div>
