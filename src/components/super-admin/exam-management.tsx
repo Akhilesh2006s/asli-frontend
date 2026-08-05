@@ -986,7 +986,12 @@ export default function ExamManagement() {
   const [pdfPaperImages, setPdfPaperImages] = useState<
     Array<{ url: string; name?: string; order?: number; key?: string }>
   >([]);
+  /** Unassigned paper figures for the open exam (persisted on Exam.figurePool). */
+  const [examFigurePool, setExamFigurePool] = useState<
+    Array<{ url: string; name?: string; order?: number; key?: string }>
+  >([]);
   const [pdfAssignTargetIdx, setPdfAssignTargetIdx] = useState<number | null>(null);
+  const [figureAssignQuestionId, setFigureAssignQuestionId] = useState<string | null>(null);
   const [pdfAnswerKeyMeta, setPdfAnswerKeyMeta] = useState<{
     found?: boolean;
     applied?: boolean;
@@ -1030,8 +1035,92 @@ export default function ExamManagement() {
       if (!u) continue;
       counts.set(u, (counts.get(u) || 0) + 1);
     }
+    for (const q of questions) {
+      const u = String(q?.questionImage || '').trim();
+      if (!u) continue;
+      counts.set(u, (counts.get(u) || 0) + 1);
+    }
     return counts;
-  }, [pdfQuestionRows]);
+  }, [pdfQuestionRows, questions]);
+
+  /** Pool images not yet stuck on any preview row or saved question — assigned ones leave the strip. */
+  const availablePreviewPaperImages = useMemo(
+    () => pdfPaperImages.filter((img) => !paperImageUsageCount.has(String(img.url || '').trim())),
+    [pdfPaperImages, paperImageUsageCount],
+  );
+
+  const persistExamFigurePool = async (
+    examId: string,
+    pool: Array<{ url: string; name?: string; order?: number; key?: string }>,
+  ) => {
+    const response = await fetch(`${API_BASE_URL}/api/super-admin/exams/${examId}/figure-pool`, {
+      method: 'PUT',
+      credentials: 'include',
+      headers: {
+        ...authBearerHeaders(),
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ figurePool: pool }),
+    });
+    const data = await response.json().catch(() => null);
+    if (!response.ok || !data?.success) {
+      throw new Error(data?.message || 'Failed to save figure pool');
+    }
+    const next = Array.isArray(data.figurePool)
+      ? data.figurePool
+      : Array.isArray(data.data)
+        ? data.data
+        : pool;
+    setExamFigurePool(
+      next
+        .map((img: any, i: number) => ({
+          url: String(img?.url || '').trim(),
+          name: String(img?.name || '').trim() || `Fig ${i + 1}`,
+          order: Number.isFinite(Number(img?.order)) ? Number(img.order) : i,
+          key: String(img?.key || '').trim() || undefined,
+        }))
+        .filter((img: { url: string }) => Boolean(img.url)),
+    );
+  };
+
+  const handleAssignFigureToSavedQuestion = async (questionId: string, imageUrl: string) => {
+    if (!selectedExam?._id || !questionId || !imageUrl) return;
+    try {
+      const token = getAuthToken();
+      const response = await fetch(
+        `${API_BASE_URL}/api/super-admin/exams/${selectedExam._id}/questions/${questionId}`,
+        {
+          method: 'PUT',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ questionImage: imageUrl }),
+        },
+      );
+      const data = await response.json().catch(() => null);
+      if (!response.ok || !data?.success) {
+        throw new Error(data?.message || 'Failed to assign figure');
+      }
+      patchLocalQuestion(questionId, { questionImage: imageUrl });
+      const nextPool = examFigurePool.filter((img) => img.url !== imageUrl);
+      setExamFigurePool(nextPool);
+      setFigureAssignQuestionId(null);
+      // Best-effort sync pool on server (updateQuestion also $pulls)
+      try {
+        await persistExamFigurePool(selectedExam._id, nextPool);
+      } catch {
+        /* local state already updated */
+      }
+      toast({ title: 'Figure assigned', description: 'This image is removed from the free pool.' });
+    } catch (error: any) {
+      toast({
+        title: 'Assign failed',
+        description: error?.message || 'Could not assign figure',
+        variant: 'destructive',
+      });
+    }
+  };
   /**
    * Choosing an answer resolves an "answer needs checking" flag — a human just
    * decided it. Any other flag on the row (missing figure/passage) stays.
@@ -1069,6 +1158,18 @@ export default function ExamManagement() {
   const [csvUploadResults, setCsvUploadResults] = useState<{ success: number; errors: string[] } | null>(null);
   const [questionFormData, setQuestionFormData] = useState(() => ({ ...EMPTY_QUESTION_FORM }));
   const [editingQuestionId, setEditingQuestionId] = useState<string | null>(null);
+  const availableExamFigurePool = useMemo(() => {
+    const editingImage = editingQuestionId
+      ? String(questionFormData.questionImage || '').trim()
+      : '';
+    return examFigurePool.filter((img) => {
+      const url = String(img.url || '').trim();
+      if (!url) return false;
+      if (paperImageUsageCount.has(url)) return false;
+      if (editingImage && url === editingImage) return false;
+      return true;
+    });
+  }, [examFigurePool, paperImageUsageCount, editingQuestionId, questionFormData.questionImage]);
   const questionFormRef = useRef<HTMLDivElement | null>(null);
   const [formData, setFormData] = useState({
     title: '',
@@ -1150,6 +1251,22 @@ export default function ExamManagement() {
               };
             }),
           );
+          const pool = Array.isArray(data.figurePool)
+            ? data.figurePool
+            : Array.isArray(data.meta?.figurePool)
+              ? data.meta.figurePool
+              : [];
+          setExamFigurePool(
+            pool
+              .map((img: any, i: number) => ({
+                url: String(img?.url || '').trim(),
+                name: String(img?.name || '').trim() || `Fig ${i + 1}`,
+                order: Number.isFinite(Number(img?.order)) ? Number(img.order) : i,
+                key: String(img?.key || '').trim() || undefined,
+              }))
+              .filter((img: { url: string }) => Boolean(img.url)),
+          );
+          setFigureAssignQuestionId(null);
         }
       } else {
         // If endpoint doesn't exist, fetch exam and get questions from there
@@ -1892,18 +2009,38 @@ export default function ExamManagement() {
       }
 
       setQuestionCsvUploadResults({ success: created, errors });
-      toast({
-        title: created > 0 ? 'Upload complete' : 'Upload failed',
-        description: `Created ${created} question(s)${errors.length ? `, ${errors.length} error(s)` : ''}.`,
-        variant: created > 0 ? 'default' : 'destructive',
-      });
-      await fetchQuestions(selectedExam._id);
-      await fetchExams();
+      let remainingPoolCount = 0;
       if (created > 0) {
+        const assignedUrls = new Set(
+          pdfQuestionRows
+            .map((r) => String(r.questionImage || '').trim())
+            .filter(Boolean),
+        );
+        const remainingPool = pdfPaperImages.filter(
+          (img) => img.url && !assignedUrls.has(img.url),
+        );
+        remainingPoolCount = remainingPool.length;
+        try {
+          await persistExamFigurePool(selectedExam._id, remainingPool);
+        } catch (poolErr: any) {
+          console.warn('figure pool save failed', poolErr);
+          setExamFigurePool(remainingPool);
+        }
         setPdfQuestionRows([]);
         setPdfPaperImages([]);
         setPdfAssignTargetIdx(null);
       }
+      await fetchQuestions(selectedExam._id);
+      await fetchExams();
+      toast({
+        title: created > 0 ? 'Upload complete' : 'Upload failed',
+        description:
+          `Created ${created} question(s)${errors.length ? `, ${errors.length} error(s)` : ''}.` +
+          (remainingPoolCount
+            ? ` ${remainingPoolCount} figure(s) are at the top — click From paper on a question, then pick an image.`
+            : ''),
+        variant: created > 0 ? 'default' : 'destructive',
+      });
     } catch (error: any) {
       toast({
         title: 'Upload failed',
@@ -3957,6 +4094,8 @@ export default function ExamManagement() {
           setPdfQuestionRows([]);
           setPdfPaperImages([]);
           setPdfAssignTargetIdx(null);
+          setExamFigurePool([]);
+          setFigureAssignQuestionId(null);
           setPdfAnswerKeyMeta(null);
           setPdfShowFlaggedOnly(false);
           setPdfPreviewPage(1);
@@ -3980,6 +4119,75 @@ export default function ExamManagement() {
               Student exam layout with Super Admin controls — edit order, section, text, answers, and figures.
             </DialogDescription>
           </DialogHeader>
+
+          {availableExamFigurePool.length > 0 ? (
+            <div
+              className={`shrink-0 rounded-lg border p-3 ${
+                figureAssignQuestionId
+                  ? 'border-sky-400 bg-sky-50/90 ring-2 ring-sky-100'
+                  : 'border-violet-200 bg-violet-50/50'
+              }`}
+            >
+              <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-violet-950">
+                    Paper figures — assign from here ({availableExamFigurePool.length} free)
+                  </p>
+                  <p className="text-[11px] text-violet-800">
+                    {figureAssignQuestionId
+                      ? 'Click a figure to attach it to the selected question. It will leave this strip.'
+                      : 'Click From paper on a question below, then pick a figure. Assigned images do not come back.'}
+                  </p>
+                </div>
+                {figureAssignQuestionId ? (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="h-7 text-xs"
+                    onClick={() => setFigureAssignQuestionId(null)}
+                  >
+                    Cancel pick
+                  </Button>
+                ) : null}
+              </div>
+              <div className="flex gap-2 overflow-x-auto pb-1">
+                {availableExamFigurePool.map((img, i) => (
+                  <button
+                    key={img.key || img.url || i}
+                    type="button"
+                    className={`relative shrink-0 rounded-md border bg-white p-1 transition ${
+                      figureAssignQuestionId
+                        ? 'cursor-pointer border-sky-300 hover:border-sky-500 hover:ring-2 hover:ring-sky-200'
+                        : 'border-slate-200'
+                    }`}
+                    title={img.name || `Figure ${i + 1}`}
+                    onClick={() => {
+                      if (!figureAssignQuestionId) {
+                        toast({
+                          title: 'Pick a question first',
+                          description: 'Click From paper on a question card, then select an image here.',
+                        });
+                        return;
+                      }
+                      void handleAssignFigureToSavedQuestion(figureAssignQuestionId, img.url);
+                    }}
+                  >
+                    <AuthenticatedUploadImage
+                      src={img.url}
+                      alt={img.name || `Paper figure ${i + 1}`}
+                      wrapperClassName="h-20 w-28 p-0"
+                      className="h-[76px] w-full object-contain"
+                      fallbackLabel="—"
+                    />
+                    <span className="mt-0.5 block max-w-[7rem] truncate text-[10px] text-slate-600">
+                      {img.name || `Fig ${i + 1}`}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : null}
 
           <div className="min-h-0 flex-1 space-y-4 overflow-y-auto pr-1">
             {/* CSV Upload Section */}
@@ -4149,7 +4357,7 @@ export default function ExamManagement() {
                       <p className="text-xs text-blue-700">
                         Preview only: extracted questions are not saved until you click <span className="font-semibold">Upload These Questions</span>.
                       </p>
-                      {pdfPaperImages.length > 0 ? (
+                      {availablePreviewPaperImages.length > 0 ? (
                         <div
                           className={`rounded-md border p-3 ${
                             pdfAssignTargetIdx != null
@@ -4160,7 +4368,7 @@ export default function ExamManagement() {
                           <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
                             <div>
                               <p className="text-xs font-semibold text-violet-950">
-                                Images from this paper ({pdfPaperImages.length})
+                                Images from this paper ({availablePreviewPaperImages.length} free)
                               </p>
                               <p className="text-[11px] text-violet-800">
                                 {pdfAssignTargetIdx != null
@@ -4168,8 +4376,8 @@ export default function ExamManagement() {
                                       Number(pdfQuestionRows[pdfAssignTargetIdx]?.questionNumber) > 0
                                         ? pdfQuestionRows[pdfAssignTargetIdx].questionNumber
                                         : pdfAssignTargetIdx + 1
-                                    }.`
-                                  : 'Click From paper on a question row, then pick a figure here.'}
+                                    }. Assigned images leave this strip.`
+                                  : 'Click From paper on a question row, then pick a figure here. Once assigned, it will not show again.'}
                               </p>
                             </div>
                             {pdfAssignTargetIdx != null ? (
@@ -4185,8 +4393,7 @@ export default function ExamManagement() {
                             ) : null}
                           </div>
                           <div className="flex gap-2 overflow-x-auto pb-1">
-                            {pdfPaperImages.map((img, i) => {
-                              const used = paperImageUsageCount.get(img.url) || 0;
+                            {availablePreviewPaperImages.map((img, i) => {
                               return (
                                 <button
                                   key={img.key || img.url || i}
@@ -4223,20 +4430,15 @@ export default function ExamManagement() {
                                   <span className="mt-0.5 block truncate text-[10px] text-slate-600">
                                     {img.name || `Fig ${i + 1}`}
                                   </span>
-                                  <span
-                                    className={`absolute right-1 top-1 rounded px-1 text-[9px] font-semibold ${
-                                      used
-                                        ? 'bg-emerald-100 text-emerald-800'
-                                        : 'bg-slate-100 text-slate-600'
-                                    }`}
-                                  >
-                                    {used ? `used×${used}` : 'free'}
-                                  </span>
                                 </button>
                               );
                             })}
                           </div>
                         </div>
+                      ) : pdfPaperImages.length > 0 ? (
+                        <p className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-900">
+                          All paper figures are assigned to questions.
+                        </p>
                       ) : (
                         <p className="rounded-md border border-dashed border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
                           No figures were found in this paper. You can still upload an image per question if needed.
@@ -4313,8 +4515,8 @@ export default function ExamManagement() {
                       <div className="flex items-center justify-between gap-2">
                         <p className="text-xs sm:text-sm font-semibold text-slate-800">
                           Preview ({pdfQuestionRows.length} question{pdfQuestionRows.length === 1 ? '' : 's'}
-                          {pdfPaperImages.length
-                            ? `, ${pdfPaperImages.length} paper figure${pdfPaperImages.length === 1 ? '' : 's'}`
+                          {availablePreviewPaperImages.length
+                            ? `, ${availablePreviewPaperImages.length} free figure${availablePreviewPaperImages.length === 1 ? '' : 's'}`
                             : ''}
                           {pdfQuestionRows.filter((r) => r.questionImage).length
                             ? `, ${pdfQuestionRows.filter((r) => r.questionImage).length} assigned`
@@ -4395,7 +4597,7 @@ export default function ExamManagement() {
                                       <span className="text-slate-400">—</span>
                                     )}
                                     <div className="flex flex-wrap gap-1">
-                                      {pdfPaperImages.length > 0 ? (
+                                      {availablePreviewPaperImages.length > 0 ? (
                                         <Button
                                           type="button"
                                           size="sm"
@@ -4785,6 +4987,29 @@ export default function ExamManagement() {
                                 >
                                   Subject→Section
                                 </Button>
+                                {availableExamFigurePool.length > 0 ? (
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="outline"
+                                    className={`h-8 ${
+                                      figureAssignQuestionId === String(q._id)
+                                        ? 'border-sky-500 bg-sky-50 text-sky-700'
+                                        : ''
+                                    }`}
+                                    disabled={Boolean(savingQuestionId) || isReorderingQuestions}
+                                    onClick={() =>
+                                      setFigureAssignQuestionId((prev) =>
+                                        prev === String(q._id) ? null : String(q._id),
+                                      )
+                                    }
+                                    title="Assign a figure from the paper pool at the top"
+                                  >
+                                    {figureAssignQuestionId === String(q._id)
+                                      ? 'Picking…'
+                                      : 'From paper'}
+                                  </Button>
+                                ) : null}
                                 <Button
                                   type="button"
                                   size="sm"
@@ -4867,7 +5092,7 @@ export default function ExamManagement() {
                                 onRemoveImage={handleRemoveQuestionImage}
                                 uploadingImage={isUploadingQuestionImage}
                                 imageFileName={questionImageFile?.name}
-                                paperImages={pdfPaperImages}
+                                paperImages={availableExamFigurePool}
                               />
                             ) : (
                             <>
