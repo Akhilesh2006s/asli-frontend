@@ -313,6 +313,36 @@ function optionText(opt: unknown): string {
   return '';
 }
 
+/**
+ * Map a stored answer (option text, 0/1 index, or a/b/c/d) onto an option's text.
+ * Uploaded papers often store letters — the edit form must resolve those or Save fails.
+ */
+function resolveAnswerAgainstOptions(rawAnswer: unknown, options: string[]): string {
+  const raw = String(rawAnswer ?? '').trim();
+  if (!raw || !Array.isArray(options) || options.length === 0) return raw;
+  const byText = options.find((o) => o.trim().toLowerCase() === raw.toLowerCase());
+  if (byText) return byText.trim();
+
+  // a/b/c/d or A)/(b) style keys from paper extract / answer key
+  const letter = raw.replace(/^[(\[]?\s*/, '').replace(/[)\].:\s].*$/, '').trim();
+  if (/^[a-dA-D]$/.test(letter)) {
+    const idx = letter.toLowerCase().charCodeAt(0) - 97;
+    if (idx >= 0 && idx < options.length && options[idx]?.trim()) {
+      return options[idx].trim();
+    }
+  }
+
+  if (/^\d+$/.test(raw)) {
+    const idx = parseInt(raw, 10);
+    // Accept both 0-based and 1-based indices
+    if (idx >= 0 && idx < options.length && options[idx]?.trim()) return options[idx].trim();
+    if (idx >= 1 && idx <= options.length && options[idx - 1]?.trim()) {
+      return options[idx - 1].trim();
+    }
+  }
+  return raw;
+}
+
 function formatMatchColumnLines(
   cols: Array<{ key?: string; text?: string }> | undefined,
 ): string {
@@ -702,18 +732,7 @@ function buildQuestionFormFromExisting(q: any): typeof EMPTY_QUESTION_FORM {
         ? [q.correctAnswer]
         : [];
     correctAnswers = answers
-      .map((ans: unknown) => {
-        const raw = String(ans ?? '').trim();
-        if (!raw) return '';
-        // Prefer matching option text; only treat pure digits as indices
-        const byText = options.findIndex((o) => o.trim().toLowerCase() === raw.toLowerCase());
-        if (byText >= 0) return options[byText];
-        if (/^\d+$/.test(raw)) {
-          const idx = parseInt(raw, 10);
-          if (idx >= 0 && idx < options.length) return options[idx];
-        }
-        return raw;
-      })
+      .map((ans: unknown) => resolveAnswerAgainstOptions(ans, options))
       .filter(Boolean);
     if (correctAnswers.length === 0) {
       rawOptions.forEach((opt: any, i: number) => {
@@ -722,16 +741,7 @@ function buildQuestionFormFromExisting(q: any): typeof EMPTY_QUESTION_FORM {
     }
   } else {
     const ans = q?.correctAnswer;
-    const raw = String(ans ?? '').trim();
-    const byText = options.findIndex(
-      (o) => o.trim().toLowerCase() === raw.toLowerCase()
-    );
-    if (byText >= 0) {
-      correctAnswer = options[byText];
-    } else if (/^\d+$/.test(raw)) {
-      const idx = parseInt(raw, 10);
-      if (idx >= 0 && idx < options.length) correctAnswer = options[idx];
-    }
+    correctAnswer = resolveAnswerAgainstOptions(ans, options);
     if (!correctAnswer) {
       const flagged = rawOptions.findIndex((opt: any) => opt?.isCorrect);
       if (flagged >= 0) correctAnswer = options[flagged];
@@ -2390,21 +2400,7 @@ export default function ExamManagement() {
       }
     } else if (questionFormData.questionType === 'multiple') {
       const selectedAnswers = questionFormData.correctAnswers
-        .map((ans) => {
-          const raw = String(ans || '').trim();
-          if (!raw) return '';
-          const byText = questionFormData.options.find(
-            (o) => o.trim().toLowerCase() === raw.toLowerCase(),
-          );
-          if (byText) return byText.trim();
-          if (/^\d+$/.test(raw)) {
-            const idx = parseInt(raw, 10);
-            if (idx >= 0 && idx < questionFormData.options.length) {
-              return String(questionFormData.options[idx] || '').trim();
-            }
-          }
-          return raw;
-        })
+        .map((ans) => resolveAnswerAgainstOptions(ans, questionFormData.options))
         .filter(Boolean);
       if (selectedAnswers.length === 0) {
         toast({
@@ -2416,7 +2412,7 @@ export default function ExamManagement() {
       }
       correctAnswer = selectedAnswers;
     } else {
-      // Single MCQ / AR / Match — resolve to option text
+      // Single MCQ / AR / Match — resolve to option text (supports a/b/c/d from uploads)
       const raw = String(questionFormData.correctAnswer || '').trim();
       if (!raw) {
         toast({
@@ -2426,17 +2422,7 @@ export default function ExamManagement() {
         });
         return;
       }
-      const byText = questionFormData.options.find(
-        (o) => o.trim().toLowerCase() === raw.toLowerCase(),
-      );
-      if (byText) {
-        correctAnswer = byText.trim();
-      } else if (/^\d+$/.test(raw)) {
-        const idx = parseInt(raw, 10);
-        correctAnswer = String(questionFormData.options[idx] || '').trim() || raw;
-      } else {
-        correctAnswer = raw;
-      }
+      correctAnswer = resolveAnswerAgainstOptions(raw, questionFormData.options) || raw;
       if (!correctAnswer) {
         toast({
           title: 'Validation Error',
@@ -2454,28 +2440,42 @@ export default function ExamManagement() {
           .filter(opt => opt.trim() !== '')
           .map(opt => ({ text: opt.trim(), isCorrect: false }));
 
-    const buildQuestionPayload = (replaceDuplicate = false) => ({
-      questionText: questionFormData.questionText.trim(),
-      questionImage: questionFormData.questionImage.trim(),
-      questionType: questionFormData.questionType,
-      options: formattedOptions,
-      correctAnswer,
-      marks: Math.max(0, Number(questionFormData.marks) || 1),
-      negativeMarks: Math.max(0, Math.abs(Number(questionFormData.negativeMarks) || 0)),
-      explanation: questionFormData.explanation.trim() || undefined,
-      subject: questionFormData.subject,
-      sectionHeading: subjectSectionLabel(questionFormData.subject),
-      board: selectedExam.board,
-      sharedMatterId: questionFormData.sharedMatterId.trim() || undefined,
-      sharedMatterText: (questionFormData.sharedMatterText.trim() || (questionFormData.questionType === 'assertion_reason' ? DEFAULT_ASSERTION_REASON_DIRECTIONS : '') || undefined),
-      sharedMatterKind: questionFormData.sharedMatterKind || undefined,
-      assertionText: questionFormData.assertionText.trim() || undefined,
-      reasonText: questionFormData.reasonText.trim() || undefined,
-      matchColumnI: parseMatchColumnLines(questionFormData.matchColumnIText),
-      matchColumnII: parseMatchColumnLines(questionFormData.matchColumnIIText),
-      applySharedMatterToGroup: Boolean(questionFormData.sharedMatterId.trim()),
-      replaceDuplicate,
-    });
+    const buildQuestionPayload = (replaceDuplicate = false) => {
+      const editingRow =
+        editingQuestionId
+          ? questions.find((q: any) => String(q._id) === String(editingQuestionId))
+          : null;
+      const sectionHeading =
+        String(editingRow?.sectionHeading || '').trim() ||
+        subjectSectionLabel(questionFormData.subject);
+      const displayOrder = editingRow
+        ? Math.max(1, Number(editingRow.displayOrder) || 1)
+        : undefined;
+
+      return {
+        questionText: questionFormData.questionText.trim(),
+        questionImage: questionFormData.questionImage.trim(),
+        questionType: questionFormData.questionType,
+        options: formattedOptions,
+        correctAnswer,
+        marks: Math.max(0, Number(questionFormData.marks) || 1),
+        negativeMarks: Math.max(0, Math.abs(Number(questionFormData.negativeMarks) || 0)),
+        explanation: questionFormData.explanation.trim() || undefined,
+        subject: questionFormData.subject,
+        sectionHeading,
+        ...(displayOrder != null ? { displayOrder } : {}),
+        board: selectedExam.board,
+        sharedMatterId: questionFormData.sharedMatterId.trim() || undefined,
+        sharedMatterText: (questionFormData.sharedMatterText.trim() || (questionFormData.questionType === 'assertion_reason' ? DEFAULT_ASSERTION_REASON_DIRECTIONS : '') || undefined),
+        sharedMatterKind: questionFormData.sharedMatterKind || undefined,
+        assertionText: questionFormData.assertionText.trim() || undefined,
+        reasonText: questionFormData.reasonText.trim() || undefined,
+        matchColumnI: parseMatchColumnLines(questionFormData.matchColumnIText),
+        matchColumnII: parseMatchColumnLines(questionFormData.matchColumnIIText),
+        applySharedMatterToGroup: Boolean(questionFormData.sharedMatterId.trim()),
+        replaceDuplicate,
+      };
+    };
 
     const handleQuestionSaved = () => {
       resetQuestionForm();
@@ -2509,12 +2509,8 @@ export default function ExamManagement() {
           description: isEditing ? 'Question updated successfully' : 'Question added successfully'
         });
         if (isEditing) {
-          if (Array.isArray(data.questions)) {
-            setQuestions(data.questions);
-          } else {
-            await fetchQuestions(selectedExam._id);
-          }
           resetQuestionForm();
+          await fetchQuestions(selectedExam._id);
           fetchExams();
         } else {
           handleQuestionSaved();
@@ -4170,7 +4166,7 @@ export default function ExamManagement() {
 
           {availableExamFigurePool.length > 0 ? (
             <div
-              className={`shrink-0 rounded-lg border px-3 py-2 ${
+              className={`min-w-0 shrink-0 rounded-lg border px-3 py-2 ${
                 figureAssignQuestionId
                   ? 'border-sky-400 bg-sky-50/90 ring-2 ring-sky-100'
                   : 'border-violet-200 bg-violet-50/50'
@@ -4185,6 +4181,11 @@ export default function ExamManagement() {
                     {figureAssignQuestionId
                       ? 'Click a figure to attach it to the selected question. It will leave this strip.'
                       : 'Click Select photo on a question below, then pick a figure. Assigned images do not come back.'}
+                    {availableExamFigurePool.length > 4 ? (
+                      <span className="ml-1 font-medium text-violet-900">
+                        Scroll sideways to see all figures →
+                      </span>
+                    ) : null}
                   </p>
                 </div>
                 {figureAssignQuestionId ? (
@@ -4199,7 +4200,11 @@ export default function ExamManagement() {
                   </Button>
                 ) : null}
               </div>
-              <div className="flex max-h-[5.5rem] gap-2 overflow-x-auto overflow-y-hidden pb-1">
+              <div
+                className="w-full min-w-0 overflow-x-auto overflow-y-hidden overscroll-x-contain pb-1 [-webkit-overflow-scrolling:touch] [scrollbar-width:thin] [scrollbar-color:#a78bfa_#ede9fe]"
+                style={{ WebkitOverflowScrolling: 'touch' }}
+              >
+                <div className="flex w-max min-w-full gap-2 pr-1">
                 {availableExamFigurePool.map((img, i) => (
                   <button
                     key={img.key || img.url || i}
@@ -4233,6 +4238,7 @@ export default function ExamManagement() {
                     </span>
                   </button>
                 ))}
+                </div>
               </div>
             </div>
           ) : null}
@@ -5083,11 +5089,21 @@ export default function ExamManagement() {
                                   size="sm"
                                   className="h-8 bg-sky-600 text-white hover:bg-sky-700"
                                   disabled={
-                                    savingQuestionId === String(q._id) || isReorderingQuestions
+                                    savingQuestionId === String(q._id) ||
+                                    isReorderingQuestions ||
+                                    (isEditingThis && isAddingQuestion)
                                   }
-                                  onClick={() => handleSaveQuestionMeta(q)}
+                                  onClick={() => {
+                                    // While editing content, Save must persist the form — not only order/section.
+                                    if (isEditingThis) {
+                                      void handleAddQuestion();
+                                      return;
+                                    }
+                                    void handleSaveQuestionMeta(q);
+                                  }}
                                 >
-                                  {savingQuestionId === String(q._id) ? (
+                                  {savingQuestionId === String(q._id) ||
+                                  (isEditingThis && isAddingQuestion) ? (
                                     <Loader2 className="h-4 w-4 animate-spin" />
                                   ) : (
                                     <Save className="h-4 w-4" />
@@ -5625,9 +5641,14 @@ export default function ExamManagement() {
               Close
             </Button>
             {editingQuestionId ? (
-              <Button variant="outline" onClick={handleCancelEditQuestion} disabled={isAddingQuestion}>
-                Cancel edit
-              </Button>
+              <>
+                <Button variant="outline" onClick={handleCancelEditQuestion} disabled={isAddingQuestion}>
+                  Cancel edit
+                </Button>
+                <Button onClick={() => void handleAddQuestion()} disabled={isAddingQuestion}>
+                  {isAddingQuestion ? 'Saving...' : 'Save question'}
+                </Button>
+              </>
             ) : (
             <Button onClick={handleAddQuestion} disabled={isAddingQuestion}>
               {isAddingQuestion
