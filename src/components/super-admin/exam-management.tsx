@@ -703,25 +703,36 @@ function buildQuestionFormFromExisting(q: any): typeof EMPTY_QUESTION_FORM {
         : [];
     correctAnswers = answers
       .map((ans: unknown) => {
-        const idx = options.findIndex(
-          (o) => o.trim().toLowerCase() === String(ans ?? '').trim().toLowerCase()
-        );
-        return idx >= 0 ? String(idx) : '';
+        const raw = String(ans ?? '').trim();
+        if (!raw) return '';
+        // Prefer matching option text; only treat pure digits as indices
+        const byText = options.findIndex((o) => o.trim().toLowerCase() === raw.toLowerCase());
+        if (byText >= 0) return options[byText];
+        if (/^\d+$/.test(raw)) {
+          const idx = parseInt(raw, 10);
+          if (idx >= 0 && idx < options.length) return options[idx];
+        }
+        return raw;
       })
       .filter(Boolean);
     if (correctAnswers.length === 0) {
       rawOptions.forEach((opt: any, i: number) => {
-        if (opt?.isCorrect) correctAnswers.push(String(i));
+        if (opt?.isCorrect && options[i]) correctAnswers.push(options[i]);
       });
     }
   } else {
     const ans = q?.correctAnswer;
-    const idx = options.findIndex(
-      (o) => o.trim().toLowerCase() === String(ans ?? '').trim().toLowerCase()
+    const raw = String(ans ?? '').trim();
+    const byText = options.findIndex(
+      (o) => o.trim().toLowerCase() === raw.toLowerCase()
     );
-    if (idx >= 0) {
-      correctAnswer = options[idx];
-    } else {
+    if (byText >= 0) {
+      correctAnswer = options[byText];
+    } else if (/^\d+$/.test(raw)) {
+      const idx = parseInt(raw, 10);
+      if (idx >= 0 && idx < options.length) correctAnswer = options[idx];
+    }
+    if (!correctAnswer) {
       const flagged = rawOptions.findIndex((opt: any) => opt?.isCorrect);
       if (flagged >= 0) correctAnswer = options[flagged];
     }
@@ -2037,7 +2048,7 @@ export default function ExamManagement() {
         description:
           `Created ${created} question(s)${errors.length ? `, ${errors.length} error(s)` : ''}.` +
           (remainingPoolCount
-            ? ` ${remainingPoolCount} figure(s) are at the top — click From paper on a question, then pick an image.`
+            ? ` ${remainingPoolCount} figure(s) are at the top — click Select photo on a question, then pick an image.`
             : ''),
         variant: created > 0 ? 'default' : 'destructive',
       });
@@ -2365,7 +2376,7 @@ export default function ExamManagement() {
       return;
     }
 
-    // Validate and format correct answer
+    // Validate and format correct answer — always send option TEXT (not ambiguous parseInt indices)
     let correctAnswer: any;
     if (questionFormData.questionType === 'integer') {
       correctAnswer = parseInt(questionFormData.integerAnswer);
@@ -2378,7 +2389,23 @@ export default function ExamManagement() {
         return;
       }
     } else if (questionFormData.questionType === 'multiple') {
-      const selectedAnswers = questionFormData.correctAnswers.filter(ans => ans.trim() !== '');
+      const selectedAnswers = questionFormData.correctAnswers
+        .map((ans) => {
+          const raw = String(ans || '').trim();
+          if (!raw) return '';
+          const byText = questionFormData.options.find(
+            (o) => o.trim().toLowerCase() === raw.toLowerCase(),
+          );
+          if (byText) return byText.trim();
+          if (/^\d+$/.test(raw)) {
+            const idx = parseInt(raw, 10);
+            if (idx >= 0 && idx < questionFormData.options.length) {
+              return String(questionFormData.options[idx] || '').trim();
+            }
+          }
+          return raw;
+        })
+        .filter(Boolean);
       if (selectedAnswers.length === 0) {
         toast({
           title: 'Validation Error',
@@ -2387,11 +2414,11 @@ export default function ExamManagement() {
         });
         return;
       }
-      // Send as array of indices
       correctAnswer = selectedAnswers;
     } else {
-      // Single MCQ
-      if (!questionFormData.correctAnswer.trim()) {
+      // Single MCQ / AR / Match — resolve to option text
+      const raw = String(questionFormData.correctAnswer || '').trim();
+      if (!raw) {
         toast({
           title: 'Validation Error',
           description: 'Please select a correct answer',
@@ -2399,8 +2426,25 @@ export default function ExamManagement() {
         });
         return;
       }
-      // Send as single index
-      correctAnswer = questionFormData.correctAnswer;
+      const byText = questionFormData.options.find(
+        (o) => o.trim().toLowerCase() === raw.toLowerCase(),
+      );
+      if (byText) {
+        correctAnswer = byText.trim();
+      } else if (/^\d+$/.test(raw)) {
+        const idx = parseInt(raw, 10);
+        correctAnswer = String(questionFormData.options[idx] || '').trim() || raw;
+      } else {
+        correctAnswer = raw;
+      }
+      if (!correctAnswer) {
+        toast({
+          title: 'Validation Error',
+          description: 'Please select a correct answer',
+          variant: 'destructive'
+        });
+        return;
+      }
     }
 
     // Format options for MCQ/Multiple - keep as array of objects with text
@@ -2464,8 +2508,12 @@ export default function ExamManagement() {
           title: 'Success',
           description: isEditing ? 'Question updated successfully' : 'Question added successfully'
         });
-        if (isEditing && Array.isArray(data.questions)) {
-          setQuestions(data.questions);
+        if (isEditing) {
+          if (Array.isArray(data.questions)) {
+            setQuestions(data.questions);
+          } else {
+            await fetchQuestions(selectedExam._id);
+          }
           resetQuestionForm();
           fetchExams();
         } else {
@@ -4136,7 +4184,7 @@ export default function ExamManagement() {
                   <p className="text-[11px] text-violet-800">
                     {figureAssignQuestionId
                       ? 'Click a figure to attach it to the selected question. It will leave this strip.'
-                      : 'Click From paper on a question below, then pick a figure. Assigned images do not come back.'}
+                      : 'Click Select photo on a question below, then pick a figure. Assigned images do not come back.'}
                   </p>
                 </div>
                 {figureAssignQuestionId ? (
@@ -4166,7 +4214,7 @@ export default function ExamManagement() {
                       if (!figureAssignQuestionId) {
                         toast({
                           title: 'Pick a question first',
-                          description: 'Click From paper on a question card, then select an image here.',
+                          description: 'Click Select photo on a question card, then select an image here.',
                         });
                         return;
                       }
@@ -4348,7 +4396,7 @@ export default function ExamManagement() {
                   </Button>
                   <p className="text-xs text-slate-500">
                     Tip: leave this tab open. PDF and Word (.docx) both work. Figures from the paper
-                    appear in a strip at the top — use <span className="font-semibold">From paper</span>{' '}
+                    appear in a strip at the top — use <span className="font-semibold">Select photo</span>{' '}
                     on each question to assign. Flagged rows need review before upload.
                   </p>
 
@@ -4377,7 +4425,7 @@ export default function ExamManagement() {
                                         ? pdfQuestionRows[pdfAssignTargetIdx].questionNumber
                                         : pdfAssignTargetIdx + 1
                                     }. Assigned images leave this strip.`
-                                  : 'Click From paper on a question row, then pick a figure here. Once assigned, it will not show again.'}
+                                  : 'Click Select photo on a question row, then pick a figure here. Once assigned, it will not show again.'}
                               </p>
                             </div>
                             {pdfAssignTargetIdx != null ? (
@@ -4413,7 +4461,7 @@ export default function ExamManagement() {
                                       toast({
                                         title: 'Pick a question first',
                                         description:
-                                          'Click “From paper” on a row in the table, then select an image here.',
+                                          'Click “Select photo” on a row in the table, then select an image here.',
                                       });
                                       return;
                                     }
@@ -4615,7 +4663,7 @@ export default function ExamManagement() {
                                             )
                                           }
                                         >
-                                          {pdfAssignTargetIdx === globalIdx ? 'Picking…' : 'From paper'}
+                                          {pdfAssignTargetIdx === globalIdx ? 'Selecting…' : 'Select photo'}
                                         </Button>
                                       ) : null}
                                       {imgSrc ? (
@@ -5003,11 +5051,11 @@ export default function ExamManagement() {
                                         prev === String(q._id) ? null : String(q._id),
                                       )
                                     }
-                                    title="Assign a figure from the paper pool at the top"
+                                    title="Select a photo from the pool at the top"
                                   >
                                     {figureAssignQuestionId === String(q._id)
-                                      ? 'Picking…'
-                                      : 'From paper'}
+                                      ? 'Selecting…'
+                                      : 'Select photo'}
                                   </Button>
                                 ) : null}
                                 <Button
@@ -5216,10 +5264,19 @@ export default function ExamManagement() {
                                   q.options.length > 0 && (
                                     <div className="space-y-3">
                                       {q.options.map((option: any, optIdx: number) => {
-                                        const optText = option?.text ?? option;
-                                        const isCorrect = Array.isArray(q.correctAnswer)
-                                          ? q.correctAnswer.includes(optText)
-                                          : q.correctAnswer === optText;
+                                        const optText = String(option?.text ?? option ?? '').trim();
+                                        const answers = Array.isArray(q.correctAnswer)
+                                          ? q.correctAnswer
+                                          : q.correctAnswer != null && q.correctAnswer !== ''
+                                            ? [q.correctAnswer]
+                                            : [];
+                                        const isCorrect = answers.some((ans: unknown) => {
+                                          const raw = String(ans ?? '').trim();
+                                          if (!raw) return false;
+                                          if (raw.toLowerCase() === optText.toLowerCase()) return true;
+                                          if (/^\d+$/.test(raw) && parseInt(raw, 10) === optIdx) return true;
+                                          return false;
+                                        }) || Boolean(option?.isCorrect);
                                         const letter = String.fromCharCode(65 + optIdx);
                                         return (
                                           <div
