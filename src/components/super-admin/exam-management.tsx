@@ -4153,10 +4153,10 @@ export default function ExamManagement() {
         }
       }}>
         <DialogContent
-          className="flex max-h-[96vh] w-[calc(100vw-1rem)] max-w-[min(96vw,80rem)] flex-col gap-4 overflow-hidden rounded-2xl p-4 sm:p-6 lg:max-w-[min(96vw,80rem)]"
+          className="!flex h-[min(96vh,920px)] max-h-[96vh] w-[calc(100vw-1rem)] max-w-[min(96vw,80rem)] flex-col gap-3 overflow-hidden !overflow-y-hidden rounded-2xl p-4 sm:gap-4 sm:p-6 lg:max-w-[min(96vw,80rem)]"
           onOpenAutoFocus={(e) => e.preventDefault()}
         >
-          <DialogHeader className="shrink-0 space-y-2 text-left">
+          <DialogHeader className="shrink-0 space-y-1.5 text-left pr-12">
             <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-amber-800">
               Super Admin Exam Editor
             </p>
@@ -4170,14 +4170,14 @@ export default function ExamManagement() {
 
           {availableExamFigurePool.length > 0 ? (
             <div
-              className={`shrink-0 rounded-lg border p-3 ${
+              className={`shrink-0 rounded-lg border px-3 py-2 ${
                 figureAssignQuestionId
                   ? 'border-sky-400 bg-sky-50/90 ring-2 ring-sky-100'
                   : 'border-violet-200 bg-violet-50/50'
               }`}
             >
-              <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-                <div>
+              <div className="mb-1.5 flex flex-wrap items-center justify-between gap-2">
+                <div className="min-w-0">
                   <p className="text-xs font-semibold uppercase tracking-wide text-violet-950">
                     Paper figures — assign from here ({availableExamFigurePool.length} free)
                   </p>
@@ -4192,19 +4192,19 @@ export default function ExamManagement() {
                     type="button"
                     size="sm"
                     variant="outline"
-                    className="h-7 text-xs"
+                    className="h-7 shrink-0 text-xs"
                     onClick={() => setFigureAssignQuestionId(null)}
                   >
                     Cancel pick
                   </Button>
                 ) : null}
               </div>
-              <div className="flex gap-2 overflow-x-auto pb-1">
+              <div className="flex max-h-[5.5rem] gap-2 overflow-x-auto overflow-y-hidden pb-1">
                 {availableExamFigurePool.map((img, i) => (
                   <button
                     key={img.key || img.url || i}
                     type="button"
-                    className={`relative shrink-0 rounded-md border bg-white p-1 transition ${
+                    className={`relative shrink-0 rounded-md border bg-white p-0.5 transition ${
                       figureAssignQuestionId
                         ? 'cursor-pointer border-sky-300 hover:border-sky-500 hover:ring-2 hover:ring-sky-200'
                         : 'border-slate-200'
@@ -4224,11 +4224,11 @@ export default function ExamManagement() {
                     <AuthenticatedUploadImage
                       src={img.url}
                       alt={img.name || `Paper figure ${i + 1}`}
-                      wrapperClassName="h-20 w-28 p-0"
-                      className="h-[76px] w-full object-contain"
+                      wrapperClassName="h-14 w-20 p-0"
+                      className="h-[52px] w-full object-contain"
                       fallbackLabel="—"
                     />
-                    <span className="mt-0.5 block max-w-[7rem] truncate text-[10px] text-slate-600">
+                    <span className="mt-0.5 block max-w-[5rem] truncate text-[9px] leading-tight text-slate-600">
                       {img.name || `Fig ${i + 1}`}
                     </span>
                   </button>
@@ -4237,7 +4237,7 @@ export default function ExamManagement() {
             </div>
           ) : null}
 
-          <div className="min-h-0 flex-1 space-y-4 overflow-y-auto pr-1">
+          <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain pr-1 [-webkit-overflow-scrolling:touch]">
             {/* CSV Upload Section */}
             <div className="border-t pt-6 space-y-4">
               <div className="flex items-center justify-between">
@@ -5620,7 +5620,7 @@ export default function ExamManagement() {
             </div>
           </div>
 
-          <DialogFooter>
+          <DialogFooter className="shrink-0 border-t border-slate-200 bg-white pt-3 sm:pt-4">
             <Button variant="outline" onClick={() => setIsQuestionDialogOpen(false)}>
               Close
             </Button>
