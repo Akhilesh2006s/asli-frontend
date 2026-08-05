@@ -122,16 +122,11 @@ function questionLooksLikeAssertionReason(q: {
   option3?: string;
   option4?: string;
 }) {
-  if (q.questionType === 'assertion_reason') return true;
-  if (q.assertionText || q.reasonText) return true;
   const stem = String(q.questionText || '');
-  if (/\bA\s*[:：]/.test(stem) && /\bR\s*[:：]/.test(stem)) return true;
-  const fromOptions = (q.options || [])
-    .map((o) => (typeof o === 'string' ? o : o?.text || ''))
-    .join('\n');
-  const fromFields = [q.option1, q.option2, q.option3, q.option4].map((o) => String(o || '')).join('\n');
-  const blob = `${fromOptions}\n${fromFields}`;
-  return /Both A and R are true/i.test(blob) && /correct explanation of A/i.test(blob);
+  // Must have A:/R: in the stem — do not trust type alone (Gemini mis-tags MCQs)
+  if (/\bA\s*[:：]\s*\S/.test(stem) && /\bR\s*[:：]\s*\S/.test(stem)) return true;
+  if (String(q.assertionText || '').trim() && String(q.reasonText || '').trim()) return true;
+  return false;
 }
 
 /** Normalize extract rows in the browser so AR directions always show even if API is old. */
@@ -153,28 +148,37 @@ function stripDuplicateMatterFromStemClient(stem: string, matter: string) {
   return s;
 }
 
+function stripPaperDirectionsClient(stem: string) {
+  let s = String(stem || '').trim();
+  if (!s) return s;
+  s = s.replace(
+    /^(?:Directions\s*:\s*)?Each\s+question\s+has\s+four\s+choices[\s\S]*?(?:Choose\s+the\s+correct\s+answer\.?\s*)+/i,
+    '',
+  );
+  s = s.replace(
+    /^(?:Directions\s*:\s*)?(?:Each\s+question\s+(?:below\s+consists\s+of|is\s+followed\s+by)[\s\S]*?(?:A is false,\s*but R is true\.?\s*)+)/i,
+    '',
+  );
+  s = s.replace(
+    /^(?:Directions\s*:\s*)?Following\s+questions\s+have\s+(?:four\s+statements|statements)[\s\S]*?(?:choose\s+the\s+correct\s+matching[^\n]*\n?)/i,
+    '',
+  );
+  return s.trim();
+}
+
 function normalizeExtractedPdfRows(rows: any[]): any[] {
   return (rows || []).map((row, idx) => {
-    const optionFields = [row.option1, row.option2, row.option3, row.option4];
-    const fromOpts = row.options as Array<string | { text?: string }> | undefined;
-    const blob = [
-      ...optionFields,
-      ...(fromOpts || []).map((o) => (typeof o === 'string' ? o : o?.text || '')),
-    ]
-      .map((o) => String(o || ''))
-      .join('\n');
-    const stem = String(row.questionText || '');
-    const isAr =
-      row.questionType === 'assertion_reason' ||
-      (/\bA\s*[:：]/.test(stem) && /\bR\s*[:：]/.test(stem)) ||
-      (/Both A and R are true/i.test(blob) && /correct explanation of A/i.test(blob));
+    const stemRaw = stripPaperDirectionsClient(String(row.questionText || ''));
+    const isAr = questionLooksLikeAssertionReason({ ...row, questionText: stemRaw });
     const isRealMatch =
       row.questionType === 'match_following' ||
-      (/Column\s*I\b/i.test(stem) && /Column\s*II\b/i.test(stem)) ||
-      /match\s+the\s+following/i.test(stem);
+      (/Column\s*I\b/i.test(stemRaw) && /Column\s*II\b/i.test(stemRaw)) ||
+      /match\s+(?:the\s+following|each|physical|the\s+branch|the\s+scientific|the\s+steps|the\s+invention)/i.test(
+        stemRaw,
+      );
 
     // Drop false Match matter / flags stamped onto normal MCQs
-    let next = { ...row, row: row.row || idx + 1 };
+    let next = { ...row, row: row.row || idx + 1, questionText: stemRaw };
     if (!isRealMatch && (next.sharedMatterKind === 'match_following' || /Match table columns missing/i.test(String(next.validationNote || '')))) {
       const flags = (next.validationFlags || []).filter((f: string) => f !== 'needs_figure');
       next = {
@@ -186,6 +190,27 @@ function normalizeExtractedPdfRows(rows: any[]): any[] {
         validationFlags: flags,
         validationNote: flags.length ? next.validationNote : '',
         solvable: flags.length === 0 && next.answerConflict !== true,
+      };
+    }
+
+    // Demote false Assertion–Reason (Single Correct that got AR Directions)
+    if (
+      !isAr &&
+      (next.questionType === 'assertion_reason' ||
+        next.sharedMatterKind === 'assertion_reason' ||
+        looksLikeArDirectionsText(next.sharedMatterText))
+    ) {
+      const clearAr =
+        next.sharedMatterKind === 'assertion_reason' ||
+        looksLikeArDirectionsText(next.sharedMatterText);
+      next = {
+        ...next,
+        questionType: next.questionType === 'assertion_reason' ? 'mcq' : next.questionType,
+        assertionText: '',
+        reasonText: '',
+        sharedMatterKind: clearAr ? '' : next.sharedMatterKind,
+        sharedMatterText: clearAr ? '' : next.sharedMatterText,
+        sharedMatterId: clearAr ? '' : next.sharedMatterId,
       };
     }
 
@@ -207,10 +232,6 @@ function normalizeExtractedPdfRows(rows: any[]): any[] {
 
     if (!isAr) return next;
 
-    const arMatter = String(next.sharedMatterText || '').trim();
-    const directions = looksLikeArDirectionsText(arMatter)
-      ? arMatter
-      : DEFAULT_ASSERTION_REASON_DIRECTIONS;
     const flags = (next.validationFlags || []).filter((f: string) => f !== 'needs_figure');
 
     return {
@@ -218,7 +239,7 @@ function normalizeExtractedPdfRows(rows: any[]): any[] {
       questionType: 'assertion_reason',
       sharedMatterKind: 'assertion_reason',
       sharedMatterId: next.sharedMatterId || 'AR1',
-      sharedMatterText: directions,
+      sharedMatterText: DEFAULT_ASSERTION_REASON_DIRECTIONS,
       questionImage: '',
       hasFigure: false,
       validationFlags: flags,
