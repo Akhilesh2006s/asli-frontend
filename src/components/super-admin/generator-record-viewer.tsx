@@ -3,7 +3,10 @@ import { GeneratedRecordBody } from '@/components/super-admin/generated-record-b
 import { SixSectionViewer } from '@/components/ai-v2/six-section-viewer';
 import { mapRecordToSixSectionViewer } from '@/lib/six-section-map';
 import { normalizeAiToolSlug } from '@/lib/normalize-ai-tool-slug';
-import { resolveInteractiveAiToolViewer } from '@/components/ai-tools/resolve-interactive-ai-tool-viewer';
+import {
+  resolveInteractiveAiToolViewer,
+} from '@/components/ai-tools/resolve-interactive-ai-tool-viewer';
+import { AiToolViewerErrorBoundary } from '@/components/ai-tools/ai-tool-kit-layout';
 import { displaySubtopicLabel } from '@/lib/curriculum-subtopic-display';
 
 /** teacher/student = interactive-first; admin = SixSection-first (Super Admin browse). */
@@ -69,5 +72,9 @@ export function GeneratorRecordViewer({
   void wrapHost;
   if (!record) return null;
   const slug = normalizeAiToolSlug(record.toolSlug || record.toolName);
-  return resolveViewerForRecord(record, slug, audience);
+  return (
+    <AiToolViewerErrorBoundary fallbackTitle={String(record.toolDisplayName || record.toolName || slug)}>
+      {resolveViewerForRecord(record, slug, audience)}
+    </AiToolViewerErrorBoundary>
+  );
 }

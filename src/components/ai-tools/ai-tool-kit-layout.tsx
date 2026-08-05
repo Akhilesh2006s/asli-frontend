@@ -1,4 +1,13 @@
-import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from 'react';
+import {
+  Component,
+  useCallback,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type ErrorInfo,
+  type ReactNode,
+} from 'react';
 import { CheckCircle2, Layers } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatAiToolText } from '@/lib/title-case';
@@ -28,7 +37,14 @@ function collectSectionAnchors(root: HTMLElement | null): AiToolKitSectionAnchor
   return out;
 }
 
-/** Promote a common parent of section cards into a 2-column grid (Concept Mastery mock). */
+function anchorsFingerprint(anchors: AiToolKitSectionAnchor[]): string {
+  return anchors.map((a) => `${a.id}:${a.num}:${a.title}`).join('|');
+}
+
+/**
+ * Promote a common parent of section cards into a 2-column grid.
+ * Idempotent — safe to call repeatedly without thrashing React.
+ */
 function applyTwoColumnGrids(root: HTMLElement) {
   const sections = Array.from(root.querySelectorAll<HTMLElement>('[data-ai-section-id]'));
   if (sections.length < 2) return;
@@ -44,6 +60,7 @@ function applyTwoColumnGrids(root: HTMLElement) {
 
   Array.from(parents.entries()).forEach(([parent, kids]) => {
     if (kids.length < 2) return;
+    if (parent.classList.contains('ai-tool-kit-section-grid')) return;
     parent.classList.add(
       'ai-tool-kit-section-grid',
       'grid',
@@ -65,10 +82,48 @@ const GLANCE_ICONS: AiTool3dIconName[] = [
   'notebook',
 ];
 
+/** Catches a single tool viewer crash so the rest of the dashboard stays usable. */
+export class AiToolViewerErrorBoundary extends Component<
+  { children: ReactNode; fallbackTitle?: string },
+  { error: Error | null }
+> {
+  state: { error: Error | null } = { error: null };
+
+  static getDerivedStateFromError(error: Error) {
+    return { error };
+  }
+
+  componentDidCatch(error: Error, info: ErrorInfo) {
+    console.error('[AiToolViewerErrorBoundary]', error, info?.componentStack);
+  }
+
+  render() {
+    if (this.state.error) {
+      return (
+        <div className="rounded-xl border border-rose-200 bg-rose-50/80 px-5 py-8 text-center">
+          <p className="text-base font-semibold text-rose-900">
+            {this.props.fallbackTitle || 'This tool result could not be displayed'}
+          </p>
+          <p className="mt-2 text-sm text-rose-700/90">
+            Try Generate again. If it keeps failing, regenerate from Super Admin for this topic.
+          </p>
+          <button
+            type="button"
+            className="mt-4 rounded-lg bg-rose-700 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-800"
+            onClick={() => this.setState({ error: null })}
+          >
+            Retry
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 /**
  * Concept Mastery–style kit chrome for every teacher/student AI tool:
  * progress → section icon tabs → content → At a Glance → tip.
- * Section cards themselves stay in AiToolStackedSection.
  */
 export function AiToolKitLayout({
   toolLabel,
@@ -88,34 +143,48 @@ export function AiToolKitLayout({
   const reactId = useId().replace(/:/g, '');
   const exportRootId = `ai-kit-root-${reactId}`;
   const bodyRef = useRef<HTMLDivElement>(null);
+  const fpRef = useRef('');
   const [sections, setSections] = useState<AiToolKitSectionAnchor[]>([]);
   const [activeId, setActiveId] = useState<string>('');
 
   const refresh = useCallback(() => {
     const root = bodyRef.current;
+    if (!root) return;
+    applyTwoColumnGrids(root);
     const anchors = collectSectionAnchors(root);
-    setSections(anchors);
-    if (root) applyTwoColumnGrids(root);
-    setActiveId((prev) => {
-      if (prev && anchors.some((a) => a.id === prev)) return prev;
-      return anchors[0]?.id || '';
-    });
+    const fp = anchorsFingerprint(anchors);
+    if (fp !== fpRef.current) {
+      fpRef.current = fp;
+      setSections(anchors);
+      setActiveId((prev) => {
+        if (prev && anchors.some((a) => a.id === prev)) return prev;
+        return anchors[0]?.id || '';
+      });
+    }
   }, []);
 
   useEffect(() => {
     refresh();
     const root = bodyRef.current;
     if (!root) return undefined;
-    const mo = new MutationObserver(() => refresh());
+
+    let debounceTimer = 0;
+    const mo = new MutationObserver(() => {
+      // Debounce: React re-renders fire many childList mutations; don't setState each time.
+      window.clearTimeout(debounceTimer);
+      debounceTimer = window.setTimeout(refresh, 120);
+    });
+    // childList only — never observe attributes (classList tweaks must not re-enter)
     mo.observe(root, { childList: true, subtree: true });
     const t1 = window.setTimeout(refresh, 80);
-    const t2 = window.setTimeout(refresh, 400);
+    const t2 = window.setTimeout(refresh, 450);
     return () => {
       mo.disconnect();
+      window.clearTimeout(debounceTimer);
       window.clearTimeout(t1);
       window.clearTimeout(t2);
     };
-  }, [refresh]);
+  }, [refresh, children]);
 
   useEffect(() => {
     const root = bodyRef.current;
@@ -141,7 +210,8 @@ export function AiToolKitLayout({
       { root: null, rootMargin: '-10% 0px -55% 0px', threshold: [0, 0.2, 0.45, 0.7, 1] },
     );
     for (const sec of sections) {
-      const el = root.querySelector(`[data-ai-section-id="${sec.id}"]`);
+      const safeId = sec.id.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+      const el = root.querySelector(`[data-ai-section-id="${safeId}"]`);
       if (el) io.observe(el);
     }
     return () => io.disconnect();
@@ -149,7 +219,8 @@ export function AiToolKitLayout({
 
   const jumpTo = (id: string) => {
     const root = bodyRef.current;
-    const el = root?.querySelector(`[data-ai-section-id="${id}"]`);
+    const safeId = id.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+    const el = root?.querySelector(`[data-ai-section-id="${safeId}"]`);
     if (!el) return;
     el.scrollIntoView({ behavior: 'smooth', block: 'start' });
     setActiveId(id);
@@ -202,14 +273,13 @@ export function AiToolKitLayout({
           </div>
           <div className="h-2.5 overflow-hidden rounded-full bg-violet-100">
             <div
-              className="h-full rounded-full bg-gradient-to-r from-violet-500 via-fuchsia-500 to-indigo-500 transition-all"
+              className="h-full rounded-full bg-gradient-to-r from-violet-500 to-fuchsia-500 transition-all duration-500"
               style={{ width: `${progressPct}%` }}
             />
           </div>
-
-          <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 pt-1">
-            {sections.map((sec, i) => {
-              const palette = paletteForSectionTitle(sec.title, sec.num || String(i + 1));
+          <div className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {sections.map((sec) => {
+              const pal = paletteForSectionTitle(sec.title);
               const active = sec.id === activeId;
               return (
                 <button
@@ -217,23 +287,21 @@ export function AiToolKitLayout({
                   type="button"
                   onClick={() => jumpTo(sec.id)}
                   className={cn(
-                    'flex min-w-[5.5rem] max-w-[7.5rem] shrink-0 flex-col items-center gap-1.5 rounded-2xl border px-2 py-2.5 text-center transition-all',
+                    'inline-flex shrink-0 items-center gap-2 rounded-full border px-3 py-1.5 text-left text-xs font-semibold transition sm:text-sm',
                     active
-                      ? 'border-violet-400 bg-violet-50 shadow-md shadow-violet-200/50 ring-2 ring-violet-300/60'
-                      : 'border-slate-200 bg-white hover:border-violet-200 hover:bg-violet-50/40',
+                      ? 'border-violet-400 bg-violet-600 text-white shadow-sm'
+                      : 'border-slate-200 bg-white text-slate-700 hover:border-violet-200 hover:bg-violet-50',
                   )}
                 >
                   <span
                     className={cn(
-                      'flex h-9 w-9 items-center justify-center rounded-xl text-xs font-bold text-white shadow-sm',
-                      palette.bar,
+                      'flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-bold',
+                      active ? 'bg-white/20 text-white' : cn(pal.iconWrap, pal.icon),
                     )}
                   >
-                    {sec.num?.slice(0, 2) || i + 1}
+                    {sec.num || '•'}
                   </span>
-                  <span className="line-clamp-2 text-[11px] font-semibold leading-tight text-slate-700 sm:text-xs">
-                    {sec.title}
-                  </span>
+                  <span className="max-w-[10rem] truncate sm:max-w-[14rem]">{formatAiToolText(sec.title)}</span>
                 </button>
               );
             })}
@@ -241,29 +309,28 @@ export function AiToolKitLayout({
         </div>
       ) : null}
 
-      <div
-        ref={bodyRef}
-        data-ai-kit-body
-        className="w-full min-w-0 space-y-4 break-words [&_pre]:overflow-x-auto [&_table]:block [&_table]:w-max [&_table]:min-w-full [&_table]:overflow-x-auto"
-      >
-        {children}
+      <div ref={bodyRef} className="min-w-0 space-y-4">
+        <AiToolViewerErrorBoundary fallbackTitle={displayLabel || 'Tool result'}>
+          {children}
+        </AiToolViewerErrorBoundary>
       </div>
 
       {total > 0 ? (
-        <div className="rounded-2xl border border-slate-200 bg-slate-50/90 px-4 py-3.5 sm:px-5">
-          <div className="mb-2.5 flex items-center gap-2">
-            <Layers className="h-4 w-4 text-violet-600" aria-hidden />
-            <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
-              {formatAiToolText('At a Glance')}
-            </p>
+        <div className="rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-4 sm:px-5">
+          <div className="mb-3 flex items-center gap-2">
+            <Layers className="h-4 w-4 text-violet-700" aria-hidden />
+            <p className="text-sm font-bold text-slate-900 sm:text-base">{formatAiToolText('At a Glance')}</p>
           </div>
-          <div className="flex flex-wrap gap-3 sm:gap-4">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             {glanceItems.map((item, i) => (
-              <div key={item.label} className="flex min-w-[7rem] items-center gap-2.5">
-                <RealisticIcon name={GLANCE_ICONS[i % GLANCE_ICONS.length]} alt="" className="h-8 w-8" />
+              <div
+                key={item.label}
+                className="flex items-start gap-3 rounded-xl border border-white bg-white px-3 py-2.5 shadow-sm"
+              >
+                <RealisticIcon name={GLANCE_ICONS[i % GLANCE_ICONS.length]} size={36} />
                 <div className="min-w-0">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{item.label}</p>
-                  <p className="truncate text-base font-bold text-slate-900">{item.value}</p>
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">{item.label}</p>
+                  <p className="truncate text-sm font-bold text-slate-900">{item.value}</p>
                 </div>
               </div>
             ))}
@@ -271,12 +338,7 @@ export function AiToolKitLayout({
         </div>
       ) : null}
 
-      <AiToolTipBanner>
-        {tip ||
-          formatAiToolText(
-            'Tip: Click A Section Tab To Jump. Use Edit Or Copy On Any Card To Tweak Or Share That Block.',
-          )}
-      </AiToolTipBanner>
+      {tip != null ? tip : <AiToolTipBanner />}
     </div>
   );
 }

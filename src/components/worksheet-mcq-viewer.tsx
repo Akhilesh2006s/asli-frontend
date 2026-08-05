@@ -430,6 +430,17 @@ export function WorksheetMcqViewer({
   const useTeacher = variant === 'teacher' || variant === 'default';
 
   if (!resolved.worksheet || !worksheetHasVisibleContent(resolved.worksheet)) {
+    const fallbackText = String(parsedContent || '').trim();
+    if (fallbackText.length > 40) {
+      return (
+        <div className={cn('space-y-3', className)}>
+          <StructuredContentRequired toolLabel="Worksheet & MCQ" />
+          <pre className="max-h-[28rem] overflow-auto whitespace-pre-wrap rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-800">
+            {fallbackText}
+          </pre>
+        </div>
+      );
+    }
     return <StructuredContentRequired className={className} toolLabel="Worksheet & MCQ" />;
   }
 

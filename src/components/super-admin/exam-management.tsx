@@ -382,12 +382,20 @@ function InlineQuestionEditor({
   saving,
   onSave,
   onCancel,
+  onUploadImage,
+  onRemoveImage,
+  uploadingImage,
+  imageFileName,
 }: {
   form: typeof EMPTY_QUESTION_FORM;
   setForm: React.Dispatch<React.SetStateAction<typeof EMPTY_QUESTION_FORM>>;
   saving: boolean;
   onSave: () => void;
   onCancel: () => void;
+  onUploadImage: (file: File) => void;
+  onRemoveImage: () => void;
+  uploadingImage: boolean;
+  imageFileName?: string | null;
 }) {
   const patch = (p: Partial<typeof EMPTY_QUESTION_FORM>) => setForm((prev) => ({ ...prev, ...p }));
   const isChoice =
@@ -411,7 +419,7 @@ function InlineQuestionEditor({
             size="sm"
             className="bg-sky-600 text-white hover:bg-sky-700"
             onClick={onSave}
-            disabled={saving}
+            disabled={saving || uploadingImage}
           >
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
             <span className="ml-1">Save</span>
@@ -489,6 +497,56 @@ function InlineQuestionEditor({
           value={form.questionText}
           onChange={(e) => patch({ questionText: e.target.value })}
         />
+      </div>
+
+      <div>
+        <Label className="text-xs">Figure / question image</Label>
+        <Input
+          className="mt-1 bg-white"
+          type="file"
+          accept="image/*"
+          disabled={saving || uploadingImage}
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) onUploadImage(file);
+            e.target.value = '';
+          }}
+        />
+        {uploadingImage ? (
+          <p className="mt-1 text-xs text-blue-600">Uploading image...</p>
+        ) : (
+          <p className="mt-1 text-[10px] text-slate-500">
+            Replace or remove the figure here. Click Save after removing so the change is stored.
+          </p>
+        )}
+        {form.questionImage ? (
+          <div className="mt-2 space-y-2">
+            <AuthenticatedUploadImage
+              src={form.questionImage}
+              alt="Question figure preview"
+              className="max-h-48"
+              wrapperClassName="p-2 max-w-md bg-white"
+            />
+            <div className="flex flex-wrap items-center gap-2">
+              {imageFileName ? (
+                <span className="text-xs text-gray-600">{imageFileName}</span>
+              ) : null}
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="border-red-200 text-red-700 hover:bg-red-50"
+                disabled={saving || uploadingImage}
+                onClick={onRemoveImage}
+              >
+                <Trash2 className="mr-1 h-3.5 w-3.5" />
+                Remove image
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <p className="mt-2 text-xs text-slate-500">No figure attached.</p>
+        )}
       </div>
 
       {isChoice ? (
@@ -2033,15 +2091,23 @@ export default function ExamManagement() {
 
   /**
    * Opens the editor inside the question's own card. It deliberately does not
-   * scroll anywhere — jumping to a form at the bottom of a long paper loses
-   * your place and makes it impossible to see the question you are editing.
+   * scroll to the bottom add form — editing stays on this card only.
    */
   const handleEditQuestion = (q: any) => {
     if (!q?._id) return;
-    setEditingQuestionId(String(q._id));
+    const id = String(q._id);
+    if (editingQuestionId === id) {
+      handleCancelEditQuestion();
+      return;
+    }
+    setEditingQuestionId(id);
     setQuestionFormData(buildQuestionFormFromExisting(q));
     setQuestionImageFile(null);
-    setBulkQuestionUploadMode('csv');
+  };
+
+  const handleRemoveQuestionImage = () => {
+    setQuestionImageFile(null);
+    setQuestionFormData((prev) => ({ ...prev, questionImage: '' }));
   };
 
   const handleCancelEditQuestion = () => {
@@ -4463,10 +4529,14 @@ export default function ExamManagement() {
                                   }`}
                                   disabled={Boolean(savingQuestionId) || isReorderingQuestions}
                                   onClick={() => handleEditQuestion(q)}
-                                  title="Edit question content"
+                                  title={
+                                    isEditingThis
+                                      ? 'Cancel editing'
+                                      : 'Edit question content on this card'
+                                  }
                                 >
                                   <Edit className="h-4 w-4" />
-                                  <span className="ml-1">Edit</span>
+                                  <span className="ml-1">{isEditingThis ? 'Editing…' : 'Edit'}</span>
                                 </Button>
                                 <Button
                                   type="button"
@@ -4526,6 +4596,10 @@ export default function ExamManagement() {
                                 saving={isAddingQuestion}
                                 onSave={handleAddQuestion}
                                 onCancel={handleCancelEditQuestion}
+                                onUploadImage={handleQuestionImageUpload}
+                                onRemoveImage={handleRemoveQuestionImage}
+                                uploadingImage={isUploadingQuestionImage}
+                                imageFileName={questionImageFile?.name}
                               />
                             ) : (
                             <>
@@ -4741,33 +4815,38 @@ export default function ExamManagement() {
               )}
             </div>
 
-            {/* Add / Edit Question Form */}
-              <div
-              ref={questionFormRef}
-              className={`border-t pt-6 space-y-4 ${
-                editingQuestionId ? 'rounded-xl border border-sky-200 bg-sky-50/40 px-3 pb-3 sm:px-4' : ''
-              }`}
-            >
+            {/* Add new question only — edits happen inline on the question card */}
+              <div ref={questionFormRef} className="border-t pt-6 space-y-4">
+              {editingQuestionId ? (
+                <div className="rounded-lg border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900">
+                  <p className="font-medium">Editing a question in the list above</p>
+                  <p className="mt-1 text-xs text-sky-800">
+                    Change text, options, answer, or remove/replace the figure on that card, then click{' '}
+                    <strong>Save</strong> there. The add-question form returns when you finish.
+                  </p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="mt-2"
+                    onClick={handleCancelEditQuestion}
+                  >
+                    Cancel edit
+                  </Button>
+                </div>
+              ) : null}
+              {!editingQuestionId ? (
+              <>
               <div className="flex flex-wrap items-start justify-between gap-2 rounded-lg border border-amber-100 bg-amber-50/60 px-3 py-2">
                 <div>
                   <p className="text-[11px] font-semibold uppercase tracking-wide text-amber-900">
-                    Super Admin · {editingQuestionId ? 'Edit question details' : 'Add new question'}
+                    Super Admin · Add new question
                   </p>
                   <h3 className="font-semibold text-stone-900">
-                    {editingQuestionId ? 'Edit Question' : 'Add New Question (Single)'}
+                    Add New Question (Single)
                   </h3>
                 </div>
-                {editingQuestionId ? (
-                  <Button type="button" variant="outline" size="sm" onClick={handleCancelEditQuestion}>
-                    Cancel edit
-                  </Button>
-                ) : null}
               </div>
-              {editingQuestionId ? (
-                <p className="text-xs text-sky-800">
-                  Editing an existing question. Fix text, options, answer, marks, or image, then click Update Question.
-                </p>
-              ) : null}
               <div>
                 <Label>Question Type *</Label>
                 <Select
@@ -4862,10 +4941,7 @@ export default function ExamManagement() {
                         type="button"
                         variant="outline"
                         size="sm"
-                        onClick={() => {
-                          setQuestionImageFile(null);
-                          setQuestionFormData((prev) => ({ ...prev, questionImage: '' }));
-                        }}
+                        onClick={handleRemoveQuestionImage}
                       >
                         Remove Image
                       </Button>
@@ -5012,6 +5088,8 @@ export default function ExamManagement() {
                   rows={3}
                 />
               </div>
+              </>
+              ) : null}
             </div>
           </div>
 
@@ -5023,18 +5101,15 @@ export default function ExamManagement() {
               <Button variant="outline" onClick={handleCancelEditQuestion} disabled={isAddingQuestion}>
                 Cancel edit
               </Button>
-            ) : null}
+            ) : (
             <Button onClick={handleAddQuestion} disabled={isAddingQuestion}>
               {isAddingQuestion
-                ? editingQuestionId
-                  ? 'Updating...'
-                  : 'Adding...'
-                : editingQuestionId
-                  ? 'Update Question'
-                  : bulkQuestionUploadMode === 'pdf' && pdfQuestionRows.length > 0
+                ? 'Adding...'
+                : bulkQuestionUploadMode === 'pdf' && pdfQuestionRows.length > 0
                     ? 'Upload These Questions'
                     : 'Add Question'}
             </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>

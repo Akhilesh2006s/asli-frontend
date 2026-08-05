@@ -262,6 +262,17 @@ export function HomeworkCreatorViewer({ content, rawContent, className }: Homewo
   const homework = resolved.homework;
 
   if (!homework || !homeworkHasVisibleContent(homework)) {
+    const fallbackText = String(parsedContent || '').trim();
+    if (fallbackText.length > 40) {
+      return (
+        <div className={cn('space-y-3', className)}>
+          <StructuredContentRequired toolLabel="Homework Creator" />
+          <pre className="max-h-[28rem] overflow-auto whitespace-pre-wrap rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-800">
+            {fallbackText}
+          </pre>
+        </div>
+      );
+    }
     return <StructuredContentRequired className={className} toolLabel="Homework Creator" />;
   }
 
