@@ -110,6 +110,87 @@ export function getSortedChapterNumbers(videos: { chapter?: string }[]): string[
   );
 }
 
+function chapterNumberFromContent(item: {
+  title?: string;
+  topic?: string;
+  chapter?: string;
+  module?: string;
+  type?: string;
+}): number | null {
+  const fromField = parseInt(videoNumberOnly(item.chapter), 10);
+  if (Number.isFinite(fromField) && fromField > 0) return fromField;
+  const display = getVideoDisplayTitle(item);
+  const fromDisplay = display.match(/\bChapter\s+(\d+)\b/i);
+  if (fromDisplay) {
+    const n = parseInt(fromDisplay[1], 10);
+    return Number.isNaN(n) ? null : n;
+  }
+  const raw = String(item.title || item.topic || '');
+  const fromRaw = raw.match(/\b(?:chapter|ch\.?)\s*[-–—:]?\s*(\d+)\b/i);
+  if (fromRaw) {
+    const n = parseInt(fromRaw[1], 10);
+    return Number.isNaN(n) ? null : n;
+  }
+  return null;
+}
+
+function moduleNumberFromContent(item: {
+  title?: string;
+  topic?: string;
+  chapter?: string;
+  module?: string;
+  type?: string;
+}): number | null {
+  const fromField = parseInt(videoNumberOnly(item.module), 10);
+  if (Number.isFinite(fromField) && fromField > 0) return fromField;
+  const display = getVideoDisplayTitle(item);
+  const fromDisplay = display.match(/\bModule\s+(\d+)\b/i);
+  if (fromDisplay) {
+    const n = parseInt(fromDisplay[1], 10);
+    return Number.isNaN(n) ? null : n;
+  }
+  const raw = String(item.title || item.topic || '');
+  const fromRaw = raw.match(/\bmodule\s*[-–—:]?\s*(\d+)\b/i);
+  if (fromRaw) {
+    const n = parseInt(fromRaw[1], 10);
+    return Number.isNaN(n) ? null : n;
+  }
+  return null;
+}
+
+/** Chapter 1 → 2 → … → 10 (not 1, 10, 2). Then module, then title. */
+export function compareContentsChapterWise(
+  a: { title?: string; topic?: string; chapter?: string; module?: string; type?: string },
+  b: { title?: string; topic?: string; chapter?: string; module?: string; type?: string },
+): number {
+  const aCh = chapterNumberFromContent(a);
+  const bCh = chapterNumberFromContent(b);
+  if (aCh != null && bCh != null && aCh !== bCh) return aCh - bCh;
+  if (aCh != null && bCh == null) return -1;
+  if (aCh == null && bCh != null) return 1;
+
+  const aMod = moduleNumberFromContent(a);
+  const bMod = moduleNumberFromContent(b);
+  if (aMod != null && bMod != null && aMod !== bMod) return aMod - bMod;
+  if (aMod != null && bMod == null) return -1;
+  if (aMod == null && bMod != null) return 1;
+
+  return getVideoDisplayTitle(a).localeCompare(getVideoDisplayTitle(b), undefined, {
+    numeric: true,
+    sensitivity: 'base',
+  });
+}
+
+export function sortContentsChapterWise<T extends {
+  title?: string;
+  topic?: string;
+  chapter?: string;
+  module?: string;
+  type?: string;
+}>(items: T[]): T[] {
+  return [...items].sort(compareContentsChapterWise);
+}
+
 export function isChapterFullyComplete(
   chapterVideos: { _id?: string; id?: string }[],
   completedIds: Set<string>

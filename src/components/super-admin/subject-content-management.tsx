@@ -23,7 +23,7 @@ import {
   isOurBackendPdfUrl,
   isPdfPreviewContent,
 } from '@/lib/api-config';
-import { getVideoDisplayTitle } from '@/lib/video-chapter-schedule';
+import { getVideoDisplayTitle, sortContentsChapterWise } from '@/lib/video-chapter-schedule';
 import PdfPreviewPanel from '@/components/shared/PdfPreviewPanel';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -1139,9 +1139,14 @@ export default function SubjectContentManagement() {
     );
     const sections = CONTENT_TYPE_SECTIONS.map(({ title, types }) => ({
       title,
-      items: filteredContents.filter((c) => types.includes(c.type)),
+      // Videos (and any type with chapter/module) show chapter 1 → 2 → … → 10, then module.
+      items: sortContentsChapterWise(
+        filteredContents.filter((c) => types.includes(c.type)),
+      ),
     }));
-    const other = filteredContents.filter((c) => !knownTypes.has(c.type));
+    const other = sortContentsChapterWise(
+      filteredContents.filter((c) => !knownTypes.has(c.type)),
+    );
     if (other.length > 0) {
       sections.push({ title: 'Other', items: other });
     }
@@ -1857,15 +1862,19 @@ export default function SubjectContentManagement() {
     const saveContentType = editingItem?.type ?? contentForm.type;
     const chapterNum = videoNumberOnly(contentForm.chapter);
     const moduleNum = videoNumberOnly(contentForm.module);
-    // New videos need chapter/module; renames of legacy videos without them must still work.
-    if (
-      saveContentType === 'Video' &&
-      !editingContentId &&
-      (!isVideoNumber(chapterNum) || !isVideoNumber(moduleNum))
-    ) {
+    // New videos need a chapter number; module is optional (if set, must be numeric).
+    if (saveContentType === 'Video' && !editingContentId && !isVideoNumber(chapterNum)) {
       toast({
         title: 'Validation error',
-        description: 'Chapter and module must be numbers only (e.g. 1).',
+        description: 'Chapter must be a number (e.g. 1). Module is optional.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    if (saveContentType === 'Video' && moduleNum && !isVideoNumber(moduleNum)) {
+      toast({
+        title: 'Validation error',
+        description: 'Module must be a number only (e.g. 1), or leave it blank.',
         variant: 'destructive',
       });
       return;
@@ -1988,10 +1997,14 @@ export default function SubjectContentManagement() {
         body.date = contentForm.date.trim();
       }
       if (saveContentType === 'Video') {
-        // Only send chapter/module when valid so title renames aren't blocked by empty legacy fields.
-        if (isVideoNumber(chapterNum) && isVideoNumber(moduleNum)) {
+        if (isVideoNumber(chapterNum)) {
           body.chapter = chapterNum;
+        }
+        // Module optional — send number when set; empty string clears on edit
+        if (isVideoNumber(moduleNum)) {
           body.module = moduleNum;
+        } else if (editingContentId) {
+          body.module = '';
         }
       }
 
@@ -2619,6 +2632,11 @@ export default function SubjectContentManagement() {
                   <div key={section.title} className="space-y-4">
                     <h3 className="text-sm sm:text-base font-semibold text-gray-900 border-b border-gray-200 pb-2">
                       {section.title}
+                      {section.title === 'Videos' ? (
+                        <span className="ml-2 text-xs font-normal text-stone-500">
+                          (sorted chapter → module)
+                        </span>
+                      ) : null}
                     </h3>
                     <div className="grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(280px,1fr))]">
                       {section.items.map((content) => {
@@ -3285,15 +3303,12 @@ export default function SubjectContentManagement() {
                     />
                   </div>
                   <div>
-                    <Label>
-                      Module <span className="text-destructive" aria-hidden="true">*</span>
-                    </Label>
+                    <Label>Module (optional)</Label>
                     <Input
                       type="text"
                       inputMode="numeric"
                       pattern="[0-9]*"
                       value={contentForm.module}
-                      required
                       onChange={(e) =>
                         setContentForm((prev) => ({
                           ...prev,
