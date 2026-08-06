@@ -175,6 +175,8 @@ export default function ExamViewOnly() {
     endDate: ''
   });
   const [listClassFilter, setListClassFilter] = useState<string>('all');
+  const [showFilters, setShowFilters] = useState(false);
+  const [showAllPerformers, setShowAllPerformers] = useState(false);
 
   const rankedExamResults = useMemo(() => {
     return [...examResults]
@@ -272,7 +274,9 @@ export default function ExamViewOnly() {
     attemptedCount: 0,
     notAttemptedCount: 0,
     averageScore: '0.00',
+    examClasses: [] as string[],
     topPerformers: [] as any[],
+    rankedStudents: [] as any[],
     classPerformance: [] as any[],
   });
 
@@ -321,7 +325,57 @@ export default function ExamViewOnly() {
     const examId = String(exam._id ?? '');
     setSelectedExam(exam);
     setAnalytics(null);
-    await Promise.all([fetchExamResults(examId), fetchAnalytics(examId)]);
+    setShowAllPerformers(false);
+    setShowFilters(false);
+    const examClasses = getExamClassStrings(exam);
+    const nextFilters = {
+      classNumber: examClasses.length === 1 ? examClasses[0] : '',
+      subject: '',
+      startDate: '',
+      endDate: '',
+    };
+    setFilters(nextFilters);
+    // fetch with next filters — pass via temporary override
+    setIsLoadingResults(true);
+    setIsLoadingAnalytics(true);
+    try {
+      const token = getAuthToken();
+      const resultQs = new URLSearchParams({ examId });
+      if (nextFilters.classNumber) resultQs.set('classNumber', nextFilters.classNumber);
+      const analQs = new URLSearchParams();
+      if (nextFilters.classNumber) analQs.set('classNumber', nextFilters.classNumber);
+      const analSuffix = analQs.toString() ? `?${analQs.toString()}` : '';
+
+      const [resultsRes, analyticsRes] = await Promise.all([
+        fetch(`${API_BASE_URL}/api/admin/exam-results?${resultQs}`, {
+          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+          credentials: 'include',
+        }),
+        fetch(
+          `${API_BASE_URL}/api/admin/exams/${encodeURIComponent(examId)}/analytics${analSuffix}`,
+          {
+            headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+            credentials: 'include',
+          }
+        ),
+      ]);
+      const resultsData = await resultsRes.json().catch(() => ({}));
+      const analyticsData = await analyticsRes.json().catch(() => ({}));
+      if (resultsRes.ok && resultsData.success) setExamResults(resultsData.data || []);
+      else setExamResults([]);
+      if (analyticsRes.ok && analyticsData.success && analyticsData.data) {
+        setAnalytics(analyticsData.data);
+      } else {
+        setAnalytics(emptyAnalytics());
+      }
+    } catch (error) {
+      console.error('Failed to load exam detail:', error);
+      setExamResults([]);
+      setAnalytics(emptyAnalytics());
+    } finally {
+      setIsLoadingResults(false);
+      setIsLoadingAnalytics(false);
+    }
   };
 
   const getExamTypeColor = (type: string) => {
@@ -381,17 +435,36 @@ export default function ExamViewOnly() {
               ← Back to Exams
             </Button>
             <h2 className="text-xl sm:text-2xl font-bold mt-4">{selectedExam.title}</h2>
+            <p className="text-sm text-gray-600 mt-1">
+              {(() => {
+                const classes =
+                  analytics?.examClasses?.length > 0
+                    ? analytics.examClasses
+                    : getExamClassStrings(selectedExam);
+                const classLabel =
+                  classes.length > 0
+                    ? classes.map((c: string) => normalizeClassNumberForDisplay(c)).join(', ')
+                    : 'All';
+                return `Class ${classLabel} · ${analytics?.attemptedCount ?? 0} of ${analytics?.totalStudents ?? 0} students attempted`;
+              })()}
+            </p>
           </div>
         </div>
 
-        {/* Filters */}
+        {/* Filters (collapsed by default) */}
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <Filter className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
-              Filter Results
+          <CardHeader className="cursor-pointer" onClick={() => setShowFilters((v) => !v)}>
+            <CardTitle className="flex items-center justify-between text-base">
+              <span className="flex items-center">
+                <Filter className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
+                Filters (optional)
+              </span>
+              <span className="text-xs font-normal text-gray-500">
+                {showFilters ? 'Hide' : 'Show'}
+              </span>
             </CardTitle>
           </CardHeader>
+          {showFilters ? (
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div>
@@ -450,6 +523,7 @@ export default function ExamViewOnly() {
               Apply Filters
             </Button>
           </CardContent>
+          ) : null}
         </Card>
 
         {/* Analytics */}
@@ -470,7 +544,11 @@ export default function ExamViewOnly() {
               <CardContent className="p-3 sm:p-4 lg:p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-xs sm:text-sm text-gray-600">Total Students</p>
+                    <p className="text-xs sm:text-sm text-gray-600">
+                      {analytics?.examClasses?.length === 1
+                        ? `Class ${normalizeClassNumberForDisplay(analytics.examClasses[0])} students`
+                        : 'Eligible students'}
+                    </p>
                     <p className="text-xl sm:text-2xl font-bold">{analytics.totalStudents}</p>
                   </div>
                   <Users className="h-6 w-6 sm:h-7 sm:w-7 lg:h-8 lg:w-8 text-blue-500" />
@@ -513,15 +591,22 @@ export default function ExamViewOnly() {
           </div>
         ) : null}
 
-        {/* Top Performers */}
-        {analytics?.topPerformers && analytics.topPerformers.length > 0 && (
+        {/* Student ranking — full list with Show more */}
+        {(() => {
+          const allRanked =
+            Array.isArray(analytics?.rankedStudents) && analytics.rankedStudents.length > 0
+              ? analytics.rankedStudents
+              : analytics?.topPerformers || [];
+          if (!allRanked.length) return null;
+          const visible = showAllPerformers ? allRanked : allRanked.slice(0, 10);
+          return (
           <Card>
             <CardHeader>
-              <CardTitle>Top Performers</CardTitle>
+              <CardTitle>Student ranking ({allRanked.length})</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {analytics.topPerformers.map((performer: any, idx: number) => (
+                {visible.map((performer: any, idx: number) => (
                   <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 rounded">
                     <div className="flex items-center space-x-4">
                       <div className={`w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 rounded-full flex items-center justify-center font-bold ${
@@ -546,15 +631,27 @@ export default function ExamViewOnly() {
                   </div>
                 ))}
               </div>
+              {allRanked.length > 10 ? (
+                <Button
+                  variant="outline"
+                  className="mt-4 w-full"
+                  onClick={() => setShowAllPerformers((v) => !v)}
+                >
+                  {showAllPerformers
+                    ? 'Show less'
+                    : `Show more (${allRanked.length - 10} more)`}
+                </Button>
+              ) : null}
             </CardContent>
           </Card>
-        )}
+          );
+        })()}
 
         {/* All Results */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
-              <span>Student Results</span>
+              <span>Attempt details</span>
               <Button 
                 variant="outline" 
                 size="sm"

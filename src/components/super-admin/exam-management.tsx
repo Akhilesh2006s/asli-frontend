@@ -3880,10 +3880,31 @@ export default function ExamManagement() {
                 />
               </div>
             </div>
-            <DialogFooter>
+            <DialogFooter className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
               <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
                 Cancel
               </Button>
+              {isEditing && editingExamId ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="border-teal-200 text-teal-800 hover:bg-teal-50"
+                  onClick={() => {
+                    const exam =
+                      exams.find((e) => String(e._id) === String(editingExamId)) ||
+                      ({ _id: editingExamId, title: formData.title } as Exam);
+                    setIsDialogOpen(false);
+                    setSelectedExam(exam);
+                    resetQuestionForm();
+                    setEditingQuestionId(null);
+                    setIsQuestionDialogOpen(true);
+                    fetchQuestions(String(editingExamId));
+                  }}
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add Questions
+                </Button>
+              ) : null}
               <Button onClick={handleSaveExam} disabled={isCreating} className="bg-gradient-to-r from-sky-300 to-teal-400 hover:from-sky-400 hover:to-teal-500 text-white">
                 {isCreating ? (isEditing ? 'Updating...' : 'Creating...') : (isEditing ? 'Update Exam' : 'Create Exam')}
               </Button>
@@ -4165,7 +4186,7 @@ export default function ExamManagement() {
                                   )}
                                 </div>
                               </div>
-                              <div className="mt-auto grid grid-cols-1 sm:grid-cols-2 gap-2 border-t border-gray-100 pt-3 select-none">
+                              <div className="mt-auto grid grid-cols-3 gap-2 border-t border-gray-100 pt-3 select-none">
                                 <Button
                                   type="button"
                                   variant="outline"
@@ -4180,21 +4201,23 @@ export default function ExamManagement() {
                                   type="button"
                                   variant="outline"
                                   size="sm"
-                                  className="h-8 justify-center px-2 text-xs select-none"
+                                  className="h-8 justify-center px-2 text-xs select-none border-teal-200 text-teal-800 hover:bg-teal-50"
                                   onClick={() => {
                                     setSelectedExam(exam);
+                                    resetQuestionForm();
+                                    setEditingQuestionId(null);
                                     setIsQuestionDialogOpen(true);
                                     fetchQuestions(exam._id);
                                   }}
                                 >
-                                  <FileQuestion className="mr-1 h-3.5 w-3.5 shrink-0" />
-                                  <span className="truncate">Questions</span>
+                                  <Plus className="mr-1 h-3.5 w-3.5 shrink-0" />
+                                  <span className="whitespace-nowrap">Add</span>
                                 </Button>
                                 <Button
                                   type="button"
                                   variant="outline"
                                   size="sm"
-                                  className="col-span-2 h-8 justify-center px-2 text-xs text-red-600 border-red-200 hover:bg-red-50 select-none"
+                                  className="h-8 justify-center px-2 text-xs text-red-600 border-red-200 hover:bg-red-50 select-none"
                                   onClick={() => handleDeleteExam(exam._id)}
                                 >
                                   <Trash2 className="mr-1 h-3.5 w-3.5 shrink-0" />

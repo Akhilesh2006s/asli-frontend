@@ -78,7 +78,8 @@ export function examMatchesStudentAssignedClass(
   userClass?: string
 ): boolean {
   const c = normalizeClassNumber(userClass);
-  if (!c) return true;
+  // No class on the student → deny (do not treat as "see all").
+  if (!c) return false;
   const examClasses = getExamClassStrings(exam);
   if (examClasses.length === 0) return false;
   return examIncludesClass(exam, c);
