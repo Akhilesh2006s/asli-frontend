@@ -437,6 +437,35 @@ function InlineQuestionEditor({
     form.questionType === 'assertion_reason' ||
     form.questionType === 'match_following';
 
+  const changeQuestionType = (value: typeof EMPTY_QUESTION_FORM.questionType) => {
+    setForm((prev) => {
+      const next: typeof EMPTY_QUESTION_FORM = {
+        ...prev,
+        questionType: value,
+        correctAnswer: '',
+        correctAnswers: [],
+        integerAnswer: value === 'integer' ? prev.integerAnswer : '',
+      };
+      // Keep option slots ready when switching into a choice type
+      if (value !== 'integer') {
+        const opts = [...prev.options];
+        while (opts.length < 4) opts.push('');
+        next.options = opts.slice(0, Math.max(4, opts.length));
+      }
+      if (value === 'assertion_reason' && !String(prev.sharedMatterText || '').trim()) {
+        next.sharedMatterText = DEFAULT_ASSERTION_REASON_DIRECTIONS;
+        next.sharedMatterKind = 'assertion_reason';
+      }
+      if (value !== 'assertion_reason' && prev.sharedMatterKind === 'assertion_reason') {
+        // leave shared matter text; admin can clear manually
+      }
+      if (value === 'match_following') {
+        next.sharedMatterKind = next.sharedMatterKind || 'match_following';
+      }
+      return next;
+    });
+  };
+
   return (
     <div className="space-y-4 rounded-lg border-2 border-sky-300 bg-sky-50/50 p-3 sm:p-4">
       <div className="flex items-center justify-between gap-2">
@@ -457,6 +486,45 @@ function InlineQuestionEditor({
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
             <span className="ml-1">Save</span>
           </Button>
+        </div>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div>
+          <Label className="text-xs">Question type</Label>
+          <Select value={form.questionType} onValueChange={(v) => changeQuestionType(v as typeof form.questionType)}>
+            <SelectTrigger className="mt-1 h-9 bg-white">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="mcq">Single MCQ</SelectItem>
+              <SelectItem value="multiple">Multiple MCQ</SelectItem>
+              <SelectItem value="integer">Integer Type</SelectItem>
+              <SelectItem value="assertion_reason">Assertion–Reason</SelectItem>
+              <SelectItem value="match_following">Match the Following</SelectItem>
+            </SelectContent>
+          </Select>
+          <p className="mt-1 text-[10px] text-slate-500">
+            Change type here (e.g. Integer → MCQ), fill the new fields, then Save.
+          </p>
+        </div>
+        <div>
+          <Label className="text-xs">Subject</Label>
+          <Select
+            value={form.subject}
+            onValueChange={(value) => patch({ subject: value })}
+          >
+            <SelectTrigger className="mt-1 h-9 bg-white">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {EXAM_SUBJECTS.map((s) => (
+                <SelectItem key={s.value} value={s.value}>
+                  {s.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
