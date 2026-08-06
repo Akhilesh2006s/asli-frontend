@@ -4446,9 +4446,10 @@ export default function ExamManagement() {
       <Dialog
         open={isQuestionDialogOpen && !studentPreviewOpen}
         onOpenChange={(open) => {
-          // Opening fullscreen sets studentPreviewOpen and unmounts this dialog;
-          // ignore that close so we don't wipe exam editor state.
-          if (!open && studentPreviewOpen) return;
+          // Opening fullscreen unmounts this dialog; ignore that so editor state is kept.
+          if (!open && studentPreviewOpen) {
+            return;
+          }
           setIsQuestionDialogOpen(open);
           if (!open) {
             setQuestionCsvFile(null);
@@ -4468,7 +4469,7 @@ export default function ExamManagement() {
             setStudentPreviewOpen(false);
           }
         }}
-      }>
+      >
         <DialogContent
           className="!flex h-[min(96vh,920px)] max-h-[96vh] w-[calc(100vw-1rem)] max-w-[min(96vw,80rem)] flex-col gap-3 overflow-hidden !overflow-y-hidden rounded-2xl p-4 sm:gap-4 sm:p-6 lg:max-w-[min(96vw,80rem)]"
           onOpenAutoFocus={(e) => e.preventDefault()}
