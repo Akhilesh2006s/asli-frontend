@@ -294,6 +294,8 @@ const EMPTY_QUESTION_FORM = {
   explanation: '',
   options: ['', '', '', ''],
   correctAnswer: '',
+  /** Preferred option index for single-choice UI (avoids double-select when two options share text). */
+  correctOptionIndex: -1,
   correctAnswers: [] as string[],
   integerAnswer: '',
   sharedMatterId: '',
@@ -311,6 +313,23 @@ function optionText(opt: unknown): string {
     return String((opt as { text?: unknown }).text ?? '');
   }
   return '';
+}
+
+function firstMatchingOptionIndex(options: string[], answer: unknown): number {
+  const a = String(answer ?? '').trim().toLowerCase();
+  if (!a) return -1;
+  return options.findIndex((o) => o.trim().toLowerCase() === a);
+}
+
+function hasDuplicateOptionTexts(options: string[]): boolean {
+  const seen = new Set<string>();
+  for (const o of options) {
+    const t = o.trim().toLowerCase();
+    if (!t) continue;
+    if (seen.has(t)) return true;
+    seen.add(t);
+  }
+  return false;
 }
 
 /**
@@ -443,6 +462,7 @@ function InlineQuestionEditor({
         ...prev,
         questionType: value,
         correctAnswer: '',
+        correctOptionIndex: -1,
         correctAnswers: [],
         integerAnswer: value === 'integer' ? prev.integerAnswer : '',
       };
@@ -591,11 +611,21 @@ function InlineQuestionEditor({
       )}
 
       <div>
-        <Label className="text-xs">Question text</Label>
+        <Label className="text-xs">
+          Question text
+          {form.questionType === 'assertion_reason' ? (
+            <span className="ml-1 font-normal text-slate-500">(optional — A & R above are enough)</span>
+          ) : null}
+        </Label>
         <Textarea
           className="mt-1 bg-white"
           rows={4}
           value={form.questionText}
+          placeholder={
+            form.questionType === 'assertion_reason'
+              ? 'Optional. Leave blank if Assertion and Reason are filled above.'
+              : undefined
+          }
           onChange={(e) => patch({ questionText: e.target.value })}
         />
       </div>
@@ -695,15 +725,31 @@ function InlineQuestionEditor({
         <div className="space-y-2">
           <Label className="text-xs">
             Options — click the circle to mark the correct one
+            {form.questionType === 'multiple' ? ' (toggle several)' : ''}
           </Label>
+          {hasDuplicateOptionTexts(form.options) ? (
+            <p className="rounded-md border border-amber-300 bg-amber-50 px-2 py-1.5 text-[11px] text-amber-900">
+              Two or more options have the same text — only one can be marked correct. Edit the
+              duplicate option text so each choice is unique.
+            </p>
+          ) : null}
           {form.options.map((opt, i) => {
             const letter = String.fromCharCode(97 + i);
+            const selectedIdx =
+              form.correctOptionIndex >= 0
+                ? form.correctOptionIndex
+                : firstMatchingOptionIndex(form.options, form.correctAnswer);
             const checked =
               form.questionType === 'multiple'
                 ? form.correctAnswers.includes(opt) && Boolean(opt.trim())
-                : Boolean(opt.trim()) && form.correctAnswer === opt;
+                : Boolean(opt.trim()) && selectedIdx === i;
             return (
-              <div key={i} className="flex items-center gap-2">
+              <div
+                key={i}
+                className={`flex items-center gap-2 rounded-md px-1 py-0.5 ${
+                  checked ? 'bg-emerald-50/80' : ''
+                }`}
+              >
                 <button
                   type="button"
                   title={`Mark ${letter}) correct`}
@@ -720,7 +766,7 @@ function InlineQuestionEditor({
                         : [...form.correctAnswers, opt];
                       patch({ correctAnswers: next });
                     } else {
-                      patch({ correctAnswer: opt });
+                      patch({ correctAnswer: opt, correctOptionIndex: i });
                     }
                   }}
                 >
@@ -732,13 +778,19 @@ function InlineQuestionEditor({
                   placeholder={`Option ${letter}`}
                   onChange={(e) => {
                     const nextOptions = form.options.map((o, j) => (j === i ? e.target.value : o));
-                    // Keep the answer pointing at this option when its text is edited
                     const nextPatch: Partial<typeof EMPTY_QUESTION_FORM> = { options: nextOptions };
-                    if (form.correctAnswer === opt) nextPatch.correctAnswer = e.target.value;
-                    if (form.correctAnswers.includes(opt)) {
-                      nextPatch.correctAnswers = form.correctAnswers.map((a) =>
-                        a === opt ? e.target.value : a,
-                      );
+                    if (form.questionType === 'multiple') {
+                      if (form.correctAnswers.includes(opt)) {
+                        nextPatch.correctAnswers = form.correctAnswers.map((a) =>
+                          a === opt ? e.target.value : a,
+                        );
+                      }
+                    } else if (
+                      form.correctOptionIndex === i ||
+                      (form.correctOptionIndex < 0 && form.correctAnswer === opt)
+                    ) {
+                      nextPatch.correctAnswer = e.target.value;
+                      nextPatch.correctOptionIndex = i;
                     }
                     patch(nextPatch);
                   }}
@@ -816,6 +868,14 @@ function buildQuestionFormFromExisting(q: any): typeof EMPTY_QUESTION_FORM {
     }
   }
 
+  const flaggedIdx = rawOptions.findIndex((opt: any) => opt?.isCorrect);
+  const correctOptionIndex =
+    type === 'integer' || type === 'multiple'
+      ? -1
+      : flaggedIdx >= 0
+        ? flaggedIdx
+        : firstMatchingOptionIndex(options, correctAnswer);
+
   return {
     questionText: String(q?.questionText || ''),
     questionImage: String(q?.questionImage || ''),
@@ -826,6 +886,7 @@ function buildQuestionFormFromExisting(q: any): typeof EMPTY_QUESTION_FORM {
     explanation: String(q?.explanation || ''),
     options,
     correctAnswer,
+    correctOptionIndex,
     correctAnswers,
     integerAnswer,
     sharedMatterId: String(q?.sharedMatterId || q?.passageId || ''),
@@ -2133,8 +2194,20 @@ export default function ExamManagement() {
           chunk.map(async (row, chunkIdx) => {
             const idx = i + chunkIdx;
             try {
-              if (!String(row.questionText || '').trim() && !String(row.questionImage || '').trim()) {
-                return { ok: false, error: `Row ${idx + 1}: questionText is required` };
+              const rowType = String(row.questionType || '').trim().toLowerCase();
+              const hasArStem =
+                rowType === 'assertion_reason' &&
+                Boolean(String(row.assertionText || '').trim()) &&
+                Boolean(String(row.reasonText || '').trim());
+              if (
+                !String(row.questionText || '').trim() &&
+                !String(row.questionImage || '').trim() &&
+                !hasArStem
+              ) {
+                return {
+                  ok: false,
+                  error: `Row ${idx + 1}: questionText, image, or Assertion+Reason required`,
+                };
               }
               const payload = mapPdfRowToQuestionPayload(row as PdfQuestionRow);
               let res = await fetch(`${API_BASE_URL}/api/super-admin/exams/${selectedExam._id}/questions`, {
@@ -2517,10 +2590,20 @@ export default function ExamManagement() {
       return;
     }
 
-    if (!questionFormData.questionText.trim() && !questionFormData.questionImage) {
+    const isAr = questionFormData.questionType === 'assertion_reason';
+    const hasArStem =
+      Boolean(questionFormData.assertionText.trim()) &&
+      Boolean(questionFormData.reasonText.trim());
+    if (
+      !questionFormData.questionText.trim() &&
+      !questionFormData.questionImage &&
+      !(isAr && hasArStem)
+    ) {
       toast({
         title: 'Validation Error',
-        description: 'Question text or image is required',
+        description: isAr
+          ? 'Fill Assertion (A) and Reason (R), or add question text / an image'
+          : 'Question text or image is required',
         variant: 'destructive'
       });
       return;
@@ -5472,6 +5555,16 @@ export default function ExamManagement() {
                                         Click an option to mark it correct
                                         {q.questionType === 'multiple' ? ' (toggle)' : ''}.
                                       </p>
+                                      {hasDuplicateOptionTexts(
+                                        (q.options || []).map((o: any) =>
+                                          String(o?.text ?? o ?? '').trim(),
+                                        ),
+                                      ) ? (
+                                        <p className="rounded-md border border-amber-300 bg-amber-50 px-2 py-1.5 text-[11px] text-amber-900">
+                                          Duplicate option text detected — edit the question and make
+                                          each option unique so only one answer highlights.
+                                        </p>
+                                      ) : null}
                                       {q.options.map((option: any, optIdx: number) => {
                                         const optText = String(option?.text ?? option ?? '').trim();
                                         const allTexts = (q.options || []).map((o: any) =>
@@ -5485,6 +5578,16 @@ export default function ExamManagement() {
                                         const answerStrs = answers
                                           .map((ans: unknown) => String(ans ?? '').trim())
                                           .filter(Boolean);
+                                        const isMulti = q.questionType === 'multiple';
+                                        // Single-choice: only highlight the FIRST matching option
+                                        // so duplicate option texts don't look like two answers selected.
+                                        const firstTextMatchIdx =
+                                          !isMulti && answerStrs.length === 1
+                                            ? allTexts.findIndex(
+                                                (t: string) =>
+                                                  t.toLowerCase() === answerStrs[0].toLowerCase(),
+                                              )
+                                            : -1;
                                         const answerMatchesSomeOption = answerStrs.some((raw) =>
                                           allTexts.some(
                                             (t: string) => t.toLowerCase() === raw.toLowerCase(),
@@ -5493,16 +5596,22 @@ export default function ExamManagement() {
                                         const isCorrect = answerStrs.length
                                           ? answerStrs.some((raw) => {
                                               if (raw.toLowerCase() === optText.toLowerCase()) {
+                                                if (!isMulti && firstTextMatchIdx >= 0) {
+                                                  return optIdx === firstTextMatchIdx;
+                                                }
                                                 return true;
                                               }
-                                              // Digit-as-index only when answer is not itself an option text
-                                              // (avoids marking both "1" and index-1 when options are 1/2/3/4)
                                               if (answerMatchesSomeOption) return false;
                                               if (
                                                 /^\d+$/.test(raw) &&
                                                 parseInt(raw, 10) === optIdx
                                               ) {
                                                 return true;
+                                              }
+                                              if (/^[a-d]$/i.test(raw)) {
+                                                return (
+                                                  raw.toLowerCase().charCodeAt(0) - 97 === optIdx
+                                                );
                                               }
                                               return false;
                                             })
@@ -5663,14 +5772,27 @@ export default function ExamManagement() {
               </div>
 
               <div>
-                <Label>Question Text (Optional)</Label>
+                <Label>
+                  Question Text (Optional)
+                  {questionFormData.questionType === 'assertion_reason' ? (
+                    <span className="ml-1 font-normal text-slate-500">— A & R fields are enough</span>
+                  ) : null}
+                </Label>
                 <Textarea
                   value={questionFormData.questionText}
                   onChange={(e) => setQuestionFormData({ ...questionFormData, questionText: e.target.value })}
-                  placeholder="Enter the question text..."
+                  placeholder={
+                    questionFormData.questionType === 'assertion_reason'
+                      ? 'Optional. Leave blank if Assertion and Reason are filled below.'
+                      : 'Enter the question text...'
+                  }
                   rows={4}
                 />
-                <p className="text-xs text-gray-500 mt-1">You can leave this empty and upload a question image below.</p>
+                <p className="text-xs text-gray-500 mt-1">
+                  {questionFormData.questionType === 'assertion_reason'
+                    ? 'For Assertion–Reason, fill Assertion (A) and Reason (R); question text is optional.'
+                    : 'You can leave this empty and upload a question image below.'}
+                </p>
               </div>
 
               <div>
