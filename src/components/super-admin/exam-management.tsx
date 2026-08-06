@@ -35,10 +35,18 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { API_BASE_URL } from '@/lib/api-config';
 import { getExamClassStrings } from '@/lib/exam-classes';
-import { normalizeAndFormatExamDisplayText, resolveAssertionReasonDisplay } from '@/lib/exam-text-normalize';
+import {
+  normalizeAndFormatExamDisplayText,
+  parseAssertionReasonStem,
+  resolveAssertionReasonDisplay,
+} from '@/lib/exam-text-normalize';
 import { AuthenticatedUploadImage } from '@/components/AuthenticatedUploadImage';
 import { MatchColumnsTable } from '@/components/exam/MatchColumnsTable';
-import { Plus, Trash2, Edit, Eye, Calendar, Clock, BookOpen, FileQuestion, X, Upload, Download, School, GraduationCap, Loader2, ChevronUp, ChevronDown, Save, Search } from 'lucide-react';
+import {
+  AdminExamPreviewTriggerButton,
+  AdminExamStudentPreview,
+} from '@/components/super-admin/AdminExamStudentPreview';
+import { Plus, Trash2, Edit, Eye, Calendar, Clock, BookOpen, FileQuestion, X, Upload, Download, School, GraduationCap, Loader2, ChevronUp, ChevronDown, Save, Search, Maximize2 } from 'lucide-react';
 
 type ExamSubjectValue =
   | 'maths'
@@ -426,6 +434,23 @@ function SharedMatterCard({
  * form elsewhere on the page. Saving goes through the same handler the main
  * form uses, so add and edit stay in sync.
  */
+/** Stem for AR: dedicated A/R fields, or parseable "A: … R: …" in question text. */
+function resolveArStemFields(form: typeof EMPTY_QUESTION_FORM): {
+  assertionText: string;
+  reasonText: string;
+} {
+  let assertionText = String(form.assertionText || '').trim();
+  let reasonText = String(form.reasonText || '').trim();
+  if (!assertionText || !reasonText) {
+    const parsed = parseAssertionReasonStem(form.questionText);
+    if (parsed) {
+      if (!assertionText) assertionText = parsed.assertion;
+      if (!reasonText) reasonText = parsed.reason;
+    }
+  }
+  return { assertionText, reasonText };
+}
+
 function InlineQuestionEditor({
   form,
   setForm,
@@ -441,7 +466,7 @@ function InlineQuestionEditor({
   form: typeof EMPTY_QUESTION_FORM;
   setForm: React.Dispatch<React.SetStateAction<typeof EMPTY_QUESTION_FORM>>;
   saving: boolean;
-  onSave: () => void;
+  onSave: (form: typeof EMPTY_QUESTION_FORM) => void;
   onCancel: () => void;
   onUploadImage: (file: File) => void;
   onRemoveImage: () => void;
@@ -472,9 +497,17 @@ function InlineQuestionEditor({
         while (opts.length < 4) opts.push('');
         next.options = opts.slice(0, Math.max(4, opts.length));
       }
-      if (value === 'assertion_reason' && !String(prev.sharedMatterText || '').trim()) {
-        next.sharedMatterText = DEFAULT_ASSERTION_REASON_DIRECTIONS;
-        next.sharedMatterKind = 'assertion_reason';
+      if (value === 'assertion_reason') {
+        if (!String(prev.sharedMatterText || '').trim()) {
+          next.sharedMatterText = DEFAULT_ASSERTION_REASON_DIRECTIONS;
+          next.sharedMatterKind = 'assertion_reason';
+        }
+        // Prefer dedicated A/R cells; backfill from question text when switching type
+        const parsed = parseAssertionReasonStem(prev.questionText);
+        if (parsed) {
+          if (!String(prev.assertionText || '').trim()) next.assertionText = parsed.assertion;
+          if (!String(prev.reasonText || '').trim()) next.reasonText = parsed.reason;
+        }
       }
       if (value !== 'assertion_reason' && prev.sharedMatterKind === 'assertion_reason') {
         // leave shared matter text; admin can clear manually
@@ -500,7 +533,7 @@ function InlineQuestionEditor({
             type="button"
             size="sm"
             className="bg-sky-600 text-white hover:bg-sky-700"
-            onClick={onSave}
+            onClick={() => onSave(form)}
             disabled={saving || uploadingImage}
           >
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
@@ -1119,6 +1152,8 @@ export default function ExamManagement() {
   const [editingExamId, setEditingExamId] = useState<string | null>(null);
   const [selectedExam, setSelectedExam] = useState<Exam | null>(null);
   const [isQuestionDialogOpen, setIsQuestionDialogOpen] = useState(false);
+  const [studentPreviewOpen, setStudentPreviewOpen] = useState(false);
+  const [studentPreviewIndex, setStudentPreviewIndex] = useState(0);
   const [isAddingQuestion, setIsAddingQuestion] = useState(false);
   const [questions, setQuestions] = useState<any[]>([]);
   const [savingQuestionId, setSavingQuestionId] = useState<string | null>(null);
@@ -1307,6 +1342,8 @@ export default function ExamManagement() {
   const [isUploadingCsv, setIsUploadingCsv] = useState(false);
   const [csvUploadResults, setCsvUploadResults] = useState<{ success: number; errors: string[] } | null>(null);
   const [questionFormData, setQuestionFormData] = useState(() => ({ ...EMPTY_QUESTION_FORM }));
+  const questionFormDataLiveRef = useRef(questionFormData);
+  questionFormDataLiveRef.current = questionFormData;
   const [editingQuestionId, setEditingQuestionId] = useState<string | null>(null);
   const availableExamFigurePool = useMemo(() => {
     const editingImage = editingQuestionId
@@ -2580,8 +2617,17 @@ export default function ExamManagement() {
     resetQuestionForm();
   };
 
-  const handleAddQuestion = async () => {
+  const handleAddQuestion = async (formOverride?: typeof EMPTY_QUESTION_FORM) => {
     if (!selectedExam) return;
+
+    // Prefer explicit form from the inline editor. Ignore click-event accidental args.
+    const form =
+      formOverride &&
+      typeof formOverride === 'object' &&
+      'questionType' in formOverride &&
+      'assertionText' in formOverride
+        ? formOverride
+        : questionFormDataLiveRef.current;
 
     // In PDF upload mode, treat "Add Question" as final save action
     // for extracted rows so users can confirm before persistence.
@@ -2590,125 +2636,135 @@ export default function ExamManagement() {
       return;
     }
 
-    const isAr = questionFormData.questionType === 'assertion_reason';
-    const hasArStem =
-      Boolean(questionFormData.assertionText.trim()) &&
-      Boolean(questionFormData.reasonText.trim());
-    if (
-      !questionFormData.questionText.trim() &&
-      !questionFormData.questionImage &&
-      !(isAr && hasArStem)
-    ) {
+    const isAr = String(form.questionType || '').toLowerCase() === 'assertion_reason';
+    const arStem = resolveArStemFields(form);
+
+    // Assertion–Reason: question text + image are both optional.
+    // The stem is Assertion (A) + Reason (R) (or A:/R: inside question text).
+    if (isAr) {
+      if (!arStem.assertionText || !arStem.reasonText) {
+        toast({
+          title: 'Validation Error',
+          description:
+            'Fill Assertion (A) and Reason (R). Question text and image are optional for Assertion–Reason.',
+          variant: 'destructive',
+        });
+        return;
+      }
+    } else if (!String(form.questionText || '').trim() && !String(form.questionImage || '').trim()) {
       toast({
         title: 'Validation Error',
-        description: isAr
-          ? 'Fill Assertion (A) and Reason (R), or add question text / an image'
-          : 'Question text or image is required',
-        variant: 'destructive'
+        description: 'Question text or image is required',
+        variant: 'destructive',
       });
       return;
     }
 
-    if ((questionFormData.questionType === 'mcq' ||
-        questionFormData.questionType === 'multiple' ||
-        questionFormData.questionType === 'assertion_reason' ||
-        questionFormData.questionType === 'match_following') &&
-        questionFormData.options.every(opt => !opt.trim())) {
+    if (
+      (form.questionType === 'mcq' ||
+        form.questionType === 'multiple' ||
+        form.questionType === 'assertion_reason' ||
+        form.questionType === 'match_following') &&
+      form.options.every((opt) => !opt.trim())
+    ) {
       toast({
         title: 'Validation Error',
         description: 'At least one option is required for MCQ questions',
-        variant: 'destructive'
+        variant: 'destructive',
       });
       return;
     }
 
     // Validate and format correct answer — always send option TEXT (not ambiguous parseInt indices)
     let correctAnswer: any;
-    if (questionFormData.questionType === 'integer') {
-      correctAnswer = parseInt(questionFormData.integerAnswer);
+    if (form.questionType === 'integer') {
+      correctAnswer = parseInt(form.integerAnswer);
       if (isNaN(correctAnswer)) {
         toast({
           title: 'Validation Error',
           description: 'Please enter a valid integer answer',
-          variant: 'destructive'
+          variant: 'destructive',
         });
         return;
       }
-    } else if (questionFormData.questionType === 'multiple') {
-      const selectedAnswers = questionFormData.correctAnswers
-        .map((ans) => resolveAnswerAgainstOptions(ans, questionFormData.options))
+    } else if (form.questionType === 'multiple') {
+      const selectedAnswers = form.correctAnswers
+        .map((ans) => resolveAnswerAgainstOptions(ans, form.options))
         .filter(Boolean);
       if (selectedAnswers.length === 0) {
         toast({
           title: 'Validation Error',
           description: 'Please select at least one correct answer',
-          variant: 'destructive'
+          variant: 'destructive',
         });
         return;
       }
       correctAnswer = selectedAnswers;
     } else {
       // Single MCQ / AR / Match — resolve to option text (supports a/b/c/d from uploads)
-      const raw = String(questionFormData.correctAnswer || '').trim();
+      const raw = String(form.correctAnswer || '').trim();
       if (!raw) {
         toast({
           title: 'Validation Error',
           description: 'Please select a correct answer',
-          variant: 'destructive'
+          variant: 'destructive',
         });
         return;
       }
-      correctAnswer = resolveAnswerAgainstOptions(raw, questionFormData.options) || raw;
+      correctAnswer = resolveAnswerAgainstOptions(raw, form.options) || raw;
       if (!correctAnswer) {
         toast({
           title: 'Validation Error',
           description: 'Please select a correct answer',
-          variant: 'destructive'
+          variant: 'destructive',
         });
         return;
       }
     }
 
     // Format options for MCQ/Multiple - keep as array of objects with text
-    const formattedOptions = questionFormData.questionType === 'integer' 
-      ? [] 
-      : questionFormData.options
-          .filter(opt => opt.trim() !== '')
-          .map(opt => ({ text: opt.trim(), isCorrect: false }));
+    const formattedOptions =
+      form.questionType === 'integer'
+        ? []
+        : form.options
+            .filter((opt) => opt.trim() !== '')
+            .map((opt) => ({ text: opt.trim(), isCorrect: false }));
 
     const buildQuestionPayload = (replaceDuplicate = false) => {
-      const editingRow =
-        editingQuestionId
-          ? questions.find((q: any) => String(q._id) === String(editingQuestionId))
-          : null;
+      const editingRow = editingQuestionId
+        ? questions.find((q: any) => String(q._id) === String(editingQuestionId))
+        : null;
       const sectionHeading =
-        String(editingRow?.sectionHeading || '').trim() ||
-        subjectSectionLabel(questionFormData.subject);
+        String(editingRow?.sectionHeading || '').trim() || subjectSectionLabel(form.subject);
       const displayOrder = editingRow
         ? Math.max(1, Number(editingRow.displayOrder) || 1)
         : undefined;
 
       return {
-        questionText: questionFormData.questionText.trim(),
-        questionImage: questionFormData.questionImage.trim(),
-        questionType: questionFormData.questionType,
+        // AR may save with empty questionText — stem lives in assertionText / reasonText
+        questionText: String(form.questionText || '').trim(),
+        questionImage: String(form.questionImage || '').trim(),
+        questionType: form.questionType,
         options: formattedOptions,
         correctAnswer,
-        marks: Math.max(0, Number(questionFormData.marks) || 1),
-        negativeMarks: Math.max(0, Math.abs(Number(questionFormData.negativeMarks) || 0)),
-        explanation: questionFormData.explanation.trim() || undefined,
-        subject: questionFormData.subject,
+        marks: Math.max(0, Number(form.marks) || 1),
+        negativeMarks: Math.max(0, Math.abs(Number(form.negativeMarks) || 0)),
+        explanation: form.explanation.trim() || undefined,
+        subject: form.subject,
         sectionHeading,
         ...(displayOrder != null ? { displayOrder } : {}),
         board: selectedExam.board,
-        sharedMatterId: questionFormData.sharedMatterId.trim() || undefined,
-        sharedMatterText: (questionFormData.sharedMatterText.trim() || (questionFormData.questionType === 'assertion_reason' ? DEFAULT_ASSERTION_REASON_DIRECTIONS : '') || undefined),
-        sharedMatterKind: questionFormData.sharedMatterKind || undefined,
-        assertionText: questionFormData.assertionText.trim() || undefined,
-        reasonText: questionFormData.reasonText.trim() || undefined,
-        matchColumnI: parseMatchColumnLines(questionFormData.matchColumnIText),
-        matchColumnII: parseMatchColumnLines(questionFormData.matchColumnIIText),
-        applySharedMatterToGroup: Boolean(questionFormData.sharedMatterId.trim()),
+        sharedMatterId: form.sharedMatterId.trim() || undefined,
+        sharedMatterText:
+          form.sharedMatterText.trim() ||
+          (form.questionType === 'assertion_reason' ? DEFAULT_ASSERTION_REASON_DIRECTIONS : '') ||
+          undefined,
+        sharedMatterKind: form.sharedMatterKind || undefined,
+        assertionText: isAr ? arStem.assertionText : form.assertionText.trim() || undefined,
+        reasonText: isAr ? arStem.reasonText : form.reasonText.trim() || undefined,
+        matchColumnI: parseMatchColumnLines(form.matchColumnIText),
+        matchColumnII: parseMatchColumnLines(form.matchColumnIIText),
+        applySharedMatterToGroup: Boolean(form.sharedMatterId.trim()),
         replaceDuplicate,
       };
     };
@@ -4405,6 +4461,7 @@ export default function ExamManagement() {
           setBulkQuestionUploadMode('csv');
           setPendingDeleteQuestion(null);
           resetQuestionForm();
+          setStudentPreviewOpen(false);
         }
       }}>
         <DialogContent
@@ -4412,15 +4469,29 @@ export default function ExamManagement() {
           onOpenAutoFocus={(e) => e.preventDefault()}
         >
           <DialogHeader className="shrink-0 space-y-1.5 text-left pr-12">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-amber-800">
-              Super Admin Exam Editor
-            </p>
-            <DialogTitle className="text-xl sm:text-2xl">
-              {selectedExam?.title || 'Exam'}
-            </DialogTitle>
-            <DialogDescription className="text-sm text-stone-600">
-              Student exam layout with Super Admin controls — edit order, section, text, answers, and figures.
-            </DialogDescription>
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-amber-800">
+                  Super Admin Exam Editor
+                </p>
+                <DialogTitle className="text-xl sm:text-2xl">
+                  {selectedExam?.title || 'Exam'}
+                </DialogTitle>
+                <DialogDescription className="text-sm text-stone-600">
+                  Student exam layout with Super Admin controls — edit order, section, text, answers, and figures.
+                </DialogDescription>
+              </div>
+              {questions.length > 0 ? (
+                <AdminExamPreviewTriggerButton
+                  className="shrink-0 border-indigo-300 bg-indigo-50 text-indigo-900 hover:bg-indigo-100"
+                  label="Fullscreen student view"
+                  onClick={() => {
+                    setStudentPreviewIndex(0);
+                    setStudentPreviewOpen(true);
+                  }}
+                />
+              ) : null}
+            </div>
           </DialogHeader>
 
           {availableExamFigurePool.length > 0 ? (
@@ -5327,6 +5398,21 @@ export default function ExamManagement() {
                                   type="button"
                                   size="sm"
                                   variant="outline"
+                                  className="h-8 border-indigo-200 text-indigo-800 hover:bg-indigo-50"
+                                  disabled={Boolean(savingQuestionId) || isReorderingQuestions}
+                                  onClick={() => {
+                                    setStudentPreviewIndex(idx);
+                                    setStudentPreviewOpen(true);
+                                  }}
+                                  title="Open full-page student exam view on this question"
+                                >
+                                  <Maximize2 className="h-4 w-4" />
+                                  <span className="ml-1">Verify</span>
+                                </Button>
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="outline"
                                   className={`h-8 ${
                                     isEditingThis
                                       ? 'border-sky-500 bg-sky-50 text-sky-700'
@@ -5355,7 +5441,7 @@ export default function ExamManagement() {
                                   onClick={() => {
                                     // While editing content, Save must persist the form — not only order/section.
                                     if (isEditingThis) {
-                                      void handleAddQuestion();
+                                      void handleAddQuestion(questionFormDataLiveRef.current);
                                       return;
                                     }
                                     void handleSaveQuestionMeta(q);
@@ -5998,7 +6084,7 @@ export default function ExamManagement() {
                 </Button>
               </>
             ) : (
-            <Button onClick={handleAddQuestion} disabled={isAddingQuestion}>
+            <Button onClick={() => void handleAddQuestion()} disabled={isAddingQuestion}>
               {isAddingQuestion
                 ? 'Adding...'
                 : bulkQuestionUploadMode === 'pdf' && pdfQuestionRows.length > 0
@@ -6032,6 +6118,16 @@ export default function ExamManagement() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AdminExamStudentPreview
+        open={studentPreviewOpen}
+        examTitle={selectedExam?.title || 'Exam'}
+        durationMinutes={Number(selectedExam?.duration) || undefined}
+        questions={questions}
+        initialIndex={studentPreviewIndex}
+        onClose={() => setStudentPreviewOpen(false)}
+        onIndexChange={setStudentPreviewIndex}
+      />
     </div>
   );
 }
