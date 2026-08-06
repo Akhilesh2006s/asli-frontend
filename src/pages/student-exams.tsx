@@ -524,15 +524,18 @@ export default function StudentExams() {
   );
 
   const attemptCountByExamId = useMemo(() => {
+    // Use raw API rows for attempt limits (match backend countDocuments).
+    // Display dedupe can collapse near-duplicate rows and undercount vs the server.
     const m = new Map<string, number>();
-    for (const result of dedupedExamResults) {
+    const rows = Array.isArray(results?.data) ? results.data : [];
+    for (const result of rows) {
       const id = getExamIdFromResult(result);
       if (!id) continue;
       const k = String(id);
       m.set(k, (m.get(k) || 0) + 1);
     }
     return m;
-  }, [dedupedExamResults, getExamIdFromResult]);
+  }, [results?.data, getExamIdFromResult]);
 
   const availableActiveExams = useMemo(
     () =>

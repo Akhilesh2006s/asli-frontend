@@ -618,24 +618,12 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
       };
       fallbackResult = result;
 
-      // Move to completion view immediately so the fullscreen warning cannot block UI.
-      try {
-        onComplete(result);
-      } catch (completeError) {
-        console.error('Immediate completion transition failed, continuing submit:', completeError);
-      }
-
+      // Stay on the exam screen until the server confirms the save.
+      // Calling onComplete first made failed saves look like a successful attempt.
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 10000);
+      const timeout = setTimeout(() => controller.abort(), 45000);
 
       try {
-
-        console.log('📤 Saving exam result:', {
-          examId: result.examId,
-          examTitle: result.examTitle,
-          percentage: result.percentage
-        });
-        
         const response = await fetch(`${API_BASE_URL}/api/student/exam-results`, {
           method: 'POST',
           headers: { 
@@ -664,10 +652,13 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
             error: errorData
           });
           const msg = errorData?.message || response.statusText;
-          if (response.status === 403) {
-            alert(msg || 'You cannot submit more attempts for this exam.');
-          }
-          throw new Error(`Failed to save result: ${msg}`);
+          alert(
+            msg ||
+              'Could not save your attempt. Check your connection and tap Submit again — your answers are still on this screen.'
+          );
+          setIsSubmitted(false);
+          submissionInProgressRef.current = false;
+          return;
         }
 
         let responseData: any = null;
@@ -678,10 +669,9 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
         }
 
         console.log('✅ Exam result saved successfully:', responseData);
-        console.log('📋 Saved examId:', responseData.data?.examId || result.examId);
 
-        // Server is the source of truth for grading. Re-sync UI with
-        // authoritative scoring to avoid mismatch across screens.
+        // Server is the source of truth for grading.
+        let authoritativeResult: ExamResult = result;
         if (responseData?.data && typeof responseData.data === 'object') {
           const serverResult = responseData.data;
           const localAnswerCount = result.answers ? Object.keys(result.answers).length : 0;
@@ -695,7 +685,7 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
                 )
               : {};
           const serverAnswerCount = Object.keys(normalizedServerAnswers).length;
-          const authoritativeResult: ExamResult = {
+          authoritativeResult = {
             attemptNumber:
               Number(serverResult.attemptNumber) >= 1
                 ? Number(serverResult.attemptNumber)
@@ -711,8 +701,6 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
             percentage: Number(serverResult.percentage ?? result.percentage),
             timeTaken: Number(serverResult.timeTaken ?? result.timeTaken),
             subjectWiseScore: serverResult.subjectWiseScore || result.subjectWiseScore,
-            // If backend returns an empty/non-plain answers map immediately after save,
-            // keep local in-memory answers so question review does not show "Not attempted".
             answers: serverAnswerCount > 0 || localAnswerCount === 0
               ? normalizedServerAnswers
               : result.answers,
@@ -721,36 +709,33 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
               ? serverResult.questions
               : result.questions
           };
-          try {
-            onComplete(authoritativeResult);
-          } catch (completeError) {
-            console.error('Authoritative completion transition failed:', completeError);
-          }
+        }
+
+        try {
+          onComplete(authoritativeResult);
+        } catch (completeError) {
+          console.error('Completion transition failed:', completeError);
         }
       } catch (error) {
         console.error('❌ Failed to save result:', error);
+        const aborted = error instanceof Error && error.name === 'AbortError';
+        alert(
+          aborted
+            ? 'Saving timed out. Tap Submit again — your answers are still here.'
+            : 'Could not save your attempt. Check your connection and tap Submit again — your answers are still on this screen.'
+        );
+        setIsSubmitted(false);
       } finally {
         clearTimeout(timeout);
+        submissionInProgressRef.current = false;
       }
-      // Allow graceful manual retry path if user stays on this screen.
-      submissionInProgressRef.current = false;
+      return;
     } catch (error) {
       console.error('❌ Submit crashed before completion:', error);
       const errorText =
         error instanceof Error
           ? `${error.name}: ${error.message}`
           : String(error || 'Unknown error');
-
-      if (fallbackResult) {
-        console.warn('⚠️ Recovering submit with fallback result:', errorText);
-        try {
-          onComplete(fallbackResult);
-          submissionInProgressRef.current = false;
-          return;
-        } catch (fallbackError) {
-          console.error('❌ Fallback completion failed:', fallbackError);
-        }
-      }
 
       setIsSubmitted(false);
       submissionInProgressRef.current = false;
@@ -759,7 +744,9 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
         window.clearTimeout(autoSubmitTimeoutRef.current);
         autoSubmitTimeoutRef.current = null;
       }
-      alert(`Unable to finish submit right now. ${errorText}`);
+      alert(
+        `Submit failed (${errorText}). Your answers are still on this screen — please try Submit again.`
+      );
     }
   };
 
@@ -997,6 +984,19 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {isSubmitted && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50">
+          <Card className="mx-4 max-w-sm w-full">
+            <CardContent className="flex flex-col items-center gap-3 py-8">
+              <div className="h-8 w-8 animate-spin rounded-full border-2 border-indigo-600 border-t-transparent" />
+              <p className="text-sm font-medium text-gray-900">Saving your attempt…</p>
+              <p className="text-center text-xs text-gray-500">
+                Please wait — do not close this tab until saving finishes.
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      )}
       {/* Exit Warning Modal */}
       {showExitWarning && (
         <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50">
