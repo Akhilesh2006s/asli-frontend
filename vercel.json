@@ -9,6 +9,10 @@
       "destination": "https://api.aslilearn.ai/api/:path*"
     },
     {
+      "source": "/uploads/:path*",
+      "destination": "https://api.aslilearn.ai/uploads/:path*"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
