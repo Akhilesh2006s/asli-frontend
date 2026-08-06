@@ -31,7 +31,7 @@ interface Question {
   _id: string;
   questionText: string;
   questionImage?: string;
-  questionType: 'mcq' | 'multiple' | 'integer';
+  questionType: 'mcq' | 'multiple' | 'integer' | 'assertion_reason' | 'match_following' | string;
   options?: (string | { text: string; isCorrect?: boolean; _id?: string })[];
   correctAnswer: string | string[] | { text: string; isCorrect?: boolean; _id?: string } | { text: string; isCorrect?: boolean; _id?: string }[];
   marks: number;
@@ -40,6 +40,10 @@ interface Question {
   subject: string;
   displayOrder?: number;
   sectionHeading?: string;
+  sharedMatterKind?: string;
+  sharedMatterText?: string;
+  assertionText?: string;
+  reasonText?: string;
 }
 
 const SUBJECT_SECTION_LABELS: Record<string, string> = {
@@ -113,17 +117,13 @@ function answerKey(questionOrId: Question | string | null | undefined): string {
 /** True only when the student has a non-empty response for this question type. */
 function isAnswerProvidedForQuestion(question: Question, raw: any): boolean {
   if (raw === undefined || raw === null) return false;
-  const t = question.questionType;
-  if (t === 'mcq') {
-    return String(raw).trim() !== '';
-  }
-  if (t === 'multiple') {
+  const t = String(question.questionType || 'mcq').toLowerCase().trim();
+  if (t === 'multiple' || t === 'multi' || t === 'msq') {
     return Array.isArray(raw) && raw.length > 0;
   }
-  if (t === 'integer') {
-    return String(raw).trim() !== '';
-  }
-  return false;
+  // mcq, assertion_reason, match_following, integer, and unknown single-value types
+  if (Array.isArray(raw)) return raw.length > 0;
+  return String(raw).trim() !== '';
 }
 
 export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExamProps) {
@@ -984,8 +984,7 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
       (/Both A and R are true/i.test(raw) && /A is false,\s*but R is true/i.test(raw));
     return ok ? raw : DEFAULT_ASSERTION_REASON_DIRECTIONS;
   })();
-  const showQuestionImage =
-    Boolean(currentQuestion.questionImage) && currentQuestion.questionType !== 'assertion_reason';
+  const showQuestionImage = Boolean(currentQuestion.questionImage);
 
   const progress = ((safeQuestionIndex + 1) / exam.questions.length) * 100;
   const currentQid = answerKey(currentQuestion);

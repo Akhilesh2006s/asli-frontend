@@ -34,10 +34,13 @@ function splitUploadUrl(fileUrl: string): { pathname: string; search: string } |
   return null;
 }
 
+function isSignedUploadUrl(fileUrl: string): boolean {
+  return /[?&]sig=/.test(fileUrl) && /[?&]exp=/.test(fileUrl);
+}
+
 /**
  * Prefer same-origin `/uploads` (Vite proxy + Vercel rewrite) so httpOnly cookies work.
  * Keep `?exp=&sig=` when present (signed figures need no auth).
- * Fall back to absolute API URL.
  */
 function resolveAuthenticatedUploadCandidates(fileUrl: string): string[] {
   const raw = String(fileUrl || '').trim();
@@ -48,19 +51,32 @@ function resolveAuthenticatedUploadCandidates(fileUrl: string): string[] {
   const candidates: string[] = [];
 
   if (upload) {
-    // Same-origin first (cookie session on aslilearn.ai → /uploads rewrite).
-    candidates.push(`${upload.pathname}${upload.search}`);
+    const relative = `${upload.pathname}${upload.search}`;
     const absolute = `${API_BASE_URL}${upload.pathname}${upload.search}`;
-    if (!candidates.includes(absolute)) candidates.push(absolute);
+    if (isSignedUploadUrl(raw) || isSignedUploadUrl(relative)) {
+      candidates.push(absolute, relative);
+    } else {
+      candidates.push(relative, absolute);
+    }
   } else {
     const absolute = normalizeContentFileUrl(raw);
     if (absolute) candidates.push(absolute);
   }
 
-  return candidates;
+  return [...new Set(candidates.filter(Boolean))];
 }
 
-async function fetchImageBlob(url: string): Promise<Blob> {
+function loadImageViaElement(url: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(url);
+    img.onerror = () => reject(new Error('img load failed'));
+    img.referrerPolicy = 'no-referrer';
+    img.src = url;
+  });
+}
+
+async function fetchImageBlobUrl(url: string): Promise<string> {
   const res = await fetch(url, {
     method: 'GET',
     credentials: 'include',
@@ -75,13 +91,12 @@ async function fetchImageBlob(url: string): Promise<Blob> {
   if (!blob.type.startsWith('image/') && blob.size < 32) {
     throw new Error('Not an image');
   }
-  return blob;
+  return URL.createObjectURL(blob);
 }
 
 /**
- * Renders /uploads images that require cookie, Bearer, or signed ?exp=&sig=.
- * Plain &lt;img src&gt; cannot send Authorization; fetch + blob works with credentials.
- * Tries same-origin then API host so production cookie sessions still work.
+ * Renders /uploads images with cookie, Bearer, or signed ?exp=&sig=.
+ * Signed URLs use native img (faster + cache). Others use fetch+blob for auth headers.
  */
 export function AuthenticatedUploadImage({
   src,
@@ -90,7 +105,7 @@ export function AuthenticatedUploadImage({
   wrapperClassName,
   fallbackLabel = 'Image not available',
 }: Props) {
-  const [blobUrl, setBlobUrl] = useState<string | null>(null);
+  const [displayUrl, setDisplayUrl] = useState<string | null>(null);
   const [status, setStatus] = useState<'idle' | 'loading' | 'ok' | 'error'>('idle');
 
   useEffect(() => {
@@ -99,13 +114,13 @@ export function AuthenticatedUploadImage({
 
     const raw = String(src || '').trim();
     if (!raw) {
-      setBlobUrl(null);
+      setDisplayUrl(null);
       setStatus('idle');
       return;
     }
 
     if (raw.startsWith('blob:') || raw.startsWith('data:')) {
-      setBlobUrl(raw);
+      setDisplayUrl(raw);
       setStatus('ok');
       return;
     }
@@ -117,15 +132,27 @@ export function AuthenticatedUploadImage({
     }
 
     setStatus('loading');
-    setBlobUrl(null);
+    setDisplayUrl(null);
+
+    const preferNativeImg = candidates.some((u) => isSignedUploadUrl(u));
 
     (async () => {
       for (const url of candidates) {
         try {
-          const blob = await fetchImageBlob(url);
-          if (cancelled) return;
-          objectUrl = URL.createObjectURL(blob);
-          setBlobUrl(objectUrl);
+          if (preferNativeImg || isSignedUploadUrl(url)) {
+            const okUrl = await loadImageViaElement(url);
+            if (cancelled) return;
+            setDisplayUrl(okUrl);
+            setStatus('ok');
+            return;
+          }
+          const blobUrl = await fetchImageBlobUrl(url);
+          if (cancelled) {
+            URL.revokeObjectURL(blobUrl);
+            return;
+          }
+          objectUrl = blobUrl;
+          setDisplayUrl(blobUrl);
           setStatus('ok');
           return;
         } catch {
@@ -133,7 +160,7 @@ export function AuthenticatedUploadImage({
         }
       }
       if (!cancelled) {
-        setBlobUrl(null);
+        setDisplayUrl(null);
         setStatus('error');
       }
     })();
@@ -166,9 +193,9 @@ export function AuthenticatedUploadImage({
           </span>
         </div>
       )}
-      {status === 'ok' && blobUrl ? (
+      {status === 'ok' && displayUrl ? (
         <img
-          src={blobUrl}
+          src={displayUrl}
           alt={alt}
           className={cn('mx-auto max-h-[420px] w-auto max-w-full object-contain', className)}
         />
