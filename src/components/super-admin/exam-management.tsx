@@ -4442,28 +4442,33 @@ export default function ExamManagement() {
         </div>
       )}
 
-      {/* Question Management Dialog */}
-      <Dialog open={isQuestionDialogOpen} onOpenChange={(open) => {
-        setIsQuestionDialogOpen(open);
-        if (!open) {
-          // Reset CSV upload state when dialog closes
-          setQuestionCsvFile(null);
-          setQuestionPdfFile(null);
-          setQuestionCsvUploadResults(null);
-          setPdfQuestionRows([]);
-          setPdfPaperImages([]);
-          setPdfAssignTargetIdx(null);
-          setExamFigurePool([]);
-          setFigureAssignQuestionId(null);
-          setPdfAnswerKeyMeta(null);
-          setPdfShowFlaggedOnly(false);
-          setPdfPreviewPage(1);
-          setBulkQuestionUploadMode('csv');
-          setPendingDeleteQuestion(null);
-          resetQuestionForm();
-          setStudentPreviewOpen(false);
-        }
-      }}>
+      {/* Question Management Dialog — hide while fullscreen editor is open so it doesn't trap clicks */}
+      <Dialog
+        open={isQuestionDialogOpen && !studentPreviewOpen}
+        onOpenChange={(open) => {
+          // Opening fullscreen sets studentPreviewOpen and unmounts this dialog;
+          // ignore that close so we don't wipe exam editor state.
+          if (!open && studentPreviewOpen) return;
+          setIsQuestionDialogOpen(open);
+          if (!open) {
+            setQuestionCsvFile(null);
+            setQuestionPdfFile(null);
+            setQuestionCsvUploadResults(null);
+            setPdfQuestionRows([]);
+            setPdfPaperImages([]);
+            setPdfAssignTargetIdx(null);
+            setExamFigurePool([]);
+            setFigureAssignQuestionId(null);
+            setPdfAnswerKeyMeta(null);
+            setPdfShowFlaggedOnly(false);
+            setPdfPreviewPage(1);
+            setBulkQuestionUploadMode('csv');
+            setPendingDeleteQuestion(null);
+            resetQuestionForm();
+            setStudentPreviewOpen(false);
+          }
+        }}
+      }>
         <DialogContent
           className="!flex h-[min(96vh,920px)] max-h-[96vh] w-[calc(100vw-1rem)] max-w-[min(96vw,80rem)] flex-col gap-3 overflow-hidden !overflow-y-hidden rounded-2xl p-4 sm:gap-4 sm:p-6 lg:max-w-[min(96vw,80rem)]"
           onOpenAutoFocus={(e) => e.preventDefault()}
@@ -4484,7 +4489,7 @@ export default function ExamManagement() {
               {questions.length > 0 ? (
                 <AdminExamPreviewTriggerButton
                   className="shrink-0 border-indigo-300 bg-indigo-50 text-indigo-900 hover:bg-indigo-100"
-                  label="Fullscreen student view"
+                  label="Fullscreen editor"
                   onClick={() => {
                     setStudentPreviewIndex(0);
                     setStudentPreviewOpen(true);
@@ -5404,10 +5409,10 @@ export default function ExamManagement() {
                                     setStudentPreviewIndex(idx);
                                     setStudentPreviewOpen(true);
                                   }}
-                                  title="Open full-page student exam view on this question"
+                                  title="Open full-page editor (student layout + Edit / figures)"
                                 >
                                   <Maximize2 className="h-4 w-4" />
-                                  <span className="ml-1">Verify</span>
+                                  <span className="ml-1">Fullscreen</span>
                                 </Button>
                                 <Button
                                   type="button"
@@ -6125,8 +6130,90 @@ export default function ExamManagement() {
         durationMinutes={Number(selectedExam?.duration) || undefined}
         questions={questions}
         initialIndex={studentPreviewIndex}
-        onClose={() => setStudentPreviewOpen(false)}
+        onClose={() => {
+          setFigureAssignQuestionId(null);
+          if (editingQuestionId) handleCancelEditQuestion();
+          setStudentPreviewOpen(false);
+          // Restore the exam editor dialog underneath
+          if (selectedExam?._id) setIsQuestionDialogOpen(true);
+        }}
         onIndexChange={setStudentPreviewIndex}
+        isEditingCurrent={Boolean(
+          editingQuestionId &&
+            questions[studentPreviewIndex] &&
+            String(questions[studentPreviewIndex]._id) === String(editingQuestionId),
+        )}
+        editorSlot={
+          editingQuestionId &&
+          questions[studentPreviewIndex] &&
+          String(questions[studentPreviewIndex]._id) === String(editingQuestionId) ? (
+            <InlineQuestionEditor
+              form={questionFormData}
+              setForm={setQuestionFormData}
+              saving={isAddingQuestion}
+              onSave={handleAddQuestion}
+              onCancel={handleCancelEditQuestion}
+              onUploadImage={handleQuestionImageUpload}
+              onRemoveImage={handleRemoveQuestionImage}
+              uploadingImage={isUploadingQuestionImage}
+              imageFileName={questionImageFile?.name}
+              paperImages={availableExamFigurePool}
+            />
+          ) : null
+        }
+        figurePool={availableExamFigurePool}
+        figureAssignActive={Boolean(figureAssignQuestionId)}
+        onEditQuestion={(q) => {
+          handleEditQuestion(q);
+        }}
+        onCancelEdit={handleCancelEditQuestion}
+        onSelectPhoto={(q) => {
+          const id = String(q._id || '');
+          if (!id) return;
+          setFigureAssignQuestionId(id);
+        }}
+        onCancelSelectPhoto={() => setFigureAssignQuestionId(null)}
+        onAssignFigure={(questionId, imageUrl) => {
+          void handleAssignFigureToSavedQuestion(questionId, imageUrl);
+        }}
+        onRemoveFigure={(q) => {
+          const id = String(q._id || '');
+          if (!id || !selectedExam?._id) return;
+          void (async () => {
+            try {
+              const token = getAuthToken();
+              const res = await fetch(
+                `${API_BASE_URL}/api/super-admin/exams/${selectedExam._id}/questions/${id}`,
+                {
+                  method: 'PUT',
+                  headers: {
+                    Authorization: `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({ questionImage: '' }),
+                },
+              );
+              const data = await res.json().catch(() => null);
+              if (!res.ok || !data?.success) {
+                toast({
+                  title: 'Error',
+                  description: data?.message || 'Failed to remove figure',
+                  variant: 'destructive',
+                });
+                return;
+              }
+              patchLocalQuestion(id, { questionImage: '' });
+              toast({ title: 'Figure removed' });
+              await fetchQuestions(selectedExam._id);
+            } catch {
+              toast({
+                title: 'Error',
+                description: 'Failed to remove figure',
+                variant: 'destructive',
+              });
+            }
+          })();
+        }}
       />
     </div>
   );

@@ -12,10 +12,6 @@ type Props = {
   fallbackLabel?: string;
 };
 
-function isLocalApiHost(url: string): boolean {
-  return /localhost|127\.0\.0\.1/i.test(String(url || ''));
-}
-
 function splitUploadUrl(fileUrl: string): { pathname: string; search: string } | null {
   const raw = String(fileUrl || '').trim();
   if (!raw) return null;
@@ -43,8 +39,8 @@ function isSignedUploadUrl(fileUrl: string): boolean {
 }
 
 /**
- * Prefer the API host for /uploads (avoids Vite :5173 404 noise).
- * Do not blindly retry production with a locally minted ?sig= — secrets differ and that 401s.
+ * Prefer same-origin `/uploads` (Vite proxy + Vercel rewrite) so httpOnly cookies work.
+ * Keep `?exp=&sig=` when present (signed figures need no auth).
  */
 function resolveAuthenticatedUploadCandidates(fileUrl: string): string[] {
   const raw = String(fileUrl || '').trim();
@@ -57,18 +53,10 @@ function resolveAuthenticatedUploadCandidates(fileUrl: string): string[] {
   if (upload) {
     const relative = `${upload.pathname}${upload.search}`;
     const absolute = `${API_BASE_URL}${upload.pathname}${upload.search}`;
-
-    // Already-absolute remote URL (e.g. production host) — try as stored
-    if (raw.startsWith('http://') || raw.startsWith('https://')) {
-      candidates.push(raw.split('#')[0]);
-    }
-
-    candidates.push(absolute);
-
-    // Production frontend uses Vercel /uploads rewrite; keep relative there.
-    // Local Vite + local API: skip relative to avoid :5173 console spam.
-    if (import.meta.env.MODE === 'production' || !isLocalApiHost(API_BASE_URL)) {
-      candidates.push(relative);
+    if (isSignedUploadUrl(raw) || isSignedUploadUrl(relative)) {
+      candidates.push(absolute, relative);
+    } else {
+      candidates.push(relative, absolute);
     }
   } else {
     const absolute = normalizeContentFileUrl(raw);

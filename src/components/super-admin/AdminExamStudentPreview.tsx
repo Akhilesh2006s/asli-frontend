@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import {
   ArrowLeft,
@@ -6,9 +6,11 @@ import {
   BookOpen,
   CheckCircle,
   Clock,
+  Edit,
   Eye,
   EyeOff,
   Flag,
+  ImagePlus,
   Maximize2,
   X,
 } from 'lucide-react';
@@ -67,6 +69,8 @@ export type AdminPreviewQuestion = {
   matchColumnII?: Array<{ key?: string; text?: string }>;
 };
 
+type FigurePoolItem = { url: string; name?: string; order?: number; key?: string };
+
 type Props = {
   open: boolean;
   examTitle: string;
@@ -75,6 +79,19 @@ type Props = {
   initialIndex?: number;
   onClose: () => void;
   onIndexChange?: (index: number) => void;
+  /** When true, show the inline editor instead of the read view for the current Q */
+  isEditingCurrent?: boolean;
+  /** Full InlineQuestionEditor (or similar) from the parent */
+  editorSlot?: ReactNode;
+  /** Free paper figures for assign-from-strip */
+  figurePool?: FigurePoolItem[];
+  figureAssignActive?: boolean;
+  onEditQuestion?: (question: AdminPreviewQuestion, index: number) => void;
+  onCancelEdit?: () => void;
+  onSelectPhoto?: (question: AdminPreviewQuestion) => void;
+  onCancelSelectPhoto?: () => void;
+  onAssignFigure?: (questionId: string, imageUrl: string) => void;
+  onRemoveFigure?: (question: AdminPreviewQuestion) => void;
 };
 
 function qid(q: AdminPreviewQuestion, fallback: number): string {
@@ -126,7 +143,6 @@ function normalizeCorrectTexts(q: AdminPreviewQuestion): string[] {
     }
     const s = String(v).trim();
     if (!s) return '';
-    // letter / 1-based index answers
     if (/^[a-d]$/i.test(s) && opts.length) {
       const idx = s.toLowerCase().charCodeAt(0) - 97;
       return opts[idx] || s;
@@ -159,8 +175,8 @@ function formatDurationLabel(minutes?: number): string {
 }
 
 /**
- * Full-page Super Admin preview that mirrors the student exam writing layout
- * (centered paper + navigator — not stretched edge-to-edge width).
+ * Full-page Super Admin workspace: student exam layout + Edit / figure tools.
+ * Rendered in a portal above the exam dialog so clicks and scroll work.
  */
 export function AdminExamStudentPreview({
   open,
@@ -170,6 +186,16 @@ export function AdminExamStudentPreview({
   initialIndex = 0,
   onClose,
   onIndexChange,
+  isEditingCurrent = false,
+  editorSlot,
+  figurePool = [],
+  figureAssignActive = false,
+  onEditQuestion,
+  onCancelEdit,
+  onSelectPhoto,
+  onCancelSelectPhoto,
+  onAssignFigure,
+  onRemoveFigure,
 }: Props) {
   const [index, setIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, unknown>>({});
@@ -188,29 +214,36 @@ export function AdminExamStudentPreview({
   useEffect(() => {
     if (!open) return;
     const prevOverflow = document.body.style.overflow;
+    const prevPointer = document.body.style.pointerEvents;
     document.body.style.overflow = 'hidden';
+    // Radix dialog may leave body at pointer-events:none — restore for this overlay
+    document.body.style.pointerEvents = 'auto';
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         e.preventDefault();
-        onClose();
-      } else if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+        e.stopPropagation();
+        if (isEditingCurrent) onCancelEdit?.();
+        else onClose();
+      } else if (!isEditingCurrent && (e.key === 'ArrowRight' || e.key === 'ArrowDown')) {
         e.preventDefault();
         goTo(Math.min(index + 1, questions.length - 1));
-      } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+      } else if (!isEditingCurrent && (e.key === 'ArrowLeft' || e.key === 'ArrowUp')) {
         e.preventDefault();
         goTo(Math.max(index - 1, 0));
       }
     };
-    window.addEventListener('keydown', onKey);
+    window.addEventListener('keydown', onKey, true);
     return () => {
       document.body.style.overflow = prevOverflow;
-      window.removeEventListener('keydown', onKey);
+      document.body.style.pointerEvents = prevPointer;
+      window.removeEventListener('keydown', onKey, true);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, index, questions.length, onClose]);
+  }, [open, index, questions.length, onClose, isEditingCurrent, onCancelEdit]);
 
   const goTo = (next: number) => {
     const clamped = Math.min(Math.max(0, next), Math.max(0, questions.length - 1));
+    if (isEditingCurrent && clamped !== index) onCancelEdit?.();
     setIndex(clamped);
     onIndexChange?.(clamped);
   };
@@ -226,7 +259,10 @@ export function AdminExamStudentPreview({
   const showImage = Boolean(current?.questionImage) && !looksLikeAr(current || {});
   const type = String(current?.questionType || 'mcq').toLowerCase();
   const isChoice =
-    type === 'mcq' || type === 'assertion_reason' || type === 'match_following' || looksLikeAr(current || {});
+    type === 'mcq' ||
+    type === 'assertion_reason' ||
+    type === 'match_following' ||
+    looksLikeAr(current || {});
   const isMultiple = type === 'multiple';
   const isInteger = type === 'integer';
   const answeredCount = questions.filter((q, i) => {
@@ -246,35 +282,26 @@ export function AdminExamStudentPreview({
 
   const body = (
     <div
-      className="fixed inset-0 z-[200] flex flex-col bg-gray-50"
+      className="fixed inset-0 z-[400] flex flex-col bg-gray-50 pointer-events-auto"
       role="dialog"
       aria-modal="true"
-      aria-label="Student exam preview"
+      aria-label="Fullscreen exam editor"
+      onMouseDown={(e) => e.stopPropagation()}
+      onClick={(e) => e.stopPropagation()}
     >
-      {/* Header — same sticky exam chrome students see */}
-      <div className="sticky top-0 z-20 border-b border-gray-200 bg-white shadow-sm">
+      <div className="sticky top-0 z-30 shrink-0 border-b border-gray-200 bg-white shadow-sm">
         <div className="mx-auto max-w-7xl px-4 py-3 sm:px-6 lg:px-8">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="min-w-0">
               <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-amber-800">
-                Super Admin · Student view
+                Super Admin · Fullscreen editor
               </p>
               <h2 className="truncate text-base font-semibold text-gray-900 sm:text-lg">
-                {examTitle || 'Exam preview'}
+                {examTitle || 'Exam'}
               </h2>
               <p className="text-xs text-stone-500">
-                Full-page layout matching how students write the exam. Try options to verify clarity.
+                Student paper layout — Edit text, options, and figures without leaving this view.
               </p>
-              {typeof window !== 'undefined' &&
-              /localhost|127\.0\.0\.1/i.test(window.location.hostname) ? (
-                <p className="mt-1 text-[11px] text-amber-800">
-                  Local tip: exam figures live on the production API disk. Point{' '}
-                  <code className="rounded bg-amber-100 px-1">VITE_API_URL</code> at{' '}
-                  <code className="rounded bg-amber-100 px-1">https://api.aslilearn.ai</code> (or
-                  sync <code className="rounded bg-amber-100 px-1">uploads/questions</code>) if
-                  figures 404.
-                </p>
-              ) : null}
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <div className="flex items-center gap-2 rounded-full bg-blue-100 px-3 py-1 text-xs font-medium text-blue-700 sm:text-sm">
@@ -293,7 +320,7 @@ export function AdminExamStudentPreview({
               </Button>
               <Button type="button" size="sm" variant="outline" className="h-8" onClick={onClose}>
                 <X className="mr-1 h-3.5 w-3.5" />
-                Exit preview
+                Exit fullscreen
               </Button>
             </div>
           </div>
@@ -309,7 +336,59 @@ export function AdminExamStudentPreview({
         </div>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto">
+      {figurePool.length > 0 ? (
+        <div
+          className={`shrink-0 border-b px-4 py-2 sm:px-6 lg:px-8 ${
+            figureAssignActive
+              ? 'border-sky-300 bg-sky-50'
+              : 'border-violet-200 bg-violet-50/70'
+          }`}
+        >
+          <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-2">
+            <p className="text-xs font-semibold text-violet-950">
+              Paper figures ({figurePool.length} free)
+              {figureAssignActive
+                ? ' — click a figure to attach it to this question'
+                : ' — click Select photo on the question first'}
+            </p>
+            {figureAssignActive ? (
+              <Button type="button" size="sm" variant="outline" className="h-7 text-xs" onClick={onCancelSelectPhoto}>
+                Cancel pick
+              </Button>
+            ) : null}
+          </div>
+          <div className="mx-auto mt-2 max-w-7xl overflow-x-auto pb-1">
+            <div className="flex w-max gap-2">
+              {figurePool.map((img, i) => (
+                <button
+                  key={img.key || img.url || i}
+                  type="button"
+                  className={`shrink-0 rounded-md border bg-white p-0.5 ${
+                    figureAssignActive
+                      ? 'cursor-pointer border-sky-300 hover:ring-2 hover:ring-sky-200'
+                      : 'border-slate-200 opacity-80'
+                  }`}
+                  onClick={() => {
+                    if (!figureAssignActive || !current) return;
+                    const id = qid(current, index);
+                    if (id) onAssignFigure?.(id, img.url);
+                  }}
+                >
+                  <AuthenticatedUploadImage
+                    src={img.url}
+                    alt={img.name || `Figure ${i + 1}`}
+                    wrapperClassName="h-14 w-20 p-0"
+                    className="h-[52px] w-full object-contain"
+                    fallbackLabel="—"
+                  />
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch]">
         <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8 lg:py-6">
           {questions.length === 0 ? (
             <Card>
@@ -319,21 +398,20 @@ export function AdminExamStudentPreview({
             </Card>
           ) : (
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-4 lg:gap-6">
-              {/* Navigator — student palette */}
               <div className="order-2 lg:order-1 lg:col-span-1">
-                <Card className="lg:sticky lg:top-28">
+                <Card className="lg:sticky lg:top-4">
                   <CardHeader className="pb-3">
                     <CardTitle className="flex items-center gap-2 text-sm font-semibold sm:text-base">
                       <BookOpen className="h-4 w-4 text-purple-600" />
                       Questions
                     </CardTitle>
                     <p className="mt-1 text-xs text-gray-500">
-                      {answeredCount} of {questions.length} tried in preview
+                      {answeredCount} of {questions.length} tried · click a number to jump
                     </p>
                   </CardHeader>
                   <CardContent className="pt-0">
                     <div className="rounded-xl border border-gray-200 bg-gradient-to-br from-gray-50 to-purple-50/30 p-3">
-                      <div className="grid grid-cols-5 gap-2 sm:grid-cols-6 lg:grid-cols-5">
+                      <div className="grid max-h-[50vh] grid-cols-5 gap-2 overflow-y-auto sm:grid-cols-6 lg:grid-cols-5">
                         {questions.map((q, i) => {
                           const raw = answers[qid(q, i)];
                           const isAnswered =
@@ -372,26 +450,65 @@ export function AdminExamStudentPreview({
                         })}
                       </div>
                     </div>
-                    <div className="mt-4 space-y-2 border-t border-gray-200 pt-3 text-xs text-gray-600">
-                      <div className="flex items-center gap-2">
-                        <div className="h-3 w-3 rounded-lg bg-gradient-to-br from-indigo-600 to-pink-600" />
-                        Current
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <div className="h-3 w-3 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600" />
-                        Tried
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <div className="h-3 w-3 rounded-lg border-2 border-gray-300 bg-white" />
-                        Not tried
-                      </div>
-                    </div>
                   </CardContent>
                 </Card>
               </div>
 
-              {/* Main question — student paper */}
               <div className="order-1 lg:order-2 lg:col-span-3">
+                {/* Super Admin actions */}
+                <div className="mb-3 flex flex-wrap items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">
+                  <span className="rounded bg-amber-200/90 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-950">
+                    Super Admin
+                  </span>
+                  <Badge variant="outline" className="font-semibold">
+                    Q{Number(current?.displayOrder) > 0 ? Number(current?.displayOrder) : index + 1}
+                  </Badge>
+                  {isEditingCurrent ? (
+                    <Button type="button" size="sm" variant="outline" className="h-8" onClick={onCancelEdit}>
+                      Cancel edit
+                    </Button>
+                  ) : (
+                    <Button
+                      type="button"
+                      size="sm"
+                      className="h-8 bg-sky-600 text-white hover:bg-sky-700"
+                      onClick={() => current && onEditQuestion?.(current, index)}
+                    >
+                      <Edit className="mr-1 h-3.5 w-3.5" />
+                      Edit question
+                    </Button>
+                  )}
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className={`h-8 ${figureAssignActive ? 'border-sky-500 bg-sky-50 text-sky-800' : ''}`}
+                    disabled={isEditingCurrent || !current}
+                    onClick={() => {
+                      if (figureAssignActive) onCancelSelectPhoto?.();
+                      else if (current) onSelectPhoto?.(current);
+                    }}
+                  >
+                    <ImagePlus className="mr-1 h-3.5 w-3.5" />
+                    {figureAssignActive ? 'Selecting…' : 'Select photo'}
+                  </Button>
+                  {current?.questionImage ? (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="h-8 text-red-700"
+                      disabled={isEditingCurrent}
+                      onClick={() => current && onRemoveFigure?.(current)}
+                    >
+                      Remove figure
+                    </Button>
+                  ) : null}
+                </div>
+
+                {isEditingCurrent && editorSlot ? (
+                  <div className="mb-4">{editorSlot}</div>
+                ) : (
                 <Card className="border-0 bg-white shadow-lg">
                   <CardContent className="p-4 sm:p-6">
                     {heading && heading !== prevHeading ? (
@@ -506,7 +623,6 @@ export function AdminExamStudentPreview({
                       </div>
                     </div>
 
-                    {/* Options */}
                     {isChoice && Array.isArray(current?.options) && current.options.length > 0 ? (
                       <RadioGroup
                         value={
@@ -644,9 +760,7 @@ export function AdminExamStudentPreview({
                         <ArrowLeft className="mr-1 h-4 w-4" />
                         Previous
                       </Button>
-                      <p className="text-[11px] text-stone-500">
-                        ← → keys · Esc to exit
-                      </p>
+                      <p className="text-[11px] text-stone-500">← → jump · Esc exit</p>
                       <Button
                         type="button"
                         className="bg-indigo-600 text-white hover:bg-indigo-700"
@@ -659,6 +773,7 @@ export function AdminExamStudentPreview({
                     </div>
                   </CardContent>
                 </Card>
+                )}
               </div>
             </div>
           )}
@@ -672,7 +787,7 @@ export function AdminExamStudentPreview({
 
 export function AdminExamPreviewTriggerButton({
   onClick,
-  label = 'Preview as student',
+  label = 'Fullscreen editor',
   className,
 }: {
   onClick: () => void;
