@@ -6,13 +6,15 @@ import {
   dedupeTeacherLearningPathRows,
   groupTeacherSubjectsForCatalog,
 } from '@/lib/learning-path-admin';
+import { filterContentsBySchoolProgram, filterVideosForLearningPath } from '@/lib/school-program';
+import { normalizeBoardKey } from '@/lib/board-label';
 import {
   displaySubjectName,
+  getLearningPathBoardLabel,
   isActiveCatalogSubject,
   isSoftDeletedSubjectName,
   subjectCatalogGroupKey,
 } from '@/lib/subject-names';
-import { filterContentsBySchoolProgram } from '@/lib/school-program';
 
 export type LearningPathRole = 'admin' | 'teacher' | 'student';
 
@@ -178,7 +180,12 @@ async function loadTeacherLearningPathCatalog(
   }
 
   return consolidateTeacherLearningPathSubjects(dedupeTeacherLearningPathRows(rows))
-    .filter((row) => isActiveCatalogSubject(row) && row.totalContent > 0)
+    .filter((row) => {
+      if (!isActiveCatalogSubject(row) || row.totalContent <= 0) return false;
+      const board = getLearningPathBoardLabel(row) || normalizeBoardKey(row.board);
+      if (board === 'IIT/NEET' || board === 'IIT') return false;
+      return true;
+    })
     .sort((a, b) =>
       (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base', numeric: true })
     );
@@ -198,7 +205,9 @@ export async function loadLearningPathCatalog(
     fetchAllPrepContent(role),
   ]);
 
-  const allContent = filterContentsBySchoolProgram(allContentRaw, isAsliPrepExclusive);
+  const allContent = filterVideosForLearningPath(
+    filterContentsBySchoolProgram(allContentRaw, isAsliPrepExclusive),
+  );
   const bySubjectId = new Map<string, any[]>();
 
   for (const item of allContent) {
@@ -247,7 +256,12 @@ export async function loadLearningPathCatalog(
     });
   });
 
-  const withContent = merged.filter((row) => row.totalContent > 0);
+  const withContent = merged.filter((row) => {
+    if (row.totalContent <= 0) return false;
+    const board = getLearningPathBoardLabel(row) || normalizeBoardKey(row.board);
+    if (board === 'IIT/NEET' || board === 'IIT') return false;
+    return true;
+  });
 
   if (role === 'admin') {
     return consolidateLearningPathSubjects(withContent).filter(

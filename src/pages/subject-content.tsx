@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import StudentShell from "@/components/layout/StudentShell";
 import StudentPageLoader from '@/components/student/StudentPageLoader';
+import { filterVideosForLearningPath } from '@/lib/school-program';
 import VideoModal from '@/components/video-modal';
 import CalendarView from '@/components/student/calendar-view';
 import VidyaAIFloatingAssistant from '@/components/student/VidyaAIFloatingAssistant';
@@ -229,7 +230,7 @@ export default function SubjectContent() {
             'Content-Type': 'application/json',
           }
         }),
-        fetch(`${API_BASE_URL}/api/student/asli-prep-content?subject=${encodeURIComponent(subjectId)}`, {
+        fetch(`${API_BASE_URL}/api/student/asli-prep-content?subject=${encodeURIComponent(subjectId)}&surface=learning-path`, {
           headers: {
             'Authorization': `Bearer ${getAuthToken()}`,
             'Content-Type': 'application/json',
@@ -324,7 +325,10 @@ export default function SubjectContent() {
             createdAt: contentsList[0].createdAt,
             dateType: typeof contentsList[0].date
           } : 'No content');
-          setContents(contentsList);
+          const lpContents = filterVideosForLearningPath(
+            Array.isArray(contentsList) ? contentsList : [],
+          );
+          setContents(lpContents);
           
           // Update progress after loading contents
           // Load completed items and calculate progress

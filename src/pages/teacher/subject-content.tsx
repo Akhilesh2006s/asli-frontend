@@ -18,6 +18,7 @@ import {
 import CalendarView from '@/components/student/calendar-view';
 import { API_BASE_URL } from '@/lib/api-config';
 import { normalizeClassNumber } from '@/lib/exam-classes';
+import { filterVideosForLearningPath } from '@/lib/school-program';
 
 interface ContentItem {
   _id: string;
@@ -115,7 +116,7 @@ export default function TeacherSubjectContent() {
       }
 
       const contentsResponse = await fetch(
-        `${API_BASE_URL}/api/teacher/asli-prep-content?subject=${encodeURIComponent(subjectId)}`,
+        `${API_BASE_URL}/api/teacher/asli-prep-content?subject=${encodeURIComponent(subjectId)}&surface=learning-path`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -131,7 +132,8 @@ export default function TeacherSubjectContent() {
         if (contentType && contentType.includes('application/json')) {
           const contentsData = await contentsResponse.json();
           const contentsList = contentsData.data || contentsData || [];
-          setContents(Array.isArray(contentsList) ? contentsList : []);
+          const rows = Array.isArray(contentsList) ? contentsList : [];
+          setContents(filterVideosForLearningPath(rows));
         } else {
           setContents([]);
         }

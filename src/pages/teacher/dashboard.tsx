@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { API_BASE_URL } from '@/lib/api-config';
-import { getAuthToken } from '@/lib/auth-utils';
+import { getAuthToken, getUser as getStoredUser, getTeacherDisplayName, setUser as persistUser } from '@/lib/auth-utils';
 import TeacherShell from '@/components/layout/TeacherShell';
 import { DashboardScrollPanel } from '@/components/layout/DashboardScrollPanel';
 import StatCard from '@/components/dashboard/StatCard';
@@ -279,7 +279,7 @@ const TeacherDashboard = () => {
   const [isLoadingSubjects, setIsLoadingSubjects] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [teacherEmail, setTeacherEmail] = useState<string>(localStorage.getItem('userEmail') || '');
-  const [teacherUser, setTeacherUser] = useState<any>(null);
+  const [teacherUser, setTeacherUser] = useState<any>(() => getStoredUser());
   const [expandedClasses, setExpandedClasses] = useState<Set<string>>(new Set());
   const [, setLocation] = useLocation();
   const search = useSearch();
@@ -557,9 +557,16 @@ const TeacherDashboard = () => {
 
       if (response.ok) {
         const userData = await response.json();
-        setTeacherUser(userData.user);
-        if (userData.user?._id || userData.user?.id) {
-          setTeacherId(userData.user._id || userData.user.id);
+        const me = userData.user || userData;
+        if (me) {
+          setTeacherUser((prev: any) => {
+            const next = { ...(prev || {}), ...me };
+            persistUser(next);
+            return next;
+          });
+          if (me._id || me.id) {
+            setTeacherId(me._id || me.id);
+          }
         }
       }
     } catch (error) {
@@ -2230,6 +2237,7 @@ const TeacherDashboard = () => {
             dashboardSubTab === 'students';
           // Vidya AI has its own unified hero card — skip the separate page title.
           if (dashboardSubTab === 'vidya-ai') return null;
+          const teacherName = getTeacherDisplayName(teacherUser || getStoredUser());
           return (
             <div className="mb-6 flex flex-col gap-4 sm:mb-8 sm:flex-row sm:items-end sm:justify-between">
               <div className="min-w-0">
@@ -2242,6 +2250,11 @@ const TeacherDashboard = () => {
                 <p className="mt-1 max-w-2xl text-sm leading-relaxed text-slate-600 sm:text-base">
                   {meta.subtitle}
                 </p>
+                {teacherName ? (
+                  <p className="mt-2 text-sm font-medium text-slate-700">
+                    Welcome, {teacherName}
+                  </p>
+                ) : null}
               </div>
               {showRefresh ? (
                 <Button
@@ -2263,9 +2276,21 @@ const TeacherDashboard = () => {
 
         {/* Dashboard Content — sidebar / hamburger drawer drives sections */}
         <div className="space-y-4 sm:space-y-6 lg:space-y-8">
-              {/* Overview — stats + shortcuts only */}
+              {/* Overview — welcome + stats + shortcuts */}
               {dashboardSubTab === 'ai-classes' && (
                 <>
+              <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-teal-700 via-sky-600 to-cyan-600 p-5 shadow-glow-lg sm:p-8">
+                <div className="pointer-events-none absolute -right-16 -top-28 h-72 w-72 rounded-full bg-white/15 blur-3xl" />
+                <div className="pointer-events-none absolute -bottom-24 -left-16 h-64 w-64 rounded-full bg-amber-200/25 blur-3xl" />
+                <div className="relative z-10 min-w-0">
+                  <h2 className="mb-2 font-display text-2xl font-extrabold leading-tight !text-white sm:text-3xl lg:text-4xl">
+                    Welcome, {getTeacherDisplayName(teacherUser || getStoredUser())}!
+                  </h2>
+                  <p className="max-w-xl text-sm font-medium leading-snug text-white/85 sm:text-base sm:leading-relaxed">
+                    Your classes, students, and teaching tools are ready — pick up where you left off.
+                  </p>
+                </div>
+              </div>
               <WeeklyDigestCard apiBase="/api/teacher" />
               <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
                 <StatCard

@@ -232,3 +232,18 @@ export function getStudentDisplayName(user: StudentUserLike): string {
   const fromEmail = String(user?.email || '').split('@')[0]?.trim();
   return fromEmail || 'Student';
 }
+
+/** Teacher portal greeting / header name. */
+export function getTeacherDisplayName(
+  user: {
+    fullName?: string;
+    name?: string;
+    teacherName?: string;
+    email?: string;
+  } | null | undefined,
+): string {
+  const full = String(user?.fullName || user?.name || user?.teacherName || '').trim();
+  if (full) return full;
+  const fromEmail = String(user?.email || '').split('@')[0]?.trim();
+  return fromEmail || 'Teacher';
+}

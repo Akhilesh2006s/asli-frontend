@@ -20,6 +20,8 @@ import {
 } from 'lucide-react';
 import CalendarView from '@/components/student/calendar-view';
 import { API_BASE_URL } from '@/lib/api-config';
+import { sortContentsChapterWise } from '@/lib/video-chapter-schedule';
+import { filterVideosForLearningPath } from '@/lib/school-program';
 
 interface ContentItem {
   _id: string;
@@ -30,6 +32,9 @@ interface ContentItem {
   date: string;
   createdAt: string;
   deadline?: string;
+  chapter?: string;
+  module?: string;
+  topic?: string;
 }
 
 interface Subject {
@@ -94,7 +99,7 @@ export default function AdminSubjectContent() {
       const contentResponses = await Promise.all(
         subjectIds.map((id) =>
           fetch(
-            `${API_BASE_URL}/api/admin/asli-prep-content?subject=${encodeURIComponent(id)}`,
+            `${API_BASE_URL}/api/admin/asli-prep-content?subject=${encodeURIComponent(id)}&surface=learning-path`,
             {
               headers: {
                 Authorization: `Bearer ${token}`,
@@ -124,18 +129,8 @@ export default function AdminSubjectContent() {
         }
       }
 
-      merged.sort((a, b) => {
-        const titleA = String(a?.title || a?.name || '').trim();
-        const titleB = String(b?.title || b?.name || '').trim();
-        if (titleA && titleB) {
-          return titleA.localeCompare(titleB, undefined, { numeric: true, sensitivity: 'base' });
-        }
-        const ta = a?.createdAt ? new Date(a.createdAt).getTime() : 0;
-        const tb = b?.createdAt ? new Date(b.createdAt).getTime() : 0;
-        return ta - tb;
-      });
-
-      setContents(merged);
+      // Defense in depth: IIT-track videos belong in EduOTT only.
+      setContents(sortContentsChapterWise(filterVideosForLearningPath(merged)));
     } catch (error) {
       console.error('Failed to fetch subject content:', error);
       if (fetchId === fetchGenRef.current) {

@@ -41,6 +41,68 @@ export function normalizeIitCategories(list?: unknown): string[] {
   return out;
 }
 
+/** Class numbers from "6"…"10" (inclusive). */
+export function classNumbersInRange(classesFrom?: string | null, classesTo?: string | null): string[] {
+  const from = parseInt(String(classesFrom || '').trim(), 10);
+  const to = parseInt(String(classesTo || '').trim(), 10);
+  if (!Number.isFinite(from) || !Number.isFinite(to)) return [];
+  const lo = Math.min(from, to);
+  const hi = Math.max(from, to);
+  if (hi - lo > 20) return [];
+  const out: string[] = [];
+  for (let n = lo; n <= hi; n += 1) out.push(String(n));
+  return out;
+}
+
+export function normalizeIitCategoriesByClass(
+  raw?: Record<string, string[]> | null,
+): Record<string, string[]> {
+  if (!raw || typeof raw !== 'object') return {};
+  const out: Record<string, string[]> = {};
+  for (const [key, value] of Object.entries(raw)) {
+    const classKey = String(key || '')
+      .trim()
+      .replace(/\.0+$/, '');
+    if (!classKey || !/^\d{1,2}$/.test(classKey)) continue;
+    out[classKey] = normalizeIitCategories(value);
+  }
+  return out;
+}
+
+export function flattenIitCategoriesByClass(byClass?: Record<string, string[]> | null): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const cats of Object.values(normalizeIitCategoriesByClass(byClass))) {
+    for (const c of cats) {
+      if (seen.has(c)) continue;
+      seen.add(c);
+      out.push(c);
+    }
+  }
+  return out;
+}
+
+/**
+ * Legacy schools: seed every class in range with school-wide tracks.
+ * If byClass already exists, keep those entries and fill missing classes from legacy.
+ */
+export function expandIitCategoriesByClass(opts: {
+  iitCategories?: string[] | null;
+  iitCategoriesByClass?: Record<string, string[]> | null;
+  classesFrom?: string | null;
+  classesTo?: string | null;
+}): Record<string, string[]> {
+  const range = classNumbersInRange(opts.classesFrom, opts.classesTo);
+  const existing = normalizeIitCategoriesByClass(opts.iitCategoriesByClass);
+  const legacy = normalizeIitCategories(opts.iitCategories);
+  const map: Record<string, string[]> = {};
+  const keys = range.length ? range : Object.keys(existing);
+  for (const cn of keys) {
+    map[cn] = Array.isArray(existing[cn]) ? existing[cn] : [...legacy];
+  }
+  return map;
+}
+
 export function formatIitCategoryLabel(value?: string | null, labelMap?: Record<string, string>): string {
   const c = normalizeIitCategory(value);
   if (!c) return 'General';

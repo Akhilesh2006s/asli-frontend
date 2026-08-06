@@ -28,8 +28,10 @@ import {
   filterVideosForLearningPath,
   resolveIsAsliPrepExclusive,
 } from '@/lib/school-program';
+import { normalizeBoardKey } from '@/lib/board-label';
 import {
   extractPlainSubjectName,
+  getLearningPathBoardLabel,
   isSoftDeletedSubjectName,
 } from '@/lib/subject-names';
 import {
@@ -40,6 +42,15 @@ import {
   groupLearningPathsByClass,
   subjectMatchesClassFilter,
 } from '@/lib/learning-path-admin';
+
+/** IIT-board subjects belong in EduOTT, not Learning Paths. */
+function isIitBoardLearningPathRow(row: {
+  board?: string;
+  asliPrepContent?: Array<{ board?: string; subject?: { board?: string } | string }>;
+}): boolean {
+  const board = getLearningPathBoardLabel(row) || normalizeBoardKey(row.board);
+  return board === 'IIT/NEET' || board === 'IIT';
+}
 
 function isActiveCatalogSubject(subject: {
   name?: string;
@@ -289,6 +300,7 @@ export default function AdminLearningPaths() {
       const consolidated = consolidateLearningPathSubjects(merged).filter(
         (row) =>
           isActiveCatalogSubject(row) &&
+          !isIitBoardLearningPathRow(row) &&
           (row.asliPrepContent?.length ?? 0) > 0
       );
       setSubjectsWithContent(consolidated);

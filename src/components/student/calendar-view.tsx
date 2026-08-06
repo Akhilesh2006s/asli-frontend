@@ -25,6 +25,10 @@ import {
 import { API_BASE_URL } from '@/lib/api-config';
 import PdfPreviewPanel from '@/components/shared/PdfPreviewPanel';
 import { useToast } from '@/hooks/use-toast';
+import {
+  getVideoDisplayTitle,
+  sortContentsChapterWise,
+} from '@/lib/video-chapter-schedule';
 
 interface ContentItem {
   _id: string;
@@ -35,6 +39,21 @@ interface ContentItem {
   date: string;
   createdAt: string;
   deadline?: string;
+  chapter?: string;
+  module?: string;
+  topic?: string;
+}
+
+/** School/admin calendar label: lesson title + chapter/module when present. */
+export function getLibraryContentDisplayTitle(content: ContentItem): string {
+  const type = String(content?.type || '');
+  if (type === 'Video' || type === 'Audio') {
+    return getVideoDisplayTitle(content);
+  }
+  const title = String(content?.title || '').trim();
+  if (title) return title;
+  const topic = String(content?.topic || '').trim();
+  return topic || 'Untitled';
 }
 
 interface CalendarViewProps {
@@ -62,13 +81,8 @@ export default function CalendarView({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [existingSubmission, setExistingSubmission] = useState<any>(null);
 
-  const sortedContents = [...contents].sort((a, b) => {
-    const dateA = a.date ? new Date(a.date) : new Date(a.createdAt);
-    const dateB = b.date ? new Date(b.date) : new Date(b.createdAt);
-    const timeA = Number.isNaN(dateA.getTime()) ? 0 : dateA.getTime();
-    const timeB = Number.isNaN(dateB.getTime()) ? 0 : dateB.getTime();
-    return timeA - timeB;
-  });
+  // Match Super Admin: chapter → module → title (not upload date alone).
+  const sortedContents = sortContentsChapterWise(contents);
 
   const handleMarkAsDone = (contentId: string) => {
     const newMarked = new Set(markedDone);
@@ -433,9 +447,24 @@ export default function CalendarView({
             <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
           </div>
           <div className="flex-1 min-w-0">
-            <h4 className="font-medium text-gray-900 text-xs sm:text-sm">{content.title}</h4>
+            <h4 className="font-medium text-gray-900 text-xs sm:text-sm truncate">
+              {getLibraryContentDisplayTitle(content)}
+            </h4>
+            {(content.chapter || content.module || content.topic) && (
+              <p className="text-xs text-gray-500 mt-0.5 truncate">
+                {[
+                  content.chapter ? `Chapter ${content.chapter}` : null,
+                  content.module ? `Module ${content.module}` : null,
+                  content.topic && content.topic !== content.title
+                    ? content.topic
+                    : null,
+                ]
+                  .filter(Boolean)
+                  .join(' · ')}
+              </p>
+            )}
             {content.description && (
-              <p className="text-xs text-gray-500 mt-1">{content.description}</p>
+              <p className="text-xs text-gray-500 mt-1 line-clamp-2">{content.description}</p>
             )}
           </div>
         </div>
@@ -510,7 +539,7 @@ export default function CalendarView({
         <DialogContent className="flex h-[min(96dvh,1120px)] max-h-[98dvh] w-[min(96vw,860px)] max-w-[860px] flex-col gap-2 overflow-hidden rounded-2xl p-3 sm:gap-3 sm:p-4 lg:p-5">
           <DialogHeader className="shrink-0 space-y-1 pr-10">
             <DialogTitle className="text-base sm:text-lg lg:text-xl font-semibold leading-snug">
-              {selectedContent?.title}
+              {selectedContent ? getLibraryContentDisplayTitle(selectedContent) : ''}
             </DialogTitle>
             <DialogDescription className="text-xs sm:text-sm">
               {selectedContent?.description || 'Content preview'}

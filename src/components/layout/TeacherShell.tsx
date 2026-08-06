@@ -8,6 +8,7 @@ import { API_BASE_URL } from "@/lib/api-config";
 import {
   clearAuthData,
   getAuthToken,
+  getTeacherDisplayName,
   getUser as getStoredUser,
   setUser as persistUser,
 } from "@/lib/auth-utils";
@@ -68,8 +69,7 @@ export function TeacherShell({
   }, []);
 
   const branding = getSchoolBranding(user);
-  const name =
-    user?.fullName || user?.name || user?.teacherName || user?.email?.split("@")[0] || "Teacher";
+  const name = getTeacherDisplayName(user);
 
   const handleLogout = async () => {
     try {

@@ -169,6 +169,7 @@ export default function TimetableManagement() {
   const [conflictDialog, setConflictDialog] = useState(false);
   const [csvFile, setCsvFile] = useState<File | null>(null);
   const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
+  const [importErrors, setImportErrors] = useState<Array<{ row: number; reason: string; status?: string }>>([]);
   const [classes, setClasses] = useState<ClassOption[]>([]);
   const [teachers, setTeachers] = useState<Array<{ _id: string; fullName: string; email: string }>>([]);
   const [subjects, setSubjects] = useState<Array<{ _id: string; name: string }>>([]);
@@ -553,20 +554,29 @@ export default function TimetableManagement() {
       </div>
 
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
-        <Dialog open={isUploadDialogOpen} onOpenChange={setIsUploadDialogOpen}>
+        <Dialog
+          open={isUploadDialogOpen}
+          onOpenChange={(open) => {
+            setIsUploadDialogOpen(open);
+            if (!open) {
+              setCsvFile(null);
+              setImportErrors([]);
+            }
+          }}
+        >
           <DialogTrigger asChild>
             <Button variant="outline" className="border-orange-200 text-orange-700 hover:bg-orange-50 rounded-xl w-full sm:w-auto">
               <Upload className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
               Upload CSV
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-md bg-white/95 border-orange-200 backdrop-blur-xl">
+          <DialogContent className="max-w-lg bg-white/95 border-orange-200 backdrop-blur-xl">
             <DialogHeader>
               <DialogTitle className="text-lg sm:text-xl font-bold bg-gradient-to-r from-orange-600 to-orange-400 bg-clip-text text-transparent">
                 Upload Timetable CSV
               </DialogTitle>
               <DialogDescription className="text-gray-600 text-xs sm:text-sm">
-                Upload a CSV or Excel file to bulk import schedule entries.
+                Upload a CSV or Excel file to bulk import schedule entries. Class, Section, Subject, and Teacher must already exist in this school.
               </DialogDescription>
             </DialogHeader>
             <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
@@ -585,7 +595,7 @@ export default function TimetableManagement() {
               </div>
               <div>
                 <Label htmlFor="timetable-csv" className="text-gray-700 font-medium mb-2 block">Select file</Label>
-                <Input id="timetable-csv" type="file" accept=".csv,.xlsx,.xls" className="border-orange-200 focus:border-orange-400 rounded-xl" onChange={(e) => setCsvFile(e.target.files?.[0] || null)} />
+                <Input id="timetable-csv" type="file" accept=".csv,.xlsx,.xls" className="border-orange-200 focus:border-orange-400 rounded-xl" onChange={(e) => { setCsvFile(e.target.files?.[0] || null); setImportErrors([]); }} />
                 {csvFile && (
                   <p className="mt-2 text-xs text-green-800 bg-green-50 border border-green-200 rounded-lg p-2">
                     <FileSpreadsheet className="w-3 h-3 inline mr-1" />
@@ -593,20 +603,57 @@ export default function TimetableManagement() {
                   </p>
                 )}
               </div>
+              {importErrors.length > 0 && (
+                <div className="max-h-48 overflow-y-auto rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-950 space-y-1.5">
+                  <p className="font-semibold flex items-center gap-1.5">
+                    <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                    {importErrors.length} row{importErrors.length === 1 ? '' : 's'} skipped
+                  </p>
+                  {importErrors.slice(0, 30).map((err, idx) => (
+                    <p key={`${err.row}-${idx}`}>
+                      {err.row > 0 ? `Row ${err.row}: ` : ''}
+                      {err.reason}
+                    </p>
+                  ))}
+                  {importErrors.length > 30 && (
+                    <p className="text-amber-800">…and {importErrors.length - 30} more</p>
+                  )}
+                </div>
+              )}
             </motion.div>
             <DialogFooter className="gap-2 sm:gap-0">
-              <Button type="button" variant="outline" className="rounded-xl" onClick={() => { setIsUploadDialogOpen(false); setCsvFile(null); }}>Cancel</Button>
+              <Button type="button" variant="outline" className="rounded-xl" onClick={() => { setIsUploadDialogOpen(false); setCsvFile(null); setImportErrors([]); }}>Cancel</Button>
               <Button
                 type="button"
                 disabled={!csvFile || importCsv.isPending}
                 className="bg-gradient-to-r from-orange-600 to-orange-400 hover:from-orange-700 hover:to-orange-600 text-white rounded-xl"
                 onClick={async () => {
                   if (!csvFile) return;
-                  const r = await importCsv.mutateAsync({ file: csvFile, mode: 'import' }) as { imported: number; skipped: number };
-                  toast({ title: 'Import done', description: `Imported: ${r.imported}, Skipped: ${r.skipped}` });
-                  setIsUploadDialogOpen(false);
-                  setCsvFile(null);
-                  refetch();
+                  try {
+                    const r = await importCsv.mutateAsync({ file: csvFile, mode: 'import' }) as {
+                      imported: number;
+                      skipped: number;
+                      errors?: Array<{ row: number; reason: string; status?: string }>;
+                    };
+                    const errs = Array.isArray(r.errors) ? r.errors : [];
+                    setImportErrors(errs);
+                    toast({
+                      title: r.imported > 0 ? 'Import done' : 'Nothing imported',
+                      description: errs.length
+                        ? `Imported: ${r.imported}, Skipped: ${r.skipped}. See reasons below.`
+                        : `Imported: ${r.imported}, Skipped: ${r.skipped}`,
+                      variant: r.imported > 0 ? 'default' : 'destructive',
+                    });
+                    if (r.imported > 0 && errs.length === 0) {
+                      setIsUploadDialogOpen(false);
+                      setCsvFile(null);
+                    }
+                    refetch();
+                  } catch (err) {
+                    const message = err instanceof Error ? err.message : 'Import failed';
+                    toast({ title: 'Import failed', description: message, variant: 'destructive' });
+                    setImportErrors([{ row: 0, reason: message, status: 'error' }]);
+                  }
                 }}
               >
                 {importCsv.isPending ? 'Uploading…' : 'Upload Timetable'}

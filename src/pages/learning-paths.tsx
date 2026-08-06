@@ -37,6 +37,7 @@ import {
 import { Link, useLocation } from "wouter";
 import {
   filterContentsBySchoolProgram,
+  filterVideosForLearningPath,
   getAllowedContentTypes,
   resolveIsAsliPrepExclusive,
   type ContentTypeName,
@@ -633,7 +634,7 @@ export default function LearningPaths() {
         const token = getAuthToken();
         
         // Fetch all content to count by type
-        const response = await fetch(`${API_BASE_URL}${apiRoot()}/asli-prep-content`, {
+        const response = await fetch(`${API_BASE_URL}${apiRoot()}/asli-prep-content?surface=learning-path`, {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json',
@@ -643,9 +644,11 @@ export default function LearningPaths() {
         if (response.ok) {
           const data = await response.json();
           const rawContent = data.data || data || [];
-          const allContent = filterContentsBySchoolProgram(
-            Array.isArray(rawContent) ? rawContent : [],
-            resolveIsAsliPrepExclusive(user),
+          const allContent = filterVideosForLearningPath(
+            filterContentsBySchoolProgram(
+              Array.isArray(rawContent) ? rawContent : [],
+              resolveIsAsliPrepExclusive(user),
+            ),
           );
           setAllLibraryContent(allContent);
           

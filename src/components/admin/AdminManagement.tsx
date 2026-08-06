@@ -14,7 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { API_BASE_URL } from "@/lib/api-config";
 import { getAuthToken } from "@/lib/auth-utils";
 import { cn } from "@/lib/utils";
-import { formatIitCategoryLabel, normalizeIitCategories } from "@/lib/products";
+import { formatIitCategoryLabel, normalizeIitCategories, expandIitCategoriesByClass, flattenIitCategoriesByClass, classNumbersInRange, normalizeIitCategoriesByClass } from "@/lib/products";
 import { useProductCategories } from "@/hooks/use-product-categories";
 import { useBoards } from "@/hooks/use-boards";
 import {
@@ -31,6 +31,101 @@ const SCHOOL_DIALOG_CONTENT_CLASS =
   "flex max-h-[min(100dvh,100svh)] w-[min(96vw,42rem)] max-w-[min(96vw,42rem)] translate-x-[-50%] translate-y-[-50%] flex-col gap-0 overflow-hidden p-0 sm:max-h-[94vh] sm:w-[min(94vw,56rem)] sm:max-w-[min(94vw,56rem)] md:w-[min(92vw,64rem)] md:max-w-[min(92vw,64rem)] lg:w-[min(90vw,72rem)] lg:max-w-[min(90vw,72rem)] xl:w-[min(88vw,80rem)] xl:max-w-[min(88vw,80rem)] 2xl:w-[min(86vw,88rem)] 2xl:max-w-[min(86vw,88rem)]";
 
 const SCHOOL_FORM_GRID_CLASS = "grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3";
+
+function syncIitTracksForClassRange<T extends {
+  iitCategories: string[];
+  iitCategoriesByClass: Record<string, string[]>;
+  schoolDetails: { classesFrom: string; classesTo: string };
+}>(prev: T, nextFrom: string, nextTo: string): T {
+  if (!prev.iitCategories.length && !Object.keys(prev.iitCategoriesByClass || {}).length) {
+    return {
+      ...prev,
+      schoolDetails: { ...prev.schoolDetails, classesFrom: nextFrom, classesTo: nextTo },
+    };
+  }
+  const byClass = expandIitCategoriesByClass({
+    iitCategories: prev.iitCategories,
+    iitCategoriesByClass: prev.iitCategoriesByClass,
+    classesFrom: nextFrom,
+    classesTo: nextTo,
+  });
+  return {
+    ...prev,
+    schoolDetails: { ...prev.schoolDetails, classesFrom: nextFrom, classesTo: nextTo },
+    iitCategoriesByClass: byClass,
+    iitCategories: flattenIitCategoriesByClass(byClass).length
+      ? flattenIitCategoriesByClass(byClass)
+      : prev.iitCategories,
+  };
+}
+  classNumbers,
+  byClass,
+  codes,
+  labelMap,
+  onChange,
+}: {
+  classNumbers: string[];
+  byClass: Record<string, string[]>;
+  codes: string[];
+  labelMap: Record<string, string>;
+  onChange: (next: Record<string, string[]>) => void;
+}) {
+  if (classNumbers.length === 0) {
+    return (
+      <p className="mt-2 text-xs text-amber-700">
+        Set <span className="font-semibold">Classes From</span> and{" "}
+        <span className="font-semibold">Classes To</span> below to assign tracks per class.
+      </p>
+    );
+  }
+
+  return (
+    <div className="mt-3 overflow-x-auto rounded-xl border border-slate-200 bg-white">
+      <table className="min-w-full text-left text-sm">
+        <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-600">
+          <tr>
+            <th className="px-3 py-2 font-semibold">Class</th>
+            {codes.map((cat) => (
+              <th key={cat} className="px-3 py-2 font-semibold whitespace-nowrap">
+                {formatIitCategoryLabel(cat, labelMap)}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {classNumbers.map((cn) => {
+            const row = byClass[cn] || [];
+            return (
+              <tr key={cn} className="border-t border-slate-100">
+                <td className="px-3 py-2 font-medium text-slate-900 whitespace-nowrap">
+                  Class {cn}
+                </td>
+                {codes.map((cat) => {
+                  const checked = row.includes(cat);
+                  return (
+                    <td key={cat} className="px-3 py-2">
+                      <Checkbox
+                        checked={checked}
+                        onCheckedChange={(v) => {
+                          const on = v === true;
+                          const nextRow = on
+                            ? normalizeIitCategories([...row, cat])
+                            : row.filter((c) => c !== cat);
+                          onChange({ ...byClass, [cn]: nextRow });
+                        }}
+                        aria-label={`Class ${cn} ${formatIitCategoryLabel(cat, labelMap)}`}
+                      />
+                    </td>
+                  );
+                })}
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
 
 interface SchoolDetailsForm {
   doorNo: string;
@@ -57,8 +152,10 @@ interface Admin {
   /** CBSE / STATE — curriculum (API); distinct from stored `board` for legacy rows */
   curriculumBoard?: string;
   isAsliPrepExclusive?: boolean;
-  /** Assigned IIT tracks: ALPHA | BETA | GAMMA */
+  /** Assigned IIT tracks: ALPHA | BETA | GAMMA (union across classes) */
   iitCategories?: string[];
+  /** Per-class IIT tracks, e.g. { "6": ["ALPHA"], "8": ["ALPHA","BETA"] } */
+  iitCategoriesByClass?: Record<string, string[]>;
   state?: string;
   place?: string;
   schoolName?: string;
@@ -364,6 +461,7 @@ export default function AdminManagement() {
     board: DEFAULT_CURRICULUM_BOARD,
     isAsliPrepExclusive: false,
     iitCategories: [] as string[],
+    iitCategoriesByClass: {} as Record<string, string[]>,
     state: '',
     schoolName: '',
     schoolLogo: '',
@@ -399,6 +497,7 @@ export default function AdminManagement() {
     board: DEFAULT_CURRICULUM_BOARD,
     isAsliPrepExclusive: false,
     iitCategories: [] as string[],
+    iitCategoriesByClass: {} as Record<string, string[]>,
     state: '',
     schoolName: '',
     schoolLogo: '',
@@ -705,8 +804,13 @@ export default function AdminManagement() {
         board: newAdmin.board,
         isAsliPrepExclusive: newAdmin.isAsliPrepExclusive,
         iitCategories: newAdmin.isAsliPrepExclusive
-          ? normalizeIitCategories(newAdmin.iitCategories)
+          ? flattenIitCategoriesByClass(newAdmin.iitCategoriesByClass).length
+            ? flattenIitCategoriesByClass(newAdmin.iitCategoriesByClass)
+            : normalizeIitCategories(newAdmin.iitCategories)
           : [],
+        iitCategoriesByClass: newAdmin.isAsliPrepExclusive
+          ? normalizeIitCategoriesByClass(newAdmin.iitCategoriesByClass)
+          : {},
         state: newAdmin.state,
         schoolName: newAdmin.schoolName,
         schoolLogo: newAdmin.schoolLogo,
@@ -758,6 +862,7 @@ export default function AdminManagement() {
           board: DEFAULT_CURRICULUM_BOARD,
           isAsliPrepExclusive: false,
           iitCategories: [],
+          iitCategoriesByClass: {},
           state: '',
           schoolName: '',
           schoolLogo: '',
@@ -880,6 +985,14 @@ export default function AdminManagement() {
       board: normalizeCurriculumBoard(rawCurriculum),
       isAsliPrepExclusive: exclusive,
       iitCategories: exclusive ? normalizeIitCategories(admin.iitCategories) : [],
+      iitCategoriesByClass: exclusive
+        ? expandIitCategoriesByClass({
+            iitCategories: admin.iitCategories,
+            iitCategoriesByClass: admin.iitCategoriesByClass,
+            classesFrom: sd.classesFrom,
+            classesTo: sd.classesTo,
+          })
+        : {},
       state: normalizeStateValue(admin.state || admin.place || sd.state),
       schoolName: admin.schoolName || '',
       schoolLogo: admin.schoolLogo || '',
@@ -984,8 +1097,13 @@ export default function AdminManagement() {
           board: editAdmin.board,
           isAsliPrepExclusive: editAdmin.isAsliPrepExclusive,
           iitCategories: editAdmin.isAsliPrepExclusive
-            ? normalizeIitCategories(editAdmin.iitCategories)
+            ? flattenIitCategoriesByClass(editAdmin.iitCategoriesByClass).length
+              ? flattenIitCategoriesByClass(editAdmin.iitCategoriesByClass)
+              : normalizeIitCategories(editAdmin.iitCategories)
             : [],
+          iitCategoriesByClass: editAdmin.isAsliPrepExclusive
+            ? normalizeIitCategoriesByClass(editAdmin.iitCategoriesByClass)
+            : {},
           state: editAdmin.state,
           schoolName: editAdmin.schoolName,
           schoolLogo: editAdmin.schoolLogo,
@@ -1476,6 +1594,7 @@ export default function AdminManagement() {
                               isAsliPrepExclusive: checked,
                               board: normalizeCurriculumSelection(prev.board, allowedCurriculumCodes),
                               iitCategories: checked ? prev.iitCategories : [],
+                              iitCategoriesByClass: checked ? prev.iitCategoriesByClass : {},
                             }))
                           }
                           aria-label="Toggle Asli Prep school program"
@@ -1514,18 +1633,31 @@ export default function AdminManagement() {
                             <Switch
                               checked={newAdmin.iitCategories.length > 0}
                               onCheckedChange={(checked) =>
-                                setNewAdmin((prev) => ({
-                                  ...prev,
-                                  iitCategories: checked
-                                    ? normalizeIitCategories(
-                                        prev.iitCategories.length > 0
-                                          ? prev.iitCategories
-                                          : iitCategoryCodes.length > 0
-                                            ? iitCategoryCodes
-                                            : ["ALPHA", "BETA", "GAMMA"]
-                                      )
-                                    : [],
-                                }))
+                                setNewAdmin((prev) => {
+                                  if (!checked) {
+                                    return { ...prev, iitCategories: [], iitCategoriesByClass: {} };
+                                  }
+                                  const defaults = normalizeIitCategories(
+                                    prev.iitCategories.length > 0
+                                      ? prev.iitCategories
+                                      : iitCategoryCodes.length > 0
+                                        ? iitCategoryCodes
+                                        : ["ALPHA", "BETA", "GAMMA"],
+                                  );
+                                  const byClass = expandIitCategoriesByClass({
+                                    iitCategories: defaults,
+                                    iitCategoriesByClass: prev.iitCategoriesByClass,
+                                    classesFrom: prev.schoolDetails.classesFrom,
+                                    classesTo: prev.schoolDetails.classesTo,
+                                  });
+                                  return {
+                                    ...prev,
+                                    iitCategories: flattenIitCategoriesByClass(byClass).length
+                                      ? flattenIitCategoriesByClass(byClass)
+                                      : defaults,
+                                    iitCategoriesByClass: byClass,
+                                  };
+                                })
                               }
                               aria-label="Toggle IIT EduOTT for this school"
                             />
@@ -1544,36 +1676,28 @@ export default function AdminManagement() {
                         {newAdmin.iitCategories.length > 0 && (
                           <div>
                             <p className="text-xs sm:text-sm font-medium text-gray-800">
-                              IIT product tracks
+                              IIT product tracks by class
                             </p>
                             <p className="mt-1 text-xs text-gray-600">
-                              Choose which tracks (Alpha / Beta / Gamma) this school can access.
+                              Assign Alpha / Beta / Gamma per class (e.g. 6–7 Alpha only, 8+ Alpha + Beta).
+                              Subjects without a track (e.g. Biology) stay general.
                             </p>
-                            <div className="mt-3 flex flex-wrap gap-4">
-                              {iitCategoryCodes.map((cat) => {
-                                const checked = newAdmin.iitCategories.includes(cat);
-                                return (
-                                  <label
-                                    key={cat}
-                                    className="flex items-center gap-2 text-sm text-slate-800"
-                                  >
-                                    <Checkbox
-                                      checked={checked}
-                                      onCheckedChange={(v) => {
-                                        const on = v === true;
-                                        setNewAdmin((prev) => {
-                                          const next = on
-                                            ? normalizeIitCategories([...prev.iitCategories, cat])
-                                            : prev.iitCategories.filter((c) => c !== cat);
-                                          return { ...prev, iitCategories: next };
-                                        });
-                                      }}
-                                    />
-                                    {formatIitCategoryLabel(cat, iitLabelMap)}
-                                  </label>
-                                );
-                              })}
-                            </div>
+                            <IitClassTrackMatrix
+                              classNumbers={classNumbersInRange(
+                                newAdmin.schoolDetails.classesFrom,
+                                newAdmin.schoolDetails.classesTo,
+                              )}
+                              byClass={normalizeIitCategoriesByClass(newAdmin.iitCategoriesByClass)}
+                              codes={iitCategoryCodes}
+                              labelMap={iitLabelMap}
+                              onChange={(next) =>
+                                setNewAdmin((prev) => ({
+                                  ...prev,
+                                  iitCategoriesByClass: next,
+                                  iitCategories: flattenIitCategoriesByClass(next),
+                                }))
+                              }
+                            />
                           </div>
                         )}
                       </div>
@@ -1609,10 +1733,9 @@ export default function AdminManagement() {
                     id="classesFrom"
                     value={newAdmin.schoolDetails.classesFrom}
                     onChange={(e) =>
-                      setNewAdmin({
-                        ...newAdmin,
-                        schoolDetails: { ...newAdmin.schoolDetails, classesFrom: e.target.value }
-                      })
+                      setNewAdmin((prev) =>
+                        syncIitTracksForClassRange(prev, e.target.value, prev.schoolDetails.classesTo),
+                      )
                     }
                     placeholder="e.g. 6"
                     className={SCHOOL_FORM_FIELD_CLASS}
@@ -1624,10 +1747,9 @@ export default function AdminManagement() {
                     id="classesTo"
                     value={newAdmin.schoolDetails.classesTo}
                     onChange={(e) =>
-                      setNewAdmin({
-                        ...newAdmin,
-                        schoolDetails: { ...newAdmin.schoolDetails, classesTo: e.target.value }
-                      })
+                      setNewAdmin((prev) =>
+                        syncIitTracksForClassRange(prev, prev.schoolDetails.classesFrom, e.target.value),
+                      )
                     }
                     placeholder="e.g. 10"
                     className={SCHOOL_FORM_FIELD_CLASS}
@@ -2232,6 +2354,7 @@ export default function AdminManagement() {
                               isAsliPrepExclusive: checked,
                               board: normalizeCurriculumSelection(prev.board, allowedCurriculumCodes),
                               iitCategories: checked ? prev.iitCategories : [],
+                              iitCategoriesByClass: checked ? prev.iitCategoriesByClass : {},
                             }))
                           }
                           aria-label="Toggle Asli Prep school program"
@@ -2270,18 +2393,31 @@ export default function AdminManagement() {
                             <Switch
                               checked={editAdmin.iitCategories.length > 0}
                               onCheckedChange={(checked) =>
-                                setEditAdmin((prev) => ({
-                                  ...prev,
-                                  iitCategories: checked
-                                    ? normalizeIitCategories(
-                                        prev.iitCategories.length > 0
-                                          ? prev.iitCategories
-                                          : iitCategoryCodes.length > 0
-                                            ? iitCategoryCodes
-                                            : ["ALPHA", "BETA", "GAMMA"]
-                                      )
-                                    : [],
-                                }))
+                                setEditAdmin((prev) => {
+                                  if (!checked) {
+                                    return { ...prev, iitCategories: [], iitCategoriesByClass: {} };
+                                  }
+                                  const defaults = normalizeIitCategories(
+                                    prev.iitCategories.length > 0
+                                      ? prev.iitCategories
+                                      : iitCategoryCodes.length > 0
+                                        ? iitCategoryCodes
+                                        : ["ALPHA", "BETA", "GAMMA"],
+                                  );
+                                  const byClass = expandIitCategoriesByClass({
+                                    iitCategories: defaults,
+                                    iitCategoriesByClass: prev.iitCategoriesByClass,
+                                    classesFrom: prev.schoolDetails.classesFrom,
+                                    classesTo: prev.schoolDetails.classesTo,
+                                  });
+                                  return {
+                                    ...prev,
+                                    iitCategories: flattenIitCategoriesByClass(byClass).length
+                                      ? flattenIitCategoriesByClass(byClass)
+                                      : defaults,
+                                    iitCategoriesByClass: byClass,
+                                  };
+                                })
                               }
                               aria-label="Toggle IIT EduOTT for this school"
                             />
@@ -2300,36 +2436,28 @@ export default function AdminManagement() {
                         {editAdmin.iitCategories.length > 0 && (
                           <div>
                             <p className="text-xs sm:text-sm font-medium text-gray-800">
-                              IIT product tracks
+                              IIT product tracks by class
                             </p>
                             <p className="mt-1 text-xs text-gray-600">
-                              Choose which tracks (Alpha / Beta / Gamma) this school can access.
+                              Assign Alpha / Beta / Gamma per class (e.g. 6–7 Alpha only, 8+ Alpha + Beta).
+                              Subjects without a track (e.g. Biology) stay general.
                             </p>
-                            <div className="mt-3 flex flex-wrap gap-4">
-                              {iitCategoryCodes.map((cat) => {
-                                const checked = editAdmin.iitCategories.includes(cat);
-                                return (
-                                  <label
-                                    key={cat}
-                                    className="flex items-center gap-2 text-sm text-slate-800"
-                                  >
-                                    <Checkbox
-                                      checked={checked}
-                                      onCheckedChange={(v) => {
-                                        const on = v === true;
-                                        setEditAdmin((prev) => {
-                                          const next = on
-                                            ? normalizeIitCategories([...prev.iitCategories, cat])
-                                            : prev.iitCategories.filter((c) => c !== cat);
-                                          return { ...prev, iitCategories: next };
-                                        });
-                                      }}
-                                    />
-                                    {formatIitCategoryLabel(cat, iitLabelMap)}
-                                  </label>
-                                );
-                              })}
-                            </div>
+                            <IitClassTrackMatrix
+                              classNumbers={classNumbersInRange(
+                                editAdmin.schoolDetails.classesFrom,
+                                editAdmin.schoolDetails.classesTo,
+                              )}
+                              byClass={normalizeIitCategoriesByClass(editAdmin.iitCategoriesByClass)}
+                              codes={iitCategoryCodes}
+                              labelMap={iitLabelMap}
+                              onChange={(next) =>
+                                setEditAdmin((prev) => ({
+                                  ...prev,
+                                  iitCategoriesByClass: next,
+                                  iitCategories: flattenIitCategoriesByClass(next),
+                                }))
+                              }
+                            />
                           </div>
                         )}
                       </div>
@@ -2365,10 +2493,9 @@ export default function AdminManagement() {
                     id="edit-classesFrom"
                     value={editAdmin.schoolDetails.classesFrom}
                     onChange={(e) =>
-                      setEditAdmin({
-                        ...editAdmin,
-                        schoolDetails: { ...editAdmin.schoolDetails, classesFrom: e.target.value }
-                      })
+                      setEditAdmin((prev) =>
+                        syncIitTracksForClassRange(prev, e.target.value, prev.schoolDetails.classesTo),
+                      )
                     }
                     className={SCHOOL_FORM_FIELD_CLASS}
                   />
@@ -2379,10 +2506,9 @@ export default function AdminManagement() {
                     id="edit-classesTo"
                     value={editAdmin.schoolDetails.classesTo}
                     onChange={(e) =>
-                      setEditAdmin({
-                        ...editAdmin,
-                        schoolDetails: { ...editAdmin.schoolDetails, classesTo: e.target.value }
-                      })
+                      setEditAdmin((prev) =>
+                        syncIitTracksForClassRange(prev, prev.schoolDetails.classesFrom, e.target.value),
+                      )
                     }
                     className={SCHOOL_FORM_FIELD_CLASS}
                   />
