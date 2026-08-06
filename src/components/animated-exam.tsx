@@ -25,7 +25,7 @@ import {
   ChevronDown
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
-import { normalizeAndFormatExamDisplayText } from '@/lib/exam-text-normalize';
+import { normalizeAndFormatExamDisplayText, resolveAssertionReasonDisplay } from '@/lib/exam-text-normalize';
 
 interface Question {
   _id: string;
@@ -972,6 +972,7 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
     return ok ? raw : DEFAULT_ASSERTION_REASON_DIRECTIONS;
   })();
   const showQuestionImage = Boolean(currentQuestion.questionImage);
+  const arDisplay = resolveAssertionReasonDisplay(currentQuestion);
 
   const progress = ((safeQuestionIndex + 1) / exam.questions.length) * 100;
   const currentQid = answerKey(currentQuestion);
@@ -1314,18 +1315,18 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
                         </div>
                       ) : null}
 
-                      {(currentQuestion.assertionText || currentQuestion.reasonText) && (
+                      {(arDisplay.assertion || arDisplay.reason) && (
                         <div className="mb-4 space-y-2 rounded-lg border border-violet-100 bg-violet-50/70 p-3 text-sm text-gray-900">
-                          {currentQuestion.assertionText ? (
+                          {arDisplay.assertion ? (
                             <p>
                               <span className="font-semibold">A:</span>{' '}
-                              {normalizeExamText(currentQuestion.assertionText, currentQuestion.subject)}
+                              {normalizeExamText(arDisplay.assertion, currentQuestion.subject)}
                             </p>
                           ) : null}
-                          {currentQuestion.reasonText ? (
+                          {arDisplay.reason ? (
                             <p>
                               <span className="font-semibold">R:</span>{' '}
-                              {normalizeExamText(currentQuestion.reasonText, currentQuestion.subject)}
+                              {normalizeExamText(arDisplay.reason, currentQuestion.subject)}
                             </p>
                           ) : null}
                         </div>
@@ -1354,11 +1355,11 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
                         />
                       )}
 
-                      {currentQuestion.questionText && (
+                      {arDisplay.showQuestionText && arDisplay.questionText ? (
                         <p className="text-sm sm:text-base text-gray-900 mb-4 leading-relaxed">
-                          {normalizeExamText(currentQuestion.questionText, currentQuestion.subject)}
+                          {normalizeExamText(arDisplay.questionText, currentQuestion.subject)}
                         </p>
-                      )}
+                      ) : null}
                       </div>
                   </div>
 

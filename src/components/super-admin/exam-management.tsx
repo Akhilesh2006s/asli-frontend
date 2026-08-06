@@ -35,7 +35,7 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { API_BASE_URL } from '@/lib/api-config';
 import { getExamClassStrings } from '@/lib/exam-classes';
-import { normalizeAndFormatExamDisplayText } from '@/lib/exam-text-normalize';
+import { normalizeAndFormatExamDisplayText, resolveAssertionReasonDisplay } from '@/lib/exam-text-normalize';
 import { AuthenticatedUploadImage } from '@/components/AuthenticatedUploadImage';
 import { MatchColumnsTable } from '@/components/exam/MatchColumnsTable';
 import { Plus, Trash2, Edit, Eye, Calendar, Clock, BookOpen, FileQuestion, X, Upload, Download, School, GraduationCap, Loader2, ChevronUp, ChevronDown, Save, Search } from 'lucide-react';
@@ -5288,22 +5288,26 @@ export default function ExamManagement() {
                                   subject={q.subject}
                                 />
 
-                                {(q.assertionText || q.reasonText) && (
+                                {(() => {
+                                  const arPrev = resolveAssertionReasonDisplay(q);
+                                  if (!(arPrev.assertion || arPrev.reason)) return null;
+                                  return (
                                   <div className="mb-4 space-y-2 rounded-md border border-violet-100 bg-violet-50/60 p-3 text-sm text-slate-900">
-                                    {q.assertionText ? (
+                                    {arPrev.assertion ? (
                                       <p>
                                         <span className="font-semibold">A:</span>{' '}
-                                        {formatChemistryText(q.assertionText, q.subject)}
+                                        {formatChemistryText(arPrev.assertion, q.subject)}
                                       </p>
                                     ) : null}
-                                    {q.reasonText ? (
+                                    {arPrev.reason ? (
                                       <p>
                                         <span className="font-semibold">R:</span>{' '}
-                                        {formatChemistryText(q.reasonText, q.subject)}
+                                        {formatChemistryText(arPrev.reason, q.subject)}
                                       </p>
                                     ) : null}
                                   </div>
-                                )}
+                                  );
+                                })()}
 
                                 {(Array.isArray(q.matchColumnI) && q.matchColumnI.length > 0) ||
                                 (Array.isArray(q.matchColumnII) && q.matchColumnII.length > 0)
@@ -5345,17 +5349,26 @@ export default function ExamManagement() {
                                       : 'Diagram expected — click Edit to upload the figure if it did not extract'}
                                   </div>
                                 ) : null}
-                                {q.questionText ? (
+                                {(() => {
+                                  const arPrev = resolveAssertionReasonDisplay(q);
+                                  return arPrev.showQuestionText && arPrev.questionText ? (
                                   <p className="mb-4 text-base text-gray-900 sm:text-lg">
-                                    {formatChemistryText(q.questionText, q.subject)}
+                                    {formatChemistryText(arPrev.questionText, q.subject)}
                                   </p>
-                                ) : null}
+                                  ) : null;
+                                })()}
 
-                                {!q.questionText && !q.questionImage ? (
+                                {(() => {
+                                  const arPrev = resolveAssertionReasonDisplay(q);
+                                  return !arPrev.assertion &&
+                                    !arPrev.reason &&
+                                    !arPrev.questionText &&
+                                    !q.questionImage ? (
                                   <div className="mb-4 flex h-24 items-center justify-center rounded-lg border border-gray-200 bg-gray-100 text-sm text-gray-500">
                                     No question content available
                                   </div>
-                                ) : null}
+                                  ) : null;
+                                })()}
 
                                 {(q.questionType === 'mcq' ||
                                   q.questionType === 'multiple' ||
