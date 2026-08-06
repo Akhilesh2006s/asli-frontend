@@ -891,30 +891,7 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
 (c) A is true, but R is false.
 (d) A is false, but R is true.`;
 
-  const arMatterText = (() => {
-    const isAr =
-      currentQuestion.questionType === 'assertion_reason' ||
-      Boolean(currentQuestion.assertionText || currentQuestion.reasonText) ||
-      (/\bA\s*[:：]/.test(String(currentQuestion.questionText || '')) &&
-        /\bR\s*[:：]/.test(String(currentQuestion.questionText || ''))) ||
-      (() => {
-        const blob = (currentQuestion.options || [])
-          .map((o: any) => (typeof o === 'string' ? o : o?.text || ''))
-          .join('\n');
-        return /Both A and R are true/i.test(blob) && /correct explanation of A/i.test(blob);
-      })();
-    if (!isAr) {
-      return String(currentQuestion.sharedMatterText || currentQuestion.passageText || '').trim();
-    }
-    const raw = String(currentQuestion.sharedMatterText || '').trim();
-    const ok =
-      /correct explanation of A/i.test(raw) ||
-      (/Both A and R are true/i.test(raw) && /A is false,\s*but R is true/i.test(raw));
-    return ok ? raw : DEFAULT_ASSERTION_REASON_DIRECTIONS;
-  })();
-  const showQuestionImage =
-    Boolean(currentQuestion.questionImage) && currentQuestion.questionType !== 'assertion_reason';
-const normalizeExamText = (value: unknown, subject?: string): string =>
+  const normalizeExamText = (value: unknown, subject?: string): string =>
     normalizeAndFormatExamDisplayText(value, subject);
 
   if (isLoading) {
@@ -953,20 +930,7 @@ const normalizeExamText = (value: unknown, subject?: string): string =>
     );
   }
 
-  // Debug exam data
-  console.log('Exam data in render:', exam);
-  console.log('Exam questions:', exam.questions);
-  console.log('Questions length:', exam.questions?.length);
-
   if (!exam.questions || exam.questions.length === 0) {
-    console.error('No questions found in exam:', {
-      examId: exam._id,
-      examTitle: exam.title,
-      questions: exam.questions,
-      questionsType: typeof exam.questions,
-      questionsLength: exam.questions?.length
-    });
-    
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-50">
         <div className="text-center">
@@ -982,15 +946,55 @@ const normalizeExamText = (value: unknown, subject?: string): string =>
     );
   }
 
-  const currentQuestion = exam.questions[currentQuestionIndex];
-  const progress = ((currentQuestionIndex + 1) / exam.questions.length) * 100;
+  const safeQuestionIndex = Math.min(
+    Math.max(0, currentQuestionIndex),
+    exam.questions.length - 1,
+  );
+  const currentQuestion = exam.questions[safeQuestionIndex];
+  if (!currentQuestion) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+        <div className="text-center">
+          <XCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+          <p className="text-gray-600">Question not found</p>
+          <Button onClick={onExit} className="mt-4">Go Back</Button>
+        </div>
+      </div>
+    );
+  }
+
+  const arMatterText = (() => {
+    const isAr =
+      currentQuestion.questionType === 'assertion_reason' ||
+      Boolean(currentQuestion.assertionText || currentQuestion.reasonText) ||
+      (/\bA\s*[:：]/.test(String(currentQuestion.questionText || '')) &&
+        /\bR\s*[:：]/.test(String(currentQuestion.questionText || ''))) ||
+      (() => {
+        const blob = (currentQuestion.options || [])
+          .map((o: any) => (typeof o === 'string' ? o : o?.text || ''))
+          .join('\n');
+        return /Both A and R are true/i.test(blob) && /correct explanation of A/i.test(blob);
+      })();
+    if (!isAr) {
+      return String(currentQuestion.sharedMatterText || currentQuestion.passageText || '').trim();
+    }
+    const raw = String(currentQuestion.sharedMatterText || '').trim();
+    const ok =
+      /correct explanation of A/i.test(raw) ||
+      (/Both A and R are true/i.test(raw) && /A is false,\s*but R is true/i.test(raw));
+    return ok ? raw : DEFAULT_ASSERTION_REASON_DIRECTIONS;
+  })();
+  const showQuestionImage =
+    Boolean(currentQuestion.questionImage) && currentQuestion.questionType !== 'assertion_reason';
+
+  const progress = ((safeQuestionIndex + 1) / exam.questions.length) * 100;
   const currentQid = answerKey(currentQuestion);
   const currentAnswerRaw = answers[currentQid];
   const currentQuestionHasAnswer = isAnswerProvidedForQuestion(currentQuestion, currentAnswerRaw);
   const answeredQuestionCount = exam.questions.filter((q: Question) =>
     isAnswerProvidedForQuestion(q, answers[answerKey(q)])
   ).length;
-  const isLastQuestion = currentQuestionIndex === exam.questions.length - 1;
+  const isLastQuestion = safeQuestionIndex === exam.questions.length - 1;
 
   return (
     <div className="min-h-screen bg-gray-50">
