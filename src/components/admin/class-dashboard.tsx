@@ -22,6 +22,7 @@ import {
   Search, 
   Filter,
   Trash2,
+  Pencil,
   AlertTriangle,
   UserPlus,
   Clock,
@@ -122,6 +123,9 @@ const ClassDashboard = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedSubject, setSelectedSubject] = useState('all');
   const [isAddClassDialogOpen, setIsAddClassDialogOpen] = useState(false);
+  const [isEditClassDialogOpen, setIsEditClassDialogOpen] = useState(false);
+  const [editingClassId, setEditingClassId] = useState<string | null>(null);
+  const [isSavingClass, setIsSavingClass] = useState(false);
   const [isAddStudentDialogOpen, setIsAddStudentDialogOpen] = useState(false);
   const [isDeleteAllDialogOpen, setIsDeleteAllDialogOpen] = useState(false);
   const [isDeletingAll, setIsDeletingAll] = useState(false);
@@ -135,13 +139,42 @@ const ClassDashboard = () => {
     section: '',
     description: ''
   });
+  const [editClass, setEditClass] = useState({
+    classNumber: '',
+    section: '',
+    description: ''
+  });
   const [isCustomSection, setIsCustomSection] = useState(false);
   const [customSectionLetter, setCustomSectionLetter] = useState('');
+  const [isEditCustomSection, setIsEditCustomSection] = useState(false);
+  const [editCustomSectionLetter, setEditCustomSectionLetter] = useState('');
 
   const resetAddClassForm = () => {
     setNewClass({ classNumber: '', section: '', description: '' });
     setIsCustomSection(false);
     setCustomSectionLetter('');
+  };
+
+  const resetEditClassForm = () => {
+    setEditClass({ classNumber: '', section: '', description: '' });
+    setIsEditCustomSection(false);
+    setEditCustomSectionLetter('');
+    setEditingClassId(null);
+  };
+
+  const openEditClassDialog = (classItem: Class) => {
+    const section = String(classItem.section || '').toUpperCase();
+    const knownSections = ['A', 'B', 'C'];
+    const isKnown = knownSections.includes(section);
+    setEditingClassId(classItem.id);
+    setEditClass({
+      classNumber: String(classItem.classNumber || ''),
+      section: isKnown ? section : '',
+      description: classItem.description || '',
+    });
+    setIsEditCustomSection(!isKnown && !!section);
+    setEditCustomSectionLetter(isKnown ? '' : section);
+    setIsEditClassDialogOpen(true);
   };
   // Assign Subjects state
   const [selectedClassForSubjects, setSelectedClassForSubjects] = useState<string>('');
@@ -521,6 +554,80 @@ const ClassDashboard = () => {
         description: 'Failed to create class. Please try again.',
         variant: 'destructive'
       });
+    }
+  };
+
+  const handleEditClass = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingClassId) return;
+
+    const sectionValue = isEditCustomSection
+      ? editCustomSectionLetter.trim().toUpperCase()
+      : editClass.section.trim().toUpperCase();
+
+    if (!editClass.classNumber || !sectionValue) {
+      toast({
+        title: 'Missing fields',
+        description: isEditCustomSection
+          ? 'Please fill in Class Number and enter a section letter.'
+          : 'Please fill in all required fields: Class Number and Section.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (!/^[A-Z0-9]{1,3}$/i.test(sectionValue)) {
+      toast({
+        title: 'Invalid section',
+        description: 'Section must be 1–3 letters or numbers (e.g. D, E1).',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsSavingClass(true);
+    try {
+      const token = getAuthToken();
+      const response = await fetch(`${API_BASE_URL}/api/admin/classes/${editingClassId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          classNumber: editClass.classNumber.trim(),
+          section: sectionValue,
+          description: editClass.description.trim(),
+        }),
+      });
+
+      const responseData = await response.json();
+
+      if (response.ok && responseData.success !== false) {
+        resetEditClassForm();
+        setIsEditClassDialogOpen(false);
+        fetchClasses();
+        toast({
+          title: 'Success',
+          description: 'Class updated successfully!',
+          variant: 'default',
+        });
+      } else {
+        toast({
+          title: 'Error',
+          description: responseData.message || 'Failed to update class. Please try again.',
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      console.error('Failed to update class:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to update class. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSavingClass(false);
     }
   };
 
@@ -1368,7 +1475,19 @@ const ClassDashboard = () => {
                     </div>
                   </div>
                   
-                  <div className="flex justify-end mt-4 pt-4 border-t border-sky-200">
+                  <div className="flex justify-end gap-2 mt-4 pt-4 border-t border-sky-200">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="border-sky-200 text-sky-700 hover:bg-sky-50"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openEditClassDialog(classItem);
+                      }}
+                    >
+                      <Pencil className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
+                      Edit
+                    </Button>
                     <Button 
                       size="sm" 
                       variant="outline" 
@@ -1885,6 +2004,127 @@ const ClassDashboard = () => {
                 </Button>
                 <Button type="submit" className="bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700 text-white">
                   Create Class
+                </Button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
+
+        {/* Edit Class Dialog */}
+        <Dialog
+          open={isEditClassDialogOpen}
+          onOpenChange={(open) => {
+            setIsEditClassDialogOpen(open);
+            if (!open) resetEditClassForm();
+          }}
+        >
+          <DialogContent className="bg-white/90 backdrop-blur-xl border-sky-200">
+            <DialogHeader>
+              <DialogTitle className="text-sky-900">Edit Class</DialogTitle>
+              <DialogDescription>
+                Update class number, section, or description
+              </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleEditClass} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="editClassNumber" className="text-xs sm:text-sm font-medium text-sky-800">
+                    Class Number <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="editClassNumber"
+                    value={editClass.classNumber}
+                    onChange={(e) => setEditClass({ ...editClass, classNumber: e.target.value })}
+                    className="rounded-xl bg-white/70 border-sky-200 text-sky-900 backdrop-blur-sm"
+                    required
+                    placeholder="e.g., 10, 11, 12"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="editSection" className="text-xs sm:text-sm font-medium text-sky-800">
+                    Section <span className="text-red-500">*</span>
+                  </Label>
+                  <Select
+                    value={isEditCustomSection ? '__add__' : editClass.section}
+                    onValueChange={(value) => {
+                      if (value === '__add__') {
+                        setIsEditCustomSection(true);
+                        setEditClass({ ...editClass, section: '' });
+                      } else {
+                        setIsEditCustomSection(false);
+                        setEditCustomSectionLetter('');
+                        setEditClass({ ...editClass, section: value });
+                      }
+                    }}
+                  >
+                    <SelectTrigger
+                      id="editSection"
+                      className="rounded-xl bg-white/70 border-sky-200 text-sky-900 backdrop-blur-sm"
+                    >
+                      <SelectValue placeholder="Select section" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="A">Section A</SelectItem>
+                      <SelectItem value="B">Section B</SelectItem>
+                      <SelectItem value="C">Section C</SelectItem>
+                      <SelectItem value="__add__">
+                        <span className="flex items-center gap-2">
+                          <Plus className="h-3 w-3 sm:h-4 sm:w-4" />
+                          Add new section…
+                        </span>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {isEditCustomSection && (
+                    <Input
+                      id="editCustomSection"
+                      value={editCustomSectionLetter}
+                      onChange={(e) =>
+                        setEditCustomSectionLetter(
+                          e.target.value.replace(/[^a-zA-Z0-9]/g, '').slice(0, 3)
+                        )
+                      }
+                      className="rounded-xl bg-white/70 border-sky-200 text-sky-900 backdrop-blur-sm mt-2"
+                      placeholder="Enter section letter (e.g. D)"
+                      maxLength={3}
+                      autoFocus
+                      required
+                    />
+                  )}
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="editDescription" className="text-xs sm:text-sm font-medium text-sky-800">
+                  Description (Optional)
+                </Label>
+                <Textarea
+                  id="editDescription"
+                  value={editClass.description}
+                  onChange={(e) => setEditClass({ ...editClass, description: e.target.value })}
+                  className="rounded-xl bg-white/70 border-sky-200 text-sky-900 backdrop-blur-sm"
+                  rows={3}
+                  placeholder="Optional description for this class"
+                />
+              </div>
+              <div className="flex justify-end space-x-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    resetEditClassForm();
+                    setIsEditClassDialogOpen(false);
+                  }}
+                  className="border-sky-200 text-sky-700 hover:bg-sky-50"
+                  disabled={isSavingClass}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={isSavingClass}
+                  className="bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700 text-white"
+                >
+                  {isSavingClass ? 'Saving...' : 'Save Changes'}
                 </Button>
               </div>
             </form>
