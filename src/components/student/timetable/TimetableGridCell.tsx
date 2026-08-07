@@ -1,10 +1,10 @@
 import { motion } from 'framer-motion';
-import { Clock, MapPin, User } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
+import { MapPin, User } from 'lucide-react';
 import type { TimetableEntry } from '@/types/timetable';
 import {
   entryAccentStyle,
   getSubjectTheme,
+  isBreakEntry,
   isEntryOngoing,
   refName,
   teacherSlotLabel,
@@ -15,17 +15,37 @@ type TimetableGridCellProps = {
   entries: TimetableEntry[];
   now?: Date;
   compact?: boolean;
+  /** Tighter admin period grid: subject + short type, no mid-word wrap clutter */
+  dense?: boolean;
   /** Teacher view: show class · section · room instead of subject name */
-  labelMode?: 'subject' | 'teacher';
+  labelMode?: 'subject' | 'teacher' | 'admin';
   interactive?: boolean;
   onEntryClick?: (entry: TimetableEntry) => void;
   onEmptyClick?: () => void;
 };
 
+function classLabel(entry: TimetableEntry): string {
+  if (typeof entry.classId === 'object' && entry.classId) {
+    const num = entry.classId.classNumber || '';
+    const sec = entry.sectionId || entry.classId.section || '';
+    return [num, sec].filter(Boolean).join('-') || entry.classId.name || '';
+  }
+  return entry.sectionId || '';
+}
+
+function shortSession(entry: TimetableEntry): string {
+  if (isBreakEntry(entry)) return 'Break';
+  if (entry.sessionType === 'Lab') return 'Lab';
+  if (entry.sessionType === 'Activity') return 'Act';
+  if (entry.sessionType === 'Exam') return 'Exam';
+  return 'Lec';
+}
+
 export function TimetableGridCell({
   entries,
   now = new Date(),
   compact,
+  dense,
   labelMode = 'subject',
   interactive,
   onEntryClick,
@@ -46,105 +66,88 @@ export function TimetableGridCell({
         }
         className={cn(
           'w-full rounded-md border border-dashed border-gray-100 bg-gray-50/30',
-          compact ? 'h-[44px]' : 'min-h-[72px] sm:min-h-[88px]',
-          interactive && onEmptyClick && 'cursor-pointer hover:bg-orange-50/50 hover:border-orange-200'
+          dense || compact ? 'h-[52px]' : 'min-h-[64px]',
+          interactive && onEmptyClick && 'cursor-pointer hover:bg-orange-50/50 hover:border-orange-200',
         )}
       />
     );
   }
 
   return (
-    <div className={cn('flex w-full flex-col gap-1', compact ? 'min-h-[44px]' : 'min-h-[72px] sm:min-h-[88px]')}>
+    <div className={cn('flex w-full flex-col gap-1', dense || compact ? 'min-h-[52px]' : 'min-h-[64px]')}>
       {entries.map((entry) => {
         const isTeacher = labelMode === 'teacher';
+        const isAdmin = labelMode === 'admin';
         const subject = refName(entry.subjectId) || 'Class';
         const theme = getSubjectTheme(subject);
         const accent = isTeacher ? undefined : entryAccentStyle(entry.colorTag);
         const ongoing = isEntryOngoing(entry, now);
-        const isLab = entry.sessionType === 'Lab';
         const primaryLabel = isTeacher ? teacherSlotLabel(entry) : subject;
+        const cls = classLabel(entry);
+        const teacherName = refName(entry.teacherId);
+        const showTeacher = !dense && !isTeacher && !!teacherName;
 
         return (
           <motion.div
             key={entry._id}
             layout
-            initial={{ opacity: 0, y: 6 }}
+            initial={{ opacity: 0, y: 4 }}
             animate={{ opacity: 1, y: 0 }}
-            whileHover={{ scale: 1.02, y: -1 }}
+            whileHover={{ scale: 1.01 }}
             transition={{ type: 'spring', stiffness: 400, damping: 28 }}
             onClick={interactive && onEntryClick ? () => onEntryClick(entry) : undefined}
             style={accent}
+            title={`${primaryLabel}${teacherName ? ` · ${teacherName}` : ''} · ${entry.startTime}–${entry.endTime}`}
             className={cn(
               'relative rounded-lg border shadow-sm overflow-hidden',
               interactive && onEntryClick ? 'cursor-pointer' : 'cursor-default',
-              compact ? 'p-2' : 'p-2 sm:p-2.5',
+              dense ? 'px-1.5 py-1.5' : compact ? 'p-1.5' : 'p-2',
               isTeacher && 'bg-[#F0EBFF] border-violet-200/70',
               !isTeacher && !accent && 'bg-gradient-to-br',
               !isTeacher && !accent && theme.bg,
               !isTeacher && !accent && theme.border,
               !isTeacher && !accent && theme.gradient,
               !isTeacher && accent && 'border-2',
-              ongoing && 'ring-2 ring-orange-400 ring-offset-1 shadow-md z-[1]'
+              ongoing && 'ring-2 ring-orange-400 ring-offset-1 shadow-md z-[1]',
             )}
           >
-            {ongoing && (
-              <span className="absolute top-1.5 right-1.5 flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75" />
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-orange-500" />
-              </span>
-            )}
+            {isAdmin && cls ? (
+              <p className="text-[9px] font-bold text-orange-700 mb-0.5 tracking-wide">{cls}</p>
+            ) : null}
 
             <p
               className={cn(
-                'font-bold leading-tight pr-2',
-                compact ? 'text-micro sm:text-mini' : 'text-mini sm:text-xs',
-                isTeacher
-                  ? 'text-[#6C5CE7] uppercase tracking-wide'
-                  : cn('uppercase tracking-wide', theme.text)
+                'font-bold leading-tight',
+                dense ? 'text-[11px] line-clamp-2' : compact ? 'text-[10px] sm:text-[11px] line-clamp-2' : 'text-xs',
+                isTeacher ? 'text-[#6C5CE7]' : theme.text,
               )}
             >
               {primaryLabel}
             </p>
 
-            {!compact && !isTeacher && (
-              <>
-                <p className="text-micro sm:text-mini text-gray-600 mt-1 flex items-center gap-1 truncate">
-                  <User className="w-3 h-3 shrink-0 text-gray-400" />
-                  <span className="truncate">{refName(entry.teacherId) || '—'}</span>
-                </p>
-                {entry.room && (
-                  <p className="text-micro sm:text-mini text-gray-600 flex items-center gap-1 truncate">
-                    <MapPin className="w-3 h-3 shrink-0 text-gray-400" />
-                    <span className="truncate">{entry.room}</span>
-                  </p>
-                )}
-                <p className="text-micro text-gray-500 mt-1 flex items-center gap-1">
-                  <Clock className="w-3 h-3 shrink-0" />
-                  {entry.startTime} – {entry.endTime}
-                </p>
-              </>
+            {showTeacher && (
+              <p className="text-[10px] text-gray-600 mt-0.5 flex items-center gap-1 truncate">
+                <User className="w-3 h-3 shrink-0 text-gray-400" />
+                <span className="truncate">{teacherName}</span>
+              </p>
             )}
 
-            {isTeacher ? (
-              <p
-                className={cn(
-                  'text-[#6C5CE7]/85 font-medium',
-                  compact ? 'mt-0.5 text-micro' : 'mt-1 text-micro'
-                )}
-              >
-                {entry.sessionType}
+            {!dense && !compact && !isTeacher && entry.room && entry.room !== 'TBD' && (
+              <p className="text-[10px] text-gray-600 flex items-center gap-1 truncate">
+                <MapPin className="w-3 h-3 shrink-0 text-gray-400" />
+                <span className="truncate">{entry.room}</span>
               </p>
-            ) : (
-              <Badge
-                className={cn(
-                  'font-semibold border-0',
-                  compact ? 'mt-0.5 text-[8px] px-1 py-0 h-4' : 'mt-1.5 text-micro sm:text-micro px-1.5 py-0 h-5',
-                  isLab ? 'bg-purple-100 text-purple-700' : theme.badge
-                )}
-              >
-                {entry.sessionType === 'Lab' ? 'Lab' : 'Lecture'}
-              </Badge>
             )}
+
+            <p
+              className={cn(
+                'font-semibold mt-0.5',
+                dense ? 'text-[9px] text-gray-500' : 'text-[9px]',
+                isTeacher ? 'text-[#6C5CE7]/85' : 'text-gray-500',
+              )}
+            >
+              {shortSession(entry)}
+            </p>
           </motion.div>
         );
       })}

@@ -1,7 +1,7 @@
 import { addDays, format, isSameDay, parseISO, startOfWeek } from 'date-fns';
 import type { TimetableEntry } from '@/types/timetable';
 
-export const TIMETABLE_HOUR_START = 9;
+export const TIMETABLE_HOUR_START = 8;
 /** Last hour column label (5 PM slot = 17:00–18:00). */
 export const TIMETABLE_HOUR_END = 17;
 
@@ -178,6 +178,130 @@ export function getSlotHour(startTime: string): number | null {
   const hour = parseInt(startTime.split(':')[0], 10);
   if (Number.isNaN(hour) || hour < TIMETABLE_HOUR_START || hour > TIMETABLE_HOUR_END) return null;
   return hour;
+}
+
+export type PeriodColumn = {
+  key: string;
+  startTime: string;
+  endTime: string;
+  kind?: 'period' | 'break';
+  label?: string;
+  /** True when column is inferred from a time gap (not a stored entry). */
+  inferred?: boolean;
+};
+
+const BREAK_NAME_RE = /\b(break|lunch|recess|interval)\b/i;
+
+export function isBreakEntry(entry: TimetableEntry): boolean {
+  const subject = refName(entry.subjectId) || '';
+  if (BREAK_NAME_RE.test(subject)) return true;
+  if (entry.sessionType === 'Activity' && BREAK_NAME_RE.test(entry.notes || '')) return true;
+  return false;
+}
+
+function breakLabelForGap(mins: number): string {
+  if (mins >= 30) return 'Lunch';
+  if (mins >= 15) return 'Break';
+  return 'Break';
+}
+
+/** Bell periods from real start/end times (school grid style), not clock hours. */
+export function getPeriodColumnsFromEntries(entries: TimetableEntry[]): PeriodColumn[] {
+  const map = new Map<string, PeriodColumn>();
+  for (const entry of entries) {
+    const start = String(entry.startTime || '').trim();
+    const end = String(entry.endTime || '').trim();
+    if (!/^\d{2}:\d{2}$/.test(start)) continue;
+    const isBreak = isBreakEntry(entry);
+    const prev = map.get(start);
+    if (!prev) {
+      map.set(start, {
+        key: start,
+        startTime: start,
+        endTime: end || start,
+        kind: isBreak ? 'break' : 'period',
+        label: isBreak ? refName(entry.subjectId) || 'Break' : undefined,
+      });
+      continue;
+    }
+    if (end && parseTimeToMinutes(end) > parseTimeToMinutes(prev.endTime)) {
+      prev.endTime = end;
+    }
+    if (isBreak) {
+      prev.kind = 'break';
+      prev.label = refName(entry.subjectId) || prev.label || 'Break';
+    }
+  }
+  return [...map.values()].sort(
+    (a, b) => parseTimeToMinutes(a.startTime) - parseTimeToMinutes(b.startTime),
+  );
+}
+
+/**
+ * Period columns plus break/lunch gaps (from stored break entries or inferred time gaps).
+ */
+export function getScheduleColumns(entries: TimetableEntry[]): PeriodColumn[] {
+  const base = getPeriodColumnsFromEntries(entries);
+  if (base.length <= 1) return base;
+
+  const hasStoredBreaks = base.some((c) => c.kind === 'break');
+  if (hasStoredBreaks) return base;
+
+  const out: PeriodColumn[] = [];
+  for (let i = 0; i < base.length; i++) {
+    out.push(base[i]);
+    if (i >= base.length - 1) continue;
+    const cur = base[i];
+    const next = base[i + 1];
+    const gap = parseTimeToMinutes(next.startTime) - parseTimeToMinutes(cur.endTime);
+    if (gap >= 5) {
+      const startTime = cur.endTime;
+      const endTime = next.startTime;
+      out.push({
+        key: `break-${startTime}-${endTime}`,
+        startTime,
+        endTime,
+        kind: 'break',
+        label: breakLabelForGap(gap),
+        inferred: true,
+      });
+    }
+  }
+  return out;
+}
+
+export function getEntriesForPeriod(
+  entries: TimetableEntry[],
+  dayIndex: WeekdayIndex,
+  startTime: string,
+): TimetableEntry[] {
+  return entries
+    .filter((entry) => {
+      if (entryWeekdayIndex(entry) !== dayIndex) return false;
+      return String(entry.startTime || '').trim() === startTime;
+    })
+    .sort((a, b) => {
+      const ca =
+        typeof a.classId === 'object'
+          ? `${a.classId.classNumber || ''}-${a.sectionId || ''}`
+          : a.sectionId || '';
+      const cb =
+        typeof b.classId === 'object'
+          ? `${b.classId.classNumber || ''}-${b.sectionId || ''}`
+          : b.sectionId || '';
+      return ca.localeCompare(cb) || refName(a.subjectId).localeCompare(refName(b.subjectId));
+    });
+}
+
+/** Prefer period columns when entries use real bell times (e.g. 08:40). */
+export function shouldUsePeriodColumns(entries: TimetableEntry[]): boolean {
+  if (!entries.length) return false;
+  return entries.some((e) => {
+    const start = String(e.startTime || '');
+    if (!/^\d{2}:\d{2}$/.test(start)) return false;
+    const [, mins] = start.split(':').map(Number);
+    return mins !== 0 || parseInt(start, 10) < 9;
+  });
 }
 
 /** Weekly template: group by day-of-week + time (not by calendar week). */

@@ -1,15 +1,18 @@
 import { motion } from 'framer-motion';
-import { Clock } from 'lucide-react';
+import { Clock, Coffee } from 'lucide-react';
 import { TimetableGridCell } from '@/components/student/timetable/TimetableGridCell';
 import type { TimetableEntry } from '@/types/timetable';
 import type { WeekdayIndex } from '@/lib/student-timetable-utils';
 import {
   WEEKDAY_LABELS,
   buildWeekdayPlacements,
-  dateForWeekdayIndex,
   formatHourLabel,
   getCellEntries,
+  getEntriesForPeriod,
+  getScheduleColumns,
   getTimeSlotsForEntries,
+  isBreakEntry,
+  shouldUsePeriodColumns,
   todayWeekdayIndex,
 } from '@/lib/student-timetable-utils';
 import { cn } from '@/lib/utils';
@@ -20,13 +23,19 @@ function formatSlotRange(hour: number): string {
   return `${start} – ${end}`;
 }
 
+function formatPeriodRange(startTime: string, endTime: string): string {
+  return `${startTime} – ${endTime}`;
+}
+
 export type WeeklyTimetableGridProps = {
   entries: TimetableEntry[];
   variant?: 'admin' | 'student' | 'teacher';
   interactive?: boolean;
   onEntryClick?: (entry: TimetableEntry) => void;
-  onEmptyClick?: (dayIndex: WeekdayIndex, hour: number) => void;
+  onEmptyClick?: (dayIndex: WeekdayIndex, hourOrStart: number | string) => void;
   className?: string;
+  /** When true, show class code on each card (multi-class dumps). */
+  showClassOnCard?: boolean;
 };
 
 const themes = {
@@ -34,6 +43,7 @@ const themes = {
     shell: 'border-orange-200/80 bg-gradient-to-br from-orange-50/30 via-white to-amber-50/20',
     header: 'bg-gradient-to-r from-orange-600 to-amber-500 text-white',
     headerCorner: 'bg-orange-700/90',
+    headerBreak: 'bg-gradient-to-r from-stone-500 to-stone-400 text-white',
     timeCol: 'bg-orange-50/80 border-orange-100 text-orange-900',
     timeColAlt: 'bg-white/90 border-orange-50',
     dayCol: 'bg-slate-50/95 border-orange-100',
@@ -49,6 +59,7 @@ const themes = {
     shell: 'border-indigo-100 bg-gradient-to-br from-sky-50/40 via-white to-indigo-50/30',
     header: 'bg-gradient-to-r from-sky-600 to-indigo-600 text-white',
     headerCorner: 'bg-indigo-700/90',
+    headerBreak: 'bg-gradient-to-r from-stone-500 to-stone-400 text-white',
     timeCol: 'bg-sky-50/80 border-sky-100 text-sky-900',
     timeColAlt: 'bg-white/90 border-sky-50',
     dayCol: 'bg-slate-50/95 border-indigo-100',
@@ -64,6 +75,7 @@ const themes = {
     shell: 'border-orange-200/70 bg-white',
     header: 'bg-[#D3723E] text-white',
     headerCorner: 'bg-[#B85F34] text-white border-white/15',
+    headerBreak: 'bg-[#8B7355] text-white',
     timeCol: 'bg-white border-gray-100/80',
     timeColAlt: 'bg-white border-gray-100/80',
     dayCol: 'bg-[#FFF9F2] border-orange-100/60 text-[#4A3121]',
@@ -77,6 +89,20 @@ const themes = {
   },
 };
 
+function BreakCell({ label, startTime, endTime }: { label: string; startTime: string; endTime: string }) {
+  return (
+    <div className="h-full min-h-[56px] w-full rounded-lg border border-dashed border-stone-300 bg-stone-100/80 flex flex-col items-center justify-center gap-0.5 px-1 py-2">
+      <Coffee className="w-3.5 h-3.5 text-stone-500" />
+      <p className="text-[10px] font-bold uppercase tracking-wide text-stone-700 text-center leading-tight">
+        {label}
+      </p>
+      <p className="text-[9px] tabular-nums text-stone-500 leading-tight">
+        {startTime}–{endTime}
+      </p>
+    </div>
+  );
+}
+
 export function WeeklyTimetableGrid({
   entries,
   variant = 'student',
@@ -84,71 +110,100 @@ export function WeeklyTimetableGrid({
   onEntryClick,
   onEmptyClick,
   className,
+  showClassOnCard = false,
 }: WeeklyTimetableGridProps) {
   const t = themes[variant] ?? themes.student;
-  const labelMode = variant === 'teacher' ? 'teacher' : 'subject';
-  const placements = buildWeekdayPlacements(entries);
-  const timeSlots = getTimeSlotsForEntries();
+  const labelMode = variant === 'teacher' ? 'teacher' : showClassOnCard ? 'admin' : 'subject';
   const now = new Date();
   const todayIdx = todayWeekdayIndex(now);
-  const dayColWidth = 96;
-  const timeColMin = 92;
-  const useBoundedScroll = variant === 'admin';
+  const usePeriods = variant === 'admin' || shouldUsePeriodColumns(entries);
+  const scheduleCols = usePeriods ? getScheduleColumns(entries) : [];
+  const usePeriodLayout = scheduleCols.length > 0;
+  const timeSlots = usePeriodLayout ? [] : getTimeSlotsForEntries();
+  const placements = usePeriodLayout ? [] : buildWeekdayPlacements(entries);
+
+  const dayColWidth = usePeriodLayout ? 84 : 96;
+  const colMin = usePeriodLayout ? 100 : 92;
+  const colCount = usePeriodLayout ? scheduleCols.length : timeSlots.length;
+
+  let periodNumber = 0;
 
   return (
-    <div
-      className={cn(
-        'rounded-2xl border shadow-sm overflow-hidden',
-        t.shell,
-        className
-      )}
-    >
-      <div
-        className={cn(
-          'scroll-smooth',
-          useBoundedScroll
-            ? 'max-h-[min(32rem,75vh)] overflow-auto overscroll-auto'
-            : 'overflow-x-auto overflow-y-clip overscroll-x-contain'
-        )}
-        aria-label="Weekly timetable grid"
-      >
-        <div style={{ minWidth: `${dayColWidth + timeSlots.length * timeColMin}px` }}>
+    <div className={cn('rounded-2xl border shadow-sm overflow-hidden', t.shell, className)}>
+      <div className="overflow-x-auto scroll-smooth" aria-label="Weekly timetable grid">
+        <div style={{ minWidth: `${dayColWidth + Math.max(colCount, 1) * colMin}px` }}>
           <div
             className="grid sticky top-0 z-20 shadow-md"
             style={{
-              gridTemplateColumns: `${dayColWidth}px repeat(${timeSlots.length}, minmax(${timeColMin}px, 1fr))`,
+              gridTemplateColumns: `${dayColWidth}px repeat(${Math.max(colCount, 1)}, minmax(${colMin}px, 1fr))`,
             }}
           >
             <div
               className={cn(
                 'flex items-center justify-center gap-1.5 px-2 py-3 border-r border-white/20 sticky left-0 z-30',
-                t.headerCorner
+                t.headerCorner,
               )}
             >
               <Clock className="w-3.5 h-3.5 text-white/90 shrink-0" />
-              <span className="text-micro font-bold uppercase tracking-wider text-white/95">Time</span>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-white/95">
+                {usePeriodLayout ? 'Period' : 'Time'}
+              </span>
             </div>
-            {timeSlots.map((hour, i) => (
-              <div
-                key={hour}
-                className={cn(
-                  'relative px-2 py-2.5 border-r border-white/15 last:border-r-0 text-center',
-                  t.header
-                )}
-              >
-                {i > 0 && (
-                  <span
-                    className={cn('absolute left-0 top-1/2 -translate-y-1/2 w-px h-8 opacity-40', t.timelineLine)}
-                    aria-hidden
-                  />
-                )}
-                <div className="flex flex-col items-center gap-0.5">
-                  <span className={cn('w-2 h-2 rounded-full ring-2 ring-white/40 shrink-0', t.timelineDot)} />
-                  <span className="text-xs sm:text-sm font-bold leading-none">{formatHourLabel(hour)}</span>
-                  <span className="text-micro font-medium text-white/80 tabular-nums">{formatSlotRange(hour)}</span>
-                </div>
-              </div>
-            ))}
+            {usePeriodLayout
+              ? scheduleCols.map((col) => {
+                  const isBreak = col.kind === 'break';
+                  if (!isBreak) periodNumber += 1;
+                  const pLabel = isBreak ? col.label || 'Break' : `P${periodNumber}`;
+                  return (
+                    <div
+                      key={col.key}
+                      className={cn(
+                        'relative px-1.5 py-2 border-r border-white/15 last:border-r-0 text-center',
+                        isBreak ? t.headerBreak : t.header,
+                      )}
+                    >
+                      <div className="flex flex-col items-center gap-0.5">
+                        <span className="text-[10px] font-bold uppercase tracking-wide text-white/95">
+                          {pLabel}
+                        </span>
+                        <span className="text-xs font-bold leading-tight tabular-nums">{col.startTime}</span>
+                        <span className="text-[9px] font-medium text-white/85 tabular-nums leading-tight">
+                          {formatPeriodRange(col.startTime, col.endTime)}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })
+              : timeSlots.map((hour, i) => (
+                  <div
+                    key={hour}
+                    className={cn(
+                      'relative px-2 py-2.5 border-r border-white/15 last:border-r-0 text-center',
+                      t.header,
+                    )}
+                  >
+                    {i > 0 && (
+                      <span
+                        className={cn(
+                          'absolute left-0 top-1/2 -translate-y-1/2 w-px h-8 opacity-40',
+                          t.timelineLine,
+                        )}
+                        aria-hidden
+                      />
+                    )}
+                    <div className="flex flex-col items-center gap-0.5">
+                      <span
+                        className={cn('w-2 h-2 rounded-full ring-2 ring-white/40 shrink-0', t.timelineDot)}
+                      />
+                      <span className="text-xs sm:text-sm font-bold leading-none">
+                        {formatHourLabel(hour)}
+                      </span>
+                      <span className="text-[9px] font-medium text-white/80 tabular-nums">
+                        {formatSlotRange(hour)}
+                      </span>
+                    </div>
+                  </div>
+                ))}
           </div>
 
           {WEEKDAY_LABELS.map((label, dayIndex) => {
@@ -158,40 +213,40 @@ export function WeeklyTimetableGrid({
                 key={label}
                 initial={{ opacity: 0, x: -6 }}
                 animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: dayIndex * 0.04 }}
-                className={cn('grid items-center border-b border-gray-100/80 last:border-b-0', t.rowHover)}
+                transition={{ delay: dayIndex * 0.03 }}
+                className={cn('grid items-stretch border-b border-gray-100/80 last:border-b-0', t.rowHover)}
                 style={{
-                  gridTemplateColumns: `${dayColWidth}px repeat(${timeSlots.length}, minmax(${timeColMin}px, 1fr))`,
+                  gridTemplateColumns: `${dayColWidth}px repeat(${Math.max(colCount, 1)}, minmax(${colMin}px, 1fr))`,
                 }}
               >
                 <div
                   className={cn(
-                    'relative flex flex-col items-center justify-center gap-1 px-2 py-2.5 border-r sticky left-0 z-10 self-stretch min-h-[52px]',
-                    isToday ? t.dayColToday : t.dayCol
+                    'relative flex flex-col items-center justify-center gap-1 px-2 py-2.5 border-r sticky left-0 z-10 self-stretch min-h-[64px]',
+                    isToday ? t.dayColToday : t.dayCol,
                   )}
                 >
                   {isToday && (
                     <span
                       className={cn(
                         'absolute left-0 top-1 bottom-1 w-1 rounded-r-full bg-gradient-to-b',
-                        t.todayAccent
+                        t.todayAccent,
                       )}
                       aria-hidden
                     />
                   )}
                   <p
                     className={cn(
-                      'text-micro sm:text-xs font-bold uppercase tracking-wide text-center leading-tight whitespace-nowrap',
-                      isToday ? t.todayText : 'text-gray-800'
+                      'text-[10px] sm:text-xs font-bold uppercase tracking-wide text-center leading-tight',
+                      isToday ? t.todayText : 'text-gray-800',
                     )}
                   >
-                    {label}
+                    {label.slice(0, 3)}
                   </p>
                   {isToday && (
                     <span
                       className={cn(
                         'text-[8px] font-bold px-1.5 py-0.5 rounded-full whitespace-nowrap',
-                        t.todayBadge
+                        t.todayBadge,
                       )}
                     >
                       Today
@@ -199,54 +254,117 @@ export function WeeklyTimetableGrid({
                   )}
                 </div>
 
-                {timeSlots.map((hour, colIdx) => {
-                  const cellEntries = getCellEntries(
-                    placements,
-                    dayIndex as WeekdayIndex,
-                    hour
-                  );
-                  return (
-                    <div
-                      key={`${dayIndex}-${hour}`}
-                      className={cn(
-                        'flex items-center p-1.5 border-r border-gray-100/60 last:border-r-0 min-h-[52px]',
-                        colIdx % 2 === 0 ? t.timeColAlt : 'bg-white/50'
-                      )}
-                    >
-                      <div className="w-full">
-                        <TimetableGridCell
-                          entries={cellEntries}
-                          now={now}
-                          compact
-                          labelMode={labelMode}
-                          interactive={interactive}
-                          onEntryClick={onEntryClick}
-                          onEmptyClick={
-                            interactive && onEmptyClick
-                              ? () => onEmptyClick(dayIndex as WeekdayIndex, hour)
-                              : undefined
-                          }
-                        />
-                      </div>
-                    </div>
-                  );
-                })}
+                {usePeriodLayout
+                  ? scheduleCols.map((col, colIdx) => {
+                      const isBreakCol = col.kind === 'break';
+                      const cellEntries = col.inferred
+                        ? []
+                        : getEntriesForPeriod(entries, dayIndex as WeekdayIndex, col.startTime).filter(
+                            (e) => (isBreakCol ? isBreakEntry(e) : !isBreakEntry(e)),
+                          );
+                      // If stored break and teaching share unlikely same start, prefer matching kind
+                      const allAtStart = col.inferred
+                        ? []
+                        : getEntriesForPeriod(entries, dayIndex as WeekdayIndex, col.startTime);
+                      const displayEntries =
+                        cellEntries.length > 0
+                          ? cellEntries
+                          : !isBreakCol
+                            ? allAtStart.filter((e) => !isBreakEntry(e))
+                            : allAtStart.filter((e) => isBreakEntry(e));
+
+                      return (
+                        <div
+                          key={`${dayIndex}-${col.key}`}
+                          className={cn(
+                            'flex items-stretch p-1 border-r border-gray-100/60 last:border-r-0 min-h-[64px]',
+                            isBreakCol
+                              ? 'bg-stone-50/90'
+                              : colIdx % 2 === 0
+                                ? t.timeColAlt
+                                : 'bg-white/50',
+                          )}
+                        >
+                          <div className="w-full">
+                            {isBreakCol && (col.inferred || displayEntries.length === 0) ? (
+                              <BreakCell
+                                label={col.label || 'Break'}
+                                startTime={col.startTime}
+                                endTime={col.endTime}
+                              />
+                            ) : isBreakCol ? (
+                              <BreakCell
+                                label={col.label || 'Break'}
+                                startTime={col.startTime}
+                                endTime={col.endTime}
+                              />
+                            ) : (
+                              <TimetableGridCell
+                                entries={displayEntries}
+                                now={now}
+                                compact
+                                dense
+                                labelMode={labelMode}
+                                interactive={interactive}
+                                onEntryClick={onEntryClick}
+                                onEmptyClick={
+                                  interactive && onEmptyClick
+                                    ? () => onEmptyClick(dayIndex as WeekdayIndex, col.startTime)
+                                    : undefined
+                                }
+                              />
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })
+                  : timeSlots.map((hour, colIdx) => {
+                      const cellEntries = getCellEntries(
+                        placements,
+                        dayIndex as WeekdayIndex,
+                        hour,
+                      );
+                      return (
+                        <div
+                          key={`${dayIndex}-${hour}`}
+                          className={cn(
+                            'flex items-center p-1.5 border-r border-gray-100/60 last:border-r-0 min-h-[64px]',
+                            colIdx % 2 === 0 ? t.timeColAlt : 'bg-white/50',
+                          )}
+                        >
+                          <div className="w-full">
+                            <TimetableGridCell
+                              entries={cellEntries}
+                              now={now}
+                              compact
+                              dense
+                              labelMode={labelMode}
+                              interactive={interactive}
+                              onEntryClick={onEntryClick}
+                              onEmptyClick={
+                                interactive && onEmptyClick
+                                  ? () => onEmptyClick(dayIndex as WeekdayIndex, hour)
+                                  : undefined
+                              }
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
               </motion.div>
             );
           })}
         </div>
       </div>
 
-      <div className="px-3 py-2 border-t border-gray-100/80 bg-white/60 flex flex-wrap gap-3 text-micro text-gray-500">
+      <div className="px-3 py-2 border-t border-gray-100/80 bg-white/60 flex flex-wrap gap-3 text-[10px] text-gray-500">
         <span className="flex items-center gap-1">
           <span className={cn('w-2 h-2 rounded-full', t.timelineDot)} />
-          Monday – Saturday · same weekly pattern
+          Monday – Saturday
+          {usePeriodLayout ? ' · periods + breaks' : ' · hourly slots'}
         </span>
         {interactive && variant !== 'teacher' && (
-          <span>Click empty slot to add · click class to edit</span>
-        )}
-        {variant === 'teacher' && onEntryClick && (
-          <span>Click a class to mark as completed</span>
+          <span>Click a class to edit · use Edit period times to change bells</span>
         )}
       </div>
     </div>

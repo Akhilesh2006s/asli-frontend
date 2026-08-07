@@ -124,6 +124,26 @@ export function useImportTimetableCSV() {
   });
 }
 
+export function useRemapPeriodTimes() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload: {
+      classId: string;
+      startDate: string;
+      endDate: string;
+      mappings: Array<{ fromStart: string; toStart: string; toEnd: string }>;
+      breaksToAdd?: Array<{ startTime: string; endTime: string; label: string }>;
+    }) => {
+      const res = await apiFetch('/api/timetable/remap-periods', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      });
+      return parseJson<{ updated: number; breaksCreated: number }>(res);
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['timetable'] }),
+  });
+}
+
 export function useValidateTimetableCSV() {
   return useMutation({
     mutationFn: async (file: File) => {

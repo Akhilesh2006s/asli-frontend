@@ -7,7 +7,7 @@ import {
 } from 'date-fns';
 import {
   ChevronLeft, ChevronRight, Plus, Upload, Download, Trash2,
-  CalendarDays, AlertTriangle, FileSpreadsheet,
+  CalendarDays, AlertTriangle, FileSpreadsheet, Clock,
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -22,14 +22,14 @@ import { API_BASE_URL } from '@/lib/api-config';
 import {
   useTimetableEntries, useCreateTimetable, useUpdateTimetable,
   useDeleteTimetable, useBulkDeleteTimetable, useBulkDeleteTimetableGroup,
-  useImportTimetableCSV,
+  useImportTimetableCSV, useRemapPeriodTimes,
   downloadTimetableTemplate, exportTimetableCSV,
 } from '@/hooks/useTimetable';
 import type { TimetableEntry, TimetableFilters, SessionType } from '@/types/timetable';
 import { SESSION_TYPE_COLORS, STATUS_COLORS, COLOR_PRESETS } from '@/types/timetable';
 import { cn } from '@/lib/utils';
 import { WeeklyTimetableGrid } from '@/components/timetable/WeeklyTimetableGrid';
-import { colorTagForSubject, dateForWeekdayIndex, getWeekDates, type WeekdayIndex } from '@/lib/student-timetable-utils';
+import { colorTagForSubject, dateForWeekdayIndex, getPeriodColumnsFromEntries, getWeekDates, type WeekdayIndex } from '@/lib/student-timetable-utils';
 
 const FORM_INPUT =
   'rounded-xl border-orange-200 bg-white min-w-0 w-full h-10 text-sm focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-0 focus-visible:border-orange-500 selection:bg-orange-200 selection:text-orange-950';
@@ -173,6 +173,13 @@ export default function TimetableManagement() {
   const [classes, setClasses] = useState<ClassOption[]>([]);
   const [teachers, setTeachers] = useState<Array<{ _id: string; fullName: string; email: string }>>([]);
   const [subjects, setSubjects] = useState<Array<{ _id: string; name: string }>>([]);
+  const [periodsEditOpen, setPeriodsEditOpen] = useState(false);
+  const [periodDrafts, setPeriodDrafts] = useState<
+    Array<{ key: string; fromStart: string; startTime: string; endTime: string }>
+  >([]);
+  const [breakDrafts, setBreakDrafts] = useState<
+    Array<{ id: string; startTime: string; endTime: string; label: string }>
+  >([]);
 
   const weekStartDate = useMemo(
     () => startOfWeek(currentDate, { weekStartsOn: 1 }),
@@ -190,7 +197,7 @@ export default function TimetableManagement() {
   );
 
   const queryFilters = useMemo((): TimetableFilters => {
-    const base: TimetableFilters = {
+    return {
       classId: filters.classId,
       teacherId: filters.teacherId,
       subjectId: filters.subjectId,
@@ -198,24 +205,92 @@ export default function TimetableManagement() {
       status: filters.status,
       sessionType: filters.sessionType,
       sectionId: filters.sectionId,
-    };
-    if (viewMode === 'week') return base;
-    return {
-      ...base,
       startDate: filters.startDate || rangeStart,
       endDate: filters.endDate || rangeEnd,
     };
-  }, [viewMode, filters.classId, filters.teacherId, filters.subjectId, filters.room, filters.status, filters.sessionType, filters.sectionId, filters.startDate, filters.endDate, rangeStart, rangeEnd]);
+  }, [filters.classId, filters.teacherId, filters.subjectId, filters.room, filters.status, filters.sessionType, filters.sectionId, filters.startDate, filters.endDate, rangeStart, rangeEnd]);
 
   const { data: entries = [], isLoading, refetch } = useTimetableEntries(queryFilters);
 
   const displayEntries = entries;
+
+  const [didAutoSelectClass, setDidAutoSelectClass] = useState(false);
+
+  // Prefer a single class for Week Schedule so the grid stays readable after school-wide import
+  useEffect(() => {
+    if (didAutoSelectClass || !classes.length || filters.classId) return;
+    const sorted = [...classes].sort((a, b) =>
+      String(a.classNumber).localeCompare(String(b.classNumber), undefined, { numeric: true }) ||
+      String(a.section).localeCompare(String(b.section)),
+    );
+    if (sorted[0]?._id) {
+      setFilters((f) => (f.classId ? f : { ...f, classId: sorted[0]._id }));
+      setDidAutoSelectClass(true);
+    }
+  }, [classes, filters.classId, didAutoSelectClass]);
   const createMut = useCreateTimetable();
   const updateMut = useUpdateTimetable();
   const deleteMut = useDeleteTimetable();
   const bulkDeleteMut = useBulkDeleteTimetable();
   const bulkDeleteGroupMut = useBulkDeleteTimetableGroup();
   const importCsv = useImportTimetableCSV();
+  const remapPeriodsMut = useRemapPeriodTimes();
+
+  const openPeriodsEditor = () => {
+    const cols = getPeriodColumnsFromEntries(displayEntries).filter((c) => c.kind !== 'break');
+    setPeriodDrafts(
+      cols.map((c) => ({
+        key: c.key,
+        fromStart: c.startTime,
+        startTime: c.startTime,
+        endTime: c.endTime,
+      })),
+    );
+    setBreakDrafts([]);
+    setPeriodsEditOpen(true);
+  };
+
+  const savePeriodTimes = async () => {
+    if (!filters.classId) {
+      toast({
+        title: 'Select a class',
+        description: 'Pick one class before editing period times.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    const mappings = periodDrafts.map((p) => ({
+      fromStart: p.fromStart,
+      toStart: p.startTime,
+      toEnd: p.endTime,
+    }));
+
+    try {
+      const r = await remapPeriodsMut.mutateAsync({
+        classId: filters.classId,
+        startDate: rangeStart,
+        endDate: rangeEnd,
+        mappings,
+        breaksToAdd: breakDrafts.map((b) => ({
+          startTime: b.startTime,
+          endTime: b.endTime,
+          label: b.label || 'Break',
+        })),
+      });
+      toast({
+        title: 'Period times updated',
+        description: `Updated ${r.updated} slots${r.breaksCreated ? `, added ${r.breaksCreated} break cells` : ''}.`,
+      });
+      setPeriodsEditOpen(false);
+      refetch();
+    } catch (err) {
+      toast({
+        title: 'Could not update times',
+        description: err instanceof Error ? err.message : 'Request failed',
+        variant: 'destructive',
+      });
+    }
+  };
 
   useEffect(() => {
     const token = getAuthToken();
@@ -257,12 +332,25 @@ export default function TimetableManagement() {
     return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
   }, [subjects, form.subjectId, editingEntry]);
 
-  const openAdd = (date?: Date, hour?: number, dayIndex?: WeekdayIndex) => {
+  const openAdd = (date?: Date, hour?: number, dayIndex?: WeekdayIndex, startTimeExact?: string) => {
     setEditingEntry(null);
     const d = date ?? (dayIndex != null ? dateForWeekdayIndex(dayIndex) : new Date());
-    const startTime = hour != null ? `${String(hour).padStart(2, '0')}:00` : '09:00';
-    const endTime = hour != null ? `${String(Math.min(hour + 1, 23)).padStart(2, '0')}:00` : '10:00';
-    setForm({ ...emptyForm(), date: format(d, 'yyyy-MM-dd'), startTime, endTime });
+    let startTime = hour != null ? `${String(hour).padStart(2, '0')}:00` : '09:00';
+    let endTime = hour != null ? `${String(Math.min(hour + 1, 23)).padStart(2, '0')}:00` : '10:00';
+    if (startTimeExact && /^\d{2}:\d{2}$/.test(startTimeExact)) {
+      startTime = startTimeExact;
+      const [h, m] = startTimeExact.split(':').map(Number);
+      const endMins = h * 60 + m + 45;
+      endTime = `${String(Math.floor(endMins / 60) % 24).padStart(2, '0')}:${String(endMins % 60).padStart(2, '0')}`;
+    }
+    setForm({
+      ...emptyForm(),
+      date: format(d, 'yyyy-MM-dd'),
+      startTime,
+      endTime,
+      classId: filters.classId || '',
+      sectionId: classes.find((c) => c._id === filters.classId)?.section || '',
+    });
     setFormOpen(true);
   };
 
@@ -487,9 +575,9 @@ export default function TimetableManagement() {
     <div className="flex flex-col lg:flex-row gap-4 items-center justify-between bg-white/70 backdrop-blur-xl rounded-2xl p-4 sm:p-6 shadow-xl border border-white/20">
       <div className="flex flex-wrap gap-2 items-center w-full lg:w-auto">
         <Select value={filters.classId || 'all'} onValueChange={(v) => setFilters((f) => ({ ...f, classId: v === 'all' ? undefined : v }))}>
-          <SelectTrigger className="w-[140px] rounded-xl bg-white border-orange-200"><SelectValue placeholder="Class" /></SelectTrigger>
+          <SelectTrigger className="w-[160px] rounded-xl bg-white border-orange-300 font-medium"><SelectValue placeholder="Select class" /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Classes</SelectItem>
+            <SelectItem value="all">All Classes (crowded)</SelectItem>
             {classes.map((c) => <SelectItem key={c._id} value={c._id}>{c.classNumber}-{c.section}</SelectItem>)}
           </SelectContent>
         </Select>
@@ -526,7 +614,7 @@ export default function TimetableManagement() {
               variant="outline"
               size="sm"
               className="rounded-xl border-red-200 text-red-700 hover:bg-red-50"
-              disabled={displayEntries.length === 0 || bulkDeleteMut.isPending || viewMode === 'week'}
+              disabled={displayEntries.length === 0 || bulkDeleteMut.isPending}
             >
               <Trash2 className="w-4 h-4 mr-1" />
               Delete visible
@@ -573,16 +661,33 @@ export default function TimetableManagement() {
           <DialogContent className="max-w-lg bg-white/95 border-orange-200 backdrop-blur-xl">
             <DialogHeader>
               <DialogTitle className="text-lg sm:text-xl font-bold bg-gradient-to-r from-orange-600 to-orange-400 bg-clip-text text-transparent">
-                Upload Timetable CSV
+                Upload Timetable
               </DialogTitle>
-              <DialogDescription className="text-gray-600 text-xs sm:text-sm">
-                Upload a CSV or Excel file to bulk import schedule entries. Class and Section must
-                match an existing class in School Management (e.g. Class 9 + Section A). Subject and
-                Teacher must already exist in this school. Prefer Download template — it uses your
-                school&apos;s real classes.
+              <DialogDescription className="text-gray-600 text-xs sm:text-sm space-y-2">
+                <span className="block">
+                  Upload CSV or Excel. Two formats work:
+                </span>
+                <span className="block">
+                  1) Class weekly grid (like school printouts): header such as{' '}
+                  <span className="font-medium text-gray-800">6A - Teacher</span>, then Time / Period
+                  rows and Mon–Sat subject cells. Missing classes (e.g. 6-C, 10-A) and activity
+                  subjects are created automatically. Re-upload replaces that week for the classes
+                  in the file. Teacher column is optional.
+                </span>
+                <span className="block">
+                  2) Flat row file (Date, Day, StartTime, EndTime, Class, Section, Subject, Teacher).
+                  Use Download template for this format. Classes must already exist in School
+                  Management.
+                </span>
               </DialogDescription>
             </DialogHeader>
             <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
+              {importCsv.isPending && (
+                <p className="text-xs text-orange-800 bg-orange-50 border border-orange-200 rounded-lg p-2">
+                  Importing… large class grids (hundreds of periods) usually finish in under a minute.
+                  Keep this dialog open.
+                </p>
+              )}
               <div className="flex items-center justify-between p-4 bg-gradient-to-r from-orange-50 to-orange-100 rounded-xl border border-orange-200">
                 <div className="flex items-center gap-3">
                   <FileSpreadsheet className="w-8 h-8 text-orange-600" />
@@ -620,7 +725,8 @@ export default function TimetableManagement() {
                 <div className="max-h-48 overflow-y-auto rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-950 space-y-1.5">
                   <p className="font-semibold flex items-center gap-1.5">
                     <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
-                    {importErrors.length} row{importErrors.length === 1 ? '' : 's'} skipped
+                    {importErrors.length} issue{importErrors.length === 1 ? '' : 's'}
+                    {importErrors.some((e) => e.status === 'error') ? ' (some rows skipped)' : ''}
                   </p>
                   {(() => {
                     const grouped = new Map<string, number[]>();
@@ -647,10 +753,11 @@ export default function TimetableManagement() {
                       );
                     });
                   })()}
-                  {importErrors.length > 1 && (
+                  {importErrors.some((e) => String(e.reason || '').includes('not found')) && (
                     <p className="text-amber-800">
-                      Tip: change Class/Section in the CSV to match Available classes, or create the
-                      missing class in School Management.
+                      Tip: create missing classes in School Management, or re-upload a class grid —
+                      missing classes are auto-created. Re-uploading a class grid replaces that
+                      week&apos;s periods for those classes.
                     </p>
                   )}
                 </div>
@@ -669,17 +776,24 @@ export default function TimetableManagement() {
                       imported: number;
                       skipped: number;
                       errors?: Array<{ row: number; reason: string; status?: string }>;
+                      autoCreatedClasses?: string[];
+                      format?: string;
                     };
                     const errs = Array.isArray(r.errors) ? r.errors : [];
                     setImportErrors(errs);
+                    const created = Array.isArray(r.autoCreatedClasses) ? r.autoCreatedClasses : [];
                     const firstReason = String(errs.find((e) => e.reason)?.reason || '');
                     const shortFirst =
                       firstReason.length > 140 ? `${firstReason.slice(0, 140)}…` : firstReason;
+                    const createdNote =
+                      created.length > 0
+                        ? ` Created classes: ${created.slice(0, 8).join(', ')}${created.length > 8 ? '…' : ''}.`
+                        : '';
                     toast({
                       title: r.imported > 0 ? 'Import done' : 'Nothing imported',
                       description: shortFirst
-                        ? `Imported: ${r.imported}, Skipped: ${r.skipped}. ${shortFirst}`
-                        : `Imported: ${r.imported}, Skipped: ${r.skipped}`,
+                        ? `Imported: ${r.imported}, Skipped: ${r.skipped}.${createdNote} ${shortFirst}`
+                        : `Imported: ${r.imported}, Skipped: ${r.skipped}.${createdNote}`,
                       variant: r.imported > 0 ? 'default' : 'destructive',
                     });
                     if (r.imported > 0 && errs.length === 0) {
@@ -744,6 +858,19 @@ export default function TimetableManagement() {
                 </Button>
               ))}
             </div>
+            {viewMode === 'week' && (
+              <div className="flex items-center gap-2 rounded-xl border border-orange-200 bg-white px-1 py-0.5 shadow-sm">
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={navPrev}>
+                  <ChevronLeft className="w-4 h-4" />
+                </Button>
+                <span className="text-sm font-bold text-gray-900 px-2 whitespace-nowrap">
+                  {format(weekStartDate, 'd MMM')} – {format(addDays(weekStartDate, 5), 'd MMM yyyy')}
+                </span>
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={navNext}>
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
+              </div>
+            )}
             {viewMode !== 'week' && (
               <div className="flex items-center gap-2 rounded-xl border border-orange-200 bg-white px-1 py-0.5 shadow-sm">
                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={navPrev}>
@@ -755,16 +882,21 @@ export default function TimetableManagement() {
                 </Button>
               </div>
             )}
-            {viewMode === 'week' && (
-              <p className="text-sm font-medium text-orange-800">Weekly pattern · Monday – Saturday</p>
-            )}
           </div>
 
           <div className="p-4 space-y-4">
 
               {isLoading ? (
                 <div className="space-y-2">{Array.from({ length: 5 }).map((_, i) => <div key={i} className="h-12 bg-gray-100 animate-pulse rounded-xl" />)}</div>
-              ) : displayEntries.length === 0 && viewMode !== 'week' ? (
+              ) : viewMode === 'week' && !filters.classId ? (
+                <div className="text-center py-14 text-gray-600 space-y-3">
+                  <CalendarDays className="h-12 w-12 mx-auto text-orange-300" />
+                  <p className="font-semibold text-gray-900">Select a class to view the week timetable</p>
+                  <p className="text-sm max-w-md mx-auto">
+                    School-wide imports put many classes in the same week. Pick a class (e.g. 6-A) above for a clear Mon–Sat period grid — same layout as your Excel.
+                  </p>
+                </div>
+              ) : displayEntries.length === 0 ? (
                 <div className="text-center py-16 text-gray-500">
                   <CalendarDays className="h-12 w-12 mx-auto mb-3 text-gray-300" />
                   <p className="font-medium">No timetable entries</p>
@@ -773,13 +905,43 @@ export default function TimetableManagement() {
               ) : (
                 <>
                   {viewMode === 'week' && (
-                    <WeeklyTimetableGrid
-                      entries={displayEntries}
-                      variant="admin"
-                      interactive
-                      onEntryClick={openEdit}
-                      onEmptyClick={(dayIndex, hour) => openAdd(undefined, hour, dayIndex)}
-                    />
+                    <div className="space-y-3">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <p className="text-xs text-gray-600">
+                          Periods follow school bell times. Breaks show between gaps (or from import).
+                        </p>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="rounded-xl border-orange-300 text-orange-800"
+                          disabled={!filters.classId || displayEntries.length === 0}
+                          onClick={openPeriodsEditor}
+                        >
+                          <Clock className="w-3.5 h-3.5 mr-1.5" />
+                          Edit period times
+                        </Button>
+                      </div>
+                      {!filters.classId && (
+                        <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
+                          Showing all classes — the grid will look crowded. Choose one class for a clean view.
+                        </p>
+                      )}
+                      <WeeklyTimetableGrid
+                        entries={displayEntries}
+                        variant="admin"
+                        interactive
+                        showClassOnCard={!filters.classId}
+                        onEntryClick={openEdit}
+                        onEmptyClick={(dayIndex, hourOrStart) => {
+                          if (typeof hourOrStart === 'string') {
+                            openAdd(undefined, undefined, dayIndex, hourOrStart);
+                          } else {
+                            openAdd(undefined, hourOrStart, dayIndex);
+                          }
+                        }}
+                      />
+                    </div>
                   )}
                   {viewMode === 'teacher' && renderMatrixView('teacher')}
                   {viewMode === 'class' && renderMatrixView('class')}
@@ -789,6 +951,158 @@ export default function TimetableManagement() {
           </div>
         </CardContent>
       </Card>
+
+      <Dialog open={periodsEditOpen} onOpenChange={setPeriodsEditOpen}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl border-orange-100">
+          <DialogHeader>
+            <DialogTitle className="text-orange-900">Edit period times</DialogTitle>
+            <DialogDescription className="text-sm text-gray-600">
+              Change bell times for this class for the visible week. Add Break / Lunch slots to match
+              the school timetable.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Periods</p>
+              {periodDrafts.map((p, idx) => (
+                <div
+                  key={p.key}
+                  className="grid grid-cols-[2.5rem_1fr_1fr] gap-2 items-center rounded-xl border border-orange-100 bg-orange-50/40 p-2"
+                >
+                  <span className="text-xs font-bold text-orange-800 text-center">P{idx + 1}</span>
+                  <div>
+                    <Label className="text-[10px] text-gray-500">Start</Label>
+                    <Input
+                      type="time"
+                      className="h-9 rounded-lg border-orange-200"
+                      value={p.startTime}
+                      onChange={(e) =>
+                        setPeriodDrafts((rows) =>
+                          rows.map((r) => (r.key === p.key ? { ...r, startTime: e.target.value } : r)),
+                        )
+                      }
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-[10px] text-gray-500">End</Label>
+                    <Input
+                      type="time"
+                      className="h-9 rounded-lg border-orange-200"
+                      value={p.endTime}
+                      onChange={(e) =>
+                        setPeriodDrafts((rows) =>
+                          rows.map((r) => (r.key === p.key ? { ...r, endTime: e.target.value } : r)),
+                        )
+                      }
+                    />
+                  </div>
+                </div>
+              ))}
+              {periodDrafts.length === 0 && (
+                <p className="text-sm text-gray-500">No periods found for this class/week.</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Breaks to add</p>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="rounded-lg h-8 text-xs"
+                  onClick={() => {
+                    const last = periodDrafts[periodDrafts.length - 1];
+                    const start = last?.endTime || '11:05';
+                    const [h, m] = start.split(':').map(Number);
+                    const endMins = h * 60 + m + 15;
+                    const end = `${String(Math.floor(endMins / 60)).padStart(2, '0')}:${String(endMins % 60).padStart(2, '0')}`;
+                    setBreakDrafts((rows) => [
+                      ...rows,
+                      {
+                        id: `br-${Date.now()}`,
+                        startTime: start,
+                        endTime: end,
+                        label: endMins - (h * 60 + m) >= 30 ? 'Lunch' : 'Break',
+                      },
+                    ]);
+                  }}
+                >
+                  <Plus className="w-3.5 h-3.5 mr-1" />
+                  Add break
+                </Button>
+              </div>
+              {breakDrafts.map((b) => (
+                <div
+                  key={b.id}
+                  className="grid grid-cols-[1fr_1fr_1fr_auto] gap-2 items-end rounded-xl border border-stone-200 bg-stone-50 p-2"
+                >
+                  <div>
+                    <Label className="text-[10px] text-gray-500">Label</Label>
+                    <Input
+                      className="h-9 rounded-lg"
+                      value={b.label}
+                      onChange={(e) =>
+                        setBreakDrafts((rows) =>
+                          rows.map((r) => (r.id === b.id ? { ...r, label: e.target.value } : r)),
+                        )
+                      }
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-[10px] text-gray-500">Start</Label>
+                    <Input
+                      type="time"
+                      className="h-9 rounded-lg"
+                      value={b.startTime}
+                      onChange={(e) =>
+                        setBreakDrafts((rows) =>
+                          rows.map((r) => (r.id === b.id ? { ...r, startTime: e.target.value } : r)),
+                        )
+                      }
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-[10px] text-gray-500">End</Label>
+                    <Input
+                      type="time"
+                      className="h-9 rounded-lg"
+                      value={b.endTime}
+                      onChange={(e) =>
+                        setBreakDrafts((rows) =>
+                          rows.map((r) => (r.id === b.id ? { ...r, endTime: e.target.value } : r)),
+                        )
+                      }
+                    />
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-9 w-9 text-red-600"
+                    onClick={() => setBreakDrafts((rows) => rows.filter((r) => r.id !== b.id))}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button type="button" variant="outline" className="rounded-xl" onClick={() => setPeriodsEditOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              className="rounded-xl bg-gradient-to-r from-orange-600 to-orange-400"
+              disabled={remapPeriodsMut.isPending}
+              onClick={() => void savePeriodTimes()}
+            >
+              {remapPeriodsMut.isPending ? 'Saving…' : 'Save times'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={formOpen} onOpenChange={setFormOpen}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl border-orange-100">
