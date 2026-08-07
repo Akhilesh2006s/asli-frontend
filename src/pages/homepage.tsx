@@ -317,6 +317,19 @@ export default function Homepage() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  useEffect(() => {
+    const scrollToHash = () => {
+      const id = window.location.hash.replace(/^#/, "").trim();
+      if (!id) return;
+      window.setTimeout(() => {
+        document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 100);
+    };
+    scrollToHash();
+    window.addEventListener("hashchange", scrollToHash);
+    return () => window.removeEventListener("hashchange", scrollToHash);
+  }, []);
+
   return (
     <div className="min-h-screen overflow-x-hidden bg-white text-slate-900">
       <MarketingNav scrolled={scrolled} />
@@ -412,26 +425,40 @@ export default function Homepage() {
               className="animate-fade-rise mt-6 flex w-full flex-col gap-2.5 sm:mt-8 sm:max-w-lg sm:flex-row sm:items-center sm:gap-3"
               style={{ animationDelay: "200ms" }}
             >
-              <Link href="/book-a-demo" className="w-full sm:w-auto">
-                <Button
-                  size="lg"
-                  className="group h-11 w-full rounded-full bg-sky-500 px-5 pl-6 text-sm font-semibold text-white hover:bg-sky-600 sm:h-12 sm:w-auto sm:text-base"
-                >
+              <Button
+                asChild
+                size="lg"
+                className="group h-11 w-full rounded-full bg-sky-500 px-5 pl-6 text-sm font-semibold text-white hover:bg-sky-600 sm:h-12 sm:w-auto sm:text-base"
+              >
+                <Link href="/book-a-demo" className="w-full sm:w-auto">
                   Book a Demo
                   <span className="ml-2 flex h-7 w-7 items-center justify-center rounded-full bg-white/20 transition group-hover:bg-white/30 sm:h-8 sm:w-8">
                     <ArrowRight className="h-4 w-4" />
                   </span>
-                </Button>
-              </Link>
-              <Link href="/platform" className="w-full sm:w-auto">
-                <Button
-                  size="lg"
-                  variant="outline"
-                  className="h-11 w-full rounded-full border border-white/55 bg-transparent px-6 text-sm font-semibold text-white hover:bg-white/10 hover:text-white sm:h-12 sm:w-auto sm:text-base"
+                </Link>
+              </Button>
+              <Button
+                asChild
+                size="lg"
+                variant="outline"
+                className="h-11 w-full rounded-full border border-white/55 bg-transparent px-6 text-sm font-semibold text-white hover:bg-white/10 hover:text-white sm:h-12 sm:w-auto sm:text-base"
+              >
+                <a
+                  href="/#platform"
+                  className="w-full sm:w-auto"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    window.history.pushState(null, "", "/#platform");
+                    window.setTimeout(() => {
+                      document
+                        .getElementById("platform")
+                        ?.scrollIntoView({ behavior: "smooth", block: "start" });
+                    }, 80);
+                  }}
                 >
                   Explore the Platform
-                </Button>
-              </Link>
+                </a>
+              </Button>
             </div>
             <div
               className="animate-fade-rise mt-6 flex items-center gap-2.5 sm:mt-8 sm:gap-3"
@@ -901,20 +928,22 @@ export default function Homepage() {
             </p>
           </div>
           <div className="flex w-full flex-col gap-2 sm:w-auto sm:shrink-0 sm:flex-row">
-            <Link href="/book-a-demo" className="w-full sm:w-auto">
-              <Button className="h-11 w-full rounded-full bg-white px-5 font-semibold text-sky-600 hover:bg-white/95 sm:w-auto">
+            <Button
+              asChild
+              className="h-11 w-full rounded-full bg-white px-5 font-semibold text-sky-600 hover:bg-white/95 sm:w-auto"
+            >
+              <Link href="/book-a-demo">
                 Book a Demo
                 <ArrowRight className="h-4 w-4" />
-              </Button>
-            </Link>
-            <Link href="/book-a-demo" className="w-full sm:w-auto">
-              <Button
-                variant="outline"
-                className="h-11 w-full rounded-full border-2 border-white bg-transparent px-5 font-semibold text-white hover:bg-white/10 hover:text-white sm:w-auto"
-              >
-                Talk to Our Team
-              </Button>
-            </Link>
+              </Link>
+            </Button>
+            <Button
+              asChild
+              variant="outline"
+              className="h-11 w-full rounded-full border-2 border-white bg-transparent px-5 font-semibold text-white hover:bg-white/10 hover:text-white sm:w-auto"
+            >
+              <Link href="/book-a-demo">Talk to Our Team</Link>
+            </Button>
           </div>
         </div>
       </section>

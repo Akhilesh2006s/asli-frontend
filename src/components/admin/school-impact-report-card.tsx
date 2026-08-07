@@ -37,6 +37,13 @@ type SchoolSnap = {
   repeatPracticeStudentPct?: number;
   avgSessionsPerActiveStudent?: number;
   practiceCorrectRate?: number;
+  videosWatchedCount?: number;
+  studentsWatchedVideos?: number;
+  examAttemptsCount?: number;
+  studentsTookExams?: number;
+  homeworkSubmissions?: number;
+  iqQuizAttempts?: number;
+  contentProgressTouches?: number;
   keyObservation?: string;
   topSubjects?: Array<{ subject: string; sessions: number; pct: number }>;
   teachers?: Array<{ name: string; status: string; generationsCreated: number; email?: string }>;
@@ -45,15 +52,24 @@ type SchoolSnap = {
 type Mode = "weekly" | "custom";
 
 function toInputDate(d: Date) {
-  return d.toISOString().slice(0, 10);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
 }
 
 function startOfIsoWeekLocal(d: Date) {
-  const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
-  const day = date.getUTCDay();
+  const date = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const day = date.getDay();
   const diff = day === 0 ? -6 : 1 - day;
-  date.setUTCDate(date.getUTCDate() + diff);
+  date.setDate(date.getDate() + diff);
   return date;
+}
+
+function yesterdayLocal() {
+  const d = new Date();
+  d.setDate(d.getDate() - 1);
+  return d;
 }
 
 function authToken() {
@@ -66,8 +82,8 @@ export function SchoolImpactReportCard() {
   const [snap, setSnap] = useState<SchoolSnap | null>(null);
   const [mode, setMode] = useState<Mode>("weekly");
   const [weekStart, setWeekStart] = useState(() => toInputDate(startOfIsoWeekLocal(new Date())));
-  const [fromDate, setFromDate] = useState(() => toInputDate(new Date()));
-  const [toDate, setToDate] = useState(() => toInputDate(new Date()));
+  const [fromDate, setFromDate] = useState(() => toInputDate(yesterdayLocal()));
+  const [toDate, setToDate] = useState(() => toInputDate(yesterdayLocal()));
 
   const periodQuery = useMemo(() => {
     const params = new URLSearchParams();
@@ -200,24 +216,24 @@ export function SchoolImpactReportCard() {
             </div>
           ) : (
             <div className="flex flex-wrap items-end gap-2">
-              <div className="space-y-1">
+              <div className="space-y-1 min-w-0 flex-1 sm:flex-none">
                 <Label htmlFor="admin-impact-from">From</Label>
                 <Input
                   id="admin-impact-from"
                   type="date"
                   value={fromDate}
                   onChange={(e) => setFromDate(e.target.value)}
-                  className="w-[168px] bg-white"
+                  className="min-w-[11.5rem] w-full sm:w-[11.5rem] bg-white"
                 />
               </div>
-              <div className="space-y-1">
+              <div className="space-y-1 min-w-0 flex-1 sm:flex-none">
                 <Label htmlFor="admin-impact-to">To</Label>
                 <Input
                   id="admin-impact-to"
                   type="date"
                   value={toDate}
                   onChange={(e) => setToDate(e.target.value)}
-                  className="w-[168px] bg-white"
+                  className="min-w-[11.5rem] w-full sm:w-[11.5rem] bg-white"
                 />
               </div>
               <Button type="button" size="sm" onClick={() => void load()} disabled={loading}>
@@ -239,6 +255,20 @@ export function SchoolImpactReportCard() {
               <Mini label="Students accessed" value={`${snap.studentsAccessed ?? 0}/${snap.studentsIssued ?? 0}`} icon={Users} />
               <Mini label="Sessions" value={String(snap.totalLearningSessions ?? 0)} icon={Activity} />
               <Mini label="Repeat practice" value={`${snap.repeatPracticeStudentPct ?? 0}%`} icon={FileText} />
+            </div>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+              <Mini
+                label="Videos watched"
+                value={`${snap.studentsWatchedVideos ?? 0} stu · ${snap.videosWatchedCount ?? 0}`}
+                icon={Activity}
+              />
+              <Mini
+                label="Exam attempts"
+                value={`${snap.studentsTookExams ?? 0} stu · ${snap.examAttemptsCount ?? 0}`}
+                icon={FileText}
+              />
+              <Mini label="Practice / IQ" value={String(snap.practiceAttempts ?? 0)} icon={GraduationCap} />
+              <Mini label="Homework" value={String(snap.homeworkSubmissions ?? 0)} icon={Users} />
             </div>
             {snap.topSubjects?.length ? (
               <div className="flex flex-wrap gap-1.5">

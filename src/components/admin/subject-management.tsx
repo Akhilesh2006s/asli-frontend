@@ -71,6 +71,41 @@ function subjectTeachersList(subject: Subject): { id: string; fullName: string; 
   return subject.teacher ? [subject.teacher] : [];
 }
 
+const classNumberSortKey = (value: string) => {
+  const n = parseInt(String(value || '').replace(/[^-\d]/g, ''), 10);
+  return Number.isNaN(n) ? Number.MAX_SAFE_INTEGER : Math.abs(n);
+};
+
+const compareAssignedClasses = (
+  a: { classNumber?: string; className?: string; section?: string },
+  b: { classNumber?: string; className?: string; section?: string },
+) => {
+  const aNum = classNumberSortKey(a.classNumber || a.className || '');
+  const bNum = classNumberSortKey(b.classNumber || b.className || '');
+  if (aNum !== bNum) return aNum - bNum;
+  return String(a.section || '').localeCompare(String(b.section || ''), undefined, {
+    sensitivity: 'base',
+  });
+};
+
+const getClassLabel = (c: {
+  classNumber?: string;
+  className?: string;
+  section?: string;
+}) => {
+  const label = c.classNumber ? `Class ${c.classNumber}` : c.className || 'Class';
+  return c.section ? `${label}-${c.section}` : label;
+};
+
+const sortedAssignedClasses = (subject: Subject) =>
+  [...(subject.classes || [])].sort(compareAssignedClasses);
+
+const formatClassLabels = (subject: Subject) => {
+  const list = sortedAssignedClasses(subject);
+  if (!list.length) return '—';
+  return list.map(getClassLabel).join(', ');
+};
+
 const SubjectManagement = () => {
   const { toast } = useToast();
   const { confirm, ConfirmDialog } = useConfirm();
@@ -152,12 +187,14 @@ const SubjectManagement = () => {
                 teacher: primary?.id ? primary : undefined,
                 teachers: teachersList,
                 classes: Array.isArray(s.classes)
-                  ? s.classes.map((c: any) => ({
-                      id: String(c.id || c._id || ''),
-                      classNumber: c.classNumber || '',
-                      className: c.className || c.name || `Class ${c.classNumber || ''}`,
-                      section: c.section,
-                    }))
+                  ? s.classes
+                      .map((c: any) => ({
+                        id: String(c.id || c._id || ''),
+                        classNumber: c.classNumber || '',
+                        className: c.className || c.name || `Class ${c.classNumber || ''}`,
+                        section: c.section,
+                      }))
+                      .sort(compareAssignedClasses)
                   : [],
                 classIds: Array.isArray(s.classIds)
                   ? s.classIds.map(String)
@@ -189,12 +226,14 @@ const SubjectManagement = () => {
       const data = await response.json();
       const list = Array.isArray(data) ? data : data.data || [];
       setClasses(
-        list.map((c: any) => ({
-          id: String(c.id || c._id || ''),
-          classNumber: String(c.classNumber || ''),
-          className: c.name || c.className || `Class ${c.classNumber || ''}${c.section ? `-${c.section}` : ''}`,
-          section: c.section,
-        }))
+        list
+          .map((c: any) => ({
+            id: String(c.id || c._id || ''),
+            classNumber: String(c.classNumber || ''),
+            className: c.name || c.className || `Class ${c.classNumber || ''}${c.section ? `-${c.section}` : ''}`,
+            section: c.section,
+          }))
+          .sort(compareAssignedClasses)
       );
     } catch (error) {
       console.error('Failed to fetch classes:', error);
@@ -230,16 +269,6 @@ const SubjectManagement = () => {
       console.error('Failed to fetch teachers:', error);
       setTeachers([]);
     }
-  };
-
-  const formatClassLabels = (subject: Subject) => {
-    if (!subject.classes?.length) return '—';
-    return subject.classes
-      .map((c) => {
-        const label = c.classNumber ? `Class ${c.classNumber}` : c.className;
-        return c.section ? `${label}-${c.section}` : label;
-      })
-      .join(', ');
   };
 
   const toggleClassId = (classIds: string[], classId: string, checked: boolean) => {
@@ -736,7 +765,25 @@ const SubjectManagement = () => {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <span className="text-sm text-sky-800">{formatClassLabels(subject)}</span>
+                    {(() => {
+                      const list = sortedAssignedClasses(subject);
+                      if (!list.length) {
+                        return <span className="text-sm text-sky-500">—</span>;
+                      }
+                      return (
+                        <div className="flex flex-wrap gap-1.5 max-w-[18rem]">
+                          {list.map((c) => (
+                            <span
+                              key={c.id || `${c.classNumber}-${c.section}`}
+                              className="inline-block whitespace-nowrap rounded-md border border-sky-200 bg-sky-50 px-2 py-0.5 text-xs font-medium text-sky-800"
+                              title={getClassLabel(c)}
+                            >
+                              {getClassLabel(c)}
+                            </span>
+                          ))}
+                        </div>
+                      );
+                    })()}
                   </TableCell>
                   <TableCell>
                     {(() => {

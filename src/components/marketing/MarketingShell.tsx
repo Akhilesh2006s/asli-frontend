@@ -1,12 +1,58 @@
-import { useEffect, useState, type ReactNode } from "react";
-import { Link } from "wouter";
+import { useEffect, useState, type MouseEvent, type ReactNode } from "react";
+import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Facebook, Instagram, Linkedin, Menu, X } from "lucide-react";
 import { MARKETING_NAV } from "@/components/marketing/seo";
 import { cn } from "@/lib/utils";
 
+function scrollToSectionHash(hash: string) {
+  const id = hash.replace(/^#/, "").trim();
+  if (!id) return;
+  // Wait a frame so the mobile drawer can close / layout settle
+  window.setTimeout(() => {
+    document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, 80);
+}
+
+/** Home section links like /#pricing — scroll on the landing page instead of a blank feel. */
+function useMarketingSectionNav(closeMobile?: () => void) {
+  const [location] = useLocation();
+
+  return (href: string) => (event: MouseEvent<HTMLAnchorElement>) => {
+    closeMobile?.();
+
+    if (!href.startsWith("/#")) return;
+
+    const hash = href.slice(1); // #features
+    const onHome = location === "/" || location === "";
+
+    event.preventDefault();
+
+    if (onHome) {
+      if (window.location.hash !== hash) {
+        window.history.pushState(null, "", `/${hash}`);
+      }
+      scrollToSectionHash(hash);
+      return;
+    }
+
+    // From another page: hard-navigate so homepage mounts with the hash (SPA hash is flaky in wouter)
+    window.location.assign(href);
+  };
+}
+
 export function MarketingNav({ scrolled = false }: { scrolled?: boolean }) {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const onSectionNav = useMarketingSectionNav(() => setMobileOpen(false));
+
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [mobileOpen]);
 
   return (
     <nav
@@ -18,7 +64,7 @@ export function MarketingNav({ scrolled = false }: { scrolled?: boolean }) {
       )}
     >
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
-        <Link href="/" className="flex shrink-0 items-center gap-2.5">
+        <Link href="/" className="flex shrink-0 items-center gap-2.5" onClick={() => setMobileOpen(false)}>
           <img src="/logo.jpg" alt="AsliLearn.ai" className="h-9 w-9 rounded-lg object-contain" />
           <span
             className={cn(
@@ -32,38 +78,36 @@ export function MarketingNav({ scrolled = false }: { scrolled?: boolean }) {
 
         <div className="hidden items-center gap-6 lg:flex">
           {MARKETING_NAV.map((link) => (
-            <Link
+            <a
               key={link.href}
               href={link.href}
+              onClick={onSectionNav(link.href)}
               className={cn(
                 "text-sm font-medium transition-colors",
                 scrolled ? "text-slate-600 hover:text-slate-900" : "text-white/80 hover:text-white",
               )}
             >
               {link.label}
-            </Link>
+            </a>
           ))}
         </div>
 
         <div className="hidden items-center gap-2 sm:flex">
-          <Link href="/auth/login">
-            <Button
-              variant="outline"
-              className={cn(
-                "h-10 rounded-full px-4 font-semibold",
-                scrolled
-                  ? "border-slate-300 bg-white text-slate-800"
-                  : "border-white/40 bg-transparent text-white hover:bg-white/10 hover:text-white",
-              )}
-            >
-              Login
-            </Button>
-          </Link>
-          <Link href="/book-a-demo">
-            <Button className="h-10 rounded-full bg-sky-500 px-4 font-semibold text-white hover:bg-sky-600">
-              Book a Demo
-            </Button>
-          </Link>
+          <Button
+            asChild
+            variant="outline"
+            className={cn(
+              "h-10 rounded-full px-4 font-semibold",
+              scrolled
+                ? "border-slate-300 bg-white text-slate-800"
+                : "border-white/40 bg-transparent text-white hover:bg-white/10 hover:text-white",
+            )}
+          >
+            <Link href="/auth/login">Login</Link>
+          </Button>
+          <Button asChild className="h-10 rounded-full bg-sky-500 px-4 font-semibold text-white hover:bg-sky-600">
+            <Link href="/book-a-demo">Book a Demo</Link>
+          </Button>
         </div>
 
         <Button
@@ -80,27 +124,33 @@ export function MarketingNav({ scrolled = false }: { scrolled?: boolean }) {
       </div>
 
       {mobileOpen ? (
-        <div className="border-t border-white/10 bg-[#050d24] px-4 py-4 lg:hidden">
-          <div className="flex flex-col gap-3">
+        <div className="max-h-[min(100dvh-4rem,36rem)] overflow-y-auto border-t border-white/10 bg-[#050d24] px-4 py-3 lg:hidden">
+          <div className="flex flex-col">
             {MARKETING_NAV.map((link) => (
-              <Link
+              <a
                 key={link.href}
                 href={link.href}
-                className="text-sm font-medium text-white/85"
-                onClick={() => setMobileOpen(false)}
+                onClick={onSectionNav(link.href)}
+                className="flex min-h-12 items-center border-b border-white/10 py-3 text-base font-medium text-white/90 active:bg-white/5"
               >
                 {link.label}
-              </Link>
+              </a>
             ))}
-            <div className="mt-2 grid grid-cols-2 gap-2">
-              <Link href="/auth/login" onClick={() => setMobileOpen(false)}>
-                <Button variant="outline" className="h-11 w-full border-white/40 bg-transparent text-white">
+            <div className="mt-4 grid grid-cols-2 gap-2 pb-2 sm:hidden">
+              <Button
+                asChild
+                variant="outline"
+                className="h-12 w-full border-white/40 bg-transparent text-white hover:bg-white/10 hover:text-white"
+              >
+                <Link href="/auth/login" onClick={() => setMobileOpen(false)}>
                   Login
-                </Button>
-              </Link>
-              <Link href="/book-a-demo" onClick={() => setMobileOpen(false)}>
-                <Button className="h-11 w-full bg-sky-500 text-white hover:bg-sky-600">Book a Demo</Button>
-              </Link>
+                </Link>
+              </Button>
+              <Button asChild className="h-12 w-full bg-sky-500 text-white hover:bg-sky-600">
+                <Link href="/book-a-demo" onClick={() => setMobileOpen(false)}>
+                  Book a Demo
+                </Link>
+              </Button>
             </div>
           </div>
         </div>
@@ -131,9 +181,9 @@ export function MarketingFooter() {
           <ul className="space-y-2.5 text-sm text-white/80">
             {MARKETING_NAV.slice(0, 4).map((l) => (
               <li key={l.href}>
-                <Link href={l.href} className="hover:text-white">
+                <a href={l.href} className="hover:text-white">
                   {l.label}
-                </Link>
+                </a>
               </li>
             ))}
           </ul>

@@ -61,12 +61,12 @@ export function usePageSeo({
 }
 
 export const MARKETING_NAV = [
-  { href: "/features", label: "Features" },
-  { href: "/platform", label: "Platform" },
-  { href: "/pricing", label: "Pricing" },
-  { href: "/resources", label: "Resources" },
-  { href: "/about-us", label: "About Us" },
-  { href: "/faq", label: "FAQ" },
+  { href: "/#features", label: "Features" },
+  { href: "/#platform", label: "Platform" },
+  { href: "/#pricing", label: "Pricing" },
+  { href: "/#resources", label: "Resources" },
+  { href: "/#about", label: "About Us" },
+  { href: "/#faq", label: "FAQ" },
 ] as const;
 
 export const INDIAN_STATES = [
