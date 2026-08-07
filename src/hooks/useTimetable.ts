@@ -159,6 +159,16 @@ export async function downloadTimetableTemplate() {
   const res = await fetch(`${API_BASE_URL}/api/timetable/template/csv`, {
     headers: token ? { Authorization: `Bearer ${token}` } : {},
   });
+  if (!res.ok) {
+    let message = 'Could not download template';
+    try {
+      const data = await res.json();
+      if (data?.message) message = data.message;
+    } catch {
+      /* ignore non-JSON error bodies */
+    }
+    throw new Error(message);
+  }
   const blob = await res.blob();
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');

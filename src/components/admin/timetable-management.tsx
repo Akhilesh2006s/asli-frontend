@@ -576,7 +576,10 @@ export default function TimetableManagement() {
                 Upload Timetable CSV
               </DialogTitle>
               <DialogDescription className="text-gray-600 text-xs sm:text-sm">
-                Upload a CSV or Excel file to bulk import schedule entries. Class, Section, Subject, and Teacher must already exist in this school.
+                Upload a CSV or Excel file to bulk import schedule entries. Class and Section must
+                match an existing class in School Management (e.g. Class 9 + Section A). Subject and
+                Teacher must already exist in this school. Prefer Download template — it uses your
+                school&apos;s real classes.
               </DialogDescription>
             </DialogHeader>
             <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
@@ -588,7 +591,17 @@ export default function TimetableManagement() {
                     <p className="text-xs text-gray-600">Download sample format</p>
                   </div>
                 </div>
-                <Button type="button" variant="outline" onClick={downloadTimetableTemplate} className="border-orange-200 text-orange-700 hover:bg-orange-50">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    void downloadTimetableTemplate().catch((err: unknown) => {
+                      const message = err instanceof Error ? err.message : 'Could not download template';
+                      toast({ title: 'Template download failed', description: message, variant: 'destructive' });
+                    });
+                  }}
+                  className="border-orange-200 text-orange-700 hover:bg-orange-50"
+                >
                   <Download className="w-4 h-4 mr-2" />
                   Download
                 </Button>
@@ -609,14 +622,36 @@ export default function TimetableManagement() {
                     <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
                     {importErrors.length} row{importErrors.length === 1 ? '' : 's'} skipped
                   </p>
-                  {importErrors.slice(0, 30).map((err, idx) => (
-                    <p key={`${err.row}-${idx}`}>
-                      {err.row > 0 ? `Row ${err.row}: ` : ''}
-                      {err.reason}
+                  {(() => {
+                    const grouped = new Map<string, number[]>();
+                    for (const err of importErrors) {
+                      const reason = String(err.reason || 'Unknown error');
+                      const rows = grouped.get(reason) || [];
+                      if (err.row > 0) rows.push(err.row);
+                      grouped.set(reason, rows);
+                    }
+                    return [...grouped.entries()].slice(0, 8).map(([reason, rows], idx) => {
+                      const rowLabel =
+                        rows.length === 0
+                          ? ''
+                          : rows.length <= 6
+                            ? `Rows ${rows.join(', ')}: `
+                            : `Rows ${rows.slice(0, 4).join(', ')}… (+${rows.length - 4}): `;
+                      const shortReason =
+                        reason.length > 220 ? `${reason.slice(0, 220)}…` : reason;
+                      return (
+                        <p key={`err-${idx}`} className="break-words">
+                          {rowLabel}
+                          {shortReason}
+                        </p>
+                      );
+                    });
+                  })()}
+                  {importErrors.length > 1 && (
+                    <p className="text-amber-800">
+                      Tip: change Class/Section in the CSV to match Available classes, or create the
+                      missing class in School Management.
                     </p>
-                  ))}
-                  {importErrors.length > 30 && (
-                    <p className="text-amber-800">…and {importErrors.length - 30} more</p>
                   )}
                 </div>
               )}
@@ -637,10 +672,13 @@ export default function TimetableManagement() {
                     };
                     const errs = Array.isArray(r.errors) ? r.errors : [];
                     setImportErrors(errs);
+                    const firstReason = String(errs.find((e) => e.reason)?.reason || '');
+                    const shortFirst =
+                      firstReason.length > 140 ? `${firstReason.slice(0, 140)}…` : firstReason;
                     toast({
                       title: r.imported > 0 ? 'Import done' : 'Nothing imported',
-                      description: errs.length
-                        ? `Imported: ${r.imported}, Skipped: ${r.skipped}. See reasons below.`
+                      description: shortFirst
+                        ? `Imported: ${r.imported}, Skipped: ${r.skipped}. ${shortFirst}`
                         : `Imported: ${r.imported}, Skipped: ${r.skipped}`,
                       variant: r.imported > 0 ? 'default' : 'destructive',
                     });
