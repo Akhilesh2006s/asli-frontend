@@ -31,11 +31,13 @@ const AdminSubjectContent = lazy(() => import("./pages/admin/subject-content"));
 const SubjectManagement = lazy(() => import("./pages/admin/subject-management"));
 const TimetableManagementPage = lazy(() => import("./pages/admin/timetable"));
 const TeacherDashboard = lazy(() => import("./pages/teacher/dashboard"));
+const TeacherOmrResults = lazy(() => import("./pages/teacher-omr-results"));
 const TeacherTimetablePage = lazy(() => import("./pages/teacher/timetable"));
 const TeacherSubjectContent = lazy(() => import("./pages/teacher/subject-content"));
 const TeacherToolPage = lazy(() => import("./pages/teacher/tools/[toolType]"));
 const StudentToolPage = lazy(() => import("./pages/student/tools/[toolType]"));
 const StudentExams = lazy(() => import("./pages/student-exams"));
+const StudentOmrResults = lazy(() => import("./pages/student-omr-results"));
 const AsliPrepContentPage = lazy(() => import("./pages/asli-prep-content"));
 const SubjectContent = lazy(() => import("./pages/subject-content"));
 const EduOTT = lazy(() => import("./pages/edu-ott"));
@@ -117,6 +119,7 @@ function Router() {
         <Route path="/learning-paths" component={() => <Guarded Guard={ProtectedRoute} Page={LearningPaths} />} />
         <Route path="/tests" component={() => <Guarded Guard={StudentRoute} Page={PracticeTests} />} />
         <Route path="/student-exams" component={() => <Guarded Guard={StudentRoute} Page={StudentExams} />} />
+        <Route path="/student/results" component={() => <Guarded Guard={StudentRoute} Page={StudentOmrResults} />} />
         <Route path="/asli-prep-content" component={() => <Guarded Guard={StudentRoute} Page={AsliPrepContentPage} />} />
         <Route path="/edu-ott" component={() => <Guarded Guard={ProtectedRoute} Page={EduOTTWithFilters} />} />
         <Route path="/iq-rank-boost-subjects" component={() => <Guarded Guard={StudentRoute} Page={IQRankBoostSubjects} />} />
@@ -135,6 +138,7 @@ function Router() {
         <Route path="/admin/subjects" component={() => <Guarded Guard={AdminRoute} Page={SubjectManagement} />} />
         <Route path="/admin/timetable" component={() => <Guarded Guard={AdminRoute} Page={TimetableManagementPage} />} />
         <Route path="/teacher/dashboard" component={() => <Guarded Guard={TeacherRoute} Page={TeacherDashboard} />} />
+        <Route path="/teacher/results" component={() => <Guarded Guard={TeacherRoute} Page={TeacherOmrResults} />} />
         <Route path="/teacher/timetable" component={() => <Guarded Guard={TeacherRoute} Page={TeacherTimetablePage} />} />
         <Route path="/teacher/subject/:id" component={() => <Guarded Guard={TeacherRoute} Page={TeacherSubjectContent} />} />
         <Route path="/teacher/tools/:toolType" component={() => <Guarded Guard={TeacherRoute} Page={TeacherToolPage} />} />

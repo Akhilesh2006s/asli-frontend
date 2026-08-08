@@ -35,6 +35,7 @@ const AdminLearningPaths = lazy(() => import('@/components/admin/learning-paths'
 const AdminEduOTT = lazy(() => import('@/components/admin/admin-eduott'));
 const AdminCalendar = lazy(() => import('@/components/admin/admin-calendar'));
 const TimetableManagement = lazy(() => import('@/components/admin/timetable-management'));
+const OmrResultsManagement = lazy(() => import('@/components/admin/omr-results-management'));
 const AIChat = lazy(() => import('@/components/ai-chat'));
 
 const lazySectionFallback = (
@@ -50,6 +51,7 @@ const VALID_ADMIN_TABS = new Set([
   'teachers',
   'subjects',
   'exams',
+  'results',
   'learning-paths',
   'eduott',
   'calendar',
@@ -317,6 +319,10 @@ const AdminDashboard = () => {
             exams: {
               title: 'Exams',
               subtitle: 'View scheduled exams and results for your school.',
+            },
+            results: {
+              title: 'OMR Results',
+              subtitle: 'Upload OMR score CSVs and assign candidates to students.',
             },
             'learning-paths': {
               title: 'Learning Paths',
@@ -616,6 +622,11 @@ const AdminDashboard = () => {
           {activeTab === 'exams' && (
             <Suspense fallback={lazySectionFallback}>
               <ExamViewOnly />
+            </Suspense>
+          )}
+          {activeTab === 'results' && (
+            <Suspense fallback={lazySectionFallback}>
+              <OmrResultsManagement />
             </Suspense>
           )}
           {activeTab === 'learning-paths' && (
