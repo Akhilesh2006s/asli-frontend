@@ -37,7 +37,7 @@ export function SuperAdminChatUI({ model, className }: SuperAdminChatUIProps) {
             <div>
               <h3 className="text-base sm:text-lg font-semibold text-white">AI System Control Panel</h3>
               <p className="text-xs text-orange-100">
-                Database-backed control assistant: Gemini classifies intent; answers use live MongoDB aggregates.
+                Super-admin app assistant — live MongoDB for schools, OMR, exams, trials, videos, risk &amp; more.
               </p>
             </div>
           </div>

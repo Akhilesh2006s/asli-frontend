@@ -7,18 +7,43 @@ export type ExamClassLike = {
 
 export const CLASS_FILTER_OPTIONS = ['6', '7', '8', '9', '10', '11', '12'] as const;
 
-/** Normalizes values like `-7`, `Class 7`, `7th` into `7`. */
+const ROMAN_TO_INT: Record<string, number> = {
+  i: 1,
+  ii: 2,
+  iii: 3,
+  iv: 4,
+  v: 5,
+  vi: 6,
+  vii: 7,
+  viii: 8,
+  ix: 9,
+  x: 10,
+  xi: 11,
+  xii: 12,
+};
+
+/** Normalizes values like `-7`, `Class 7`, `7th`, `VI` into `7`. */
 export function normalizeClassNumber(value?: unknown): string {
   if (value == null) return '';
   const raw = String(value).trim();
   if (!raw) return '';
 
   const signedIntMatch = raw.match(/-?\d+/);
-  if (!signedIntMatch) return raw;
+  if (signedIntMatch) {
+    const parsed = Math.abs(parseInt(signedIntMatch[0], 10));
+    if (!Number.isNaN(parsed)) return String(parsed);
+  }
 
-  const parsed = Math.abs(parseInt(signedIntMatch[0], 10));
-  if (Number.isNaN(parsed)) return raw;
-  return String(parsed);
+  const withoutClass = raw.replace(/^class\s+/i, '').trim();
+  const romanKey = withoutClass
+    .toLowerCase()
+    .replace(/[^ivxlcdm]/g, '')
+    .trim();
+  if (romanKey && ROMAN_TO_INT[romanKey] != null) {
+    return String(ROMAN_TO_INT[romanKey]);
+  }
+
+  return withoutClass || raw;
 }
 
 /** Resolves class labels from API (array, classNumber, or odd legacy shapes). */

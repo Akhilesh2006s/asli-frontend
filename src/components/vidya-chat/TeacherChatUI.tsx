@@ -9,7 +9,7 @@ interface TeacherChatUIProps {
   className?: string;
 }
 
-type TeachingTab = "lesson" | "quiz" | "help";
+type TeachingTab = "desk" | "lesson" | "quiz";
 
 const MODE_UI: Record<
   TeachingTab,
@@ -23,6 +23,23 @@ const MODE_UI: Record<
     Icon: typeof BookOpen;
   }
 > = {
+  desk: {
+    title: "Teacher App Assistant",
+    subtitle: "Live class data — students, homework, attendance, exams, OMR.",
+    header: "bg-gradient-to-r from-indigo-50 to-sky-50",
+    activeTab: "bg-gradient-to-r from-indigo-600 to-sky-600 text-white shadow-lg",
+    quickA: {
+      label: "Today's plan",
+      prompt: "What should I do today?",
+      className: "border-indigo-200 bg-indigo-50 text-indigo-800 hover:bg-indigo-100",
+    },
+    quickB: {
+      label: "My students",
+      prompt: "List my classes and students",
+      className: "border-sky-200 bg-sky-50 text-sky-800 hover:bg-sky-100",
+    },
+    Icon: ClipboardCheck,
+  },
   lesson: {
     title: "Lesson Planner AI",
     subtitle: "Design structured class flow, outcomes, and activities.",
@@ -51,33 +68,16 @@ const MODE_UI: Record<
       className: "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100",
     },
     quickB: {
-      label: "Worksheet Ideas",
-      prompt: "Create a worksheet with 3 easy, 3 medium, and 2 challenge questions.",
+      label: "Homework queue",
+      prompt: "Show homework pending review",
       className: "border-teal-200 bg-teal-50 text-teal-700 hover:bg-teal-100",
-    },
-    Icon: ClipboardCheck,
-  },
-  help: {
-    title: "Classroom Mentor AI",
-    subtitle: "Get support for classroom management and teaching decisions.",
-    header: "bg-gradient-to-r from-rose-50 to-amber-50",
-    activeTab: "bg-gradient-to-r from-rose-500 to-orange-500 text-white shadow-lg",
-    quickA: {
-      label: "Classroom Help",
-      prompt: "Suggest practical strategies to improve classroom engagement.",
-      className: "border-orange-200 bg-orange-50 text-orange-700 hover:bg-orange-100",
-    },
-    quickB: {
-      label: "Student Support",
-      prompt: "How should I support mixed-ability learners in this lesson?",
-      className: "border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100",
     },
     Icon: CircleHelp,
   },
 };
 
 export function TeacherChatUI({ model, className }: TeacherChatUIProps) {
-  const [teachingTab, setTeachingTab] = useState<TeachingTab>("lesson");
+  const [teachingTab, setTeachingTab] = useState<TeachingTab>("desk");
   const modeUi = MODE_UI[teachingTab];
   const ModeIcon = modeUi.Icon;
 
@@ -111,6 +111,15 @@ export function TeacherChatUI({ model, className }: TeacherChatUIProps) {
         <div className="grid grid-cols-3 gap-2 rounded-2xl bg-mist p-1.5">
           <button
             type="button"
+            onClick={() => setTeachingTab("desk")}
+            className={`rounded-xl px-3 py-3 text-base font-semibold transition-all hover:-translate-y-0.5 active:scale-[0.98] ${
+              teachingTab === "desk" ? modeUi.activeTab : "text-ink/65 hover:bg-white"
+            }`}
+          >
+            Class desk
+          </button>
+          <button
+            type="button"
             onClick={() => setTeachingTab("lesson")}
             className={`rounded-xl px-3 py-3 text-base font-semibold transition-all hover:-translate-y-0.5 active:scale-[0.98] ${
               teachingTab === "lesson" ? modeUi.activeTab : "text-ink/65 hover:bg-white"
@@ -127,20 +136,12 @@ export function TeacherChatUI({ model, className }: TeacherChatUIProps) {
           >
             Quiz
           </button>
-          <button
-            type="button"
-            onClick={() => setTeachingTab("help")}
-            className={`rounded-xl px-3 py-3 text-base font-semibold transition-all hover:-translate-y-0.5 active:scale-[0.98] ${
-              teachingTab === "help" ? modeUi.activeTab : "text-ink/65 hover:bg-white"
-            }`}
-          >
-            Help
-          </button>
         </div>
+      </div>
 
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-ink/10 bg-mist/70 px-4 py-3">
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-ink/10 bg-mist/70 px-4 py-3 mx-5 sm:mx-7">
           <Badge className="border border-teal-green-200 bg-teal-green-50 px-3 py-1.5 text-[0.9375rem] text-teal-green-800 hover:bg-teal-green-50">
-            {model.currentSubject || "Biology"} - Grade 7
+            Class desk · live app data
           </Badge>
           <div className="flex flex-wrap gap-2">
             <button
@@ -159,13 +160,18 @@ export function TeacherChatUI({ model, className }: TeacherChatUIProps) {
             </button>
           </div>
         </div>
-      </div>
 
       <div className="flex-1 overflow-y-auto px-5 py-5 sm:px-7">
         {model.displayMessages.length === 0 ? (
           <div className="mx-auto max-w-2xl py-9 text-center">
-            <h4 className="font-display text-xl font-bold text-ink sm:text-2xl">What would you like to create?</h4>
-            <p className="mt-2 text-base text-muted-foreground">Tap any idea below — Vidya will begin immediately.</p>
+            <h4 className="font-display text-xl font-bold text-ink sm:text-2xl">
+              {teachingTab === "desk" ? "Ask about your teaching app" : "What would you like to create?"}
+            </h4>
+            <p className="mt-2 text-base text-muted-foreground">
+              {teachingTab === "desk"
+                ? "Classes, homework, attendance, exams, OMR — or a student by name."
+                : "Tap any idea below — Vidya will begin immediately."}
+            </p>
             <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-2">
               {model.quickQuestions.map((question, index) => (
                 <button

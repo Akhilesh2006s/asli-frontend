@@ -12,53 +12,62 @@ import type {
   Message,
 } from "./types";
 
-const CONTROL_ASSISTANT_QUICK_QUESTIONS = [
-  "How many students are there in the application?",
+const CONTROL_ASSISTANT_QUICK_QUESTIONS_ADMIN = [
+  "School dashboard overview",
+  "How many students and teachers are active?",
+  "How many OMR batches do we have?",
   "How is Class 7 performing?",
-  "Show today's attendance summary",
-  "Platform or school dashboard overview",
-  "How many exams are scheduled this week?",
-  "Tell me about a student by name (e.g. how is Rahul doing?)",
-  "How many teachers are active?",
-  "How many AI requests were generated today?",
+  "Tell me about a student by name",
+  "How many homework submissions are there?",
+  "Show published videos and assessments count",
+  "Login attendance summary for today",
+];
+
+const CONTROL_ASSISTANT_QUICK_QUESTIONS_SUPER = [
+  "Platform overview — schools, students, teachers",
+  "How many OMR batches and exam results this month?",
+  "Details about a school by name",
+  "How many trial members are there?",
+  "How is a student or teacher doing by name?",
+  "How many published videos and assessments?",
+  "Login sessions today across the platform",
+  "How many risk reports exist?",
 ];
 
 const QUICK_QUESTIONS_BY_ROLE: Record<VidyaChatRole, string[]> = {
   student: [
-    "What is my learning progress?",
-    "What videos have I watched?",
-    "What is my exam status — did I improve?",
-    "Where am I weak and what should I study?",
+    "What should I do today?",
+    "What is my homework today?",
+    "What are my upcoming exams?",
+    "How many subjects do I have?",
+    "How many videos in maths?",
+    "What is my recent OMR exam result?",
+    "What quizzes do I have?",
+    "What is on my calendar?",
   ],
   teacher: [
-    "Which students in my class need extra attention?",
-    "How is Class performance this month?",
-    "Give me 10 MCQs on [current topic]",
-    "Tell me about a student in my class by name",
-  ],
-  admin: [
-    "How is Class 7 performing?",
-    "Show school dashboard overview",
-    "How many students are active?",
+    "What should I do today?",
+    "List my classes and students",
+    "Who logged in today?",
+    "Show homework pending review",
+    "What are upcoming exams?",
+    "OMR batches for my school",
     "Tell me about a student by name",
+    "How is Class 7 performing?",
   ],
-  super_admin: [
-    "Platform overview — schools, students, teachers",
-    "How is Class 8 performing across schools?",
-    "Details about a school by name",
-    "How is a student or teacher doing by name?",
-  ],
+  admin: CONTROL_ASSISTANT_QUICK_QUESTIONS_ADMIN,
+  super_admin: CONTROL_ASSISTANT_QUICK_QUESTIONS_SUPER,
 };
 
 const INPUT_PLACEHOLDER_BY_ROLE: Record<VidyaChatRole, string> = {
-  student: "Type your question or upload a problem...",
-  teacher: "Ask about teaching, lessons, or doubts...",
-  admin: "Ask about school management...",
-  super_admin: "Ask about system analytics, AI monitoring...",
+  student: "Ask anything about your Asli app: today, homework, exams, videos…",
+  teacher: "Ask about your classes, students, homework, exams, OMR…",
+  admin: "Ask live school data: students, OMR, exams, homework, classes…",
+  super_admin: "Ask live platform data: schools, OMR, exams, trials, AI…",
 };
 
 const CONTROL_INPUT_PLACEHOLDER =
-  "Ask for live metrics: students, teachers, exams, attendance (login proxy), AI generations…";
+  "Ask live app metrics — students, teachers, OMR, exams, homework, videos, risk…";
 
 interface UseVidyaChatOptions {
   userId: string;
@@ -90,6 +99,8 @@ export function useVidyaChat({
 }: UseVidyaChatOptions): UseVidyaChatResult {
   const isDatabaseBackedAssistant = role === "super_admin" || role === "admin";
   const isStudentMentorMode = role === "student";
+  const isTeacherMentorMode = role === "teacher";
+  const isAppMentorMode = isStudentMentorMode || isTeacherMentorMode;
 
   const [message, setMessage] = useState("");
   const [isListening, setIsListening] = useState(false);
@@ -301,6 +312,41 @@ export function useVidyaChat({
 
         if (!response.ok) {
           let errorMessage = "Student mentor request failed";
+          try {
+            const errorJson = await response.json();
+            if (errorJson?.message) errorMessage = String(errorJson.message);
+          } catch (_) {
+            // ignore
+          }
+          throw new Error(errorMessage);
+        }
+
+        const result = await response.json();
+        if (result.message) {
+          const aiMessage: Message = {
+            role: "assistant",
+            content: result.message,
+            timestamp: new Date(),
+          };
+          setLocalMessages((prev) => [...prev, aiMessage]);
+        }
+        return result;
+      }
+
+      if (isTeacherMentorMode) {
+        const response = await fetch(`${API_BASE_URL}/api/vidya/teacher/chat`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            message: data.message,
+          }),
+        });
+
+        if (!response.ok) {
+          let errorMessage = "Teacher assistant request failed";
           try {
             const errorJson = await response.json();
             if (errorJson?.message) errorMessage = String(errorJson.message);
@@ -645,7 +691,9 @@ export function useVidyaChat({
   };
 
   const quickQuestions = isDatabaseBackedAssistant
-    ? CONTROL_ASSISTANT_QUICK_QUESTIONS
+    ? role === "super_admin"
+      ? CONTROL_ASSISTANT_QUICK_QUESTIONS_SUPER
+      : CONTROL_ASSISTANT_QUICK_QUESTIONS_ADMIN
     : QUICK_QUESTIONS_BY_ROLE[role];
 
   const inputPlaceholder = isDatabaseBackedAssistant

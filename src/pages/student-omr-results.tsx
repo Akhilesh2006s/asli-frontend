@@ -1,10 +1,17 @@
 import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { ScanLine, TrendingUp, Download, BookOpen, CheckCircle2 } from 'lucide-react';
+import {
+  ScanLine,
+  TrendingUp,
+  TrendingDown,
+  Download,
+  Medal,
+  Hash,
+  CalendarDays,
+} from 'lucide-react';
 import StudentShell from '@/components/layout/StudentShell';
 import { getAuthToken } from '@/lib/auth-utils';
 import { API_BASE_URL } from '@/lib/api-config';
-import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import {
@@ -23,6 +30,9 @@ type OmrRow = {
   percentage: number;
   totalMarks: number;
   totalQuestions?: number;
+  correct?: number;
+  wrong?: number;
+  left?: number;
   finalRank?: number | null;
   testRank?: number | null;
   maths?: SubjectScore;
@@ -61,6 +71,13 @@ function formatTestDate(value?: string | null): string {
   if (Number.isNaN(d.getTime())) return '';
   return d.toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' });
 }
+
+const SUBJECT_META = [
+  { key: 'Physics', field: 'physics' as const, bar: 'bg-sky-500', chip: 'bg-sky-50 text-sky-800 border-sky-100' },
+  { key: 'Chemistry', field: 'chemistry' as const, bar: 'bg-emerald-500', chip: 'bg-emerald-50 text-emerald-800 border-emerald-100' },
+  { key: 'Mathematics', field: 'maths' as const, bar: 'bg-orange-500', chip: 'bg-orange-50 text-orange-900 border-orange-100' },
+  { key: 'Biology', field: 'biology' as const, bar: 'bg-violet-500', chip: 'bg-violet-50 text-violet-900 border-violet-100' },
+];
 
 export default function StudentOmrResultsPage() {
   const [loading, setLoading] = useState(true);
@@ -108,12 +125,10 @@ export default function StudentOmrResultsPage() {
 
   const subjects = useMemo(() => {
     if (!selected) return [];
-    return [
-      { key: 'Physics', score: selected.physics, color: 'bg-sky-500' },
-      { key: 'Chemistry', score: selected.chemistry, color: 'bg-emerald-500' },
-      { key: 'Mathematics', score: selected.maths, color: 'bg-orange-500' },
-      { key: 'Biology', score: selected.biology, color: 'bg-violet-500' },
-    ].filter((s) => subjectMax(s.score) > 0 || (s.score?.marks || 0) > 0);
+    return SUBJECT_META.map((meta) => ({
+      ...meta,
+      score: selected[meta.field],
+    })).filter((s) => subjectMax(s.score) > 0 || (s.score?.marks || 0) > 0);
   }, [selected]);
 
   const downloadReport = () => {
@@ -137,215 +152,274 @@ export default function StudentOmrResultsPage() {
     URL.revokeObjectURL(url);
   };
 
+  const rank = selected?.finalRank ?? selected?.testRank;
+  const scorePct = Math.min(100, Math.max(0, Number(selected?.percentage) || 0));
+
   return (
     <StudentShell>
-      <div className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
-        <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+      <div className="mx-auto w-full max-w-4xl space-y-5">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-orange-600">
-              OMR Results
-            </p>
-            <h1 className="mt-1 flex items-center gap-2.5 font-display text-2xl font-bold text-slate-900 sm:text-3xl">
-              <ScanLine className="h-7 w-7 shrink-0 text-orange-600" aria-hidden />
+            <h1 className="flex items-center gap-2 font-display text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">
+              <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-orange-100 text-orange-700">
+                <ScanLine className="h-5 w-5" aria-hidden />
+              </span>
               OMR Results
             </h1>
             <p className="mt-1 text-sm text-slate-600">
-              Optical mark recognition scores assigned by your school
-              {history.length > 1 ? ` · ${history.length} tests` : ''}.
+              Sheet scores from your school
+              {history.length ? ` · ${history.length} test${history.length === 1 ? '' : 's'}` : ''}.
             </p>
           </div>
           <Button
             type="button"
             variant="outline"
+            size="sm"
             className="rounded-xl border-orange-200 text-orange-800"
             disabled={!selected}
             onClick={downloadReport}
           >
-            <Download className="mr-2 h-4 w-4" />
-            Download report
+            <Download className="mr-1.5 h-4 w-4" />
+            Download CSV
           </Button>
         </div>
 
         {loading ? (
-          <div className="space-y-3">
+          <div className="grid gap-3 sm:grid-cols-3">
             {Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="h-24 animate-pulse rounded-2xl bg-slate-100" />
+              <div key={i} className="h-28 animate-pulse rounded-2xl bg-slate-100" />
             ))}
           </div>
         ) : error ? (
-          <Card className="rounded-2xl border-red-100">
-            <CardContent className="p-6 text-sm text-red-700">{error}</CardContent>
-          </Card>
+          <div className="rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">
+            {error}
+          </div>
         ) : !selected ? (
-          <Card className="rounded-2xl border-orange-100">
-            <CardContent className="flex flex-col items-center py-16 text-center">
-              <ScanLine className="mb-3 h-12 w-12 text-orange-300" />
-              <p className="font-semibold text-slate-800">No OMR results yet</p>
-              <p className="mt-1 max-w-md text-sm text-slate-500">
-                When your school uploads an OMR score sheet and assigns your Candidate ID to your
-                account, results will appear here.
-              </p>
-            </CardContent>
-          </Card>
+          <div className="rounded-2xl border border-dashed border-orange-200 bg-orange-50/40 px-6 py-10 text-center">
+            <ScanLine className="mx-auto mb-2 h-10 w-10 text-orange-300" />
+            <p className="font-semibold text-slate-800">No OMR results yet</p>
+            <p className="mx-auto mt-1 max-w-md text-sm text-slate-500">
+              When your school uploads an OMR score sheet and links your Candidate ID, scores show up
+              here.
+            </p>
+          </div>
         ) : (
-          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
-            <Card className="rounded-2xl border-orange-100">
-              <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-end sm:p-5">
-                <div className="min-w-0 flex-1 space-y-1.5">
-                  <Label htmlFor="omr-exam-filter" className="text-slate-600">
-                    Filter by exam
-                  </Label>
-                  <Select value={selected._id} onValueChange={setSelectedId}>
-                    <SelectTrigger
-                      id="omr-exam-filter"
-                      className="h-11 rounded-xl border-slate-200 bg-white"
-                    >
-                      <SelectValue placeholder="Choose an OMR exam" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {history.map((h) => (
-                        <SelectItem key={h._id} value={h._id}>
-                          {h.testTitle || `Test #${h.testNo || h._id}`}
-                          {h.testNo ? ` (#${h.testNo})` : ''}
-                          {` · ${h.percentage}%`}
-                          {formatTestDate(h.testDate) ? ` · ${formatTestDate(h.testDate)}` : ''}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <p className="shrink-0 text-xs text-slate-500 sm:pb-3">
-                  {history.length} exam{history.length === 1 ? '' : 's'} available
-                </p>
-              </CardContent>
-            </Card>
+          <motion.div
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="space-y-4"
+          >
+            {history.length > 1 ? (
+              <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-3">
+                <Label htmlFor="omr-exam-filter" className="shrink-0 text-xs font-medium text-slate-500">
+                  Exam
+                </Label>
+                <Select value={selected._id} onValueChange={setSelectedId}>
+                  <SelectTrigger
+                    id="omr-exam-filter"
+                    className="h-10 flex-1 rounded-xl border-slate-200 bg-white"
+                  >
+                    <SelectValue placeholder="Choose an OMR exam" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {history.map((h) => (
+                      <SelectItem key={h._id} value={h._id}>
+                        {h.testTitle || `Test #${h.testNo || h._id}`}
+                        {` · ${h.percentage}%`}
+                        {formatTestDate(h.testDate) ? ` · ${formatTestDate(h.testDate)}` : ''}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            ) : null}
 
-            <div className="grid gap-3 sm:grid-cols-3">
-              <Card className="rounded-2xl border-orange-100 bg-gradient-to-br from-white to-orange-50/40">
-                <CardContent className="p-5">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Overall score</p>
-                  <p className="mt-2 text-4xl font-bold text-slate-900">{selected.percentage}%</p>
-                  {trend != null ? (
-                    <p
-                      className={cn(
-                        'mt-2 flex items-center gap-1 text-sm font-medium',
-                        trend >= 0 ? 'text-emerald-600' : 'text-red-600',
+            {/* Hero score band */}
+            <div className="overflow-hidden rounded-2xl border border-orange-100 bg-gradient-to-br from-orange-50 via-white to-amber-50/80 shadow-sm">
+              <div className="flex flex-col gap-5 p-5 sm:flex-row sm:items-center sm:gap-8 sm:p-6">
+                <div className="relative mx-auto h-28 w-28 shrink-0 sm:mx-0">
+                  <svg viewBox="0 0 36 36" className="h-full w-full -rotate-90">
+                    <circle
+                      cx="18"
+                      cy="18"
+                      r="15.5"
+                      fill="none"
+                      className="stroke-orange-100"
+                      strokeWidth="3.5"
+                    />
+                    <circle
+                      cx="18"
+                      cy="18"
+                      r="15.5"
+                      fill="none"
+                      className="stroke-orange-500"
+                      strokeWidth="3.5"
+                      strokeLinecap="round"
+                      strokeDasharray={`${scorePct} ${100 - scorePct}`}
+                      pathLength={100}
+                    />
+                  </svg>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center">
+                    <span className="text-2xl font-bold tabular-nums text-slate-900">
+                      {selected.percentage}%
+                    </span>
+                    <span className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                      Grade {gradeFor(scorePct)}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="min-w-0 flex-1 space-y-3 text-center sm:text-left">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-orange-700">
+                      Overall score
+                    </p>
+                    <h2 className="mt-0.5 text-lg font-bold leading-snug text-slate-900 sm:text-xl">
+                      {selected.testTitle || 'OMR test'}
+                    </h2>
+                    <div className="mt-1.5 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-xs text-slate-500 sm:justify-start">
+                      {formatTestDate(selected.testDate) ? (
+                        <span className="inline-flex items-center gap-1">
+                          <CalendarDays className="h-3.5 w-3.5" />
+                          {formatTestDate(selected.testDate)}
+                        </span>
+                      ) : null}
+                      {selected.testNo ? (
+                        <span className="inline-flex items-center gap-1">
+                          <Hash className="h-3.5 w-3.5" />
+                          Test {selected.testNo}
+                        </span>
+                      ) : null}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="rounded-xl border border-white/80 bg-white/90 px-2.5 py-2 shadow-sm">
+                      <p className="text-[10px] font-medium uppercase tracking-wide text-slate-400">
+                        Marks
+                      </p>
+                      <p className="text-lg font-bold tabular-nums text-slate-900">
+                        {selected.totalMarks}
+                      </p>
+                    </div>
+                    <div className="rounded-xl border border-white/80 bg-white/90 px-2.5 py-2 shadow-sm">
+                      <p className="text-[10px] font-medium uppercase tracking-wide text-slate-400">
+                        Rank
+                      </p>
+                      <p className="flex items-center gap-1 text-lg font-bold tabular-nums text-slate-900">
+                        <Medal className="h-4 w-4 text-amber-500" />
+                        {rank ?? '—'}
+                      </p>
+                    </div>
+                    <div className="rounded-xl border border-white/80 bg-white/90 px-2.5 py-2 shadow-sm">
+                      <p className="text-[10px] font-medium uppercase tracking-wide text-slate-400">
+                        Trend
+                      </p>
+                      {trend != null ? (
+                        <p
+                          className={cn(
+                            'flex items-center gap-0.5 text-sm font-bold tabular-nums',
+                            trend >= 0 ? 'text-emerald-600' : 'text-red-600',
+                          )}
+                        >
+                          {trend >= 0 ? (
+                            <TrendingUp className="h-3.5 w-3.5" />
+                          ) : (
+                            <TrendingDown className="h-3.5 w-3.5" />
+                          )}
+                          {trend >= 0 ? '+' : ''}
+                          {trend}%
+                        </p>
+                      ) : (
+                        <p className="text-sm font-semibold text-slate-500">—</p>
                       )}
-                    >
-                      <TrendingUp className="h-4 w-4" />
-                      {trend >= 0 ? '↑' : '↓'} {Math.abs(trend)}% vs previous test
-                    </p>
-                  ) : (
-                    <p className="mt-2 text-sm text-slate-500">
-                      {history.length > 1 ? 'Selected OMR test' : 'Latest OMR test'}
-                    </p>
-                  )}
-                </CardContent>
-              </Card>
-              <Card className="rounded-2xl border-orange-100">
-                <CardContent className="p-5">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Test rank</p>
-                  <p className="mt-2 text-4xl font-bold text-slate-900">
-                    {selected.finalRank ?? selected.testRank ?? '—'}
-                  </p>
-                  <p className="mt-2 text-sm text-slate-500">From OMR score list</p>
-                </CardContent>
-              </Card>
-              <Card className="rounded-2xl border-orange-100">
-                <CardContent className="p-5">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Total marks</p>
-                  <p className="mt-2 text-4xl font-bold text-slate-900">{selected.totalMarks}</p>
-                  <p className="mt-2 text-sm text-slate-500 line-clamp-2">{selected.testTitle}</p>
-                </CardContent>
-              </Card>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
 
-            <Card className="rounded-2xl border-orange-100">
-              <CardContent className="p-5 sm:p-6">
-                <div className="mb-4 flex items-start justify-between gap-3">
-                  <div>
-                    <h2 className="text-lg font-bold text-slate-900">Subject performance</h2>
-                    <p className="text-sm text-slate-500">
-                      {selected.testTitle}
-                      {formatTestDate(selected.testDate)
-                        ? ` · ${formatTestDate(selected.testDate)}`
-                        : ''}
-                    </p>
-                  </div>
-                  <BookOpen className="h-5 w-5 text-orange-500" />
-                </div>
-                <div className="space-y-4">
-                  {subjects.map((s) => {
-                    const max = subjectMax(s.score);
-                    const marks = s.score?.marks || 0;
-                    const pct = subjectPct(s.score);
-                    return (
-                      <div key={s.key}>
-                        <div className="mb-1.5 flex items-center justify-between gap-2">
-                          <p className="font-semibold text-slate-800">{s.key}</p>
-                          <p className="text-sm text-slate-600">
-                            <span className="font-bold text-slate-900">
-                              {marks} / {max}
-                            </span>{' '}
-                            · Grade {gradeFor(pct)}
+            {/* Subject grid */}
+            <div>
+              <h3 className="mb-2.5 text-sm font-semibold text-slate-800">Subject performance</h3>
+              <div className="grid gap-2.5 sm:grid-cols-2">
+                {subjects.map((s) => {
+                  const max = subjectMax(s.score);
+                  const marks = s.score?.marks || 0;
+                  const pct = subjectPct(s.score);
+                  return (
+                    <div
+                      key={s.key}
+                      className="rounded-xl border border-slate-200 bg-white p-3.5 shadow-sm"
+                    >
+                      <div className="mb-2 flex items-start justify-between gap-2">
+                        <div>
+                          <p className="font-semibold text-slate-900">{s.key}</p>
+                          <p className="text-xs text-slate-500">
+                            Right {s.score?.r ?? 0} · Wrong {s.score?.w ?? 0} · Left {s.score?.l ?? 0}
                           </p>
                         </div>
-                        <div className="h-2.5 overflow-hidden rounded-full bg-slate-100">
-                          <div
-                            className={cn('h-full rounded-full transition-all', s.color)}
-                            style={{ width: `${Math.min(100, pct)}%` }}
-                          />
-                        </div>
+                        <span
+                          className={cn(
+                            'rounded-lg border px-2 py-0.5 text-xs font-bold',
+                            s.chip,
+                          )}
+                        >
+                          {gradeFor(pct)}
+                        </span>
                       </div>
+                      <div className="mb-1.5 flex items-baseline justify-between">
+                        <p className="text-xl font-bold tabular-nums text-slate-900">
+                          {marks}
+                          <span className="text-sm font-medium text-slate-400"> / {max}</span>
+                        </p>
+                        <p className="text-sm font-semibold tabular-nums text-slate-600">{pct}%</p>
+                      </div>
+                      <div className="h-2 overflow-hidden rounded-full bg-slate-100">
+                        <div
+                          className={cn('h-full rounded-full transition-all', s.bar)}
+                          style={{ width: `${Math.min(100, pct)}%` }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {history.length > 1 ? (
+              <div>
+                <h3 className="mb-2 text-sm font-semibold text-slate-800">All OMR tests</h3>
+                <div className="divide-y divide-slate-100 overflow-hidden rounded-xl border border-slate-200 bg-white">
+                  {history.map((h) => {
+                    const active = h._id === selected._id;
+                    return (
+                      <button
+                        key={h._id}
+                        type="button"
+                        onClick={() => setSelectedId(h._id)}
+                        className={cn(
+                          'flex w-full items-center justify-between gap-3 px-3.5 py-3 text-left text-sm transition-colors',
+                          active ? 'bg-orange-50/80' : 'hover:bg-slate-50',
+                        )}
+                      >
+                        <div className="min-w-0">
+                          <p className="truncate font-medium text-slate-800">{h.testTitle}</p>
+                          <p className="text-xs text-slate-500">
+                            {formatTestDate(h.testDate) || `Test #${h.testNo || '—'}`}
+                          </p>
+                        </div>
+                        <div className="shrink-0 text-right">
+                          <p className="font-bold tabular-nums text-slate-900">{h.percentage}%</p>
+                          <p className="text-[11px] text-slate-500">
+                            Rank {h.finalRank ?? h.testRank ?? '—'}
+                          </p>
+                        </div>
+                      </button>
                     );
                   })}
                 </div>
-              </CardContent>
-            </Card>
-
-            {history.length > 1 ? (
-              <Card className="rounded-2xl border-orange-100">
-                <CardContent className="p-5">
-                  <h3 className="mb-3 font-semibold text-slate-900">All OMR tests</h3>
-                  <div className="space-y-2">
-                    {history.map((h) => {
-                      const active = h._id === selected._id;
-                      return (
-                        <button
-                          key={h._id}
-                          type="button"
-                          onClick={() => setSelectedId(h._id)}
-                          className={cn(
-                            'flex w-full items-center justify-between rounded-xl border px-3 py-2.5 text-left text-sm transition-colors',
-                            active
-                              ? 'border-orange-200 bg-orange-50/70'
-                              : 'border-slate-100 bg-slate-50/60 hover:border-slate-200 hover:bg-white',
-                          )}
-                        >
-                          <div className="min-w-0">
-                            <p className="truncate font-medium text-slate-800">{h.testTitle}</p>
-                            <p className="text-xs text-slate-500">
-                              Test #{h.testNo || '—'}
-                              {formatTestDate(h.testDate) ? ` · ${formatTestDate(h.testDate)}` : ''}
-                            </p>
-                          </div>
-                          <div className="flex items-center gap-3">
-                            <div className="text-right">
-                              <p className="font-bold text-slate-900">{h.percentage}%</p>
-                              <p className="text-xs text-slate-500">
-                                Rank {h.finalRank ?? h.testRank ?? '—'}
-                              </p>
-                            </div>
-                            {active ? (
-                              <CheckCircle2 className="h-4 w-4 shrink-0 text-orange-600" />
-                            ) : null}
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </CardContent>
-              </Card>
+              </div>
             ) : null}
           </motion.div>
         )}

@@ -11,22 +11,22 @@ interface AdminChatUIProps {
 export function AdminChatUI({ model, className }: AdminChatUIProps) {
   const quickActions = [
     {
-      label: "Students",
-      icon: Users,
+      label: "Overview",
+      icon: BarChart3,
       tone: "border-sky-200 text-sky-700 hover:bg-sky-50",
-      prompt: "How many students are there in the application?",
+      prompt: "School dashboard overview",
     },
     {
-      label: "Exams",
+      label: "OMR",
       icon: CalendarDays,
       tone: "border-teal-200 text-teal-700 hover:bg-teal-50",
-      prompt: "How many exams are scheduled this week?",
+      prompt: "How many OMR batches do we have?",
     },
     {
-      label: "Reports",
-      icon: BarChart3,
+      label: "Students",
+      icon: Users,
       tone: "border-emerald-200 text-emerald-700 hover:bg-emerald-50",
-      prompt: "Which class has the highest student count?",
+      prompt: "How many students and teachers are active?",
     },
   ];
 
