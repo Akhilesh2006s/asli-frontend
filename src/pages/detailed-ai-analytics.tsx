@@ -57,6 +57,10 @@ interface AdminAnalytics {
   adminId: string;
   adminName: string;
   adminEmail: string;
+  board?: string;
+  curriculumBoard?: string;
+  effectiveBoard?: string;
+  state?: string;
   examDifficulty: ExamDifficulty;
   topScorers: TopScorer[];
   performanceDistribution: PerformanceDistribution;
@@ -64,6 +68,8 @@ interface AdminAnalytics {
   performanceTrends: PerformanceTrend[];
   subjectAnalysis: SubjectAnalysis[];
   totalStudents: number;
+  uniqueStudents?: number;
+  totalAttempts?: number;
   totalExams: number;
   averageScore: number;
 }
@@ -166,15 +172,29 @@ export default function DetailedAIAnalyticsDashboard({
   const [filterState, setFilterState] = useState<string>('all');
   const [filterBoard, setFilterBoard] = useState<string>('all');
 
-  // Board options
+  // Board options — curriculum boards + OTHER (aligned with backend boardScope)
   const boardOptions = [
     { value: 'all', label: 'All Boards' },
     { value: 'CBSE', label: 'CBSE' },
+    { value: 'STATE', label: 'State Board' },
     { value: 'SSC', label: 'SSC' },
     { value: 'ICSE', label: 'ICSE' },
     { value: 'IB', label: 'IB' },
-    { value: 'Others', label: 'Others' }
+    { value: 'CAMBRIDGE', label: 'Cambridge' },
+    { value: 'OTHER', label: 'Other / Unmapped' },
   ];
+
+  const resolveAdminCurriculumBoard = (adminData: any, fallbackAdmin?: AdminAnalytics) => {
+    const curriculum =
+      adminData?.curriculumBoard ||
+      fallbackAdmin?.curriculumBoard ||
+      fallbackAdmin?.effectiveBoard ||
+      '';
+    if (curriculum) return String(curriculum).toUpperCase().trim();
+    const hub = String(adminData?.board || fallbackAdmin?.board || '').toUpperCase().trim();
+    if (['CBSE', 'STATE', 'SSC', 'ICSE', 'IB', 'CAMBRIDGE'].includes(hub)) return hub;
+    return 'OTHER';
+  };
 
   // Indian states/UT labels with short codes
   const stateOptions = [
@@ -323,21 +343,60 @@ export default function DetailedAIAnalyticsDashboard({
       );
     }
 
-    // Filter by board
+    // Filter by curriculum board (not hub ASLI_EXCLUSIVE_SCHOOLS alone)
     if (filterBoard !== 'all') {
       filteredAdminAnalytics = filteredAdminAnalytics.filter(admin => {
-        const adminData = admins.find(a => a.id === admin.adminId || a._id === admin.adminId);
-        return adminData?.board === filterBoard;
+        const adminData = admins.find(a => String(a.id || a._id) === String(admin.adminId));
+        return resolveAdminCurriculumBoard(adminData, admin) === filterBoard;
       });
     }
 
     // Filter by state
     if (filterState !== 'all') {
       filteredAdminAnalytics = filteredAdminAnalytics.filter(admin => {
-        const adminData = admins.find(a => a.id === admin.adminId || a._id === admin.adminId);
-        return adminData?.state === filterState;
+        const adminData = admins.find(a => String(a.id || a._id) === String(admin.adminId));
+        return (adminData?.state || admin.state) === filterState;
       });
     }
+
+    const filteredAdminIds = new Set(filteredAdminAnalytics.map((a) => String(a.adminId)));
+
+    // Merge subject / distribution / toppers from filtered admins only
+    const mergedSubjects = new Map<string, { subject: string; totalScore: number; totalExams: number; highestScore: number; lowestScore: number }>();
+    for (const admin of filteredAdminAnalytics) {
+      for (const s of admin.subjectAnalysis || []) {
+        const key = s.subject || 'Unknown';
+        const cur = mergedSubjects.get(key) || {
+          subject: key,
+          totalScore: 0,
+          totalExams: 0,
+          highestScore: 0,
+          lowestScore: 100,
+        };
+        const exams = Number(s.totalExams || s.examCount || 0);
+        cur.totalExams += exams;
+        cur.totalScore += Number(s.averageScore || 0) * exams;
+        cur.highestScore = Math.max(cur.highestScore, Number(s.highestScore || 0));
+        cur.lowestScore = Math.min(cur.lowestScore, Number(s.lowestScore ?? 100));
+        mergedSubjects.set(key, cur);
+      }
+    }
+
+    const subjectWiseAnalysis = [...mergedSubjects.values()]
+      .map((s) => ({
+        ...s,
+        examCount: s.totalExams,
+        averageScore: s.totalExams > 0 ? Math.round((s.totalScore / s.totalExams) * 100) / 100 : 0,
+      }))
+      .sort((a, b) => b.averageScore - a.averageScore);
+
+    const filteredTopPerformers = [
+      ...filteredAdminAnalytics.flatMap((a) =>
+        (a.topScorers || []).map((t) => ({ ...t, adminId: a.adminId, adminName: a.adminName })),
+      ),
+    ]
+      .sort((a, b) => (b.averageScore || 0) - (a.averageScore || 0))
+      .slice(0, 20);
 
     // Recalculate global analytics based on filtered data
     const filteredGlobalAnalytics = {
@@ -347,14 +406,16 @@ export default function DetailedAIAnalyticsDashboard({
         ? filteredAdminAnalytics.reduce((sum, admin) => sum + (admin.averageScore || 0), 0) / filteredAdminAnalytics.length
         : 0,
       totalExams: filteredAdminAnalytics.reduce((sum, admin) => sum + (admin.totalExams || 0), 0),
-      totalExamResults: filteredAdminAnalytics.reduce((sum, admin) => sum + (admin.totalStudents || 0), 0),
-      topPerformers: analytics.globalAnalytics.topPerformers.filter(performer => {
-        // Filter top performers based on their admin's state/board
-        const adminData = admins.find(a => 
-          filteredAdminAnalytics.some(fa => fa.adminId === (a.id || a._id))
-        );
-        return adminData !== undefined;
-      })
+      totalExamResults: filteredAdminAnalytics.reduce(
+        (sum, admin) => sum + (admin.totalAttempts ?? admin.totalStudents ?? 0),
+        0,
+      ),
+      topPerformers: filteredTopPerformers.length
+        ? filteredTopPerformers
+        : analytics.globalAnalytics.topPerformers.filter((performer: any) =>
+            filteredAdminIds.has(String(performer.adminId)),
+          ),
+      subjectWiseAnalysis,
     };
 
     return {
@@ -617,8 +678,16 @@ export default function DetailedAIAnalyticsDashboard({
                       
                       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 text-xs sm:text-sm">
                         <div className="text-center">
-                          <p className="font-semibold text-gray-900 text-base sm:text-lg">{admin.totalStudents}</p>
+                          <p className="font-semibold text-gray-900 text-base sm:text-lg">
+                            {admin.uniqueStudents ?? admin.totalStudents}
+                          </p>
                           <p className="text-gray-600">Students</p>
+                        </div>
+                        <div className="text-center">
+                          <p className="font-semibold text-gray-900 text-base sm:text-lg">
+                            {admin.totalAttempts ?? admin.totalStudents}
+                          </p>
+                          <p className="text-gray-600">Attempts</p>
                         </div>
                         <div className="text-center">
                           <p className="font-semibold text-gray-900 text-base sm:text-lg">{admin.totalExams}</p>

@@ -91,6 +91,7 @@ export default function SuperAdminDashboard() {
     activeAssessments: 0,
     avgExamsPerStudent: 0,
     contentEngagement: 0,
+    contentVolume: 0,
     passRate: 0,
     activeStudents: 0,
     activeStudentsPercentage: 0
@@ -533,16 +534,30 @@ export default function SuperAdminDashboard() {
               </div>
               <div className="pt-2 border-t">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs text-gray-600">Student Engagement</span>
+                  <span className="text-xs text-gray-600">Content items (videos + content + assessments + exams)</span>
                   <span className="text-xs font-semibold text-gray-900">
-                    {isLoadingStats ? '...' : (stats.contentEngagement || 0).toFixed(0)}%
+                    {isLoadingStats
+                      ? '...'
+                      : (
+                          stats.contentVolume ??
+                          stats.contentEngagement ??
+                          0
+                        ).toLocaleString()}
                   </span>
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div 
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-gray-600">Active student rate</span>
+                  <span className="text-xs font-semibold text-gray-900">
+                    {isLoadingStats ? '...' : `${stats.activeStudentsPercentage || 0}%`}
+                  </span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
+                  <div
                     className="bg-gradient-to-r from-orange-400 to-sky-400 h-2 rounded-full transition-all duration-300"
-                    style={{ width: `${isLoadingStats ? 0 : (stats.contentEngagement || 0)}%` }}
-                  ></div>
+                    style={{
+                      width: `${isLoadingStats ? 0 : Math.min(100, Number(stats.activeStudentsPercentage) || 0)}%`,
+                    }}
+                  />
                 </div>
               </div>
             </div>

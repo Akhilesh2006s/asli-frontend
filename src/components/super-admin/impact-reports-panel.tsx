@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { API_BASE_URL } from "@/lib/api-config";
 import { getAuthToken } from "@/lib/auth-utils";
 import { useToast } from "@/hooks/use-toast";
@@ -19,8 +20,10 @@ import {
   Activity,
   ChevronLeft,
   ChevronRight,
+  CalendarDays,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import "react-day-picker/dist/style.css";
 
 type SchoolSnap = {
   _id?: string;
@@ -41,17 +44,131 @@ type SchoolSnap = {
   totalMinutesSpent?: number;
   aiExplanationsCount?: number;
   practiceAttempts?: number;
+  videosWatchedCount?: number;
+  studentsWatchedVideos?: number;
+  examAttemptsCount?: number;
+  studentsTookExams?: number;
+  homeworkSubmissions?: number;
+  iqQuizAttempts?: number;
   repeatPracticeStudentPct?: number;
   avgSessionsPerActiveStudent?: number;
   keyObservation?: string;
   topSubjects?: Array<{ subject: string; sessions: number; pct: number }>;
   teachers?: Array<{ name: string; status: string; generationsCreated: number }>;
+  studentReports?: StudentReportRow[];
+  dayBreakdown?: DayBreakdownRow[];
+  activeStudentCount?: number;
+  totalStudents?: number;
+};
+
+type StudentReportRow = {
+  studentId: string;
+  name: string;
+  email?: string;
+  classNumber?: string;
+  accessed?: boolean;
+  sessions?: number;
+  minutes?: number;
+  videosWatched?: number;
+  examAttempts?: number;
+  avgExamPct?: number;
+  examTitles?: string[];
+  aiDoubts?: number;
+  practiceAttempts?: number;
+  homeworkSubmissions?: number;
+  iqAttempts?: number;
+  summary?: string;
+};
+
+type DayBreakdownRow = {
+  date?: string;
+  sessions?: number;
+  minutes?: number;
+  students?: number;
 };
 
 type Mode = "weekly" | "custom";
 
 function toInputDate(d: Date) {
-  return d.toISOString().slice(0, 10);
+  // Prefer Asia/Kolkata calendar day so "today" matches school activity windows.
+  try {
+    return new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Kolkata",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(d);
+  } catch {
+    return d.toISOString().slice(0, 10);
+  }
+}
+
+/** Parse YYYY-MM-DD as a local calendar date (noon avoids DST edge cases). */
+function parseYmd(ymd: string): Date | undefined {
+  const m = String(ymd || "").match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!m) return undefined;
+  const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]), 12, 0, 0, 0);
+  return Number.isNaN(d.getTime()) ? undefined : d;
+}
+
+function formatDisplayDate(ymd: string) {
+  const d = parseYmd(ymd);
+  if (!d) return ymd || "Pick date";
+  return d.toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+function ImpactDatePicker({
+  id,
+  label,
+  value,
+  onChange,
+}: {
+  id: string;
+  label: string;
+  value: string;
+  onChange: (ymd: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const selected = parseYmd(value);
+
+  return (
+    <div className="space-y-1">
+      <Label htmlFor={id}>{label}</Label>
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            id={id}
+            type="button"
+            variant="outline"
+            className={cn(
+              "h-10 min-w-[180px] justify-start rounded-xl border-slate-200 bg-white px-3 text-left font-normal",
+              !value && "text-slate-400",
+            )}
+          >
+            <CalendarDays className="mr-2 h-4 w-4 shrink-0 text-orange-600" />
+            {formatDisplayDate(value)}
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-auto p-0" align="start">
+          <Calendar
+            mode="single"
+            selected={selected}
+            defaultMonth={selected}
+            onSelect={(day) => {
+              if (!day) return;
+              onChange(toInputDate(day));
+              setOpen(false);
+            }}
+            initialFocus
+          />
+        </PopoverContent>
+      </Popover>
+    </div>
+  );
 }
 
 function startOfIsoWeekLocal(d: Date) {
@@ -76,11 +193,16 @@ export function ImpactReportsPanel() {
   const [running, setRunning] = useState(false);
   const [periodLabel, setPeriodLabel] = useState("");
   const [weekStart, setWeekStart] = useState(() => toInputDate(startOfIsoWeekLocal(new Date())));
-  const [mode, setMode] = useState<Mode>("weekly");
+  const [mode, setMode] = useState<Mode>("custom");
   const [fromDate, setFromDate] = useState(() => toInputDate(new Date()));
   const [toDate, setToDate] = useState(() => toInputDate(new Date()));
   const [schools, setSchools] = useState<SchoolSnap[]>([]);
   const [selected, setSelected] = useState<SchoolSnap | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [studentReports, setStudentReports] = useState<StudentReportRow[]>([]);
+  const [dayBreakdown, setDayBreakdown] = useState<DayBreakdownRow[]>([]);
+  const [studentFilter, setStudentFilter] = useState<"active" | "all">("active");
+  const detailRef = useRef<HTMLDivElement | null>(null);
 
   const periodQuery = useMemo(() => {
     const params = new URLSearchParams();
@@ -123,7 +245,8 @@ export function ImpactReportsPanel() {
   );
 
   useEffect(() => {
-    void load(false);
+    // Always rebuild from live usage on open / period change so zeros don't stick.
+    void load(true);
   }, [load]);
 
   const shiftWeek = (delta: number) => {
@@ -148,9 +271,9 @@ export function ImpactReportsPanel() {
       if (!res.ok) throw new Error(json.message || "Run failed");
       toast({
         title: "Reports generated",
-        description: `${json.data?.periodLabel || periodLabel || "Period"} — schools processed.`,
+        description: `${json.data?.periodLabel || periodLabel || "Period"} — schools processed. Active schools appear at the top.`,
       });
-      await load(false);
+      await load(true);
     } catch (e: unknown) {
       toast({
         title: "Generate failed",
@@ -164,6 +287,10 @@ export function ImpactReportsPanel() {
 
   const downloadPdf = async (adminId: string, name: string) => {
     try {
+      toast({
+        title: "Preparing detailed PDF",
+        description: "Building student-wise report (may take a moment)…",
+      });
       const params = new URLSearchParams(periodQuery);
       const res = await fetch(
         `${API_BASE_URL}/api/super-admin/impact-reports/${adminId}/pdf?${params}`,
@@ -185,6 +312,45 @@ export function ImpactReportsPanel() {
       });
     }
   };
+
+  const openSchoolDetail = async (school: SchoolSnap) => {
+    setSelected(school);
+    setDetailLoading(true);
+    setStudentReports([]);
+    setDayBreakdown([]);
+    setStudentFilter("active");
+    // Bring the report into view immediately (under filters) — no manual scroll.
+    requestAnimationFrame(() => {
+      detailRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+    try {
+      const params = new URLSearchParams(periodQuery);
+      params.set("detail", "1");
+      const res = await fetch(
+        `${API_BASE_URL}/api/super-admin/impact-reports/${school.adminId}?${params}`,
+        { headers: authHeaders() },
+      );
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.message || "Failed to load detail");
+      const data = json.data || {};
+      setSelected({ ...school, ...data });
+      setStudentReports(Array.isArray(data.studentReports) ? data.studentReports : []);
+      setDayBreakdown(Array.isArray(data.dayBreakdown) ? data.dayBreakdown : []);
+    } catch (e: unknown) {
+      toast({
+        title: "School detail",
+        description: e instanceof Error ? e.message : "Could not load student reports",
+        variant: "destructive",
+      });
+    } finally {
+      setDetailLoading(false);
+    }
+  };
+
+  const visibleStudents = useMemo(() => {
+    if (studentFilter === "all") return studentReports;
+    return studentReports.filter((s) => s.accessed);
+  }, [studentReports, studentFilter]);
 
   const statusBadge = (s: string) => {
     const map: Record<string, string> = {
@@ -249,16 +415,12 @@ export function ImpactReportsPanel() {
 
           {mode === "weekly" ? (
             <div className="flex flex-wrap items-end gap-3">
-              <div className="space-y-1">
-                <Label htmlFor="impact-week">Week of (any day in that week)</Label>
-                <Input
-                  id="impact-week"
-                  type="date"
-                  value={weekStart}
-                  onChange={(e) => setWeekStart(e.target.value)}
-                  className="w-[180px] bg-white"
-                />
-              </div>
+              <ImpactDatePicker
+                id="impact-week"
+                label="Week of (any day in that week)"
+                value={weekStart}
+                onChange={setWeekStart}
+              />
               <div className="flex gap-1">
                 <Button type="button" size="sm" variant="outline" onClick={() => shiftWeek(-1)}>
                   <ChevronLeft className="h-4 w-4" />
@@ -275,118 +437,95 @@ export function ImpactReportsPanel() {
             </div>
           ) : (
             <div className="flex flex-wrap items-end gap-3">
-              <div className="space-y-1">
-                <Label htmlFor="impact-from">From</Label>
-                <Input
-                  id="impact-from"
-                  type="date"
-                  value={fromDate}
-                  onChange={(e) => setFromDate(e.target.value)}
-                  className="w-[160px] bg-white"
-                />
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="impact-to">To</Label>
-                <Input
-                  id="impact-to"
-                  type="date"
-                  value={toDate}
-                  onChange={(e) => setToDate(e.target.value)}
-                  className="w-[160px] bg-white"
-                />
-              </div>
+              <ImpactDatePicker
+                id="impact-from"
+                label="From"
+                value={fromDate}
+                onChange={setFromDate}
+              />
+              <ImpactDatePicker
+                id="impact-to"
+                label="To"
+                value={toDate}
+                onChange={setToDate}
+              />
               <Button type="button" size="sm" onClick={() => void load(true)} disabled={loading}>
                 Apply range
               </Button>
               <p className="text-xs text-slate-500 w-full sm:w-auto">
-                Max 93 days. Click Generate, then PDF on each school.
+                Click the calendar to pick dates (IST). Apply rebuilds live usage; active schools rise to the top.
               </p>
             </div>
           )}
         </div>
 
-        {loading && !schools.length ? (
-          <p className="text-sm text-slate-500">Loading school snapshots…</p>
-        ) : !schools.length ? (
-          <p className="text-sm text-slate-500">
-            No snapshots for this period yet. Click <strong>Generate for period</strong> to build from live usage,
-            then download PDF.
-          </p>
-        ) : (
-          <DashboardScrollPanel className="rounded-xl border border-slate-200">
-            <table className="min-w-full text-sm">
-              <thead className="sticky top-0 z-10 bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
-                <tr>
-                  <th className="bg-slate-50 px-3 py-2">School</th>
-                  <th className="bg-slate-50 px-3 py-2">Teachers active</th>
-                  <th className="bg-slate-50 px-3 py-2">Students accessed</th>
-                  <th className="bg-slate-50 px-3 py-2">Sessions</th>
-                  <th className="bg-slate-50 px-3 py-2">AI / Practice</th>
-                  <th className="bg-slate-50 px-3 py-2">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {schools.map((s) => (
-                  <tr key={String(s.adminId)} className="border-t border-slate-100">
-                    <td className="px-3 py-2">
-                      <div className="font-medium text-slate-900">{s.schoolName || "School"}</div>
-                      <div className="text-xs text-slate-500">{s.location || s.schoolEmail}</div>
-                    </td>
-                    <td className="px-3 py-2">
-                      {s.teachersActive ?? 0}
-                      <span className="text-slate-400"> / {s.teachersIssued ?? 0}</span>
-                    </td>
-                    <td className="px-3 py-2">
-                      {s.studentsAccessed ?? 0}
-                      <span className="text-slate-400"> / {s.studentsIssued ?? 0}</span>
-                    </td>
-                    <td className="px-3 py-2">{s.totalLearningSessions ?? 0}</td>
-                    <td className="px-3 py-2">
-                      {s.aiExplanationsCount ?? 0} / {s.practiceAttempts ?? 0}
-                    </td>
-                    <td className="px-3 py-2">
-                      <div className="flex flex-wrap gap-1">
-                        <Button size="sm" variant="outline" onClick={() => setSelected(s)}>
-                          View
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => void downloadPdf(String(s.adminId), s.schoolName || "school")}
-                        >
-                          <Download className="h-3.5 w-3.5" />
-                          PDF
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </DashboardScrollPanel>
-        )}
-
         {selected ? (
-          <div className="rounded-xl border border-orange-100 bg-orange-50/40 p-4 space-y-3">
+          <div
+            ref={detailRef}
+            className="scroll-mt-4 rounded-xl border border-orange-200 bg-orange-50/40 p-4 space-y-3 shadow-sm"
+          >
             <div className="flex items-start justify-between gap-2">
               <div>
                 <h3 className="font-semibold text-slate-900 flex items-center gap-2">
                   <School className="h-4 w-4 text-orange-600" />
                   {selected.schoolName}
                 </h3>
-                <p className="text-xs text-slate-500">{selected.periodLabel || periodLabel}</p>
+                <p className="text-xs text-slate-500">
+                  {selected.periodLabel || periodLabel} · student-wise{" "}
+                  {mode === "custom" ? "day/range" : "weekly"} report
+                </p>
               </div>
-              <Button size="sm" variant="ghost" onClick={() => setSelected(null)}>
-                Close
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() =>
+                    void downloadPdf(String(selected.adminId), selected.schoolName || "school")
+                  }
+                >
+                  <Download className="mr-1 h-3.5 w-3.5" />
+                  Detailed PDF
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => {
+                    setSelected(null);
+                    setStudentReports([]);
+                    setDayBreakdown([]);
+                  }}
+                >
+                  Close
+                </Button>
+              </div>
             </div>
             <p className="text-sm text-slate-700">{selected.keyObservation}</p>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              <Stat label="Active teachers" value={selected.teachersActive} icon={GraduationCap} />
+              <Stat label="Teachers logged in" value={selected.teachersLoggedIn} icon={GraduationCap} />
               <Stat label="Students accessed" value={selected.studentsAccessed} icon={Users} />
               <Stat label="Sessions" value={selected.totalLearningSessions} icon={Activity} />
-              <Stat label="Repeat practice %" value={selected.repeatPracticeStudentPct} icon={FileText} />
+              <Stat label="Videos watched" value={selected.videosWatchedCount} icon={FileText} />
             </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              <Stat label="Exams written" value={selected.examAttemptsCount} icon={FileText} />
+              <Stat label="AI / doubts" value={selected.aiExplanationsCount} icon={Activity} />
+              <Stat label="Practice" value={selected.practiceAttempts} icon={Users} />
+              <Stat label="Homework" value={selected.homeworkSubmissions} icon={GraduationCap} />
+            </div>
+
+            {dayBreakdown.length ? (
+              <div>
+                <p className="text-xs font-semibold uppercase text-slate-500 mb-1">Day-wise activity</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {dayBreakdown.map((d) => (
+                    <Badge key={String(d.date)} variant="secondary">
+                      {d.date}: {d.sessions} sess · {d.students} students
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+
             {selected.topSubjects?.length ? (
               <div>
                 <p className="text-xs font-semibold uppercase text-slate-500 mb-1">Top subjects</p>
@@ -399,6 +538,99 @@ export function ImpactReportsPanel() {
                 </div>
               </div>
             ) : null}
+
+            <div className="space-y-2">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-xs font-semibold uppercase text-slate-500">
+                  Student reports ({visibleStudents.length}
+                  {studentFilter === "active"
+                    ? ` active / ${studentReports.length}`
+                    : ""}
+                  )
+                </p>
+                <div className="flex gap-1">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={studentFilter === "active" ? "default" : "outline"}
+                    onClick={() => setStudentFilter("active")}
+                  >
+                    Active only
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={studentFilter === "all" ? "default" : "outline"}
+                    onClick={() => setStudentFilter("all")}
+                  >
+                    All students
+                  </Button>
+                </div>
+              </div>
+
+              {detailLoading ? (
+                <p className="text-sm text-slate-500 flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Loading student-wise activity…
+                </p>
+              ) : (
+                <DashboardScrollPanel className="max-h-[420px] rounded-xl border border-slate-200 bg-white">
+                  <table className="min-w-full text-xs sm:text-sm">
+                    <thead className="sticky top-0 bg-slate-50 text-left text-[10px] uppercase tracking-wide text-slate-500">
+                      <tr>
+                        <th className="bg-slate-50 px-2 py-2">Student</th>
+                        <th className="bg-slate-50 px-2 py-2">Sessions</th>
+                        <th className="bg-slate-50 px-2 py-2">Videos</th>
+                        <th className="bg-slate-50 px-2 py-2">Exams</th>
+                        <th className="bg-slate-50 px-2 py-2">AI</th>
+                        <th className="bg-slate-50 px-2 py-2">Report</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {visibleStudents.map((st) => (
+                        <tr key={st.studentId} className="border-t border-slate-100 align-top">
+                          <td className="px-2 py-2">
+                            <div className="font-medium text-slate-900">{st.name}</div>
+                            <div className="text-[11px] text-slate-500">
+                              {st.classNumber ? `Class ${st.classNumber}` : ""}
+                              {st.email ? ` · ${st.email}` : ""}
+                            </div>
+                          </td>
+                          <td className="px-2 py-2 tabular-nums">
+                            {st.sessions ?? 0}
+                            <span className="text-slate-400"> · {st.minutes ?? 0}m</span>
+                          </td>
+                          <td className="px-2 py-2 tabular-nums">{st.videosWatched ?? 0}</td>
+                          <td className="px-2 py-2 tabular-nums">
+                            {st.examAttempts ?? 0}
+                            {(st.examAttempts || 0) > 0 ? (
+                              <div className="text-[10px] text-slate-500">avg {st.avgExamPct ?? 0}%</div>
+                            ) : null}
+                          </td>
+                          <td className="px-2 py-2 tabular-nums">{st.aiDoubts ?? 0}</td>
+                          <td className="px-2 py-2 text-slate-600 max-w-[220px]">
+                            {st.summary || "—"}
+                            {st.examTitles?.length ? (
+                              <div className="mt-0.5 text-[10px] text-slate-400 line-clamp-2">
+                                {st.examTitles.join("; ")}
+                              </div>
+                            ) : null}
+                          </td>
+                        </tr>
+                      ))}
+                      {!visibleStudents.length ? (
+                        <tr>
+                          <td colSpan={6} className="px-3 py-8 text-center text-slate-500">
+                            No students match this filter for the selected period.
+                          </td>
+                        </tr>
+                      ) : null}
+                    </tbody>
+                  </table>
+                </DashboardScrollPanel>
+              )}
+            </div>
+
             {selected.teachers?.length ? (
               <div>
                 <p className="text-xs font-semibold uppercase text-slate-500 mb-1">Teachers</p>
@@ -416,6 +648,89 @@ export function ImpactReportsPanel() {
             ) : null}
           </div>
         ) : null}
+
+        {loading && !schools.length ? (
+          <p className="text-sm text-slate-500">Loading school snapshots…</p>
+        ) : !schools.length ? (
+          <p className="text-sm text-slate-500">
+            No school activity found for this period yet. Confirm the date range includes today
+            (IST), then click <strong>Apply range</strong> or <strong>Generate for period</strong>.
+            Schools with logins, sessions, exams, or AI use appear at the top.
+          </p>
+        ) : (
+          <DashboardScrollPanel className="rounded-xl border border-slate-200 max-h-[360px]">
+            <table className="min-w-full text-sm">
+              <thead className="sticky top-0 z-10 bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
+                <tr>
+                  <th className="bg-slate-50 px-3 py-2">School</th>
+                  <th className="bg-slate-50 px-3 py-2">Teachers logged in</th>
+                  <th className="bg-slate-50 px-3 py-2">Students accessed</th>
+                  <th className="bg-slate-50 px-3 py-2">Sessions</th>
+                  <th className="bg-slate-50 px-3 py-2">AI / Practice</th>
+                  <th className="bg-slate-50 px-3 py-2">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {schools.map((s) => {
+                  const hasActivity =
+                    (s.studentsAccessed || 0) > 0 ||
+                    (s.teachersLoggedIn || 0) > 0 ||
+                    (s.totalLearningSessions || 0) > 0 ||
+                    (s.aiExplanationsCount || 0) > 0 ||
+                    (s.practiceAttempts || 0) > 0;
+                  const isSelected = selected?.adminId === s.adminId;
+                  return (
+                    <tr
+                      key={String(s.adminId)}
+                      className={cn(
+                        "border-t border-slate-100",
+                        hasActivity && "bg-emerald-50/50",
+                        isSelected && "bg-orange-100/80 ring-1 ring-inset ring-orange-200",
+                      )}
+                    >
+                      <td className="px-3 py-2">
+                        <div className="font-medium text-slate-900">{s.schoolName || "School"}</div>
+                        <div className="text-xs text-slate-500">{s.location || s.schoolEmail}</div>
+                      </td>
+                      <td className="px-3 py-2">
+                        {s.teachersLoggedIn ?? 0}
+                        <span className="text-slate-400"> / {s.teachersIssued ?? 0}</span>
+                        {(s.teachersActive || 0) > 0 ? (
+                          <div className="text-[10px] text-emerald-700">
+                            {s.teachersActive} active (3+ days)
+                          </div>
+                        ) : null}
+                      </td>
+                      <td className="px-3 py-2">
+                        {s.studentsAccessed ?? 0}
+                        <span className="text-slate-400"> / {s.studentsIssued ?? 0}</span>
+                      </td>
+                      <td className="px-3 py-2">{s.totalLearningSessions ?? 0}</td>
+                      <td className="px-3 py-2">
+                        {s.aiExplanationsCount ?? 0} / {s.practiceAttempts ?? 0}
+                      </td>
+                      <td className="px-3 py-2">
+                        <div className="flex flex-wrap gap-1">
+                          <Button size="sm" variant="outline" onClick={() => void openSchoolDetail(s)}>
+                            View
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => void downloadPdf(String(s.adminId), s.schoolName || "school")}
+                          >
+                            <Download className="h-3.5 w-3.5" />
+                            PDF
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </DashboardScrollPanel>
+        )}
       </CardContent>
     </Card>
   );

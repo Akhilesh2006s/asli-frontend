@@ -214,11 +214,13 @@ export default function SuperAdminAnalyticsDashboard({ onSelectSchool }: SuperAd
           <CardContent className="p-3 sm:p-4 lg:p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs sm:text-sm font-medium text-white/90">Total Students</p>
+                <p className="text-xs sm:text-sm font-medium text-white/90">School Students</p>
                 <p className="text-2xl sm:text-3xl font-bold text-white">
-                  {analytics?.reduce((sum, admin) => sum + (admin.stats?.students || 0), 0) || 0}
+                  {platformAnalytics?.schoolStudents != null
+                    ? platformAnalytics.schoolStudents
+                    : analytics?.reduce((sum, admin) => sum + (admin.stats?.students || 0), 0) || 0}
                 </p>
-                <p className="text-xs sm:text-sm text-white/90">Across all admins</p>
+                <p className="text-xs sm:text-sm text-white/90">Excl. individual (B2C) accounts</p>
               </div>
               <UsersIcon className="h-12 w-12 text-white" />
             </div>

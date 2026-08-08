@@ -80,11 +80,18 @@ export default function AIAnalyticsDashboard() {
   const [studentPredictions, setStudentPredictions] = useState<StudentPrediction[]>([]);
   const [contentRecommendations, setContentRecommendations] = useState<ContentRecommendation[]>([]);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [aiMetrics, setAiMetrics] = useState({
+  const [aiMetrics, setAiMetrics] = useState<{
+    totalPredictions: number;
+    accuracyRate: number | null;
+    insightsGenerated: number;
+    recommendationsAccepted: number | null;
+    isMock?: boolean;
+  }>({
     totalPredictions: 0,
-    accuracyRate: 0,
+    accuracyRate: null,
     insightsGenerated: 0,
-    recommendationsAccepted: 0
+    recommendationsAccepted: null,
+    isMock: false,
   });
 
   // AI Analysis using Gemini API
@@ -110,27 +117,56 @@ export default function AIAnalyticsDashboard() {
         setStudentPredictions(data.data.predictions || []);
         setContentRecommendations(data.data.recommendations || []);
         
-        // Update AI metrics
+        // Update AI metrics from real payload only (no hardcoded accuracy)
         setAiMetrics({
           totalPredictions: data.data.predictions?.length || 0,
-          accuracyRate: 94.2,
+          accuracyRate: typeof data.data.accuracyRate === 'number' ? data.data.accuracyRate : null,
           insightsGenerated: data.data.insights?.length || 0,
-          recommendationsAccepted: Math.floor((data.data.recommendations?.length || 0) * 0.8)
+          recommendationsAccepted: data.data.recommendationsAccepted ?? null,
+          isMock: Boolean(data.data.isMock),
         });
         
         toast({
           title: "AI Analysis Complete",
-          description: "Advanced analytics generated successfully",
+          description: data.data.isMock
+            ? "Rule-based insights generated (model fallback)"
+            : "Advanced analytics generated successfully",
         });
       } else {
         console.error('AI Analysis failed:', response.status);
-        // Fallback to mock data
-        generateMockAIInsights();
+        setAiInsights([]);
+        setStudentPredictions([]);
+        setContentRecommendations([]);
+        setAiMetrics({
+          totalPredictions: 0,
+          accuracyRate: null,
+          insightsGenerated: 0,
+          recommendationsAccepted: null,
+          isMock: false,
+        });
+        toast({
+          title: "AI Analysis failed",
+          description: "Could not load analytics. Try again.",
+          variant: "destructive",
+        });
       }
     } catch (error) {
       console.error('AI Analysis failed:', error);
-      // Fallback to mock AI insights
-      generateMockAIInsights();
+      setAiInsights([]);
+      setStudentPredictions([]);
+      setContentRecommendations([]);
+      setAiMetrics({
+        totalPredictions: 0,
+        accuracyRate: null,
+        insightsGenerated: 0,
+        recommendationsAccepted: null,
+        isMock: false,
+      });
+      toast({
+        title: "AI Analysis failed",
+        description: error instanceof Error ? error.message : "Request failed",
+        variant: "destructive",
+      });
     } finally {
       setIsAnalyzing(false);
     }
@@ -254,19 +290,20 @@ export default function AIAnalyticsDashboard() {
       }
     ];
 
-    setAiInsights(mockInsights);
-    setStudentPredictions(mockPredictions);
-    setContentRecommendations(mockRecommendations);
+    setAiInsights([]);
+    setStudentPredictions([]);
+    setContentRecommendations([]);
     setAiMetrics({
-      totalPredictions: 156,
-      accuracyRate: 94.2,
-      insightsGenerated: 23,
-      recommendationsAccepted: 18
+      totalPredictions: 0,
+      accuracyRate: null,
+      insightsGenerated: 0,
+      recommendationsAccepted: null,
+      isMock: false,
     });
   };
 
   useEffect(() => {
-    generateMockAIInsights();
+    // Do not seed mock analytics on load — wait for a real analysis run.
   }, []);
 
   const getInsightIcon = (type: string) => {
@@ -358,8 +395,12 @@ export default function AIAnalyticsDashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs sm:text-sm font-medium text-green-600">Accuracy Rate</p>
-                <p className="text-2xl sm:text-3xl font-bold text-green-900">{aiMetrics.accuracyRate}%</p>
-                <p className="text-xs sm:text-sm text-green-600">Prediction accuracy</p>
+                <p className="text-2xl sm:text-3xl font-bold text-green-900">
+                  {aiMetrics.accuracyRate != null ? `${aiMetrics.accuracyRate}%` : '—'}
+                </p>
+                <p className="text-xs sm:text-sm text-green-600">
+                  {aiMetrics.isMock ? 'Unavailable (fallback)' : 'Measured when available'}
+                </p>
               </div>
               <TargetIcon className="h-12 w-12 text-green-500" />
             </div>
@@ -384,7 +425,9 @@ export default function AIAnalyticsDashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs sm:text-sm font-medium text-orange-600">Adoption Rate</p>
-                <p className="text-2xl sm:text-3xl font-bold text-orange-900">{aiMetrics.recommendationsAccepted}</p>
+                <p className="text-2xl sm:text-3xl font-bold text-orange-900">
+                  {aiMetrics.recommendationsAccepted != null ? aiMetrics.recommendationsAccepted : '—'}
+                </p>
                 <p className="text-xs sm:text-sm text-orange-600">Recommendations accepted</p>
               </div>
               <CheckCircleIcon className="h-12 w-12 text-orange-500" />
