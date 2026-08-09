@@ -1255,8 +1255,12 @@ export default function AdminManagement() {
         }
         
         toast({
-          title: "Success",
-          description: "School and all associated data deleted successfully. You can now add a new school with the same email.",
+          title: deleteResult?.soft ? 'School deactivated' : 'Success',
+          description: deleteResult?.soft
+            ? (deleteResult.message ||
+              'School login deactivated. Students and teachers were kept. Reactivate this school instead of creating a new one with the same email.')
+            : (deleteResult?.message ||
+              'School and all associated data deleted successfully.'),
         });
         
         // Dispatch custom event to notify dashboard to refresh admin summary

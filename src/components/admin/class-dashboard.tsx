@@ -783,9 +783,12 @@ const ClassDashboard = () => {
       if (response.ok && responseData.success !== false) {
         fetchClasses();
         setSelectedClassesForPromotion(new Set());
+        const moved = Number(responseData.studentsMoved || 0);
         toast({
-          title: 'Success',
-          description: `Successfully promoted ${responseData.promotedCount || classIds.length} class(es)!`,
+          title: 'Classes promoted',
+          description:
+            responseData.message ||
+            `Promoted ${responseData.promotedCount || classIds.length} class(es). ${moved} student(s) moved — open Students → All classes (or the new grade / Finished) to see them.`,
           variant: 'default'
         });
       } else {
@@ -1692,7 +1695,11 @@ const ClassDashboard = () => {
                 <CardTitle className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-green-600 via-emerald-600 to-teal-500 bg-clip-text text-transparent">
                   Promote Classes
                 </CardTitle>
-                <p className="text-gray-600 mt-2">Promote classes to the next grade level. Classes will move from Class 1 → Class 2 → ... → Class 12 → Finished Academic Career</p>
+                <p className="text-gray-600 mt-2">
+                  Promote classes to the next grade. Students stay in your school — they move to the next class
+                  (or Finished for Class 12). After promote, open Students and choose <strong>All classes</strong>
+                  or the new grade; the old grade filter will be empty on purpose.
+                </p>
               </CardHeader>
               <CardContent className="space-y-3 sm:space-y-4 lg:space-y-6">
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
@@ -1702,10 +1709,10 @@ const ClassDashboard = () => {
                       <p className="font-semibold mb-1">Important Notes:</p>
                       <ul className="list-disc list-inside space-y-1">
                         <li>Select classes to promote them to the next grade level</li>
-                        <li>Class 1 will become Class 2, Class 2 will become Class 3, and so on</li>
-                        <li>Class 12 will be marked as "Finished Academic Career"</li>
-                        <li>All students in the selected classes will be moved to the new class</li>
-                        <li>This action cannot be undone</li>
+                        <li>Class 1 → 2, Class 2 → 3, … Class 11 → 12</li>
+                        <li>Class 12 → Finished (alumni) — students stay visible under filter “Finished”</li>
+                        <li>Students are moved, not deleted. Switch Students filter to All classes after promoting</li>
+                        <li>If the old class filter looks empty, that is expected — pick the new grade</li>
                       </ul>
                     </div>
                   </div>

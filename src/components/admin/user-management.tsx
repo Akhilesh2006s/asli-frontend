@@ -361,7 +361,10 @@ const UserManagement = () => {
         }
 
         // Instant UI from upload payload (class + section), then confirm with API refresh.
-        const created = Array.isArray(result.createdUsers) ? result.createdUsers : [];
+        const created = [
+          ...(Array.isArray(result.createdUsers) ? result.createdUsers : []),
+          ...(Array.isArray(result.updatedUsers) ? result.updatedUsers : []),
+        ];
         if (created.length > 0) {
           const optimistic = created.map((row: any) =>
             mapApiUserToStudent({
@@ -399,30 +402,25 @@ const UserManagement = () => {
         }
         
         toast({
-          title: 'CSV Upload Successful',
+          title: result.errors?.length ? 'CSV Upload Completed With Errors' : 'CSV Upload Successful',
           description: description,
-          variant: result.errors && result.errors.length > 0 ? 'default' : 'default'
+          variant: result.errors && result.errors.length > 0 ? 'destructive' : 'default'
         });
       } else {
         let errorData;
         try {
           const text = await response.text();
-          console.log('Error response text:', text);
-          errorData = JSON.parse(text);
-        } catch (e) {
-          errorData = { 
-            message: `Server error (${response.status}): ${response.statusText}`,
-            hint: 'The server returned an error. Please check the console for details.'
-          };
+          errorData = text ? JSON.parse(text) : {};
+        } catch {
+          errorData = {};
         }
-        
-        const errorMessage = errorData.message || 'Unknown error';
-        const errorHint = errorData.hint || '';
-        
+        const errLines = Array.isArray(errorData.errors) ? errorData.errors.slice(0, 5) : [];
         toast({
           title: 'CSV Upload Failed',
-          description: `${errorMessage}${errorHint ? `\n\n${errorHint}` : ''}`,
-          variant: 'destructive'
+          description:
+            (errorData.message || 'No students were created.') +
+            (errLines.length ? `\n\n${errLines.join('\n')}` : ''),
+          variant: 'destructive',
         });
       }
     } catch (error) {
@@ -562,7 +560,8 @@ const UserManagement = () => {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
-        }
+        },
+        body: JSON.stringify({ confirm: 'DELETE ALL' }),
       });
 
       if (response.ok) {
@@ -723,6 +722,19 @@ const UserManagement = () => {
     
     return matchesSearch && matchesClass && matchesSection;
   });
+
+  // After promote, old class filter can be empty while students still exist under new grade / Finished
+  useEffect(() => {
+    if (
+      selectedClassFilter !== 'all' &&
+      students.length > 0 &&
+      filteredStudents.length === 0 &&
+      !searchTerm.trim()
+    ) {
+      setSelectedClassFilter('all');
+      setSelectedSectionFilter('all');
+    }
+  }, [students, selectedClassFilter, filteredStudents.length, searchTerm]);
 
   useEffect(() => {
     setSelectedSectionFilter('all');
@@ -1003,10 +1015,10 @@ const UserManagement = () => {
                     <SelectValue placeholder="Select Class" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">Select Class</SelectItem>
+                    <SelectItem value="all">All classes</SelectItem>
                     {allClasses.map((classNum) => (
                       <SelectItem key={classNum} value={classNum}>
-                        {classNum}
+                        {classNum === 'Finished' ? 'Finished (alumni)' : `Class ${classNum}`}
                       </SelectItem>
                     ))}
                   </SelectContent>
