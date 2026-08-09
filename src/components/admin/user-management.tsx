@@ -249,13 +249,21 @@ const UserManagement = () => {
     
     // Validate required fields
     if (!newStudent.name || !newStudent.email || !newStudent.classNumber || !newStudent.section) {
-      notify('Please fill in Full Name, Email, Class Number, and Section.');
+      notify('Please fill in Full Name, Email/Student ID, Class Number, and Section.');
       return;
     }
     if (!newStudent.password.trim() || newStudent.password.trim().length < 6) {
       notify('Password is required and must be at least 6 characters.');
       return;
     }
+
+    // Bare ids (1724) → 1724@example.com so login email validation works
+    const emailRaw = newStudent.email.trim().toLowerCase().replace(/\s+/g, '');
+    const emailNorm = emailRaw.includes('@')
+      ? emailRaw
+      : /^[a-z0-9._+-]+$/i.test(emailRaw)
+        ? `${emailRaw}@example.com`
+        : emailRaw;
 
     try {
         const token = getAuthToken();
@@ -267,7 +275,7 @@ const UserManagement = () => {
           },
         body: JSON.stringify({
           fullName: newStudent.name.trim(),
-          email: newStudent.email.trim(),
+          email: emailNorm,
           classNumber: newStudent.classNumber.trim(),
           section: newStudent.section.trim(),
           phone: newStudent.phone.trim(),
@@ -1116,11 +1124,12 @@ const UserManagement = () => {
                       <p className="text-xs sm:text-sm text-sky-700 mb-4">CSV Format (comma-separated):</p>
                       <div className="bg-white/70 rounded-lg p-4 mb-4 text-left">
                         <p className="text-xs text-sky-600 mb-2 font-medium">Required columns:</p>
-                        <p className="text-xs text-sky-700">name, email, classnumber, section, phone, password</p>
+                        <p className="text-xs text-sky-700">name, email (or studentid), classnumber, section, phone, password</p>
                         <p className="text-xs text-sky-600 mt-2 font-medium">Example:</p>
                         <p className="text-xs text-sky-700">John Doe, john@email.com, 7, A, 9876543210, MyPass123</p>
+                        <p className="text-xs text-sky-700 mt-1">Or student id: Jane, 1724, 6, A, , 1724@Bpet → saved as 1724@example.com</p>
                         <p className="text-xs text-sky-600 mt-2 font-medium">
-                          Section is used for Class-wise and Section-wise views. Passwords are saved per student (not a shared default).
+                          Bare student ids are stored as id@example.com so students can sign in. Passwords are per student.
                         </p>
                         <div className="mt-3">
                           <Button 
@@ -1235,16 +1244,20 @@ const UserManagement = () => {
                 </div>
                       <div className="space-y-2">
                         <Label htmlFor="email" className="text-xs sm:text-sm font-medium text-sky-800">
-                          Email <span className="text-red-500">*</span>
+                          Email or Student ID <span className="text-red-500">*</span>
                         </Label>
                   <Input
                     id="email"
-                    type="email"
+                    type="text"
+                    inputMode="email"
+                    autoComplete="off"
                     value={newStudent.email}
                     onChange={(e) => setNewStudent({ ...newStudent, email: e.target.value })}
                     className={cn(STUDENT_FORM_FIELD_CLASS, 'rounded-xl')}
                     required
+                    placeholder="name@school.com or 1724"
                   />
+                  <p className="text-[11px] text-sky-600">Student ids like 1724 are saved as 1724@example.com</p>
                 </div>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

@@ -98,17 +98,24 @@ const Login = () => {
     setIsLoading(true);
     setError('');
 
-    const email = String(formData.email || '').trim().toLowerCase();
+    const emailRaw = String(formData.email || '').trim().toLowerCase();
     const password = String(formData.password || '');
 
-    if (!email) {
-      setError('Email is required.');
+    if (!emailRaw) {
+      setError('Email or student ID is required.');
       setIsLoading(false);
       return;
     }
-    // Catch common domain typos before hitting the API (e.g. gmail.con).
+
+    // Bare student ids (1724) → 1724@example.com so browser + API accept login
+    const email = emailRaw.includes('@')
+      ? emailRaw
+      : /^[a-z0-9._+-]+$/i.test(emailRaw)
+        ? `${emailRaw}@example.com`
+        : emailRaw;
+
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      setError('Please enter a valid email address.');
+      setError('Enter a valid email (e.g. name@school.com) or student ID (e.g. 1724).');
       setIsLoading(false);
       return;
     }
@@ -488,7 +495,7 @@ const Login = () => {
                   >
                     <Label htmlFor="email" className="flex items-center gap-2 text-base font-semibold text-[#0b1f2a]">
                       <Mail className="h-5 w-5 text-teal-green-600" />
-                      Email Address
+                      Email or Student ID
                     </Label>
                     <div className="relative group">
                       <div className="absolute inset-0 bg-gradient-to-r from-sky-300/20 to-blue-300/20 rounded-lg blur opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
@@ -497,10 +504,12 @@ const Login = () => {
                         <Input
                           id="email"
                           name="email"
-                          type="email"
+                          type="text"
+                          inputMode="email"
+                          autoComplete="username"
                           value={formData.email}
                           onChange={handleChange}
-                          placeholder="Enter your email"
+                          placeholder="Email or student ID (e.g. 1724)"
                           className="h-14 border-ink/10 bg-white pl-12 pr-4 text-base transition-all duration-200 focus:border-teal-green-500 focus:ring-teal-green-200"
                           required
                         />
