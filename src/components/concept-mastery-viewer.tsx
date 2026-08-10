@@ -20,7 +20,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { formatInlineMarkdown, renderMarkdown } from '@/lib/render-teacher-markdown';
+import { renderMarkdown } from '@/lib/render-teacher-markdown';
 import { stripStructuredAiToolMetadata } from '@/lib/strip-ai-tool-metadata';
 import {
   conceptHasVisibleContent,
@@ -31,6 +31,7 @@ import {
   shouldPreferConceptMasteryMarkdown,
   type NormalizedConcept,
 } from '@/lib/parse-concept-mastery';
+import { SelfCheckList, TapToMarkItem } from '@/components/ai-tool-interactive';
 
 export { conceptMasteryViewerPayloadFromRecord } from '@/lib/parse-concept-mastery';
 
@@ -60,15 +61,6 @@ function ConceptProse({ text, className }: { text: string; className?: string })
     <div
       className={cn(CONCEPT_PROSE_CLASS, className)}
       dangerouslySetInnerHTML={{ __html: renderMarkdown(text) }}
-    />
-  );
-}
-
-function ConceptInline({ text, className }: { text: string; className?: string }) {
-  return (
-    <span
-      className={className}
-      dangerouslySetInnerHTML={{ __html: formatInlineMarkdown(text) }}
     />
   );
 }
@@ -141,17 +133,7 @@ const CONCEPT_TEMPLATE_SECTIONS: ConceptSectionDef[] = [
     iconWrap: 'bg-amber-100 text-amber-900',
     hasContent: (c) => c.misconceptions.length > 0,
     render: (c) => (
-      <ul className="space-y-2">
-        {c.misconceptions.map((line, i) => (
-          <li
-            key={i}
-            className="flex gap-2 rounded-lg border border-amber-100 bg-amber-50/50 px-3 py-2 text-base text-slate-800"
-          >
-            <span className="font-bold text-amber-700 shrink-0">!</span>
-            <ConceptInline text={line} />
-          </li>
-        ))}
-      </ul>
+      <SelfCheckList items={c.misconceptions} tone="amber" prompt="Tap each one once you've corrected it" />
     ),
   },
   {
@@ -162,16 +144,7 @@ const CONCEPT_TEMPLATE_SECTIONS: ConceptSectionDef[] = [
     iconWrap: 'bg-rose-100 text-rose-800',
     hasContent: (c) => c.conceptCheckQuestions.length > 0,
     render: (c) => (
-      <ol className="space-y-2 list-none pl-0">
-        {c.conceptCheckQuestions.map((q, i) => (
-          <li key={i} className="flex gap-2.5 text-base text-slate-800">
-            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-rose-600 text-mini font-bold text-white">
-              {i + 1}
-            </span>
-            <ConceptInline text={q} className="pt-0.5" />
-          </li>
-        ))}
-      </ol>
+      <SelfCheckList items={c.conceptCheckQuestions} tone="rose" prompt="Tap each once you've answered it" />
     ),
   },
   {
@@ -182,14 +155,11 @@ const CONCEPT_TEMPLATE_SECTIONS: ConceptSectionDef[] = [
     iconWrap: 'bg-emerald-100 text-emerald-800',
     hasContent: (c) => c.keyPoints.length > 0,
     render: (c) => (
-      <ul className="space-y-2">
+      <div className="space-y-2">
         {c.keyPoints.map((point, i) => (
-          <li key={i} className="flex gap-2 text-base text-slate-800">
-            <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-500" />
-            <ConceptInline text={point} />
-          </li>
+          <TapToMarkItem key={i} text={point} tone="emerald" markedStyle="strike" />
         ))}
-      </ul>
+      </div>
     ),
   },
   {
@@ -422,14 +392,11 @@ function FlipCardConceptView({ concepts }: { concepts: NormalizedConcept[] }) {
               {current.keyPoints.length > 0 ? (
                 <div>
                   <h3 className="font-semibold text-emerald-700 mb-2">Key points</h3>
-                  <ul className="space-y-1.5">
+                  <div className="space-y-2">
                     {current.keyPoints.map((p, i) => (
-                      <li key={i} className="flex gap-2">
-                        <span className="text-emerald-600 font-bold">{i + 1}.</span>
-                        {p}
-                      </li>
+                      <TapToMarkItem key={i} text={p} tone="emerald" markedStyle="strike" />
                     ))}
-                  </ul>
+                  </div>
                 </div>
               ) : null}
             </div>

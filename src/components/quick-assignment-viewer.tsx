@@ -1,8 +1,10 @@
 import { AiToolStackedSection } from '@/components/ai-tool-stacked-section';
 import { ToolSectionIcon } from '@/components/ai-tool-3d-icons';
-import { useMemo, type ReactNode } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import {
   ClipboardList,
+  Eye,
+  EyeOff,
   FileQuestion,
   FlaskConical,
   Lightbulb,
@@ -15,9 +17,9 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { displayQuestionSerial } from '@/lib/renumber-questions';
-import { renderMarkdown } from '@/lib/render-teacher-markdown';
 import { stripStructuredAiToolMetadata } from '@/lib/strip-ai-tool-metadata';
 import {
   quickAssignmentViewerPayloadFromRecord,
@@ -26,6 +28,7 @@ import {
   type QuickAssignmentContent,
 } from '@/lib/parse-quick-assignment';
 import { renderQuickAssignmentMarkdown } from '@/lib/render-quick-assignment-markdown';
+import { ExpandableText, SelfCheckList } from '@/components/ai-tool-interactive';
 
 export { quickAssignmentViewerPayloadFromRecord };
 
@@ -55,39 +58,8 @@ function SectionCard({
   );
 }
 
-function RichTextBlock({ text }: { text: string }) {
-  if (!text.trim()) return null;
-  const hasMarkdown =
-    text.includes('|') ||
-    /^\s*#{1,6}\s/m.test(text) ||
-    /\*\*[^*]+\*\*/.test(text) ||
-    /^\s*[-*•]\s/m.test(text);
-  if (hasMarkdown) {
-    return (
-      <div
-        className="prose prose-base max-w-none text-slate-800 prose-li:text-base"
-        dangerouslySetInnerHTML={{ __html: renderMarkdown(text) }}
-      />
-    );
-  }
-  return <p className="whitespace-pre-wrap text-base leading-relaxed text-slate-800">{text}</p>;
-}
-
-function BulletList({ items, accent = 'text-rose-500' }: { items: string[]; accent?: string }) {
-  if (!items.length) return null;
-  return (
-    <ul className="space-y-1.5">
-      {items.map((line, i) => (
-        <li key={i} className="flex gap-2 text-base text-slate-800">
-          <span className={cn('mt-0.5 shrink-0', accent)}>•</span>
-          <span className="whitespace-pre-wrap leading-relaxed">{line}</span>
-        </li>
-      ))}
-    </ul>
-  );
-}
-
 function QuestionCard({ q, index }: { q: AssignmentQuestion; index: number }) {
+  const [revealed, setRevealed] = useState(false);
   const num = displayQuestionSerial(index);
   return (
     <div className="rounded-lg border border-rose-100 bg-rose-50/30 px-3 py-2.5 space-y-2">
@@ -105,9 +77,23 @@ function QuestionCard({ q, index }: { q: AssignmentQuestion; index: number }) {
         </ul>
       ) : null}
       {q.answer ? (
-        <p className="rounded-md border border-emerald-100 bg-emerald-50/60 px-2 py-1 text-xs text-emerald-800">
-          <span className="font-semibold">Answer:</span> {q.answer}
-        </p>
+        <div>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="h-7 rounded-md border-rose-200 bg-white px-2 text-micro"
+            onClick={() => setRevealed((v) => !v)}
+          >
+            {revealed ? <EyeOff className="mr-1 h-3.5 w-3.5" /> : <Eye className="mr-1 h-3.5 w-3.5" />}
+            {revealed ? 'Hide answer' : 'Reveal answer'}
+          </Button>
+          {revealed ? (
+            <p className="mt-1.5 rounded-md border border-emerald-100 bg-emerald-50/60 px-2 py-1 text-xs text-emerald-800">
+              <span className="font-semibold">Answer:</span> {q.answer}
+            </p>
+          ) : null}
+        </div>
       ) : null}
       {q.marks != null ? (
         <p className="text-mini font-medium text-slate-500">Marks: {q.marks}</p>
@@ -133,7 +119,7 @@ function buildBodySections(a: QuickAssignmentContent): ReactNode[] {
       stripe: 'border-red-500',
       iconWrap: 'bg-red-100 text-red-800',
       hasContent: a.learningObjectives.length > 0,
-      body: <BulletList items={a.learningObjectives} accent="text-red-500" />,
+      body: <SelfCheckList items={a.learningObjectives} tone="rose" />,
     },
     {
       key: 'inst',
@@ -144,7 +130,7 @@ function buildBodySections(a: QuickAssignmentContent): ReactNode[] {
       hasContent: !!a.instructions.trim(),
       body: (
         <div className="rounded-lg border border-orange-100 bg-orange-50/50 px-3 py-2">
-          <RichTextBlock text={a.instructions} />
+          <ExpandableText text={a.instructions} />
         </div>
       ),
     },
@@ -170,7 +156,7 @@ function buildBodySections(a: QuickAssignmentContent): ReactNode[] {
       stripe: 'border-yellow-500',
       iconWrap: 'bg-yellow-100 text-yellow-900',
       hasContent: a.applicationTasks.length > 0,
-      body: <BulletList items={a.applicationTasks} accent="text-yellow-600" />,
+      body: <SelfCheckList items={a.applicationTasks} tone="amber" prompt="Tap each task once it's done" />,
     },
     {
       key: 'real',
@@ -181,7 +167,7 @@ function buildBodySections(a: QuickAssignmentContent): ReactNode[] {
       hasContent: !!a.realLifeActivity.trim(),
       body: (
         <div className="rounded-lg border border-lime-100 bg-lime-50/50 px-3 py-2">
-          <RichTextBlock text={a.realLifeActivity} />
+          <ExpandableText text={a.realLifeActivity} />
         </div>
       ),
     },
@@ -194,7 +180,7 @@ function buildBodySections(a: QuickAssignmentContent): ReactNode[] {
       hasContent: !!a.creativeQuestion.trim(),
       body: (
         <div className="rounded-lg border border-emerald-200 bg-gradient-to-br from-emerald-50 to-teal-50/60 px-3 py-2">
-          <RichTextBlock text={a.creativeQuestion} />
+          <ExpandableText text={a.creativeQuestion} />
         </div>
       ),
     },
@@ -207,7 +193,7 @@ function buildBodySections(a: QuickAssignmentContent): ReactNode[] {
       hasContent: !!a.collaborativeTask.trim(),
       body: (
         <div className="rounded-lg border border-teal-100 bg-teal-50/40 px-3 py-2">
-          <RichTextBlock text={a.collaborativeTask} />
+          <ExpandableText text={a.collaborativeTask} />
         </div>
       ),
     },
@@ -220,7 +206,7 @@ function buildBodySections(a: QuickAssignmentContent): ReactNode[] {
       hasContent: !!a.challengeQuestion.trim(),
       body: (
         <div className="rounded-lg border border-cyan-100 bg-cyan-50/50 px-3 py-2">
-          <RichTextBlock text={a.challengeQuestion} />
+          <ExpandableText text={a.challengeQuestion} />
         </div>
       ),
     },
@@ -233,7 +219,7 @@ function buildBodySections(a: QuickAssignmentContent): ReactNode[] {
       hasContent: !!a.assessmentRubric.trim(),
       body: (
         <div className="rounded-lg border border-violet-100 bg-violet-50/40 px-3 py-2">
-          <RichTextBlock text={a.assessmentRubric} />
+          <ExpandableText text={a.assessmentRubric} />
         </div>
       ),
     },
@@ -244,7 +230,7 @@ function buildBodySections(a: QuickAssignmentContent): ReactNode[] {
       stripe: 'border-rose-600',
       iconWrap: 'bg-rose-100 text-rose-900',
       hasContent: a.expectedOutcomes.length > 0,
-      body: <BulletList items={a.expectedOutcomes} accent="text-rose-600" />,
+      body: <SelfCheckList items={a.expectedOutcomes} tone="rose" prompt="Tap each outcome you feel confident about" />,
     },
   ];
 

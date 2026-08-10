@@ -5,13 +5,15 @@ import {
   AiToolV2InsightTail,
   parseBloomLevelsFromQuestionTags,
 } from '@/components/ai-v2';
-import { useMemo, type ReactNode } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { ToolSectionIcon } from '@/components/ai-tool-3d-icons';
 import { AiToolPairedSectionColumns } from '@/lib/ai-tool-section-layout';
 import {
   BookOpen,
   CircleCheck,
   ClipboardList,
+  Eye,
+  EyeOff,
   FileQuestion,
   HelpCircle,
   KeyRound,
@@ -21,10 +23,11 @@ import {
   Zap,
   type LucideIcon,
 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { ExpandableText, SelfCheckList } from '@/components/ai-tool-interactive';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { displayQuestionSerial } from '@/lib/renumber-questions';
-import { renderMarkdown } from '@/lib/render-teacher-markdown';
 import { stripStructuredAiToolMetadata } from '@/lib/strip-ai-tool-metadata';
 import { isMatchQuestionType } from '@/lib/match-following';
 import {
@@ -122,25 +125,8 @@ function SectionCard({
   );
 }
 
-function RichTextBlock({ text }: { text: string }) {
-  if (!text.trim()) return null;
-  const hasMarkdown =
-    text.includes('|') ||
-    /^\s*#{1,6}\s/m.test(text) ||
-    /\*\*[^*]+\*\*/.test(text) ||
-    /^\s*[-*•]\s/m.test(text);
-  if (hasMarkdown) {
-    return (
-      <div
-        className="prose prose-base max-w-none text-slate-800 prose-li:text-base"
-        dangerouslySetInnerHTML={{ __html: renderMarkdown(text) }}
-      />
-    );
-  }
-  return <p className="whitespace-pre-wrap text-base leading-relaxed text-slate-800">{text}</p>;
-}
-
 function QuestionCard({ q, index }: { q: PracticeQaQuestion; index: number }) {
+  const [revealed, setRevealed] = useState(false);
   const num = displayQuestionSerial(index);
   const isMatch =
     isMatchQuestionType(q.type) || (Array.isArray(q.matchPairs) && q.matchPairs.length >= 2);
@@ -216,18 +202,36 @@ function QuestionCard({ q, index }: { q: PracticeQaQuestion; index: number }) {
           })}
         </ul>
       ) : null}
-      {q.answer ? (
-        <p className="mt-2 flex items-start gap-1.5 rounded-md bg-emerald-50 px-2 py-1.5 text-xs text-emerald-800 border border-emerald-100">
-          <CircleCheck className="h-4 w-4 shrink-0 mt-0.5" aria-hidden />
-          <span>
-            <span className="font-semibold">Answer:</span> {q.answer}
-          </span>
-        </p>
-      ) : null}
-      {q.explanation ? (
-        <p className="mt-1.5 rounded-md bg-slate-50 px-2 py-1.5 text-xs text-slate-600 border border-slate-100">
-          <span className="font-semibold text-slate-700">Explanation:</span> {q.explanation}
-        </p>
+      {q.answer || q.explanation ? (
+        <div className="mt-2">
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="h-7 rounded-md border-emerald-200 bg-white px-2 text-micro"
+            onClick={() => setRevealed((v) => !v)}
+          >
+            {revealed ? <EyeOff className="mr-1 h-3.5 w-3.5" /> : <Eye className="mr-1 h-3.5 w-3.5" />}
+            {revealed ? 'Hide answer' : 'Reveal answer'}
+          </Button>
+          {revealed ? (
+            <div className="mt-1.5 space-y-1.5">
+              {q.answer ? (
+                <p className="flex items-start gap-1.5 rounded-md bg-emerald-50 px-2 py-1.5 text-xs text-emerald-800 border border-emerald-100">
+                  <CircleCheck className="h-4 w-4 shrink-0 mt-0.5" aria-hidden />
+                  <span>
+                    <span className="font-semibold">Answer:</span> {q.answer}
+                  </span>
+                </p>
+              ) : null}
+              {q.explanation ? (
+                <p className="rounded-md bg-slate-50 px-2 py-1.5 text-xs text-slate-600 border border-slate-100">
+                  <span className="font-semibold text-slate-700">Explanation:</span> {q.explanation}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
       ) : null}
     </article>
   );
@@ -284,14 +288,7 @@ function PracticeQaBody({
         stripe="border-teal-500"
         iconWrap="bg-teal-100 text-teal-800"
       >
-        <ul className="space-y-1.5">
-          {practice.learningObjectives.map((line, i) => (
-            <li key={i} className="flex gap-2 text-base text-slate-800">
-              <span className="mt-0.5 shrink-0 text-teal-500">•</span>
-              <span className="leading-relaxed">{line}</span>
-            </li>
-          ))}
-        </ul>
+        <SelfCheckList items={practice.learningObjectives} tone="teal" />
       </SectionCard>,
     );
   }
@@ -306,7 +303,7 @@ function PracticeQaBody({
         stripe="border-green-500"
         iconWrap="bg-green-100 text-green-800"
       >
-        <RichTextBlock text={practice.instructions} />
+        <ExpandableText text={practice.instructions} />
       </SectionCard>,
     );
   }
@@ -360,7 +357,7 @@ function PracticeQaBody({
           className="sm:col-span-2"
         >
           <div className="rounded-lg border border-emerald-100 bg-emerald-50/50 px-2.5 py-2">
-            <RichTextBlock text={practice.answerKey} />
+            <ExpandableText text={practice.answerKey} />
           </div>
         </SectionCard>
       ) : null}

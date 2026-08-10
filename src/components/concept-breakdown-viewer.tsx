@@ -15,7 +15,6 @@ import {
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { renderMarkdown } from '@/lib/render-teacher-markdown';
 import { stripStructuredAiToolMetadata } from '@/lib/strip-ai-tool-metadata';
 import {
   conceptBreakdownViewerPayloadFromRecord,
@@ -23,6 +22,13 @@ import {
   type ConceptBreakdownContent,
 } from '@/lib/parse-concept-breakdown';
 import { renderConceptBreakdownMarkdown } from '@/lib/render-concept-breakdown-markdown';
+import {
+  CheckableTimeline,
+  ExpandableText,
+  FlipCard,
+  SelfCheckList,
+  TapToMarkItem,
+} from '@/components/ai-tool-interactive';
 
 export { conceptBreakdownViewerPayloadFromRecord };
 
@@ -54,38 +60,6 @@ function SectionCard({
   );
 }
 
-function RichTextBlock({ text }: { text: string }) {
-  if (!text.trim()) return null;
-  const hasMarkdown =
-    text.includes('|') ||
-    /^\s*#{1,6}\s/m.test(text) ||
-    /\*\*[^*]+\*\*/.test(text) ||
-    /^\s*[-*•]\s/m.test(text);
-  if (hasMarkdown) {
-    return (
-      <div
-        className="prose prose-base max-w-none text-slate-800"
-        dangerouslySetInnerHTML={{ __html: renderMarkdown(text) }}
-      />
-    );
-  }
-  return <p className="whitespace-pre-wrap text-base leading-relaxed text-slate-800">{text}</p>;
-}
-
-function BulletList({ items, accent = 'text-violet-500' }: { items: string[]; accent?: string }) {
-  if (!items.length) return null;
-  return (
-    <ul className="space-y-1.5">
-      {items.map((line, i) => (
-        <li key={i} className="flex gap-2 text-base text-slate-800">
-          <span className={cn('mt-0.5 shrink-0', accent)}>•</span>
-          <span className="whitespace-pre-wrap leading-relaxed">{line}</span>
-        </li>
-      ))}
-    </ul>
-  );
-}
-
 function buildSections(concept: ConceptBreakdownContent): {
   leading: ReactNode[];
   compact: ReactNode[];
@@ -111,7 +85,7 @@ function buildSections(concept: ConceptBreakdownContent): {
       stripe: 'border-blue-500',
       iconWrap: 'bg-blue-100 text-blue-800',
       hasContent: !!concept.simpleDefinition.trim(),
-      body: <RichTextBlock text={concept.simpleDefinition} />,
+      body: <ExpandableText text={concept.simpleDefinition} />,
     },
     {
       key: 'steps',
@@ -121,21 +95,7 @@ function buildSections(concept: ConceptBreakdownContent): {
       stripe: 'border-indigo-500',
       iconWrap: 'bg-indigo-100 text-indigo-800',
       hasContent: concept.breakdownSteps.length > 0,
-      body: (
-        <ol className="space-y-1">
-          {concept.breakdownSteps.map((step, i) => (
-            <li
-              key={i}
-              className="flex gap-2 rounded-lg border border-indigo-100 bg-indigo-50/40 px-2.5 py-1.5 text-base text-slate-800"
-            >
-              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-indigo-600 text-xs font-bold text-white">
-                {i + 1}
-              </span>
-              <span className="min-w-0 flex-1 pt-0.5 leading-relaxed">{step}</span>
-            </li>
-          ))}
-        </ol>
-      ),
+      body: <CheckableTimeline items={concept.breakdownSteps} tone="indigo" />,
     },
     {
       key: 'real',
@@ -145,7 +105,13 @@ function buildSections(concept: ConceptBreakdownContent): {
       stripe: 'border-emerald-500',
       iconWrap: 'bg-emerald-100 text-emerald-800',
       hasContent: concept.realLifeExamples.length > 0,
-      body: <BulletList items={concept.realLifeExamples} accent="text-emerald-600" />,
+      body: (
+        <div className="space-y-2">
+          {concept.realLifeExamples.map((item, i) => (
+            <TapToMarkItem key={i} text={item} tone="emerald" iconOff="lightbulb" iconOn="star" markedStyle="highlight" />
+          ))}
+        </div>
+      ),
     },
     {
       key: 'terms',
@@ -158,15 +124,17 @@ function buildSections(concept: ConceptBreakdownContent): {
       body: (
         <div className="grid gap-1.5 sm:grid-cols-2">
           {concept.importantTerms.map((term, i) => (
-            <div
+            <FlipCard
               key={`${term.term}-${i}`}
-              className="rounded-lg border border-amber-100 bg-amber-50/50 px-2.5 py-1.5"
-            >
-              <p className="text-base font-semibold text-amber-900">{term.term}</p>
-              {term.definition ? (
-                <p className="mt-0.5 text-base text-slate-700">{term.definition}</p>
-              ) : null}
-            </div>
+              tone="amber"
+              front={
+                <div className="flex flex-1 flex-col justify-center">
+                  <p className="text-base font-semibold text-amber-900">{term.term}</p>
+                  <p className="mt-1 text-mini font-medium text-amber-600">Tap to flip ↻</p>
+                </div>
+              }
+              back={<p className="text-base leading-relaxed">{term.definition || term.term}</p>}
+            />
           ))}
         </div>
       ),
@@ -180,17 +148,11 @@ function buildSections(concept: ConceptBreakdownContent): {
       iconWrap: 'bg-cyan-100 text-cyan-800',
       hasContent: concept.conceptCheckQuestions.length > 0,
       body: (
-        <ul className="space-y-1">
-          {concept.conceptCheckQuestions.map((q, i) => (
-            <li
-              key={i}
-              className="rounded-lg border border-cyan-100 bg-cyan-50/40 px-2.5 py-1.5 text-base text-slate-800"
-            >
-              <span className="mr-2 font-semibold text-cyan-700">Q{i + 1}.</span>
-              {q}
-            </li>
-          ))}
-        </ul>
+        <SelfCheckList
+          items={concept.conceptCheckQuestions}
+          tone="cyan"
+          prompt="Tap each question once you've answered it"
+        />
       ),
     },
     {
@@ -203,7 +165,7 @@ function buildSections(concept: ConceptBreakdownContent): {
       hasContent: !!concept.applicationThinkingQuestion.trim(),
       body: (
         <div className="rounded-lg border border-orange-200 bg-gradient-to-br from-orange-50 to-amber-50/80 px-2.5 py-2">
-          <RichTextBlock text={concept.applicationThinkingQuestion} />
+          <ExpandableText text={concept.applicationThinkingQuestion} />
         </div>
       ),
     },
@@ -217,7 +179,7 @@ function buildSections(concept: ConceptBreakdownContent): {
       hasContent: !!concept.higherOrderThinkingPrompt.trim(),
       body: (
         <div className="rounded-lg border border-fuchsia-200 bg-gradient-to-br from-fuchsia-50 to-violet-50/80 px-2.5 py-2">
-          <RichTextBlock text={concept.higherOrderThinkingPrompt} />
+          <ExpandableText text={concept.higherOrderThinkingPrompt} />
         </div>
       ),
     },
@@ -231,7 +193,7 @@ function buildSections(concept: ConceptBreakdownContent): {
       hasContent: !!concept.quickRevisionSummary.trim(),
       body: (
         <div className="rounded-lg border border-violet-200 bg-violet-50/60 px-2.5 py-2">
-          <RichTextBlock text={concept.quickRevisionSummary} />
+          <ExpandableText text={concept.quickRevisionSummary} />
         </div>
       ),
     },

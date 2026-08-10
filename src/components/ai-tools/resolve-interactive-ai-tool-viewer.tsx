@@ -32,6 +32,8 @@ import { resolveChapterSummaryFromPayload } from '@/lib/parse-chapter-summary';
 import { resolveConceptBreakdownFromPayload } from '@/lib/parse-concept-breakdown';
 import { resolveQuickAssignmentFromPayload } from '@/lib/parse-quick-assignment';
 import { resolvePracticeQaFromPayload } from '@/lib/parse-practice-qa';
+import { resolveKeyPointsFromPayload } from '@/lib/parse-key-points';
+import { resolveHomeworkFromPayload } from '@/lib/parse-homework-creator';
 
 export type InteractiveAiToolAudience = 'teacher' | 'student';
 
@@ -197,13 +199,11 @@ function wrapViewer(
     title: 'Generated content',
   };
   // Concept Mastery kit chrome for every tool (tabs / glance / tip).
-  // Keep a light title strip; drop the old dark DocumentShell double-header.
+  // The generic tool name + description are already shown by the page's outer
+  // result header, so only surface a title strip here when a specific
+  // generated title (paper/deck/concept name) was passed in.
   return (
-    <AiToolKitLayout
-      toolLabel={meta.label}
-      title={opts?.title?.trim() || meta.title}
-      subtitle={opts?.subtitle ?? meta.subtitle}
-    >
+    <AiToolKitLayout title={opts?.title?.trim()} fallbackLabel={meta.label}>
       {opts?.badge ? <div className="mb-3 flex justify-end">{opts.badge}</div> : null}
       {node}
     </AiToolKitLayout>
@@ -254,8 +254,15 @@ export function resolveInteractiveAiToolViewer(
           variant={isStudent ? 'default' : 'teacher'}
         />,
       );
-    case 'homework-creator':
-      return wrapViewer(slug, <HomeworkCreatorViewer content={content} rawContent={rawContent} />);
+    case 'homework-creator': {
+      const text = stripStructuredAiToolMetadata(content);
+      const { homework } = resolveHomeworkFromPayload(text, rawContent);
+      return wrapViewer(
+        slug,
+        <HomeworkCreatorViewer content={content} rawContent={rawContent} />,
+        homework?.title ? { title: homework.title } : undefined,
+      );
+    }
     case 'mock-test-builder':
       return wrapViewer(slug, <MockTestViewer content={content} rawContent={rawContent} />);
     case 'exam-question-paper-generator': {
@@ -321,8 +328,15 @@ export function resolveInteractiveAiToolViewer(
         summary?.title ? { title: summary.title } : undefined,
       );
     }
-    case 'key-points-formula-extractor':
-      return wrapViewer(slug, <KeyPointsViewer content={content} rawContent={rawContent} />);
+    case 'key-points-formula-extractor': {
+      const text = stripStructuredAiToolMetadata(content);
+      const { keyPoints } = resolveKeyPointsFromPayload(text, rawContent);
+      return wrapViewer(
+        slug,
+        <KeyPointsViewer content={content} rawContent={rawContent} />,
+        keyPoints?.title ? { title: keyPoints.title } : undefined,
+      );
+    }
     case 'short-notes-summaries-maker':
       return wrapViewer(slug, <ShortNotesViewer content={content} rawContent={rawContent} />);
     case 'lesson-planner':

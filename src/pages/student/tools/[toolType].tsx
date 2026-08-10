@@ -37,6 +37,7 @@ import {
   resolveIsAsliPrepExclusive,
   resolveSchoolIitCategories,
   resolveStudentCurriculumGradeLevel,
+  shouldShowIitTrackField,
 } from '@/lib/school-program';
 import {
   useCurriculumCascade,
@@ -759,7 +760,14 @@ export default function StudentToolPage() {
 
   const effectiveConfig = useMemo(() => {
     if (!config) return config;
-    if (!schoolIitCategories.length) return config;
+    const showTrack = shouldShowIitTrackField(selectedBoard, schoolIitCategories);
+    if (!showTrack) {
+      if (!config.fields.some((f) => f.name === 'productCategory')) return config;
+      return {
+        ...config,
+        fields: config.fields.filter((f) => f.name !== 'productCategory'),
+      };
+    }
     const hasCategory = config.fields.some((f) => f.name === 'productCategory');
     if (hasCategory) return config;
     return {
@@ -777,7 +785,18 @@ export default function StudentToolPage() {
         ...config.fields.slice(2),
       ],
     };
-  }, [config, schoolIitCategories]);
+  }, [config, schoolIitCategories, selectedBoard]);
+
+  // Drop stale track when board is not IIT or school has fewer than 2 tracks
+  useEffect(() => {
+    if (shouldShowIitTrackField(selectedBoard, schoolIitCategories)) return;
+    setFormParams((prev) => {
+      if (!prev.productCategory) return prev;
+      const next = { ...prev };
+      delete next.productCategory;
+      return next;
+    });
+  }, [selectedBoard, schoolIitCategories]);
 
   // Fetch user data to get assigned class
   useEffect(() => {
@@ -2094,6 +2113,7 @@ export default function StudentToolPage() {
             toolType={apiToolType || toolType}
             toolName={config.name}
             toolDescription={config.description}
+            hideHeader
             meta={{
               board: selectedBoard || formParams.board || '',
               classLabel: String(formParams.gradeLevel || assignedGradeLevel || ''),

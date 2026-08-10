@@ -32,6 +32,7 @@ import { displayQuestionSerial } from '@/lib/renumber-questions';
 import { formatAiToolText } from '@/lib/title-case';
 import { StructuredContentRequired } from '@/components/structured-content-required';
 import { isMatchQuestionType } from '@/lib/match-following';
+import { ExpandableText, SelfCheckList, TapToRevealCard } from '@/components/ai-tool-interactive';
 
 export interface WorksheetMcqViewerProps {
   content: string;
@@ -197,16 +198,7 @@ function buildTimelineBlocks(worksheet: NormalizedWorksheet): TimelineBlock[] {
       stepNum: 1,
       title: 'Learning Objectives',
       icon: Target,
-      content: (
-        <ul className="space-y-2">
-          {worksheet.learningObjectives.map((line, i) => (
-            <li key={i} className="flex gap-2">
-              <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-500" />
-              <span>{line}</span>
-            </li>
-          ))}
-        </ul>
-      ),
+      content: <SelfCheckList items={worksheet.learningObjectives} tone="emerald" />,
     });
   }
 
@@ -216,7 +208,7 @@ function buildTimelineBlocks(worksheet: NormalizedWorksheet): TimelineBlock[] {
       stepNum: 2,
       title: 'Instructions To Students',
       icon: BookOpen,
-      content: <p className="whitespace-pre-wrap">{worksheet.instructions}</p>,
+      content: <ExpandableText text={worksheet.instructions} />,
     });
   }
 
@@ -246,9 +238,12 @@ function buildTimelineBlocks(worksheet: NormalizedWorksheet): TimelineBlock[] {
       title: 'Answer Key',
       icon: CheckCircle2,
       content: (
-        <pre className="whitespace-pre-wrap font-sans text-base text-slate-800 leading-relaxed">
-          {worksheet.answerKey}
-        </pre>
+        <TapToRevealCard
+          prompt="Answer key"
+          detail={worksheet.answerKey}
+          tone="sky"
+          revealLabel="Show answer key"
+        />
       ),
     });
   }

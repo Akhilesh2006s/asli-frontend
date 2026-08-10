@@ -1,6 +1,6 @@
 import { useRef, useState, type ReactNode } from 'react';
 import { motion } from 'framer-motion';
-import { Check, Copy, Pencil, type LucideIcon } from 'lucide-react';
+import { Check, Copy, type LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatAiToolText } from '@/lib/title-case';
 import { AI_V2 } from '@/lib/ai-tool-design-tokens';
@@ -35,6 +35,13 @@ export function aiToolSectionBodyClasses(palette: AiToolSectionPalette): string 
  * Format: colored accent bar → bold colored title → soft nested content box
  * (Concept Mastery / tariff-brochure layering).
  */
+export type AiToolSectionMetaItem = {
+  icon?: LucideIcon;
+  iconName?: AiTool3dIconName;
+  label: string;
+  value: string;
+};
+
 export function AiToolStackedSection({
   num,
   title,
@@ -46,6 +53,7 @@ export function AiToolStackedSection({
   children,
   className,
   hideActions = false,
+  meta,
 }: {
   num: string;
   title: string;
@@ -60,6 +68,8 @@ export function AiToolStackedSection({
   className?: string;
   /** Hide Edit / Copy (e.g. print-only blocks) */
   hideActions?: boolean;
+  /** Optional footer meta row (e.g. Pedagogy / Time / Bloom's Level) */
+  meta?: AiToolSectionMetaItem[];
 }) {
   const resolved = iconName || lucideTo3dName(icon);
   const numLabel = String(num).replace(/^section\s*/i, '').trim() || num;
@@ -70,7 +80,6 @@ export function AiToolStackedSection({
   const displayDescription = description ? formatAiToolText(description) : undefined;
   const showNum = Boolean(numLabel) && !/^◆|•|-|$/.test(numLabel);
   const bodyRef = useRef<HTMLDivElement>(null);
-  const [editing, setEditing] = useState(false);
   const [copied, setCopied] = useState(false);
 
   const onCopy = async () => {
@@ -84,70 +93,44 @@ export function AiToolStackedSection({
     }
   };
 
-  const onEdit = () => {
-    setEditing(true);
-    window.setTimeout(() => {
-      bodyRef.current?.focus();
-    }, 30);
-  };
-
   return (
     <motion.section
       id={sectionDomId}
       data-ai-section-id={sectionDomId}
       data-ai-section-title={displayTitle}
       data-ai-section-num={showNum ? numLabel : ''}
+      data-ai-section-icon={resolved}
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.25 }}
       whileHover={{ y: -2 }}
       className={cn(
-        'group relative w-full overflow-hidden border border-slate-200/80 bg-white print:break-inside-avoid',
+        'group relative w-full overflow-hidden border border-slate-200 bg-white print:break-inside-avoid',
         AI_V2.radius.cardLg,
         AI_V2.shadow.card,
-        'transition-shadow duration-200 hover:shadow-[0_12px_40px_-14px_rgba(15,23,42,0.22)]',
+        'transition-shadow duration-200 hover:shadow-[0_12px_40px_-14px_rgba(15,23,42,0.14)]',
         className,
       )}
     >
-      {/* Solid color bar — brochure-style section signal */}
-      <div className={cn('h-2 w-full', palette.bar)} aria-hidden />
-
-      <header
-        className={cn(
-          'flex items-start justify-between gap-3 border-b px-4 py-3.5 sm:px-5 sm:py-4',
-          'bg-gradient-to-br',
-          palette.cardWash,
-          palette.innerBorder,
-        )}
-      >
+      <header className="flex items-start justify-between gap-3 px-4 py-4 sm:px-5 sm:py-5">
         <div className="flex min-w-0 items-start gap-3">
-          <span
+          <div
             className={cn(
-              'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-base font-bold text-white shadow-sm',
-              palette.bar,
+              'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border',
+              palette.iconTile,
             )}
-            aria-hidden
           >
-            {showNum ? numLabel.slice(0, 2) : '◆'}
-          </span>
+            {LucideIcon ? (
+              <LucideIcon className="h-5 w-5" aria-hidden />
+            ) : (
+              <RealisticIcon name={resolved} alt="" className="h-6 w-6" />
+            )}
+          </div>
           <div className="min-w-0 pt-0.5">
-            <div className="flex flex-wrap items-center gap-2">
-              <div
-                className={cn(
-                  'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border shadow-sm',
-                  palette.iconTile,
-                )}
-              >
-                {LucideIcon ? (
-                  <LucideIcon className="h-5 w-5" aria-hidden />
-                ) : (
-                  <RealisticIcon name={resolved} alt="" className="h-7 w-7" />
-                )}
-              </div>
-              <p className="text-lg font-bold leading-snug tracking-tight text-slate-900 sm:text-xl">
-                {displayTitle}
-              </p>
-            </div>
+            <p className="text-base font-bold leading-snug tracking-tight text-slate-900 sm:text-lg">
+              {showNum ? `${numLabel}. ` : ''}
+              {displayTitle}
+            </p>
             {displayDescription ? (
               <p className={cn('mt-1 text-sm leading-relaxed sm:text-base', palette.subtitle)}>
                 {displayDescription}
@@ -157,14 +140,6 @@ export function AiToolStackedSection({
         </div>
         {!hideActions ? (
           <div className="flex shrink-0 items-center gap-1.5 print:hidden">
-            <button
-              type="button"
-              onClick={onEdit}
-              className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 shadow-sm hover:bg-slate-50"
-            >
-              <Pencil className="h-3.5 w-3.5" aria-hidden />
-              Edit
-            </button>
             <button
               type="button"
               onClick={() => void onCopy()}
@@ -178,42 +153,54 @@ export function AiToolStackedSection({
               {copied ? 'Copied' : 'Copy'}
             </button>
           </div>
-        ) : (
-          <div
-            className={cn(
-              'flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border shadow-sm',
-              palette.iconTile,
-            )}
-          >
-            {LucideIcon ? (
-              <LucideIcon className="h-5 w-5" aria-hidden />
-            ) : (
-              <RealisticIcon name={resolved} alt="" className="h-8 w-8" />
-            )}
-          </div>
-        )}
+        ) : null}
       </header>
 
-      {/* Nested soft box — Concept Mastery inner panel with colored title */}
-      <div className={cn('p-3.5 sm:p-5', 'bg-gradient-to-b from-white to-slate-50/40')} data-ai-section-body>
+      {/* Nested soft tinted box — Concept Mastery inner panel */}
+      <div className="px-4 pb-4 sm:px-5 sm:pb-5" data-ai-section-body>
         <div
           ref={bodyRef}
-          contentEditable={editing}
-          suppressContentEditableWarning
-          onBlur={() => setEditing(false)}
           className={cn(
             'ai-tool-section-body rounded-xl border px-5 py-5 sm:px-6 sm:py-6 outline-none',
-            editing && 'ring-2 ring-violet-300',
             palette.inner,
             palette.innerBorder,
             aiToolSectionBodyClasses(palette),
           )}
         >
-          <p className={cn('mb-3 text-xl font-bold leading-snug sm:text-2xl', palette.title)}>
+          <p className={cn('mb-3 text-lg font-bold leading-snug sm:text-xl', palette.title)}>
             {displayTitle}
           </p>
           {children}
         </div>
+
+        {meta && meta.length > 0 ? (
+          <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-3 border-t border-slate-100 pt-4">
+            {meta.map((item) => {
+              const MetaIcon = item.icon;
+              const metaIconName = item.iconName || (MetaIcon ? lucideTo3dName(MetaIcon) : resolved);
+              return (
+                <div key={item.label} className="flex min-w-0 items-center gap-2">
+                  <div
+                    className={cn(
+                      'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border',
+                      palette.iconTile,
+                    )}
+                  >
+                    {MetaIcon ? (
+                      <MetaIcon className="h-4 w-4" aria-hidden />
+                    ) : (
+                      <RealisticIcon name={metaIconName} alt="" className="h-5 w-5" />
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs font-medium text-slate-500">{item.label}</p>
+                    <p className="truncate text-sm font-bold text-slate-900">{item.value}</p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : null}
       </div>
     </motion.section>
   );

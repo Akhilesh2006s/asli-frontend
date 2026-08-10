@@ -1,12 +1,13 @@
 import { AiToolStackedSection } from '@/components/ai-tool-stacked-section';
-import { useMemo, type ReactNode } from 'react';
-import { ToolSectionIcon } from '@/components/ai-tool-3d-icons';
+import { useMemo, useState, type ReactNode } from 'react';
 import { AiToolMockTestSectionLayout } from '@/lib/ai-tool-section-layout';
 import {
   BookOpen,
   Brain,
   CheckCircle2,
   ClipboardList,
+  Eye,
+  EyeOff,
   FileQuestion,
   GraduationCap,
   Lightbulb,
@@ -17,6 +18,8 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { ExpandableText, SelfCheckList } from '@/components/ai-tool-interactive';
 import { cn } from '@/lib/utils';
 import { displayQuestionSerial } from '@/lib/renumber-questions';
 import { renderMarkdown } from '@/lib/render-teacher-markdown';
@@ -68,20 +71,6 @@ function MockSectionCard({
   );
 }
 
-function BulletList({ items }: { items: string[] }) {
-  if (!items.length) return null;
-  return (
-    <ul className="space-y-1">
-      {items.map((line, i) => (
-        <li key={i} className="flex gap-2 text-base text-slate-800">
-          <span className="shrink-0 text-rose-500">•</span>
-          <span className="whitespace-pre-wrap">{line}</span>
-        </li>
-      ))}
-    </ul>
-  );
-}
-
 function RichTextBlock({ text, className }: { text: string; className?: string }) {
   if (!text.trim()) return null;
   const hasMarkdown =
@@ -105,6 +94,24 @@ function RichTextBlock({ text, className }: { text: string; className?: string }
     );
   }
   return <p className="whitespace-pre-wrap text-base leading-relaxed text-slate-800">{text}</p>;
+}
+
+/** Hide markdown-rich content (answer keys, solutions) until the student taps to reveal. */
+function RevealBlock({ text, label }: { text: string; label: string }) {
+  const [revealed, setRevealed] = useState(false);
+  return (
+    <div>
+      <Button type="button" size="sm" variant="outline" onClick={() => setRevealed((v) => !v)}>
+        {revealed ? <EyeOff className="mr-1.5 h-3.5 w-3.5" /> : <Eye className="mr-1.5 h-3.5 w-3.5" />}
+        {revealed ? `Hide ${label.toLowerCase()}` : `Reveal ${label.toLowerCase()}`}
+      </Button>
+      {revealed ? (
+        <div className="mt-3">
+          <RichTextBlock text={text} />
+        </div>
+      ) : null}
+    </div>
+  );
 }
 
 function QuestionCard({
@@ -264,7 +271,7 @@ export function MockTestViewer({ content, rawContent, className }: MockTestViewe
       stripe: 'border-amber-500',
       iconWrap: 'bg-amber-100 text-amber-800',
       hasContent: !!meta.testPurpose.trim(),
-      body: <RichTextBlock text={meta.testPurpose} />,
+      body: <ExpandableText text={meta.testPurpose} />,
     },
     {
       key: 'objectives',
@@ -273,7 +280,7 @@ export function MockTestViewer({ content, rawContent, className }: MockTestViewe
       stripe: 'border-violet-500',
       iconWrap: 'bg-violet-100 text-violet-800',
       hasContent: meta.learningObjectives.length > 0,
-      body: <BulletList items={meta.learningObjectives} />,
+      body: <SelfCheckList items={meta.learningObjectives} tone="violet" />,
     },
     {
       key: 'ncf',
@@ -282,7 +289,7 @@ export function MockTestViewer({ content, rawContent, className }: MockTestViewe
       stripe: 'border-cyan-500',
       iconWrap: 'bg-cyan-100 text-cyan-800',
       hasContent: !!meta.ncfAlignment.trim(),
-      body: <RichTextBlock text={meta.ncfAlignment} />,
+      body: <ExpandableText text={meta.ncfAlignment} />,
     },
     {
       key: 'instructions',
@@ -291,7 +298,7 @@ export function MockTestViewer({ content, rawContent, className }: MockTestViewe
       stripe: 'border-slate-500',
       iconWrap: 'bg-slate-100 text-slate-800',
       hasContent: !!meta.instructions.trim(),
-      body: <RichTextBlock text={meta.instructions} />,
+      body: <ExpandableText text={meta.instructions} />,
     },
     {
       key: 'paper',
@@ -324,7 +331,7 @@ export function MockTestViewer({ content, rawContent, className }: MockTestViewe
       stripe: 'border-emerald-500',
       iconWrap: 'bg-emerald-100 text-emerald-800',
       hasContent: !!meta.answerKey.trim(),
-      body: <RichTextBlock text={meta.answerKey} />,
+      body: <RevealBlock text={meta.answerKey} label="Answer Key" />,
     },
     {
       key: 'solutions',
@@ -333,7 +340,7 @@ export function MockTestViewer({ content, rawContent, className }: MockTestViewe
       stripe: 'border-sky-500',
       iconWrap: 'bg-sky-100 text-sky-800',
       hasContent: !!meta.solutions.trim(),
-      body: <RichTextBlock text={meta.solutions} />,
+      body: <RevealBlock text={meta.solutions} label="Solutions" />,
     },
     {
       key: 'remedial',
@@ -342,7 +349,7 @@ export function MockTestViewer({ content, rawContent, className }: MockTestViewe
       stripe: 'border-orange-500',
       iconWrap: 'bg-orange-100 text-orange-800',
       hasContent: meta.remedial.length > 0,
-      body: <BulletList items={meta.remedial} />,
+      body: <SelfCheckList items={meta.remedial} tone="orange" prompt="Tap each suggestion once you've revised it" />,
     },
     {
       key: 'outcomes',
@@ -351,7 +358,7 @@ export function MockTestViewer({ content, rawContent, className }: MockTestViewe
       stripe: 'border-teal-500',
       iconWrap: 'bg-teal-100 text-teal-800',
       hasContent: meta.outcomes.length > 0,
-      body: <BulletList items={meta.outcomes} />,
+      body: <SelfCheckList items={meta.outcomes} tone="teal" />,
     },
     {
       key: 'realLife',
@@ -360,7 +367,7 @@ export function MockTestViewer({ content, rawContent, className }: MockTestViewe
       stripe: 'border-lime-600',
       iconWrap: 'bg-lime-100 text-lime-900',
       hasContent: !!meta.realLife.trim(),
-      body: <RichTextBlock text={meta.realLife} />,
+      body: <ExpandableText text={meta.realLife} />,
     },
     {
       key: 'reflection',
@@ -369,7 +376,7 @@ export function MockTestViewer({ content, rawContent, className }: MockTestViewe
       stripe: 'border-slate-600',
       iconWrap: 'bg-slate-100 text-slate-800',
       hasContent: !!meta.reflection.trim(),
-      body: <RichTextBlock text={meta.reflection} />,
+      body: <ExpandableText text={meta.reflection} />,
     },
   ];
 

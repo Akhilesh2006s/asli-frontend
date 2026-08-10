@@ -30,6 +30,7 @@ import {
   resolveCurriculumBoardForAiTools,
   resolveIsAsliPrepExclusive,
   resolveSchoolIitCategories,
+  shouldShowIitTrackField,
 } from '@/lib/school-program';
 import { formatIitCategoryLabel, normalizeIitCategory } from '@/lib/products';
 import { useToast } from '@/hooks/use-toast';
@@ -283,7 +284,14 @@ export default function TeacherToolPage() {
 
   const effectiveConfig = useMemo(() => {
     if (!config) return config;
-    if (!schoolIitCategories.length) return config;
+    const showTrack = shouldShowIitTrackField(selectedBoard, schoolIitCategories);
+    if (!showTrack) {
+      if (!config.fields.some((f) => f.name === 'productCategory')) return config;
+      return {
+        ...config,
+        fields: config.fields.filter((f) => f.name !== 'productCategory'),
+      };
+    }
     const hasCategory = config.fields.some((f) => f.name === 'productCategory');
     if (hasCategory) return config;
     return {
@@ -301,7 +309,17 @@ export default function TeacherToolPage() {
         ...config.fields.slice(2),
       ],
     };
-  }, [config, schoolIitCategories]);
+  }, [config, schoolIitCategories, selectedBoard]);
+
+  useEffect(() => {
+    if (shouldShowIitTrackField(selectedBoard, schoolIitCategories)) return;
+    setFormParams((prev) => {
+      if (!prev.productCategory) return prev;
+      const next = { ...prev };
+      delete next.productCategory;
+      return next;
+    });
+  }, [selectedBoard, schoolIitCategories]);
 
   const viewerContextRaw = useMemo(() => {
     const base =
@@ -1933,6 +1951,7 @@ export default function TeacherToolPage() {
             toolType={toolType}
             toolName={config.name}
             toolDescription={config.description}
+            hideHeader
             meta={{
               board: selectedBoard || formParams.board || '',
               classLabel: String(formParams.gradeLevel || ''),

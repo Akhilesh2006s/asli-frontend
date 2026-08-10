@@ -1,18 +1,14 @@
 import { AiToolStackedSection } from '@/components/ai-tool-stacked-section';
-import { ToolSectionIcon } from '@/components/ai-tool-3d-icons';
 import { useMemo, useState, type ReactNode } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   BookMarked,
   CalendarDays,
-  CheckCircle2,
   ClipboardCheck,
   Clock3,
-  Layers,
   Lightbulb,
   NotebookPen,
   Package,
-  Sparkles,
   Target,
   Users,
   type LucideIcon,
@@ -27,6 +23,7 @@ import {
   type DailyPlanTimeSlot,
   type NormalizedDailyPlan,
 } from '@/lib/parse-daily-class-plan';
+import { ExpandableText, SelfCheckList, TapToMarkItem } from '@/components/ai-tool-interactive';
 
 interface DailyClassPlanViewerProps {
   content: string;
@@ -54,37 +51,6 @@ function slotTypeClass(type: string): string {
   if (key.includes('discuss')) return SLOT_TYPE_STYLES.discussion;
   if (key.includes('break')) return SLOT_TYPE_STYLES.break;
   return SLOT_TYPE_STYLES.teach;
-}
-
-function BulletBlock({
-  items,
-  icon: Icon,
-  iconClass,
-}: {
-  items: string[];
-  icon: LucideIcon;
-  iconClass: string;
-}) {
-  if (!items.length) return null;
-  return (
-    <ul className="space-y-2">
-      {items.map((line, i) => (
-        <li key={i} className="flex gap-2.5 text-base text-slate-800 leading-relaxed">
-          <ToolSectionIcon
-            icon={Icon}
-            size="sm"
-            wrapClassName={cn('mt-0.5 bg-transparent shadow-none h-5 w-5', iconClass)}
-          />
-          <span className="whitespace-pre-wrap">{line}</span>
-        </li>
-      ))}
-    </ul>
-  );
-}
-
-function TextBlock({ text }: { text: string }) {
-  if (!text.trim()) return null;
-  return <p className="text-base text-slate-800 whitespace-pre-wrap leading-relaxed">{text}</p>;
 }
 
 function BentoCard({
@@ -184,48 +150,42 @@ function DayPlanBoard({ plan }: { plan: NormalizedDailyPlan }) {
             cards.push({
               title: 'Learning objectives',
               icon: Target,
-              body: (
-                <BulletBlock items={plan.objectives} icon={CheckCircle2} iconClass="text-emerald-600" />
-              ),
+              body: <SelfCheckList items={plan.objectives} tone="emerald" prompt="Tap each once covered" />,
             });
           }
           if (plan.teachingMethods.length > 0) {
             cards.push({
               title: 'Teaching methods',
               icon: Lightbulb,
-              body: (
-                <BulletBlock items={plan.teachingMethods} icon={Sparkles} iconClass="text-amber-600" />
-              ),
+              body: <SelfCheckList items={plan.teachingMethods} tone="amber" prompt="Tap each once planned" />,
             });
           }
           if (plan.classroomActivities.length > 0) {
             cards.push({
               title: 'Classroom activities',
               icon: Users,
-              body: (
-                <BulletBlock items={plan.classroomActivities} icon={Layers} iconClass="text-sky-600" />
-              ),
+              body: <SelfCheckList items={plan.classroomActivities} tone="sky" prompt="Tap each once run" />,
             });
           }
           if (plan.exitTicket) {
             cards.push({
               title: 'Exit ticket',
               icon: ClipboardCheck,
-              body: <TextBlock text={plan.exitTicket} />,
+              body: <ExpandableText text={plan.exitTicket} />,
             });
           }
           if (plan.differentiatedSupport) {
             cards.push({
               title: 'Differentiated support',
               icon: Users,
-              body: <TextBlock text={plan.differentiatedSupport} />,
+              body: <ExpandableText text={plan.differentiatedSupport} />,
             });
           }
           if (plan.homeworkFollowup) {
             cards.push({
               title: 'Homework & follow-up',
               icon: BookMarked,
-              body: <TextBlock text={plan.homeworkFollowup} />,
+              body: <ExpandableText text={plan.homeworkFollowup} />,
             });
           }
           if (plan.teachingAids.length > 0) {
@@ -233,7 +193,18 @@ function DayPlanBoard({ plan }: { plan: NormalizedDailyPlan }) {
               title: 'Teaching aids',
               icon: Package,
               body: (
-                <BulletBlock items={plan.teachingAids} icon={Package} iconClass="text-slate-600" />
+                <div className="space-y-2">
+                  {plan.teachingAids.map((item, i) => (
+                    <TapToMarkItem
+                      key={i}
+                      text={item}
+                      tone="slate"
+                      iconOff="notebook"
+                      iconOn="checklist"
+                      markedStyle="strike"
+                    />
+                  ))}
+                </div>
               ),
             });
           }
@@ -241,16 +212,14 @@ function DayPlanBoard({ plan }: { plan: NormalizedDailyPlan }) {
             cards.push({
               title: 'Teacher reflection notes',
               icon: NotebookPen,
-              body: <TextBlock text={plan.teacherReflection} />,
+              body: <ExpandableText text={plan.teacherReflection} />,
             });
           }
           if (plan.timeline.length > 0) {
             cards.push({
               title: 'Additional schedule notes',
               icon: Clock3,
-              body: (
-                <BulletBlock items={plan.timeline} icon={Clock3} iconClass="text-indigo-600" />
-              ),
+              body: <SelfCheckList items={plan.timeline} tone="indigo" prompt="Tap each once reviewed" />,
             });
           }
           return cards.map((card, i) => (

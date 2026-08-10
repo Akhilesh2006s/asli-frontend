@@ -12,6 +12,7 @@ import {
   getFlashcardsFromContent,
   type Flashcard,
 } from '@/components/flashcard-viewer';
+import { ExpandableText, SelfCheckList } from '@/components/ai-tool-interactive';
 
 const BLOOM_FALLBACK_LEVELS = ['Remember', 'Understand', 'Apply', 'Analyze', 'Evaluate', 'Create'];
 
@@ -292,19 +293,6 @@ function DeckSectionCard({
   );
 }
 
-function BulletList({ items }: { items: string[] }) {
-  return (
-    <ul className="space-y-1">
-      {items.map((line, i) => (
-        <li key={i} className="flex gap-2 text-base text-slate-800">
-          <span className="text-violet-500 shrink-0">•</span>
-          <span className="whitespace-pre-wrap">{line}</span>
-        </li>
-      ))}
-    </ul>
-  );
-}
-
 function PerCardList({
   cards,
   pick,
@@ -419,23 +407,21 @@ export function MyStudyDecksViewer({ content, rawContent, className }: MyStudyDe
       title: 'Subtopic Link and Prior Knowledge Required',
       iconName: 'openBook',
       hasContent: !!meta.subtopicLinkPriorKnowledge,
-      body: (
-        <p className="text-base whitespace-pre-wrap text-slate-800">{meta.subtopicLinkPriorKnowledge}</p>
-      ),
+      body: <ExpandableText text={meta.subtopicLinkPriorKnowledge} />,
     },
     {
       num: 3,
       title: "Learning Objectives - Bloom's Taxonomy Aligned",
       iconName: 'target',
       hasContent: meta.learningObjectives.length > 0,
-      body: <BulletList items={meta.learningObjectives} />,
+      body: <SelfCheckList items={meta.learningObjectives} tone="violet" />,
     },
     {
       num: 4,
       title: 'NCF Competency / Learning Outcome Alignment',
       iconName: 'graduation',
       hasContent: !!meta.ncfAlignment,
-      body: <p className="text-base whitespace-pre-wrap text-slate-800">{meta.ncfAlignment}</p>,
+      body: <ExpandableText text={meta.ncfAlignment} />,
     },
     {
       num: 5,
@@ -504,32 +490,28 @@ export function MyStudyDecksViewer({ content, rawContent, className }: MyStudyDe
       title: 'Common Mistakes to Avoid',
       iconName: 'shield',
       hasContent: meta.commonMistakesToAvoid.length > 0,
-      body: <BulletList items={meta.commonMistakesToAvoid} />,
+      body: <SelfCheckList items={meta.commonMistakesToAvoid} tone="rose" prompt="Tap each one you'll watch out for" />,
     },
     {
       num: 10,
       title: 'Expected Learning Outcomes',
       iconName: 'diploma',
       hasContent: meta.expectedLearningOutcomes.length > 0,
-      body: <BulletList items={meta.expectedLearningOutcomes} />,
+      body: <SelfCheckList items={meta.expectedLearningOutcomes} tone="teal" />,
     },
     {
       num: 11,
       title: 'Real-life Application',
       iconName: 'globe',
       hasContent: !!meta.realLifeApplication,
-      body: (
-        <p className="text-base whitespace-pre-wrap text-slate-800">{meta.realLifeApplication}</p>
-      ),
+      body: <ExpandableText text={meta.realLifeApplication} />,
     },
     {
       num: 12,
       title: 'Reflection / Exit Ticket',
       iconName: 'memo',
       hasContent: !!meta.reflectionExitTicket,
-      body: (
-        <p className="text-base whitespace-pre-wrap text-slate-800">{meta.reflectionExitTicket}</p>
-      ),
+      body: <ExpandableText text={meta.reflectionExitTicket} />,
     },
   ];
 

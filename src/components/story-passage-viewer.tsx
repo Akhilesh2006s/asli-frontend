@@ -25,9 +25,9 @@ import {
   type ParsedStory,
   type ParsedPassagesBundle,
   type ResolvedStoryContent,
-  type StoryQuestion,
 } from '@/lib/parse-story-content';
 import { stripStructuredAiToolMetadata } from '@/lib/strip-ai-tool-metadata';
+import { ExpandableText, SelfCheckList, TapToRevealCard } from '@/components/ai-tool-interactive';
 
 export type { ParsedStory, ParsedPassagesBundle };
 
@@ -189,10 +189,12 @@ const READING_PRACTICE_SECTIONS: StorySectionDef[] = [
     hasContent: (s) =>
       !!s.subtopicLinkPriorKnowledge || !!s.topicSubtopicConnection || !!s.priorKnowledgeRequired,
     render: (s) => (
-      <p className="whitespace-pre-wrap text-base leading-relaxed">
-        {s.subtopicLinkPriorKnowledge ||
-          [s.topicSubtopicConnection, s.priorKnowledgeRequired].filter(Boolean).join('\n')}
-      </p>
+      <ExpandableText
+        text={
+          s.subtopicLinkPriorKnowledge ||
+          [s.topicSubtopicConnection, s.priorKnowledgeRequired].filter(Boolean).join('\n')
+        }
+      />
     ),
   },
   {
@@ -202,16 +204,7 @@ const READING_PRACTICE_SECTIONS: StorySectionDef[] = [
     stripe: 'border-violet-500',
     iconWrap: 'bg-violet-100 text-violet-700',
     hasContent: (s) => s.learningObjectives.length > 0,
-    render: (s) => (
-      <ul className="space-y-2">
-        {s.learningObjectives.map((o, i) => (
-          <li key={i} className="flex gap-2 rounded-lg bg-violet-50/80 px-3 py-2 text-base">
-            <Target className="h-4 w-4 shrink-0 text-violet-600 mt-0.5" aria-hidden />
-            {o}
-          </li>
-        ))}
-      </ul>
-    ),
+    render: (s) => <SelfCheckList items={s.learningObjectives} tone="violet" />,
   },
   {
     num: 4,
@@ -220,7 +213,7 @@ const READING_PRACTICE_SECTIONS: StorySectionDef[] = [
     stripe: 'border-blue-500',
     iconWrap: 'bg-blue-100 text-blue-700',
     hasContent: (s) => !!s.ncfAlignment || !!s.alignment,
-    render: (s) => <p className="whitespace-pre-wrap text-base leading-relaxed">{s.ncfAlignment || s.alignment}</p>,
+    render: (s) => <ExpandableText text={s.ncfAlignment || s.alignment} />,
   },
   {
     num: 5,
@@ -232,12 +225,7 @@ const READING_PRACTICE_SECTIONS: StorySectionDef[] = [
     render: (s) => (
       <div className="flex flex-wrap gap-2">
         {s.vocabulary.map((word, i) => (
-          <span
-            key={i}
-            className="rounded-xl border border-teal-100 bg-teal-50 px-3 py-2 text-base text-teal-900"
-          >
-            {word}
-          </span>
+          <VocabChip key={i} word={word} />
         ))}
       </div>
     ),
@@ -263,19 +251,11 @@ const READING_PRACTICE_SECTIONS: StorySectionDef[] = [
     iconWrap: 'bg-indigo-100 text-indigo-700',
     hasContent: (s) => s.readRecallQuestions.length > 0 || s.questions.length > 0,
     render: (s) => (
-      <div className="space-y-2">
-        {(s.readRecallQuestions.length ? s.readRecallQuestions : s.questions).map((q, i) => (
-          <div
-            key={i}
-            className="flex gap-3 rounded-xl border border-indigo-100 bg-indigo-50/30 px-3 py-2"
-          >
-            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-indigo-600 text-xs font-bold text-white">
-              {i + 1}
-            </span>
-            <p className="text-base text-slate-800 pt-0.5">{q.question}</p>
-          </div>
-        ))}
-      </div>
+      <SelfCheckList
+        items={(s.readRecallQuestions.length ? s.readRecallQuestions : s.questions).map((q) => q.question)}
+        tone="indigo"
+        prompt="Tap each question once you've answered it"
+      />
     ),
   },
   {
@@ -286,16 +266,11 @@ const READING_PRACTICE_SECTIONS: StorySectionDef[] = [
     iconWrap: 'bg-sky-100 text-sky-700',
     hasContent: (s) => s.thinkInferQuestions.length > 0,
     render: (s) => (
-      <div className="space-y-2">
-        {s.thinkInferQuestions.map((q, i) => (
-          <div key={i} className="flex gap-3 rounded-xl border border-sky-100 bg-sky-50/30 px-3 py-2">
-            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-sky-600 text-xs font-bold text-white">
-              {i + 1}
-            </span>
-            <p className="text-base text-slate-800 pt-0.5">{q.question}</p>
-          </div>
-        ))}
-      </div>
+      <SelfCheckList
+        items={s.thinkInferQuestions.map((q) => q.question)}
+        tone="sky"
+        prompt="Tap each question once you've answered it"
+      />
     ),
   },
   {
@@ -306,16 +281,11 @@ const READING_PRACTICE_SECTIONS: StorySectionDef[] = [
     iconWrap: 'bg-emerald-100 text-emerald-700',
     hasContent: (s) => s.applyConnectQuestions.length > 0,
     render: (s) => (
-      <div className="space-y-2">
-        {s.applyConnectQuestions.map((q, i) => (
-          <div key={i} className="flex gap-3 rounded-xl border border-emerald-100 bg-emerald-50/30 px-3 py-2">
-            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-emerald-600 text-xs font-bold text-white">
-              {i + 1}
-            </span>
-            <p className="text-base text-slate-800 pt-0.5">{q.question}</p>
-          </div>
-        ))}
-      </div>
+      <SelfCheckList
+        items={s.applyConnectQuestions.map((q) => q.question)}
+        tone="emerald"
+        prompt="Tap each question once you've answered it"
+      />
     ),
   },
   {
@@ -327,15 +297,9 @@ const READING_PRACTICE_SECTIONS: StorySectionDef[] = [
     hasContent: (s) => s.vocabularyPractice.length > 0 || !!s.vocabularyGrammarPractice,
     render: (s) =>
       s.vocabularyPractice.length > 0 ? (
-        <ul className="space-y-2 text-base">
-          {s.vocabularyPractice.map((item, i) => (
-            <li key={i} className="rounded-lg bg-teal-50/80 px-3 py-2">
-              {item}
-            </li>
-          ))}
-        </ul>
+        <SelfCheckList items={s.vocabularyPractice} tone="teal" />
       ) : (
-        <p className="whitespace-pre-wrap text-base leading-relaxed">{s.vocabularyGrammarPractice}</p>
+        <ExpandableText text={s.vocabularyGrammarPractice} />
       ),
   },
   {
@@ -346,9 +310,12 @@ const READING_PRACTICE_SECTIONS: StorySectionDef[] = [
     iconWrap: 'bg-yellow-100 text-yellow-800',
     hasContent: (s) => !!s.answerKeySuggestedResponses || s.answerHints.length > 0,
     render: (s) => (
-      <p className="whitespace-pre-wrap text-base leading-relaxed">
-        {s.answerKeySuggestedResponses || s.answerHints.join('\n')}
-      </p>
+      <TapToRevealCard
+        prompt="Answer key"
+        detail={s.answerKeySuggestedResponses || s.answerHints.join('\n')}
+        tone="amber"
+        revealLabel="Show suggested responses"
+      />
     ),
   },
   {
@@ -358,7 +325,7 @@ const READING_PRACTICE_SECTIONS: StorySectionDef[] = [
     stripe: 'border-violet-500',
     iconWrap: 'bg-violet-100 text-violet-700',
     hasContent: (s) => !!s.expectedLearningOutcomes,
-    render: (s) => <p className="whitespace-pre-wrap text-base">{s.expectedLearningOutcomes}</p>,
+    render: (s) => <ExpandableText text={s.expectedLearningOutcomes} />,
   },
   {
     num: 13,
@@ -367,27 +334,24 @@ const READING_PRACTICE_SECTIONS: StorySectionDef[] = [
     stripe: 'border-fuchsia-500',
     iconWrap: 'bg-fuchsia-100 text-fuchsia-700',
     hasContent: (s) => !!s.reflection,
-    render: (s) => <p className="whitespace-pre-wrap text-base leading-relaxed">{s.reflection}</p>,
+    render: (s) => <ExpandableText text={s.reflection} />,
   },
 ];
 
-function renderStoryQuestionList(questions: StoryQuestion[], accent: string, badge: string) {
+function VocabChip({ word }: { word: string }) {
+  const [known, setKnown] = useState(false);
   return (
-    <div className="space-y-2">
-      {questions.map((q, i) => (
-        <div key={i} className={cn('flex gap-3 rounded-xl border px-3 py-2', accent)}>
-          <span
-            className={cn(
-              'flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-xs font-bold text-white',
-              badge,
-            )}
-          >
-            {i + 1}
-          </span>
-          <p className="text-base text-slate-800 pt-0.5">{q.question}</p>
-        </div>
-      ))}
-    </div>
+    <button
+      type="button"
+      onClick={() => setKnown((v) => !v)}
+      className={cn(
+        'rounded-xl border px-3 py-2 text-base transition-all',
+        known ? 'border-teal-400 bg-teal-100 text-teal-950 font-medium' : 'border-teal-100 bg-teal-50 text-teal-900 hover:border-teal-300',
+      )}
+    >
+      {known ? '✓ ' : ''}
+      {word}
+    </button>
   );
 }
 
@@ -417,7 +381,7 @@ const TEACHER_STORY_PASSAGE_SECTIONS: StorySectionDef[] = [
     stripe: 'border-sky-500',
     iconWrap: 'bg-sky-100 text-sky-700',
     hasContent: (s) => !!s.priorKnowledgeRequired,
-    render: (s) => <p className="whitespace-pre-wrap text-base leading-relaxed">{s.priorKnowledgeRequired}</p>,
+    render: (s) => <ExpandableText text={s.priorKnowledgeRequired} />,
   },
   {
     num: 4,
@@ -426,16 +390,7 @@ const TEACHER_STORY_PASSAGE_SECTIONS: StorySectionDef[] = [
     stripe: 'border-violet-500',
     iconWrap: 'bg-violet-100 text-violet-700',
     hasContent: (s) => s.learningObjectives.length > 0,
-    render: (s) => (
-      <ul className="space-y-2">
-        {s.learningObjectives.map((o, i) => (
-          <li key={i} className="flex gap-2 rounded-lg bg-violet-50/80 px-3 py-2 text-base">
-            <Target className="h-4 w-4 shrink-0 text-violet-600 mt-0.5" aria-hidden />
-            {o}
-          </li>
-        ))}
-      </ul>
-    ),
+    render: (s) => <SelfCheckList items={s.learningObjectives} tone="violet" />,
   },
   {
     num: 5,
@@ -444,7 +399,7 @@ const TEACHER_STORY_PASSAGE_SECTIONS: StorySectionDef[] = [
     stripe: 'border-blue-500',
     iconWrap: 'bg-blue-100 text-blue-700',
     hasContent: (s) => !!s.ncfAlignment,
-    render: (s) => <p className="whitespace-pre-wrap text-base leading-relaxed">{s.ncfAlignment}</p>,
+    render: (s) => <ExpandableText text={s.ncfAlignment} />,
   },
   {
     num: 6,
@@ -456,12 +411,7 @@ const TEACHER_STORY_PASSAGE_SECTIONS: StorySectionDef[] = [
     render: (s) => (
       <div className="flex flex-wrap gap-2">
         {s.vocabulary.map((word, i) => (
-          <span
-            key={i}
-            className="rounded-xl border border-teal-100 bg-teal-50 px-3 py-2 text-base text-teal-900"
-          >
-            {word}
-          </span>
+          <VocabChip key={i} word={word} />
         ))}
       </div>
     ),
@@ -473,7 +423,7 @@ const TEACHER_STORY_PASSAGE_SECTIONS: StorySectionDef[] = [
     stripe: 'border-amber-500',
     iconWrap: 'bg-amber-100 text-amber-800',
     hasContent: (s) => !!s.preReadingPrompt,
-    render: (s) => <p className="whitespace-pre-wrap text-base leading-relaxed">{s.preReadingPrompt}</p>,
+    render: (s) => <ExpandableText text={s.preReadingPrompt} />,
   },
   {
     num: 8,
@@ -495,8 +445,13 @@ const TEACHER_STORY_PASSAGE_SECTIONS: StorySectionDef[] = [
     stripe: 'border-indigo-500',
     iconWrap: 'bg-indigo-100 text-indigo-700',
     hasContent: (s) => s.readRecallQuestions.length > 0,
-    render: (s) =>
-      renderStoryQuestionList(s.readRecallQuestions, 'border-indigo-100 bg-indigo-50/30', 'bg-indigo-600'),
+    render: (s) => (
+      <SelfCheckList
+        items={s.readRecallQuestions.map((q) => q.question)}
+        tone="indigo"
+        prompt="Tap each question once you've answered it"
+      />
+    ),
   },
   {
     num: 10,
@@ -505,8 +460,13 @@ const TEACHER_STORY_PASSAGE_SECTIONS: StorySectionDef[] = [
     stripe: 'border-sky-500',
     iconWrap: 'bg-sky-100 text-sky-700',
     hasContent: (s) => s.thinkInferQuestions.length > 0,
-    render: (s) =>
-      renderStoryQuestionList(s.thinkInferQuestions, 'border-sky-100 bg-sky-50/30', 'bg-sky-600'),
+    render: (s) => (
+      <SelfCheckList
+        items={s.thinkInferQuestions.map((q) => q.question)}
+        tone="sky"
+        prompt="Tap each question once you've answered it"
+      />
+    ),
   },
   {
     num: 11,
@@ -515,8 +475,13 @@ const TEACHER_STORY_PASSAGE_SECTIONS: StorySectionDef[] = [
     stripe: 'border-emerald-500',
     iconWrap: 'bg-emerald-100 text-emerald-700',
     hasContent: (s) => s.applyConnectQuestions.length > 0,
-    render: (s) =>
-      renderStoryQuestionList(s.applyConnectQuestions, 'border-emerald-100 bg-emerald-50/30', 'bg-emerald-600'),
+    render: (s) => (
+      <SelfCheckList
+        items={s.applyConnectQuestions.map((q) => q.question)}
+        tone="emerald"
+        prompt="Tap each question once you've answered it"
+      />
+    ),
   },
   {
     num: 12,
@@ -527,15 +492,9 @@ const TEACHER_STORY_PASSAGE_SECTIONS: StorySectionDef[] = [
     hasContent: (s) => !!s.vocabularyGrammarPractice || s.vocabularyPractice.length > 0,
     render: (s) =>
       s.vocabularyGrammarPractice ? (
-        <p className="whitespace-pre-wrap text-base leading-relaxed">{s.vocabularyGrammarPractice}</p>
+        <ExpandableText text={s.vocabularyGrammarPractice} />
       ) : (
-        <ul className="space-y-2 text-base">
-          {s.vocabularyPractice.map((item, i) => (
-            <li key={i} className="rounded-lg bg-teal-50/80 px-3 py-2">
-              {item}
-            </li>
-          ))}
-        </ul>
+        <SelfCheckList items={s.vocabularyPractice} tone="teal" />
       ),
   },
   {
@@ -545,7 +504,7 @@ const TEACHER_STORY_PASSAGE_SECTIONS: StorySectionDef[] = [
     stripe: 'border-purple-500',
     iconWrap: 'bg-purple-100 text-purple-700',
     hasContent: (s) => !!s.creativeResponseActivity,
-    render: (s) => <p className="whitespace-pre-wrap text-base leading-relaxed">{s.creativeResponseActivity}</p>,
+    render: (s) => <ExpandableText text={s.creativeResponseActivity} />,
   },
   {
     num: 14,
@@ -555,9 +514,12 @@ const TEACHER_STORY_PASSAGE_SECTIONS: StorySectionDef[] = [
     iconWrap: 'bg-yellow-100 text-yellow-800',
     hasContent: (s) => !!s.answerKeySuggestedResponses || s.answerHints.length > 0,
     render: (s) => (
-      <p className="whitespace-pre-wrap text-base leading-relaxed">
-        {s.answerKeySuggestedResponses || s.answerHints.join('\n')}
-      </p>
+      <TapToRevealCard
+        prompt="Answer key"
+        detail={s.answerKeySuggestedResponses || s.answerHints.join('\n')}
+        tone="amber"
+        revealLabel="Show suggested responses"
+      />
     ),
   },
   {
@@ -567,7 +529,7 @@ const TEACHER_STORY_PASSAGE_SECTIONS: StorySectionDef[] = [
     stripe: 'border-rose-500',
     iconWrap: 'bg-rose-100 text-rose-700',
     hasContent: (s) => !!s.commonMistakesToAvoid,
-    render: (s) => <p className="whitespace-pre-wrap text-base leading-relaxed">{s.commonMistakesToAvoid}</p>,
+    render: (s) => <ExpandableText text={s.commonMistakesToAvoid} />,
   },
   {
     num: 16,
@@ -576,7 +538,7 @@ const TEACHER_STORY_PASSAGE_SECTIONS: StorySectionDef[] = [
     stripe: 'border-emerald-500',
     iconWrap: 'bg-emerald-100 text-emerald-700',
     hasContent: (s) => !!s.differentiationSupport,
-    render: (s) => <p className="whitespace-pre-wrap text-base leading-relaxed">{s.differentiationSupport}</p>,
+    render: (s) => <ExpandableText text={s.differentiationSupport} />,
   },
   {
     num: 17,
@@ -585,7 +547,7 @@ const TEACHER_STORY_PASSAGE_SECTIONS: StorySectionDef[] = [
     stripe: 'border-violet-500',
     iconWrap: 'bg-violet-100 text-violet-700',
     hasContent: (s) => !!s.expectedLearningOutcomes,
-    render: (s) => <p className="whitespace-pre-wrap text-base">{s.expectedLearningOutcomes}</p>,
+    render: (s) => <ExpandableText text={s.expectedLearningOutcomes} />,
   },
   {
     num: 18,
@@ -594,7 +556,7 @@ const TEACHER_STORY_PASSAGE_SECTIONS: StorySectionDef[] = [
     stripe: 'border-orange-500',
     iconWrap: 'bg-orange-100 text-orange-800',
     hasContent: (s) => !!s.realLifeApplication,
-    render: (s) => <p className="whitespace-pre-wrap text-base leading-relaxed">{s.realLifeApplication}</p>,
+    render: (s) => <ExpandableText text={s.realLifeApplication} />,
   },
   {
     num: 19,
@@ -603,7 +565,7 @@ const TEACHER_STORY_PASSAGE_SECTIONS: StorySectionDef[] = [
     stripe: 'border-fuchsia-500',
     iconWrap: 'bg-fuchsia-100 text-fuchsia-700',
     hasContent: (s) => !!s.reflection,
-    render: (s) => <p className="whitespace-pre-wrap text-base leading-relaxed">{s.reflection}</p>,
+    render: (s) => <ExpandableText text={s.reflection} />,
   },
 ];
 

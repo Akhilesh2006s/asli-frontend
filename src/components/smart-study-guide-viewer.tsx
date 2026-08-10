@@ -1,12 +1,10 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  CheckCircle2,
   Clock,
   Eye,
   EyeOff,
   HelpCircle,
-  Sparkles,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -27,11 +25,21 @@ import {
   RealisticIcon,
   type AiTool3dIconName,
 } from '@/components/ai-tool-3d-icons';
-import { AiToolStackedSection } from '@/components/ai-tool-stacked-section';
+import { AiToolStackedSection, type AiToolSectionMetaItem } from '@/components/ai-tool-stacked-section';
 import {
   AiToolV2InsightTail,
   parseBloomLevelsFromText,
 } from '@/components/ai-v2';
+import {
+  CheckableTimeline,
+  ExpandableText,
+  FlipCard,
+  OneAtATimeCarousel,
+  SelfCheckList,
+  StepFlowDiagram,
+  TapToMarkItem,
+  TapToRevealCard,
+} from '@/components/ai-tool-interactive';
 
 export { studyGuideViewerPayloadFromRecord };
 
@@ -76,6 +84,7 @@ function SectionShell({
   gradient,
   children,
   className,
+  meta,
 }: {
   num: string;
   title: string;
@@ -84,6 +93,7 @@ function SectionShell({
   gradient?: string;
   children: ReactNode;
   className?: string;
+  meta?: AiToolSectionMetaItem[];
 }) {
   return (
     <AiToolStackedSection
@@ -93,20 +103,58 @@ function SectionShell({
       accent={accent}
       gradient={gradient}
       className={className}
+      meta={meta}
     >
       {children}
     </AiToolStackedSection>
   );
 }
 
+function ConceptFlipCard({
+  name,
+  explanation,
+  icon,
+}: {
+  name: string;
+  explanation: string;
+  icon: AiTool3dIconName;
+}) {
+  return (
+    <FlipCard
+      tone="emerald"
+      front={
+        <>
+          <div className="mb-2 flex items-center gap-2">
+            <RealisticIcon name={icon} alt="" className="h-9 w-9" />
+            <Badge className="border-0 bg-emerald-100 text-emerald-800">Concept</Badge>
+            <span className="ml-auto inline-flex items-center gap-1 text-mini font-semibold text-emerald-600">
+              Tap to flip ↻
+            </span>
+          </div>
+          <p className="text-base font-bold text-emerald-950">{name}</p>
+          <p className="mt-1.5 text-base leading-relaxed text-slate-700">{explanation}</p>
+        </>
+      }
+      back={
+        <>
+          <RealisticIcon name="sparkle" alt="" className="h-10 w-10" />
+          <p className="text-sm font-bold uppercase tracking-wide">Quick challenge</p>
+          <p className="text-base leading-relaxed">
+            Explain <span className="font-bold">{name}</span> in one sentence — out loud, to a
+            friend or to yourself.
+          </p>
+        </>
+      }
+    />
+  );
+}
+
 function PracticeQuestionCard({
   q,
   index,
-  onRevealXp,
 }: {
   q: StudyGuidePracticeQuestion;
   index: number;
-  onRevealXp: (xp: number) => void;
 }) {
   const isMcq = q.type === 'objective' && q.options.length >= 2;
   const [revealed, setRevealed] = useState(false);
@@ -120,7 +168,6 @@ function PracticeQuestionCard({
       : difficulty === 'Medium'
         ? 'bg-amber-100 text-amber-900'
         : 'bg-rose-100 text-rose-800';
-  const xp = difficulty === 'Easy' ? 10 : difficulty === 'Medium' ? 18 : 25;
 
   const correctLabel = useMemo(() => {
     const raw = String(q.answer || '').trim();
@@ -175,7 +222,6 @@ function PracticeQuestionCard({
         >
           {isMcq ? 'MCQ' : 'Practice'}
         </Badge>
-        <span className="ml-auto text-mini font-semibold text-[#6C63FF]">⭐ +{xp} XP</span>
       </div>
 
       <p className="text-base font-semibold leading-snug text-slate-900 sm:text-base">{q.question}</p>
@@ -245,12 +291,7 @@ function PracticeQuestionCard({
           type="button"
           size="sm"
           className="rounded-xl bg-gradient-to-r from-[#6C63FF] to-[#00C2FF] text-white hover:opacity-95"
-          onClick={() => {
-            setRevealed((prev) => {
-              if (!prev) onRevealXp(xp);
-              return !prev;
-            });
-          }}
+          onClick={() => setRevealed((prev) => !prev)}
         >
           {revealed ? <EyeOff className="mr-1.5 h-3.5 w-3.5" /> : <Eye className="mr-1.5 h-3.5 w-3.5" />}
           {revealed ? 'Hide answer' : 'Reveal answer'}
@@ -289,9 +330,6 @@ function PracticeQuestionCard({
 }
 
 export function SmartStudyGuideViewer({ content, rawContent, className }: SmartStudyGuideViewerProps) {
-  const [xp, setXp] = useState(0);
-  const [revealedCount, setRevealedCount] = useState(0);
-
   const payload = useMemo(() => {
     if (rawContent != null) return { content: String(content || '').trim(), rawContent };
     return studyGuideViewerPayloadFromRecord({ generatedContent: content });
@@ -355,13 +393,7 @@ export function SmartStudyGuideViewer({ content, rawContent, className }: SmartS
     guide.improvementTips.length > 0,
   ];
   const sectionsDone = sectionFlags.filter(Boolean).length;
-  const progressPct = Math.round((sectionsDone / 11) * 100);
   const readMins = Math.max(4, Math.round((conceptCount * 2 + practiceCount * 3 + 4)));
-
-  const onRevealXp = (amount: number) => {
-    setXp((v) => v + amount);
-    setRevealedCount((v) => v + 1);
-  };
 
   return (
     <div
@@ -400,106 +432,6 @@ export function SmartStudyGuideViewer({ content, rawContent, className }: SmartS
           </div>
         ) : null}
 
-        {/* Hero */}
-        <motion.section
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          data-ai-focus-hide
-          className="w-full space-y-3 rounded-xl border border-violet-100 bg-violet-50/50 p-4"
-        >
-          <div className="grid items-center gap-5 lg:grid-cols-[1fr_1.2fr_1fr]">
-            <div className="flex justify-center">
-              <RealisticIcon
-                name="student"
-                alt="Student"
-                className="h-20 w-20 sm:h-28 sm:w-28 lg:h-32 lg:w-32"
-              />
-            </div>
-
-            <div className="text-center lg:text-left">
-              <div className="mb-3 inline-flex items-center gap-1.5 rounded-full border border-[#6C63FF]/20 bg-[#6C63FF]/8 px-3 py-1 text-mini font-semibold text-[#6C63FF]">
-                <Sparkles className="h-3.5 w-3.5" />
-                AI-POWERED
-              </div>
-              <h2 className="text-3xl font-black tracking-tight text-slate-900 sm:text-4xl">
-                Your Smart Study{' '}
-                <span className="bg-gradient-to-r from-[#6C63FF] via-[#8B5CF6] to-[#00C2FF] bg-clip-text text-transparent">
-                  Guide
-                </span>
-              </h2>
-              <p className="mx-auto mt-2 max-w-xl text-base leading-relaxed text-slate-600 lg:mx-0">
-                Transform any topic into an interactive learning experience powered by AI.
-              </p>
-              <h3 className="mt-4 text-lg font-bold text-slate-900 sm:text-xl">{guide.title}</h3>
-              <div className="mt-4 flex flex-wrap justify-center gap-2 lg:justify-start">
-                {[
-                  { label: `${conceptCount} Concepts`, name: 'brain' as const },
-                  { label: `${practiceCount} Practice`, name: 'quiz' as const },
-                  { label: `${mcqCount} MCQs`, name: 'checklist' as const },
-                  { label: 'AI Generated', name: 'sparkle' as const },
-                  { label: 'Personalized', name: 'student' as const },
-                ].map((chip) => (
-                  <motion.span
-                    key={chip.label}
-                    animate={{ y: [0, -3, 0] }}
-                    transition={{ duration: 3.2, repeat: Infinity, delay: Math.random() }}
-                    className="inline-flex items-center gap-1.5 rounded-full border border-[#6C63FF]/15 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 shadow-sm"
-                  >
-                    <RealisticIcon name={chip.name} alt="" className="h-5 w-5" />
-                    {chip.label}
-                  </motion.span>
-                ))}
-              </div>
-            </div>
-
-            <div className="flex justify-center gap-2 sm:gap-3">
-              <RealisticIcon name="brain" alt="Brain" className="h-14 w-14 sm:h-16 sm:w-16" />
-              <RealisticIcon name="openBook" alt="Book" className="h-14 w-14 sm:h-16 sm:w-16" />
-              <RealisticIcon name="rocket" alt="Rocket" className="h-14 w-14 sm:h-16 sm:w-16" />
-            </div>
-          </div>
-        </motion.section>
-
-        {/* Sticky progress */}
-        <div data-ai-focus-hide className="sticky top-2 z-20 rounded-2xl border border-white/80 bg-white/90 p-3 shadow-lg backdrop-blur-md sm:p-4">
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="min-w-0 flex-1">
-              <div className="mb-1 flex flex-wrap items-center gap-2 text-xs font-semibold text-slate-600">
-                <span className="truncate text-slate-900">✔ {guide.title || 'Study Guide'}</span>
-                <span>·</span>
-                <span>
-                  ✔ {sectionsDone} section{sectionsDone === 1 ? "" : "s"}
-                </span>
-                <span>·</span>
-                <span className="inline-flex items-center gap-1">
-                  <Clock className="h-3.5 w-3.5" /> {readMins} min
-                </span>
-                <span>·</span>
-                <span className="text-[#6C63FF]">⭐ {xp} XP</span>
-              </div>
-              <div className="h-2.5 overflow-hidden rounded-full bg-slate-100">
-                <motion.div
-                  className="h-full rounded-full bg-gradient-to-r from-[#6C63FF] via-[#8B5CF6] to-[#00C2FF]"
-                  initial={{ width: 0 }}
-                  animate={{ width: `${progressPct}%` }}
-                  transition={{ duration: 0.8, ease: 'easeOut' }}
-                />
-              </div>
-            </div>
-            <div className="flex flex-wrap gap-1.5">
-              <Badge className="border-0 bg-amber-100 text-amber-900">⭐ +{xp} XP</Badge>
-              {progressPct >= 80 ? (
-                <Badge className="border-0 bg-emerald-100 text-emerald-800">🏆 Topic Master</Badge>
-              ) : (
-                <Badge className="border-0 bg-indigo-100 text-indigo-800">📚 {progressPct}% Completed</Badge>
-              )}
-              {revealedCount > 0 ? (
-                <Badge className="border-0 bg-pink-100 text-pink-800">🎯 {revealedCount} answers</Badge>
-              ) : null}
-            </div>
-          </div>
-        </div>
-
         <motion.div
           className="space-y-4"
           initial="hidden"
@@ -521,6 +453,11 @@ export function SmartStudyGuideViewer({ content, rawContent, className }: SmartS
             illustration="books"
             accent="bg-gradient-to-br from-[#6C63FF] to-[#8B5CF6]"
             gradient="bg-gradient-to-r from-[#6C63FF]/10 to-[#00C2FF]/10"
+            meta={[
+              { icon: Clock, label: 'Read Time', value: `${readMins} min` },
+              { iconName: 'brain', label: 'Concepts', value: String(conceptCount) },
+              { iconName: 'quiz', label: 'Practice', value: String(practiceCount) },
+            ]}
           >
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
               <div className="min-w-0 flex-1">
@@ -549,7 +486,7 @@ export function SmartStudyGuideViewer({ content, rawContent, className }: SmartS
               gradient="bg-gradient-to-r from-sky-50 to-blue-50"
             >
               <div className="grid gap-4 sm:grid-cols-[1fr_auto] sm:items-start">
-                <RichTextBlock text={guide.chapterOverview} />
+                <ExpandableText text={guide.chapterOverview} />
                 <RealisticIcon
                   name="notebook"
                   alt="Notebook"
@@ -568,24 +505,7 @@ export function SmartStudyGuideViewer({ content, rawContent, className }: SmartS
               gradient="bg-gradient-to-r from-violet-50 to-fuchsia-50"
             >
               <div className="grid gap-4 sm:grid-cols-[1fr_auto] sm:items-start">
-                <ol className="relative space-y-0">
-                  {guide.learningObjectives.map((obj, i) => (
-                    <li key={i} className="relative flex gap-3 pb-5 last:pb-0">
-                      {i < guide.learningObjectives.length - 1 ? (
-                        <span className="absolute left-[15px] top-8 h-[calc(100%-1.5rem)] w-0.5 bg-gradient-to-b from-violet-400 to-violet-200" />
-                      ) : null}
-                      <motion.span
-                        whileHover={{ scale: 1.08 }}
-                        className="relative z-[1] flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 to-purple-600 text-xs font-bold text-white shadow"
-                      >
-                        {i + 1}
-                      </motion.span>
-                      <div className="min-w-0 flex-1 rounded-2xl border border-violet-100 bg-white/80 px-3 py-2 text-base text-slate-800 shadow-sm">
-                        {obj}
-                      </div>
-                    </li>
-                  ))}
-                </ol>
+                <CheckableTimeline items={guide.learningObjectives} tone="violet" />
                 <RealisticIcon
                   name="target"
                   alt="Target"
@@ -603,18 +523,7 @@ export function SmartStudyGuideViewer({ content, rawContent, className }: SmartS
               accent="bg-gradient-to-br from-teal-500 to-cyan-600"
               gradient="bg-gradient-to-r from-teal-50 to-cyan-50"
             >
-              <div className="grid gap-3 sm:grid-cols-2">
-                {guide.priorKnowledge.map((item, i) => (
-                  <motion.div
-                    key={i}
-                    whileHover={{ scale: 1.02 }}
-                    className="flex gap-2 rounded-2xl border border-teal-100 bg-white px-3 py-2.5 text-base text-slate-800 shadow-sm"
-                  >
-                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
-                    <span>{item}</span>
-                  </motion.div>
-                ))}
-              </div>
+              <SelfCheckList items={guide.priorKnowledge} tone="teal" />
             </SectionShell>
           ) : null}
 
@@ -626,31 +535,30 @@ export function SmartStudyGuideViewer({ content, rawContent, className }: SmartS
               accent="bg-gradient-to-br from-emerald-500 to-green-600"
               gradient="bg-gradient-to-r from-emerald-50 to-lime-50"
             >
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              <div
+                className={cn(
+                  'grid gap-3',
+                  conceptCount === 1
+                    ? 'grid-cols-1'
+                    : conceptCount === 2
+                      ? 'sm:grid-cols-2'
+                      : 'sm:grid-cols-2 lg:grid-cols-3',
+                )}
+              >
                 {guide.keyConcepts
                   .filter((c) => c.name.trim() && c.explanation?.trim())
                   .map((c, i) => (
-                    <motion.div
+                    <ConceptFlipCard
                       key={`${c.name}-${i}`}
-                      whileHover={{ y: -4, scale: 1.02 }}
-                      className="rounded-3xl border border-emerald-100 bg-gradient-to-br from-white to-emerald-50/60 p-4 shadow-sm"
-                    >
-                      <div className="mb-2 flex items-center gap-2">
-                        <RealisticIcon
-                          name={(["lightbulb","brain","sparkle","target","notebook","openBook"] as const)[i % 6]}
-                          alt=""
-                          className="h-9 w-9"
-                        />
-                        <Badge className="border-0 bg-emerald-100 text-emerald-800">Concept</Badge>
-                      </div>
-                      <p className="text-base font-bold text-emerald-950">{c.name}</p>
-                      <p className="mt-1.5 text-base leading-relaxed text-slate-700">{c.explanation}</p>
-                      <p className="mt-3 rounded-xl bg-white/80 px-2.5 py-1.5 text-mini font-medium text-emerald-800">
-                        💡 Student tip: explain this idea in one sentence to a friend.
-                      </p>
-                    </motion.div>
+                      name={c.name}
+                      explanation={c.explanation}
+                      icon={(["lightbulb","brain","sparkle","target","notebook","openBook"] as const)[i % 6]}
+                    />
                   ))}
               </div>
+              <p className="mt-2 text-xs font-medium text-slate-400">
+                Tap a card to flip it and try the quick challenge on the back.
+              </p>
             </SectionShell>
           ) : null}
 
@@ -663,16 +571,11 @@ export function SmartStudyGuideViewer({ content, rawContent, className }: SmartS
               gradient="bg-gradient-to-r from-amber-50 to-orange-50"
             >
               <div className="space-y-3">
+                {guide.definitions.length > 0 ? (
+                  <p className="text-xs font-medium text-slate-400">Tap a term to test yourself before reading the definition.</p>
+                ) : null}
                 {guide.definitions.map((d, i) => (
-                  <div
-                    key={`def-${i}`}
-                    className="rounded-2xl border border-amber-100 bg-white px-4 py-3 shadow-sm"
-                  >
-                    <span className="text-base font-bold text-amber-900">{d.term}</span>
-                    {d.definition ? (
-                      <span className="text-base text-slate-700"> — {d.definition}</span>
-                    ) : null}
-                  </div>
+                  <TapToRevealCard key={`def-${i}`} prompt={d.term} detail={d.definition} tone="amber" />
                 ))}
                 {guide.formulae.map((f, i) => (
                   <div
@@ -696,7 +599,11 @@ export function SmartStudyGuideViewer({ content, rawContent, className }: SmartS
               accent="bg-gradient-to-br from-teal-500 to-emerald-600"
               gradient="bg-gradient-to-r from-teal-50 to-emerald-50"
             >
-              <RichTextBlock text={guide.conceptFlow} />
+              <StepFlowDiagram
+                text={guide.conceptFlow}
+                tone="teal"
+                fallback={<RichTextBlock text={guide.conceptFlow} />}
+              />
             </SectionShell>
           ) : null}
 
@@ -708,15 +615,10 @@ export function SmartStudyGuideViewer({ content, rawContent, className }: SmartS
               accent="bg-gradient-to-br from-lime-500 to-green-600"
               gradient="bg-gradient-to-r from-lime-50 to-green-50"
             >
+              <p className="mb-2 text-xs font-medium text-slate-400">Tap an example you've noticed in real life.</p>
               <div className="grid gap-3 sm:grid-cols-2">
                 {guide.realLifeExamples.map((ex, i) => (
-                  <div
-                    key={i}
-                    className="flex items-start gap-2 rounded-2xl border border-lime-100 bg-white px-3 py-2.5 text-base text-slate-800 shadow-sm"
-                  >
-                    <RealisticIcon name="lightbulb" alt="" className="mt-0.5 h-6 w-6 shrink-0" />
-                    <span>{ex}</span>
-                  </div>
+                  <TapToMarkItem key={i} text={ex} tone="lime" iconOff="lightbulb" iconOn="star" markedStyle="highlight" />
                 ))}
               </div>
             </SectionShell>
@@ -732,16 +634,12 @@ export function SmartStudyGuideViewer({ content, rawContent, className }: SmartS
             >
               <div className="rounded-3xl border border-amber-200 bg-[#FFFBEB] p-4 shadow-inner">
                 <p className="mb-3 text-xs font-bold uppercase tracking-wide text-amber-800">
-                  Key takeaways · sticky notes
+                  Key takeaways · tap each note once you've revised it
                 </p>
                 <ul className="space-y-2">
                   {guide.quickRevisionNotes.map((note, i) => (
-                    <li
-                      key={i}
-                      className="flex gap-2 rounded-2xl border border-amber-100 bg-white/90 px-3 py-2 text-base text-slate-800 shadow-sm"
-                    >
-                      <RealisticIcon name="checklist" alt="" className="mt-0.5 h-5 w-5 shrink-0" />
-                      <span className="whitespace-pre-wrap">{note}</span>
+                    <li key={i}>
+                      <TapToMarkItem text={note} tone="amber" iconOff="checklist" iconOn="checklist" markedStyle="strike" />
                     </li>
                   ))}
                 </ul>
@@ -761,7 +659,7 @@ export function SmartStudyGuideViewer({ content, rawContent, className }: SmartS
                 {guide.practiceQuestions
                   .filter((q) => q.question.trim())
                   .map((q, i) => (
-                    <PracticeQuestionCard key={`pq-${i}`} q={q} index={i} onRevealXp={onRevealXp} />
+                    <PracticeQuestionCard key={`pq-${i}`} q={q} index={i} />
                   ))}
               </div>
             </SectionShell>
@@ -775,17 +673,7 @@ export function SmartStudyGuideViewer({ content, rawContent, className }: SmartS
               accent="bg-gradient-to-br from-fuchsia-500 to-purple-600"
               gradient="bg-gradient-to-r from-fuchsia-50 to-purple-50"
             >
-              <div className="grid gap-3 sm:grid-cols-2">
-                {guide.improvementTips.map((tip, i) => (
-                  <div
-                    key={i}
-                    className="flex items-start gap-2 rounded-2xl border border-fuchsia-100 bg-white px-3 py-2.5 text-base text-slate-800 shadow-sm"
-                  >
-                    <RealisticIcon name="sparkle" alt="" className="mt-0.5 h-6 w-6 shrink-0" />
-                    <span>{tip}</span>
-                  </div>
-                ))}
-              </div>
+              <OneAtATimeCarousel items={guide.improvementTips} tone="fuchsia" icon="sparkle" />
             </SectionShell>
           ) : null}
               </>
@@ -810,7 +698,7 @@ export function SmartStudyGuideViewer({ content, rawContent, className }: SmartS
           competencyItems={
             guide.priorKnowledge.length > 0 ? guide.priorKnowledge : guide.learningObjectives
           }
-          bestPracticesText="Study in order: overview → objectives → concepts → revision notes → practice. Reveal answers only after attempting questions to earn XP and lock in retention."
+          bestPracticesText="Study in order: overview → objectives → concepts → revision notes → practice. Attempt each question yourself before revealing the answer — it sticks better that way."
         />
         </div>
 

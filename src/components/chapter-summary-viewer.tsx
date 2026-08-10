@@ -14,7 +14,6 @@ import {
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { renderMarkdown } from '@/lib/render-teacher-markdown';
 import { stripStructuredAiToolMetadata } from '@/lib/strip-ai-tool-metadata';
 import {
   chapterSummaryViewerPayloadFromRecord,
@@ -22,6 +21,14 @@ import {
   type ChapterSummaryContent,
 } from '@/lib/parse-chapter-summary';
 import { renderChapterSummaryMarkdown } from '@/lib/render-chapter-summary-markdown';
+import {
+  ExpandableText,
+  FlipCard,
+  OneAtATimeCarousel,
+  SelfCheckList,
+  TapToMarkItem,
+  TapToRevealCard,
+} from '@/components/ai-tool-interactive';
 
 export { chapterSummaryViewerPayloadFromRecord };
 
@@ -53,38 +60,6 @@ function SectionCard({
   );
 }
 
-function RichTextBlock({ text }: { text: string }) {
-  if (!text.trim()) return null;
-  const hasMarkdown =
-    text.includes('|') ||
-    /^\s*#{1,6}\s/m.test(text) ||
-    /\*\*[^*]+\*\*/.test(text) ||
-    /^\s*[-*•]\s/m.test(text);
-  if (hasMarkdown) {
-    return (
-      <div
-        className="prose prose-base max-w-none text-slate-800 prose-li:text-base"
-        dangerouslySetInnerHTML={{ __html: renderMarkdown(text) }}
-      />
-    );
-  }
-  return <p className="whitespace-pre-wrap text-base leading-relaxed text-slate-800">{text}</p>;
-}
-
-function BulletList({ items, accent = 'text-blue-500' }: { items: string[]; accent?: string }) {
-  if (!items.length) return null;
-  return (
-    <ul className="space-y-1.5">
-      {items.map((line, i) => (
-        <li key={i} className="flex gap-2 text-base text-slate-800">
-          <span className={cn('mt-0.5 shrink-0', accent)}>•</span>
-          <span className="whitespace-pre-wrap leading-relaxed">{line}</span>
-        </li>
-      ))}
-    </ul>
-  );
-}
-
 function buildBodySections(summary: ChapterSummaryContent): ReactNode[] {
   const defs: Array<{
     key: string;
@@ -102,7 +77,7 @@ function buildBodySections(summary: ChapterSummaryContent): ReactNode[] {
       stripe: 'border-sky-500',
       iconWrap: 'bg-sky-100 text-sky-800',
       hasContent: !!summary.chapterOverview.trim(),
-      body: <RichTextBlock text={summary.chapterOverview} />,
+      body: <ExpandableText text={summary.chapterOverview} />,
     },
     {
       key: 'objectives',
@@ -111,7 +86,7 @@ function buildBodySections(summary: ChapterSummaryContent): ReactNode[] {
       stripe: 'border-indigo-500',
       iconWrap: 'bg-indigo-100 text-indigo-800',
       hasContent: summary.learningObjectives.length > 0,
-      body: <BulletList items={summary.learningObjectives} accent="text-indigo-500" />,
+      body: <SelfCheckList items={summary.learningObjectives} tone="indigo" />,
     },
     {
       key: 'concepts',
@@ -123,15 +98,17 @@ function buildBodySections(summary: ChapterSummaryContent): ReactNode[] {
       body: (
         <div className="grid gap-1.5 sm:grid-cols-2">
           {summary.importantConcepts.map((c, i) => (
-            <div
+            <FlipCard
               key={`${c.name}-${i}`}
-              className="rounded-lg border border-violet-100 bg-violet-50/30 px-3 py-2"
-            >
-              <p className="text-base font-semibold text-violet-900">{c.name}</p>
-              {c.explanation ? (
-                <p className="mt-1 text-base leading-relaxed text-slate-700">{c.explanation}</p>
-              ) : null}
-            </div>
+              tone="violet"
+              front={
+                <div className="flex flex-1 flex-col justify-center">
+                  <p className="text-base font-semibold text-violet-900">{c.name}</p>
+                  <p className="mt-1 text-mini font-medium text-violet-600">Tap to flip ↻</p>
+                </div>
+              }
+              back={<p className="text-base leading-relaxed">{c.explanation || c.name}</p>}
+            />
           ))}
         </div>
       ),
@@ -146,10 +123,7 @@ function buildBodySections(summary: ChapterSummaryContent): ReactNode[] {
       body: (
         <div className="space-y-2">
           {summary.definitions.map((d, i) => (
-            <div key={`def-${i}`} className="rounded-md border border-purple-100 bg-purple-50/50 px-3 py-2">
-              <span className="text-base font-semibold text-purple-900">{d.term}</span>
-              {d.definition ? <span className="text-base text-slate-700"> — {d.definition}</span> : null}
-            </div>
+            <TapToRevealCard key={`def-${i}`} prompt={d.term} detail={d.definition} tone="pink" />
           ))}
         </div>
       ),
@@ -183,7 +157,7 @@ function buildBodySections(summary: ChapterSummaryContent): ReactNode[] {
       stripe: 'border-cyan-500',
       iconWrap: 'bg-cyan-100 text-cyan-800',
       hasContent: !!summary.conceptConnections.trim(),
-      body: <RichTextBlock text={summary.conceptConnections} />,
+      body: <ExpandableText text={summary.conceptConnections} />,
     },
     {
       key: 'realLife',
@@ -192,7 +166,13 @@ function buildBodySections(summary: ChapterSummaryContent): ReactNode[] {
       stripe: 'border-emerald-500',
       iconWrap: 'bg-emerald-100 text-emerald-800',
       hasContent: summary.realLifeApplications.length > 0,
-      body: <BulletList items={summary.realLifeApplications} accent="text-emerald-500" />,
+      body: (
+        <div className="grid gap-2 sm:grid-cols-2">
+          {summary.realLifeApplications.map((item, i) => (
+            <TapToMarkItem key={i} text={item} tone="emerald" iconOff="lightbulb" iconOn="star" markedStyle="highlight" />
+          ))}
+        </div>
+      ),
     },
     {
       key: 'revision',
@@ -204,12 +184,8 @@ function buildBodySections(summary: ChapterSummaryContent): ReactNode[] {
       body: (
         <ul className="space-y-1.5">
           {summary.quickRevisionNotes.map((note, i) => (
-            <li
-              key={i}
-              className="flex gap-2 rounded-md border border-amber-100 bg-amber-50/60 px-2 py-1.5 text-base text-slate-800"
-            >
-              <span className="mt-0.5 shrink-0 font-bold text-amber-600">{i + 1}.</span>
-              <span className="whitespace-pre-wrap">{note}</span>
+            <li key={i}>
+              <TapToMarkItem text={note} tone="amber" iconOff="checklist" iconOn="checklist" markedStyle="strike" />
             </li>
           ))}
         </ul>
@@ -222,19 +198,7 @@ function buildBodySections(summary: ChapterSummaryContent): ReactNode[] {
       stripe: 'border-blue-600',
       iconWrap: 'bg-blue-100 text-blue-900',
       hasContent: summary.practiceRecallQuestions.length > 0,
-      body: (
-        <ol className="space-y-2">
-          {summary.practiceRecallQuestions.map((q, i) => (
-            <li
-              key={i}
-              className="rounded-lg border border-blue-100 bg-blue-50/40 px-3 py-2 text-base text-slate-800"
-            >
-              <span className="mr-2 font-semibold text-blue-700">Q{i + 1}.</span>
-              {q}
-            </li>
-          ))}
-        </ol>
-      ),
+      body: <OneAtATimeCarousel items={summary.practiceRecallQuestions} tone="sky" icon="quiz" />,
     },
   ];
 

@@ -1,5 +1,4 @@
 import { AiToolStackedSection } from '@/components/ai-tool-stacked-section';
-import { AiToolV2Hero } from '@/components/ai-v2/ai-tool-v2-hero';
 import { useMemo, type ReactNode } from 'react';
 import {
   BookMarked,
@@ -22,6 +21,13 @@ import {
   type KeyPointsContent,
 } from '@/lib/parse-key-points';
 import { GeneratedRecordBody } from '@/components/super-admin/generated-record-body';
+import {
+  ExpandableText,
+  FlipCard,
+  SelfCheckList,
+  TapToMarkItem,
+  TapToRevealCard,
+} from '@/components/ai-tool-interactive';
 
 export { keyPointsViewerPayloadFromRecord };
 
@@ -43,20 +49,6 @@ function SectionCard({
   );
 }
 
-function BulletList({ items }: { items: string[] }) {
-  if (!items.length) return null;
-  return (
-    <ul className="space-y-2">
-      {items.map((line, i) => (
-        <li key={i} className="flex gap-2 text-base text-slate-800 leading-relaxed">
-          <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-amber-500" />
-          <span className="whitespace-pre-wrap">{line}</span>
-        </li>
-      ))}
-    </ul>
-  );
-}
-
 function buildSections(kp: KeyPointsContent) {
   const sections: ReactNode[] = [];
   let n = 0;
@@ -67,10 +59,17 @@ function buildSections(kp: KeyPointsContent) {
       <SectionCard key="concepts" sectionNum={next()} title="Most Important Concepts" icon={Brain}>
         <div className="grid gap-2 sm:grid-cols-2">
           {kp.importantConcepts.map((c, i) => (
-            <div key={i} className="rounded-xl border border-amber-100 bg-amber-50/50 p-3">
-              <p className="font-semibold text-amber-950">{c.name}</p>
-              {c.explanation ? <p className="mt-1 text-base text-slate-700">{c.explanation}</p> : null}
-            </div>
+            <FlipCard
+              key={i}
+              tone="amber"
+              front={
+                <div className="flex flex-1 flex-col justify-center">
+                  <p className="font-semibold text-amber-950">{c.name}</p>
+                  <p className="mt-1 text-mini font-medium text-amber-600">Tap to flip ↻</p>
+                </div>
+              }
+              back={<p className="text-base leading-relaxed">{c.explanation || c.name}</p>}
+            />
           ))}
         </div>
       </SectionCard>,
@@ -82,10 +81,7 @@ function buildSections(kp: KeyPointsContent) {
       <SectionCard key="defs" sectionNum={next()} title="Essential Definitions" icon={BookMarked}>
         <div className="space-y-2">
           {kp.essentialDefinitions.map((d, i) => (
-            <div key={i} className="rounded-lg border border-slate-200 bg-white px-3 py-2">
-              <span className="font-semibold text-slate-900">{d.term}</span>
-              {d.definition ? <span className="text-slate-700"> — {d.definition}</span> : null}
-            </div>
+            <TapToRevealCard key={i} prompt={d.term} detail={d.definition} tone="sky" />
           ))}
         </div>
       </SectionCard>,
@@ -111,15 +107,10 @@ function buildSections(kp: KeyPointsContent) {
   if (kp.keywords.length) {
     sections.push(
       <SectionCard key="keywords" sectionNum={next()} title="Keywords & Terminologies" icon={KeyRound}>
-        <div className="flex flex-wrap gap-2">
+        <p className="mb-2 text-xs font-medium text-slate-400">Tap a word to see what it means.</p>
+        <div className="grid gap-2 sm:grid-cols-2">
           {kp.keywords.map((k, i) => (
-            <span
-              key={i}
-              className="rounded-full border border-amber-200 bg-white px-3 py-1 text-xs font-medium text-slate-800"
-              title={k.meaning}
-            >
-              {k.term}
-            </span>
+            <TapToRevealCard key={i} prompt={k.term} detail={k.meaning} tone="amber" revealLabel="What's this?" />
           ))}
         </div>
       </SectionCard>,
@@ -129,7 +120,7 @@ function buildSections(kp: KeyPointsContent) {
   if (kp.mustRememberFacts.length) {
     sections.push(
       <SectionCard key="facts" sectionNum={next()} title="Must-remember Facts" icon={ListChecks}>
-        <BulletList items={kp.mustRememberFacts} />
+        <SelfCheckList items={kp.mustRememberFacts} tone="rose" prompt="Tap each fact once it's locked in" />
       </SectionCard>,
     );
   }
@@ -137,7 +128,11 @@ function buildSections(kp: KeyPointsContent) {
   if (kp.realLifeConnections.length) {
     sections.push(
       <SectionCard key="real" sectionNum={next()} title="Real-life Connections" icon={Lightbulb}>
-        <BulletList items={kp.realLifeConnections} />
+        <div className="grid gap-2 sm:grid-cols-2">
+          {kp.realLifeConnections.map((item, i) => (
+            <TapToMarkItem key={i} text={item} tone="lime" iconOff="lightbulb" iconOn="star" markedStyle="highlight" />
+          ))}
+        </div>
       </SectionCard>,
     );
   }
@@ -145,7 +140,7 @@ function buildSections(kp: KeyPointsContent) {
   if (kp.examPoints.length) {
     sections.push(
       <SectionCard key="exam" sectionNum={next()} title="Frequently Asked Exam Points" icon={Target}>
-        <BulletList items={kp.examPoints} />
+        <SelfCheckList items={kp.examPoints} tone="indigo" prompt="Tap each point you're ready to answer" />
       </SectionCard>,
     );
   }
@@ -153,7 +148,11 @@ function buildSections(kp: KeyPointsContent) {
   if (kp.mnemonics.length) {
     sections.push(
       <SectionCard key="mnemonic" sectionNum={next()} title="Mnemonics / Memory Tricks" icon={Zap}>
-        <BulletList items={kp.mnemonics} />
+        <div className="space-y-2">
+          {kp.mnemonics.map((item, i) => (
+            <TapToMarkItem key={i} text={item} tone="violet" iconOff="sparkle" iconOn="star" markedStyle="highlight" />
+          ))}
+        </div>
       </SectionCard>,
     );
   }
@@ -161,7 +160,7 @@ function buildSections(kp: KeyPointsContent) {
   if (kp.revisionSummary) {
     sections.push(
       <SectionCard key="summary" sectionNum={next()} title="One-minute Revision Summary" icon={Sparkles}>
-        <p className="whitespace-pre-wrap text-base leading-relaxed text-slate-800">{kp.revisionSummary}</p>
+        <ExpandableText text={kp.revisionSummary} />
       </SectionCard>,
     );
   }
@@ -200,35 +199,20 @@ export function KeyPointsViewer({
     );
   }
 
-  const filled = [
-    keyPoints.importantConcepts.length,
-    keyPoints.essentialDefinitions.length,
-    keyPoints.formulae.length,
-    keyPoints.keywords.length,
-    keyPoints.mustRememberFacts.length,
-    keyPoints.realLifeConnections.length,
-    keyPoints.examPoints.length,
-    keyPoints.mnemonics.length,
-    keyPoints.revisionSummary,
-  ].filter(Boolean).length;
-
   return (
     <div className={cn('space-y-4', className)}>
-      <AiToolV2Hero
-        toolLabel="Key Points Extractor"
-        title={keyPoints.title}
-        subtitle="Revision-ready facts, formulae, and exam highlights — distilled from your textbook."
-        icon={KeyRound}
-        gradientClass="from-amber-50 via-white to-orange-50"
-        accentClass="from-amber-500 to-orange-500"
-        borderClass="border-amber-100/80"
-        progressPct={(filled / 9) * 100}
-        chips={[
-          { label: 'Concepts', value: String(keyPoints.importantConcepts.length) },
-          { label: 'Formulae', value: String(keyPoints.formulae.length) },
-          { label: 'Facts', value: String(keyPoints.mustRememberFacts.length) },
-        ]}
-      />
+      {/* Title is shown once by the shared AiToolKitLayout header above this. */}
+      <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-slate-600 sm:text-sm">
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-white px-2.5 py-1.5 shadow-sm">
+          {keyPoints.importantConcepts.length} concepts
+        </span>
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-white px-2.5 py-1.5 shadow-sm">
+          {keyPoints.formulae.length} formulae
+        </span>
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-white px-2.5 py-1.5 shadow-sm">
+          {keyPoints.mustRememberFacts.length} facts
+        </span>
+      </div>
       <div className="space-y-3">{buildSections(keyPoints)}</div>
     </div>
   );

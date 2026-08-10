@@ -1,15 +1,13 @@
 import { AiToolStackedSection } from '@/components/ai-tool-stacked-section';
 import { QuestionFigure } from '@/components/ai-tools/QuestionFigure';
 import { MatchFollowingCard } from '@/components/ai-tools/MatchFollowingCard';
-import { ToolSectionIcon } from '@/components/ai-tool-3d-icons';
-import { useMemo, type ReactNode } from 'react';
-import { motion } from 'framer-motion';
+import { useMemo, useState, type ReactNode } from 'react';
 import {
   BookOpen,
   Brain,
   ClipboardList,
   Eye,
-  FileText,
+  EyeOff,
   HelpCircle,
   Lightbulb,
   ListChecks,
@@ -17,13 +15,12 @@ import {
   Users,
   type LucideIcon,
 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { displayQuestionSerial } from '@/lib/renumber-questions';
 import { stripMarkdownSyntax } from '@/lib/strip-markdown-syntax';
 import { isMatchQuestionType } from '@/lib/match-following';
-import { renderMarkdown } from '@/lib/render-teacher-markdown';
-import { GeneratedRecordBody } from '@/components/super-admin/generated-record-body';
-import { stripStructuredAiToolMetadata, stripAiGeneratorLeakage } from '@/lib/strip-ai-tool-metadata';
+import { stripStructuredAiToolMetadata } from '@/lib/strip-ai-tool-metadata';
 import {
   homeworkHasVisibleContent,
   resolveHomeworkFromPayload,
@@ -31,17 +28,12 @@ import {
   type HomeworkPracticeQuestion,
 } from '@/lib/parse-homework-creator';
 import { StructuredContentRequired } from '@/components/structured-content-required';
+import { ExpandableText, SelfCheckList, TapToRevealCard } from '@/components/ai-tool-interactive';
 
 export interface HomeworkCreatorViewerProps {
   content: string;
   rawContent?: unknown;
   className?: string;
-}
-
-function PlainField({ text }: { text: string }) {
-  return (
-    <p className="text-base whitespace-pre-wrap text-slate-800">{stripMarkdownSyntax(text)}</p>
-  );
 }
 
 type SectionDef = {
@@ -62,7 +54,7 @@ const HOMEWORK_SECTIONS: SectionDef[] = [
     stripe: 'border-orange-500',
     iconWrap: 'bg-orange-100 text-orange-900',
     hasContent: (h) => !!h.instructions,
-    render: (h) => <PlainField text={h.instructions} />,
+    render: (h) => <ExpandableText text={stripMarkdownSyntax(h.instructions)} />,
   },
   {
     num: 3,
@@ -80,7 +72,13 @@ const HOMEWORK_SECTIONS: SectionDef[] = [
     stripe: 'border-yellow-500',
     iconWrap: 'bg-yellow-100 text-yellow-900',
     hasContent: (h) => h.applicationTasks.length > 0,
-    render: (h) => <BulletList items={h.applicationTasks} />,
+    render: (h) => (
+      <SelfCheckList
+        items={h.applicationTasks.map((t) => stripMarkdownSyntax(t))}
+        tone="amber"
+        prompt="Tap each task once it's done"
+      />
+    ),
   },
   {
     num: 5,
@@ -89,7 +87,7 @@ const HOMEWORK_SECTIONS: SectionDef[] = [
     stripe: 'border-violet-500',
     iconWrap: 'bg-violet-100 text-violet-900',
     hasContent: (h) => !!h.creativeThinkingQuestion,
-    render: (h) => <PlainField text={h.creativeThinkingQuestion} />,
+    render: (h) => <ExpandableText text={stripMarkdownSyntax(h.creativeThinkingQuestion)} />,
   },
   {
     num: 6,
@@ -98,7 +96,7 @@ const HOMEWORK_SECTIONS: SectionDef[] = [
     stripe: 'border-cyan-500',
     iconWrap: 'bg-cyan-100 text-cyan-900',
     hasContent: (h) => !!h.realLifeObservationTask,
-    render: (h) => <PlainField text={h.realLifeObservationTask} />,
+    render: (h) => <ExpandableText text={stripMarkdownSyntax(h.realLifeObservationTask)} />,
   },
   {
     num: 7,
@@ -107,7 +105,7 @@ const HOMEWORK_SECTIONS: SectionDef[] = [
     stripe: 'border-rose-500',
     iconWrap: 'bg-rose-100 text-rose-900',
     hasContent: (h) => !!h.challengeQuestion,
-    render: (h) => <PlainField text={h.challengeQuestion} />,
+    render: (h) => <ExpandableText text={stripMarkdownSyntax(h.challengeQuestion)} />,
   },
   {
     num: 8,
@@ -116,7 +114,9 @@ const HOMEWORK_SECTIONS: SectionDef[] = [
     stripe: 'border-teal-500',
     iconWrap: 'bg-teal-100 text-teal-900',
     hasContent: (h) => !!h.supportHint,
-    render: (h) => <PlainField text={h.supportHint} />,
+    render: (h) => (
+      <TapToRevealCard prompt="Stuck? Tap for a hint" detail={stripMarkdownSyntax(h.supportHint)} tone="teal" revealLabel="Show hint" />
+    ),
   },
   {
     num: 9,
@@ -125,7 +125,9 @@ const HOMEWORK_SECTIONS: SectionDef[] = [
     stripe: 'border-emerald-500',
     iconWrap: 'bg-emerald-100 text-emerald-900',
     hasContent: (h) => !!h.answerHints,
-    render: (h) => <PlainField text={h.answerHints} />,
+    render: (h) => (
+      <TapToRevealCard prompt="Check your answers" detail={stripMarkdownSyntax(h.answerHints)} tone="emerald" revealLabel="Show key points" />
+    ),
   },
   {
     num: 10,
@@ -134,22 +136,9 @@ const HOMEWORK_SECTIONS: SectionDef[] = [
     stripe: 'border-indigo-500',
     iconWrap: 'bg-indigo-100 text-indigo-900',
     hasContent: (h) => !!h.parentNote,
-    render: (h) => <PlainField text={h.parentNote} />,
+    render: (h) => <ExpandableText text={stripMarkdownSyntax(h.parentNote)} />,
   },
 ];
-
-function BulletList({ items }: { items: string[] }) {
-  return (
-    <ul className="space-y-2">
-      {items.map((line, i) => (
-        <li key={i} className="flex gap-2 text-base text-slate-800">
-          <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-orange-500" />
-          <span className="whitespace-pre-wrap">{stripMarkdownSyntax(line)}</span>
-        </li>
-      ))}
-    </ul>
-  );
-}
 
 function PracticeQuestionList({ questions }: { questions: HomeworkPracticeQuestion[] }) {
   return (
@@ -176,54 +165,74 @@ function PracticeQuestionList({ questions }: { questions: HomeworkPracticeQuesti
             </div>
           );
         }
-        return (
-          <div
-            key={i}
-            className="rounded-xl border border-slate-200/90 bg-white p-3.5 shadow-sm space-y-2"
-          >
-            <p className="text-base font-medium text-slate-900 whitespace-pre-wrap leading-relaxed">
-              <span className="inline-flex h-6 w-6 items-center justify-center rounded-lg bg-orange-600 text-xs font-bold text-white mr-2">
-                {num}
-              </span>
-              {stripMarkdownSyntax(q.question)}
-            </p>
-            <QuestionFigure imageUrl={q.imageUrl} alt={`Figure for question ${num}`} className="ml-8" />
-            {(q.type || q.marks != null) ? (
-              <div className="pl-8 flex flex-wrap gap-2">
-                {q.type ? (
-                  <span className="rounded-full bg-amber-100 px-2 py-0.5 text-mini font-medium text-amber-900">
-                    {q.type}
-                  </span>
-                ) : null}
-                {q.marks != null ? (
-                  <span className="rounded-full bg-slate-100 px-2 py-0.5 text-mini font-medium text-slate-700">
-                    {q.marks} marks
-                  </span>
-                ) : null}
-              </div>
-            ) : null}
-            {q.options.length > 0 ? (
-              <ul className="grid gap-2 sm:grid-cols-2 pl-8">
-                {q.options.map((opt, j) => (
-                  <li key={j} className="text-base text-slate-700 rounded-lg bg-slate-50 px-2 py-1.5 whitespace-pre-wrap">
-                    {opt}
-                  </li>
-                ))}
-              </ul>
-            ) : null}
-            {q.answer ? (
-              <p className="text-base text-emerald-800 pl-8">
-                <span className="font-semibold">Answer:</span> {q.answer}
-              </p>
-            ) : null}
-            {q.explanation ? (
-              <p className="text-base text-indigo-800 pl-8 whitespace-pre-wrap">
-                <span className="font-semibold">Explanation:</span> {q.explanation}
-              </p>
-            ) : null}
-          </div>
-        );
+        return <HomeworkQuestionCard key={i} q={q} num={num} />;
       })}
+    </div>
+  );
+}
+
+function HomeworkQuestionCard({ q, num }: { q: HomeworkPracticeQuestion; num: number | string }) {
+  const [revealed, setRevealed] = useState(false);
+  return (
+    <div className="rounded-xl border border-slate-200/90 bg-white p-3.5 shadow-sm space-y-2">
+      <p className="text-base font-medium text-slate-900 whitespace-pre-wrap leading-relaxed">
+        <span className="inline-flex h-6 w-6 items-center justify-center rounded-lg bg-orange-600 text-xs font-bold text-white mr-2">
+          {num}
+        </span>
+        {stripMarkdownSyntax(q.question)}
+      </p>
+      <QuestionFigure imageUrl={q.imageUrl} alt={`Figure for question ${num}`} className="ml-8" />
+      {(q.type || q.marks != null) ? (
+        <div className="pl-8 flex flex-wrap gap-2">
+          {q.type ? (
+            <span className="rounded-full bg-amber-100 px-2 py-0.5 text-mini font-medium text-amber-900">
+              {q.type}
+            </span>
+          ) : null}
+          {q.marks != null ? (
+            <span className="rounded-full bg-slate-100 px-2 py-0.5 text-mini font-medium text-slate-700">
+              {q.marks} marks
+            </span>
+          ) : null}
+        </div>
+      ) : null}
+      {q.options.length > 0 ? (
+        <ul className="grid gap-2 sm:grid-cols-2 pl-8">
+          {q.options.map((opt, j) => (
+            <li key={j} className="text-base text-slate-700 rounded-lg bg-slate-50 px-2 py-1.5 whitespace-pre-wrap">
+              {opt}
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      {q.answer || q.explanation ? (
+        <div className="pl-8">
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="h-7 rounded-md border-orange-200 bg-white px-2 text-micro"
+            onClick={() => setRevealed((v) => !v)}
+          >
+            {revealed ? <EyeOff className="mr-1 h-3.5 w-3.5" /> : <Eye className="mr-1 h-3.5 w-3.5" />}
+            {revealed ? 'Hide answer' : 'Reveal answer'}
+          </Button>
+          {revealed ? (
+            <div className="mt-1.5 space-y-1">
+              {q.answer ? (
+                <p className="text-base text-emerald-800">
+                  <span className="font-semibold">Answer:</span> {q.answer}
+                </p>
+              ) : null}
+              {q.explanation ? (
+                <p className="text-base text-indigo-800 whitespace-pre-wrap">
+                  <span className="font-semibold">Explanation:</span> {q.explanation}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -277,41 +286,12 @@ export function HomeworkCreatorViewer({ content, rawContent, className }: Homewo
   }
 
   const visibleSections = HOMEWORK_SECTIONS.filter((s) => s.hasContent(homework));
-  const filled = visibleSections.length;
 
   return (
     <div className={cn('space-y-5', className)}>
-      <motion.section
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        data-ai-focus-hide
-        className="w-full space-y-3 rounded-xl border border-orange-100 bg-orange-50/50 p-4"
-      >
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div className="min-w-0 flex-1">
-            <div className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-orange-200 bg-orange-50 px-3 py-1 text-mini font-semibold text-orange-800">
-              <Sparkles className="h-3.5 w-3.5" />
-              Homework Creator · AI V2
-            </div>
-            <h3 className="text-2xl font-black tracking-tight text-slate-900 sm:text-3xl">
-              {stripAiGeneratorLeakage(stripMarkdownSyntax(homework.title))}
-            </h3>
-            <p className="mt-2 text-base text-slate-600">
-              {filled} section{filled === 1 ? '' : 's'} ready · {homework.practiceQuestions.length} practice
-              questions
-            </p>
-          </div>
-          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-orange-500 to-amber-500 text-white shadow-lg">
-            <ClipboardList className="h-7 w-7" aria-hidden />
-          </div>
-        </div>
-        <div className="mt-4 h-2 overflow-hidden rounded-full bg-orange-100">
-          <div
-            className="h-full rounded-full bg-gradient-to-r from-orange-500 to-amber-400 transition-all"
-            style={{ width: `${Math.round((filled / Math.max(HOMEWORK_SECTIONS.length, 1)) * 100)}%` }}
-          />
-        </div>
-      </motion.section>
+      <p className="text-xs font-medium text-slate-400">
+        {homework.practiceQuestions.length} practice question{homework.practiceQuestions.length === 1 ? '' : 's'}
+      </p>
 
       <div className="space-y-3">
         {visibleSections.map((sec, i) => (

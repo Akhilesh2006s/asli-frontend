@@ -18,6 +18,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { stripAiGeneratorLeakage, isScaffoldFlashcardPair, isScaffoldDeckMetaText, stripLessonPlanLeakFromLabel, sanitizeFlashcardTopicLink, normalizeFlashcardClassLevel, sanitizeFlashcardFieldText } from '@/lib/strip-ai-tool-metadata';
 import { formatClassroomScienceText } from '@/lib/exam-text-normalize';
+import { SelfCheckList } from '@/components/ai-tool-interactive';
 
 function cleanFlashcardText(text: string): string {
   return formatClassroomScienceText(
@@ -948,11 +949,9 @@ export function FlashcardViewer({
               {meta?.learningObjectives?.length ? (
                 <div>
                   <p className="text-mini font-semibold uppercase text-slate-500">Learning Objectives</p>
-                  <ul className="mt-1 list-disc pl-5 space-y-1">
-                    {meta.learningObjectives.map((o) => (
-                      <li key={o}>{o}</li>
-                    ))}
-                  </ul>
+                  <div className="mt-1">
+                    <SelfCheckList items={meta.learningObjectives} tone="violet" />
+                  </div>
                 </div>
               ) : null}
               {meta?.ncfCompetencyAlignment ? (
@@ -1027,11 +1026,9 @@ export function FlashcardViewer({
               {meta?.commonMistakesToAvoid?.length ? (
                 <div>
                   <p className="text-mini font-semibold uppercase text-slate-500">Common Mistakes</p>
-                  <ul className="mt-1 list-disc pl-5 space-y-1">
-                    {meta.commonMistakesToAvoid.map((m) => (
-                      <li key={m}>{m}</li>
-                    ))}
-                  </ul>
+                  <div className="mt-1">
+                    <SelfCheckList items={meta.commonMistakesToAvoid} tone="rose" prompt="Tap each one you'll watch out for" />
+                  </div>
                 </div>
               ) : null}
               {meta?.selfCheckRapidRecallRound ? (

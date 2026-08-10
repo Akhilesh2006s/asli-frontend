@@ -1,15 +1,19 @@
-import { useMemo, type ReactNode } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import {
   BookOpen,
   Brain,
   CheckCircle2,
   ClipboardList,
+  Eye,
+  EyeOff,
   FileQuestion,
   GraduationCap,
   ListChecks,
   Target,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { ExpandableText, SelfCheckList } from '@/components/ai-tool-interactive';
 import { AiToolStackedSection } from '@/components/ai-tool-stacked-section';
 import { cn } from '@/lib/utils';
 import { displaySubtopicLabel } from '@/lib/curriculum-subtopic-display';
@@ -313,6 +317,20 @@ function AnswerKeySnapshotTable({
   return <RichTextBlock text={fallbackText} />;
 }
 
+/** Hide answer/solution content behind a tap so a mock test stays a real self-test. */
+function RevealBlock({ children, label }: { children: ReactNode; label: string }) {
+  const [revealed, setRevealed] = useState(false);
+  return (
+    <div>
+      <Button type="button" size="sm" variant="outline" onClick={() => setRevealed((v) => !v)}>
+        {revealed ? <EyeOff className="mr-1.5 h-3.5 w-3.5" /> : <Eye className="mr-1.5 h-3.5 w-3.5" />}
+        {revealed ? `Hide ${label.toLowerCase()}` : `Reveal ${label.toLowerCase()}`}
+      </Button>
+      {revealed ? <div className="mt-3">{children}</div> : null}
+    </div>
+  );
+}
+
 function ExamSectionCard({
   sectionNum,
   title,
@@ -417,37 +435,28 @@ export function ExamQuestionPaperViewer({
                 title: 'Test Purpose and Subtopic Link',
                 icon: Target,
                 hasContent: !!mockMeta.testPurposeSubtopicLink?.trim(),
-                body: <RichTextBlock text={mockMeta.testPurposeSubtopicLink} />,
+                body: <ExpandableText text={mockMeta.testPurposeSubtopicLink} />,
               },
               {
                 key: 'objectives',
                 title: "Learning Objectives – Bloom's",
                 icon: Brain,
                 hasContent: mockMeta.learningObjectives.length > 0,
-                body: (
-                  <ul className="space-y-1 text-base text-slate-800">
-                    {mockMeta.learningObjectives.map((line, i) => (
-                      <li key={i} className="flex gap-2">
-                        <span className="text-rose-500">•</span>
-                        <span>{line}</span>
-                      </li>
-                    ))}
-                  </ul>
-                ),
+                body: <SelfCheckList items={mockMeta.learningObjectives} tone="rose" />,
               },
               {
                 key: 'ncf',
                 title: 'NCF Competency / Learning Outcome',
                 icon: GraduationCap,
                 hasContent: !!mockMeta.ncfCompetencyAlignment?.trim(),
-                body: <RichTextBlock text={mockMeta.ncfCompetencyAlignment} />,
+                body: <ExpandableText text={mockMeta.ncfCompetencyAlignment} />,
               },
               {
                 key: 'instructions',
                 title: 'Instructions for Students',
                 icon: ClipboardList,
                 hasContent: !!paper.instructions?.trim(),
-                body: <RichTextBlock text={paper.instructions} />,
+                body: <ExpandableText text={paper.instructions} />,
               },
               {
                 key: 'paper',
@@ -467,14 +476,22 @@ export function ExamQuestionPaperViewer({
                 title: 'Answer Key',
                 icon: CheckCircle2,
                 hasContent: answerKeyRows.length > 0 || !!paper.answerKey?.trim(),
-                body: <AnswerKeySnapshotTable rows={answerKeyRows} fallbackText={paper.answerKey} />,
+                body: (
+                  <RevealBlock label="Answer Key">
+                    <AnswerKeySnapshotTable rows={answerKeyRows} fallbackText={paper.answerKey} />
+                  </RevealBlock>
+                ),
               },
               {
                 key: 'solutions',
                 title: 'Step-by-step Solutions / Explanations',
                 icon: BookOpen,
                 hasContent: !!mockMeta.stepByStepSolutionsExplanations?.trim(),
-                body: <RichTextBlock text={mockMeta.stepByStepSolutionsExplanations} />,
+                body: (
+                  <RevealBlock label="Solutions">
+                    <RichTextBlock text={mockMeta.stepByStepSolutionsExplanations} />
+                  </RevealBlock>
+                ),
               },
             ];
             return defs

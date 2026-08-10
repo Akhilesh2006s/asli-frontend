@@ -231,6 +231,7 @@ export function AiToolResultShell({
   empty,
   children,
   className,
+  hideHeader = false,
 }: {
   toolType?: string;
   toolName: string;
@@ -244,6 +245,8 @@ export function AiToolResultShell({
   empty?: ReactNode;
   children?: ReactNode;
   className?: string;
+  /** Hide the icon/title/badge/description row — use when the page already shows this above (e.g. AiToolGeneratePageChrome). Actions still render. */
+  hideHeader?: boolean;
 }) {
   const theme = TOOL_THEMES[toolType] || DEFAULT_THEME;
   const board = String(meta?.board || '').trim();
@@ -272,47 +275,51 @@ export function AiToolResultShell({
       <div className={cn('h-1.5 w-full bg-gradient-to-r', theme.accentBar)} />
       <div className="bg-white/95">
         <div className="space-y-4 border-b border-slate-100 p-5 sm:p-6 lg:p-8">
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between lg:gap-4">
-            <div className="flex min-w-0 flex-1 items-start gap-3 sm:gap-4">
-              <div
-                className={cn(
-                  'flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border shadow-sm sm:h-16 sm:w-16 lg:h-20 lg:w-20',
-                  theme.iconBg,
-                )}
-              >
-                <RealisticIcon
-                  name={heroIcon}
-                  alt=""
-                  float={false}
-                  className="h-10 w-10 sm:h-12 sm:w-12 lg:h-14 lg:w-14"
-                />
-              </div>
-              <div className="min-w-0 flex-1 space-y-2">
-                <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
-                  <h2 className="font-display text-xl font-bold leading-tight tracking-tight text-ink sm:text-2xl lg:text-3xl">
-                    {displayToolName}
-                  </h2>
-                  <span
-                    className={cn(
-                      'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-sm font-semibold sm:px-3 sm:py-1 sm:text-[0.9375rem]',
-                      !isLoading && children
-                        ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
-                        : theme.badge,
-                    )}
-                  >
-                    <Sparkles className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                    {formatAiToolText(!isLoading && children ? 'Generated' : 'Interactive')}
-                  </span>
+          {!hideHeader ? (
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between lg:gap-4">
+              <div className="flex min-w-0 flex-1 items-start gap-3 sm:gap-4">
+                <div
+                  className={cn(
+                    'flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border shadow-sm sm:h-16 sm:w-16 lg:h-20 lg:w-20',
+                    theme.iconBg,
+                  )}
+                >
+                  <RealisticIcon
+                    name={heroIcon}
+                    alt=""
+                    float={false}
+                    className="h-10 w-10 sm:h-12 sm:w-12 lg:h-14 lg:w-14"
+                  />
+                </div>
+                <div className="min-w-0 flex-1 space-y-2">
+                  <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
+                    <h2 className="font-display text-xl font-bold leading-tight tracking-tight text-ink sm:text-2xl lg:text-3xl">
+                      {displayToolName}
+                    </h2>
+                    <span
+                      className={cn(
+                        'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-sm font-semibold sm:px-3 sm:py-1 sm:text-[0.9375rem]',
+                        !isLoading && children
+                          ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+                          : theme.badge,
+                      )}
+                    >
+                      <Sparkles className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                      {formatAiToolText(!isLoading && children ? 'Generated' : 'Interactive')}
+                    </span>
+                  </div>
                 </div>
               </div>
+              {actions ? (
+                <div className="flex w-full shrink-0 flex-wrap items-center gap-2 lg:w-auto lg:max-w-[50%] lg:justify-end">
+                  {actions}
+                </div>
+              ) : null}
             </div>
-            {actions ? (
-              <div className="flex w-full shrink-0 flex-wrap items-center gap-2 lg:w-auto lg:max-w-[50%] lg:justify-end">
-                {actions}
-              </div>
-            ) : null}
-          </div>
-          {displayToolDescription ? (
+          ) : actions ? (
+            <div className="flex w-full flex-wrap items-center justify-end gap-2">{actions}</div>
+          ) : null}
+          {!hideHeader && displayToolDescription ? (
             <p className="w-full text-base leading-relaxed text-muted-foreground sm:text-lg">
               {displayToolDescription}
             </p>

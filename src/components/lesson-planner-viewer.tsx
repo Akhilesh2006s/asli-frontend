@@ -1,6 +1,5 @@
 import { AiToolStackedSection } from '@/components/ai-tool-stacked-section';
 import { AiToolV2InsightTail } from '@/components/ai-v2';
-import { ToolSectionIcon } from '@/components/ai-tool-3d-icons';
 import { useMemo, useState, type ReactNode } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -31,6 +30,12 @@ import {
 } from '@/lib/parse-lesson-planner';
 import { stripStructuredAiToolMetadata } from '@/lib/strip-ai-tool-metadata';
 import { AiToolMasonrySections } from '@/lib/ai-tool-section-layout';
+import {
+  CheckableTimeline,
+  ExpandableText,
+  SelfCheckList,
+  TapToMarkItem,
+} from '@/components/ai-tool-interactive';
 
 interface LessonPlannerViewerProps {
   content: string;
@@ -42,23 +47,6 @@ interface LessonPlannerViewerProps {
 }
 
 /* ——— Shared lesson sections ——— */
-
-function BulletList({ items, icon: Icon, iconClass }: { items: string[]; icon: LucideIcon; iconClass: string }) {
-  return (
-    <ul className="space-y-2">
-      {items.map((line, i) => (
-        <li key={i} className="flex gap-2 text-base text-slate-800">
-          <ToolSectionIcon
-            icon={Icon}
-            size="sm"
-            wrapClassName={cn('mt-0.5 bg-transparent shadow-none h-5 w-5', iconClass)}
-          />
-          <span className="whitespace-pre-wrap">{line}</span>
-        </li>
-      ))}
-    </ul>
-  );
-}
 
 type LessonSectionDef = {
   num: number;
@@ -78,7 +66,7 @@ const STUDY_SCHEDULE_SECTIONS: LessonSectionDef[] = [
     stripe: 'border-cyan-500',
     iconWrap: 'bg-cyan-100 text-cyan-800',
     hasContent: (l) => !!l.studyGoalSubtopicLink,
-    render: (l) => <p className="text-base whitespace-pre-wrap text-slate-800">{l.studyGoalSubtopicLink}</p>,
+    render: (l) => <ExpandableText text={l.studyGoalSubtopicLink} />,
   },
   {
     num: 3,
@@ -87,11 +75,7 @@ const STUDY_SCHEDULE_SECTIONS: LessonSectionDef[] = [
     stripe: 'border-violet-500',
     iconWrap: 'bg-violet-100 text-violet-800',
     hasContent: (l) => !!l.priorKnowledgeReadiness || !!l.priorKnowledge,
-    render: (l) => (
-      <p className="text-base whitespace-pre-wrap text-slate-800">
-        {l.priorKnowledgeReadiness || l.priorKnowledge}
-      </p>
-    ),
+    render: (l) => <ExpandableText text={l.priorKnowledgeReadiness || l.priorKnowledge} />,
   },
   {
     num: 4,
@@ -100,7 +84,7 @@ const STUDY_SCHEDULE_SECTIONS: LessonSectionDef[] = [
     stripe: 'border-indigo-500',
     iconWrap: 'bg-indigo-100 text-indigo-800',
     hasContent: (l) => l.learningObjectives.length > 0,
-    render: (l) => <BulletList items={l.learningObjectives} icon={Target} iconClass="text-indigo-600" />,
+    render: (l) => <SelfCheckList items={l.learningObjectives} tone="indigo" />,
   },
   {
     num: 5,
@@ -109,7 +93,7 @@ const STUDY_SCHEDULE_SECTIONS: LessonSectionDef[] = [
     stripe: 'border-blue-500',
     iconWrap: 'bg-blue-100 text-blue-800',
     hasContent: (l) => l.ncfAlignment.length > 0,
-    render: (l) => <BulletList items={l.ncfAlignment} icon={GraduationCap} iconClass="text-blue-600" />,
+    render: (l) => <SelfCheckList items={l.ncfAlignment} tone="sky" prompt="Tap each alignment point once reviewed" />,
   },
   {
     num: 6,
@@ -119,11 +103,7 @@ const STUDY_SCHEDULE_SECTIONS: LessonSectionDef[] = [
     iconWrap: 'bg-amber-100 text-amber-900',
     hasContent: (l) => l.studyPlanTable.length > 0 || l.timeline.length > 0,
     render: (l) => (
-      <BulletList
-        items={l.studyPlanTable.length ? l.studyPlanTable : l.timeline}
-        icon={Clock}
-        iconClass="text-amber-700"
-      />
+      <CheckableTimeline items={l.studyPlanTable.length ? l.studyPlanTable : l.timeline} tone="amber" />
     ),
   },
   {
@@ -134,10 +114,12 @@ const STUDY_SCHEDULE_SECTIONS: LessonSectionDef[] = [
     iconWrap: 'bg-teal-100 text-teal-800',
     hasContent: (l) => !!l.conceptLearningSlot || !!l.introductionWarmup || !!l.teachingStrategy,
     render: (l) => (
-      <p className="text-base whitespace-pre-wrap text-slate-800">
-        {l.conceptLearningSlot ||
-          [l.introductionWarmup, l.teachingStrategy].filter(Boolean).join('\n\n')}
-      </p>
+      <ExpandableText
+        text={
+          l.conceptLearningSlot ||
+          [l.introductionWarmup, l.teachingStrategy].filter(Boolean).join('\n\n')
+        }
+      />
     ),
   },
   {
@@ -148,10 +130,11 @@ const STUDY_SCHEDULE_SECTIONS: LessonSectionDef[] = [
     iconWrap: 'bg-emerald-100 text-emerald-800',
     hasContent: (l) => !!l.practiceSlot || !!l.homeworkPractice || l.studentTasks.length > 0,
     render: (l) => (
-      <p className="text-base whitespace-pre-wrap text-slate-800">
-        {l.practiceSlot ||
-          [l.homeworkPractice, ...l.studentTasks].filter(Boolean).join('\n\n')}
-      </p>
+      <ExpandableText
+        text={
+          l.practiceSlot || [l.homeworkPractice, ...l.studentTasks].filter(Boolean).join('\n\n')
+        }
+      />
     ),
   },
   {
@@ -161,7 +144,7 @@ const STUDY_SCHEDULE_SECTIONS: LessonSectionDef[] = [
     stripe: 'border-fuchsia-500',
     iconWrap: 'bg-fuchsia-100 text-fuchsia-800',
     hasContent: (l) => !!l.breaksFocusTips,
-    render: (l) => <p className="text-base whitespace-pre-wrap text-slate-800">{l.breaksFocusTips}</p>,
+    render: (l) => <ExpandableText text={l.breaksFocusTips} />,
   },
   {
     num: 10,
@@ -171,9 +154,7 @@ const STUDY_SCHEDULE_SECTIONS: LessonSectionDef[] = [
     iconWrap: 'bg-rose-100 text-rose-800',
     hasContent: (l) => !!l.selfAssessmentCheckpoint || l.formativeQuestions.length > 0,
     render: (l) => (
-      <p className="text-base whitespace-pre-wrap text-slate-800">
-        {l.selfAssessmentCheckpoint || l.formativeQuestions.join('\n')}
-      </p>
+      <ExpandableText text={l.selfAssessmentCheckpoint || l.formativeQuestions.join('\n')} />
     ),
   },
   {
@@ -183,11 +164,7 @@ const STUDY_SCHEDULE_SECTIONS: LessonSectionDef[] = [
     stripe: 'border-pink-500',
     iconWrap: 'bg-pink-100 text-pink-800',
     hasContent: (l) => !!l.supportExtensionPlan || !!l.differentiationPlan,
-    render: (l) => (
-      <p className="text-base whitespace-pre-wrap text-slate-800">
-        {l.supportExtensionPlan || l.differentiationPlan}
-      </p>
-    ),
+    render: (l) => <ExpandableText text={l.supportExtensionPlan || l.differentiationPlan} />,
   },
   {
     num: 12,
@@ -196,9 +173,7 @@ const STUDY_SCHEDULE_SECTIONS: LessonSectionDef[] = [
     stripe: 'border-violet-500',
     iconWrap: 'bg-violet-100 text-violet-800',
     hasContent: (l) => l.expectedLearningOutcomes.length > 0,
-    render: (l) => (
-      <BulletList items={l.expectedLearningOutcomes} icon={GraduationCap} iconClass="text-violet-600" />
-    ),
+    render: (l) => <SelfCheckList items={l.expectedLearningOutcomes} tone="violet" />,
   },
   {
     num: 13,
@@ -207,11 +182,7 @@ const STUDY_SCHEDULE_SECTIONS: LessonSectionDef[] = [
     stripe: 'border-cyan-600',
     iconWrap: 'bg-cyan-100 text-cyan-900',
     hasContent: (l) => !!l.reflectionExitTicket || !!l.closureExitTicket,
-    render: (l) => (
-      <p className="whitespace-pre-wrap rounded-lg border-l-4 border-cyan-400 bg-cyan-50/50 px-3 py-2.5 text-base text-slate-800">
-        {l.reflectionExitTicket || l.closureExitTicket}
-      </p>
-    ),
+    render: (l) => <ExpandableText text={l.reflectionExitTicket || l.closureExitTicket} />,
   },
 ];
 
@@ -223,7 +194,7 @@ const TEACHER_LESSON_SECTIONS: LessonSectionDef[] = [
     stripe: 'border-indigo-500',
     iconWrap: 'bg-indigo-100 text-indigo-800',
     hasContent: (l) => l.learningObjectives.length > 0,
-    render: (l) => <BulletList items={l.learningObjectives} icon={Target} iconClass="text-indigo-600" />,
+    render: (l) => <SelfCheckList items={l.learningObjectives} tone="indigo" />,
   },
   {
     num: 3,
@@ -232,7 +203,7 @@ const TEACHER_LESSON_SECTIONS: LessonSectionDef[] = [
     stripe: 'border-blue-500',
     iconWrap: 'bg-blue-100 text-blue-800',
     hasContent: (l) => l.ncfAlignment.length > 0,
-    render: (l) => <BulletList items={l.ncfAlignment} icon={GraduationCap} iconClass="text-blue-600" />,
+    render: (l) => <SelfCheckList items={l.ncfAlignment} tone="sky" prompt="Tap each alignment point once reviewed" />,
   },
   {
     num: 4,
@@ -241,11 +212,7 @@ const TEACHER_LESSON_SECTIONS: LessonSectionDef[] = [
     stripe: 'border-violet-500',
     iconWrap: 'bg-violet-100 text-violet-800',
     hasContent: (l) => !!l.priorKnowledgeReadiness || !!l.priorKnowledge,
-    render: (l) => (
-      <p className="text-base whitespace-pre-wrap text-slate-800">
-        {l.priorKnowledgeReadiness || l.priorKnowledge}
-      </p>
-    ),
+    render: (l) => <ExpandableText text={l.priorKnowledgeReadiness || l.priorKnowledge} />,
   },
   {
     num: 5,
@@ -254,7 +221,7 @@ const TEACHER_LESSON_SECTIONS: LessonSectionDef[] = [
     stripe: 'border-amber-500',
     iconWrap: 'bg-amber-100 text-amber-900',
     hasContent: (l) => !!l.introductionWarmup,
-    render: (l) => <p className="text-base whitespace-pre-wrap text-slate-800">{l.introductionWarmup}</p>,
+    render: (l) => <ExpandableText text={l.introductionWarmup} />,
   },
   {
     num: 6,
@@ -263,7 +230,7 @@ const TEACHER_LESSON_SECTIONS: LessonSectionDef[] = [
     stripe: 'border-teal-500',
     iconWrap: 'bg-teal-100 text-teal-800',
     hasContent: (l) => !!l.teachingStrategy,
-    render: (l) => <p className="text-base whitespace-pre-wrap text-slate-800">{l.teachingStrategy}</p>,
+    render: (l) => <ExpandableText text={l.teachingStrategy} />,
   },
   {
     num: 7,
@@ -272,9 +239,7 @@ const TEACHER_LESSON_SECTIONS: LessonSectionDef[] = [
     stripe: 'border-emerald-500',
     iconWrap: 'bg-emerald-100 text-emerald-700',
     hasContent: (l) => l.classroomActivities.length > 0,
-    render: (l) => (
-      <BulletList items={l.classroomActivities} icon={ListChecks} iconClass="text-emerald-600" />
-    ),
+    render: (l) => <SelfCheckList items={l.classroomActivities} tone="emerald" prompt="Tap each once planned" />,
   },
   {
     num: 8,
@@ -283,9 +248,7 @@ const TEACHER_LESSON_SECTIONS: LessonSectionDef[] = [
     stripe: 'border-indigo-500',
     iconWrap: 'bg-indigo-100 text-indigo-700',
     hasContent: (l) => l.teacherTalkPoints.length > 0,
-    render: (l) => (
-      <BulletList items={l.teacherTalkPoints} icon={MessageCircle} iconClass="text-indigo-600" />
-    ),
+    render: (l) => <SelfCheckList items={l.teacherTalkPoints} tone="indigo" prompt="Tap each once covered" />,
   },
   {
     num: 9,
@@ -294,7 +257,7 @@ const TEACHER_LESSON_SECTIONS: LessonSectionDef[] = [
     stripe: 'border-sky-500',
     iconWrap: 'bg-sky-100 text-sky-800',
     hasContent: (l) => l.studentTasks.length > 0,
-    render: (l) => <BulletList items={l.studentTasks} icon={Users} iconClass="text-sky-600" />,
+    render: (l) => <SelfCheckList items={l.studentTasks} tone="sky" prompt="Tap each once assigned" />,
   },
   {
     num: 10,
@@ -303,9 +266,7 @@ const TEACHER_LESSON_SECTIONS: LessonSectionDef[] = [
     stripe: 'border-rose-500',
     iconWrap: 'bg-rose-100 text-rose-700',
     hasContent: (l) => l.formativeQuestions.length > 0,
-    render: (l) => (
-      <BulletList items={l.formativeQuestions} icon={ClipboardList} iconClass="text-rose-600" />
-    ),
+    render: (l) => <SelfCheckList items={l.formativeQuestions} tone="rose" prompt="Tap each once asked" />,
   },
   {
     num: 11,
@@ -314,7 +275,7 @@ const TEACHER_LESSON_SECTIONS: LessonSectionDef[] = [
     stripe: 'border-pink-500',
     iconWrap: 'bg-pink-100 text-pink-700',
     hasContent: (l) => !!l.differentiationPlan,
-    render: (l) => <p className="text-base whitespace-pre-wrap text-slate-800">{l.differentiationPlan}</p>,
+    render: (l) => <ExpandableText text={l.differentiationPlan} />,
   },
   {
     num: 12,
@@ -323,7 +284,7 @@ const TEACHER_LESSON_SECTIONS: LessonSectionDef[] = [
     stripe: 'border-orange-500',
     iconWrap: 'bg-orange-100 text-orange-800',
     hasContent: (l) => !!l.homeworkPractice,
-    render: (l) => <p className="text-base whitespace-pre-wrap text-slate-800">{l.homeworkPractice}</p>,
+    render: (l) => <ExpandableText text={l.homeworkPractice} />,
   },
   {
     num: 13,
@@ -332,7 +293,13 @@ const TEACHER_LESSON_SECTIONS: LessonSectionDef[] = [
     stripe: 'border-amber-600',
     iconWrap: 'bg-amber-100 text-amber-900',
     hasContent: (l) => l.teachingAids.length > 0,
-    render: (l) => <BulletList items={l.teachingAids} icon={Package} iconClass="text-amber-800" />,
+    render: (l) => (
+      <div className="space-y-2">
+        {l.teachingAids.map((item, i) => (
+          <TapToMarkItem key={i} text={item} tone="amber" iconOff="notebook" iconOn="checklist" markedStyle="strike" />
+        ))}
+      </div>
+    ),
   },
   {
     num: 14,
@@ -341,11 +308,7 @@ const TEACHER_LESSON_SECTIONS: LessonSectionDef[] = [
     stripe: 'border-cyan-600',
     iconWrap: 'bg-cyan-100 text-cyan-900',
     hasContent: (l) => !!l.reflectionExitTicket || !!l.closureExitTicket,
-    render: (l) => (
-      <p className="whitespace-pre-wrap rounded-lg border-l-4 border-cyan-400 bg-cyan-50/50 px-3 py-2.5 text-base text-slate-800">
-        {l.reflectionExitTicket || l.closureExitTicket}
-      </p>
-    ),
+    render: (l) => <ExpandableText text={l.reflectionExitTicket || l.closureExitTicket} />,
   },
 ];
 

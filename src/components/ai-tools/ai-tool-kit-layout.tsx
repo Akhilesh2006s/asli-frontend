@@ -19,6 +19,7 @@ export type AiToolKitSectionAnchor = {
   id: string;
   title: string;
   num: string;
+  icon: AiTool3dIconName;
 };
 
 function collectSectionAnchors(root: HTMLElement | null): AiToolKitSectionAnchor[] {
@@ -30,47 +31,16 @@ function collectSectionAnchors(root: HTMLElement | null): AiToolKitSectionAnchor
     const id = el.getAttribute('data-ai-section-id') || '';
     const title = el.getAttribute('data-ai-section-title') || '';
     const num = el.getAttribute('data-ai-section-num') || '';
+    const icon = (el.getAttribute('data-ai-section-icon') || 'sparkle') as AiTool3dIconName;
     if (!id || !title || seen.has(id)) return;
     seen.add(id);
-    out.push({ id, title, num });
+    out.push({ id, title, num, icon });
   });
   return out;
 }
 
 function anchorsFingerprint(anchors: AiToolKitSectionAnchor[]): string {
-  return anchors.map((a) => `${a.id}:${a.num}:${a.title}`).join('|');
-}
-
-/**
- * Promote a common parent of section cards into a 2-column grid.
- * Idempotent — safe to call repeatedly without thrashing React.
- */
-function applyTwoColumnGrids(root: HTMLElement) {
-  const sections = Array.from(root.querySelectorAll<HTMLElement>('[data-ai-section-id]'));
-  if (sections.length < 2) return;
-
-  const parents = new Map<HTMLElement, HTMLElement[]>();
-  for (const sec of sections) {
-    const parent = sec.parentElement;
-    if (!parent || parent === root) continue;
-    const list = parents.get(parent) || [];
-    list.push(sec);
-    parents.set(parent, list);
-  }
-
-  Array.from(parents.entries()).forEach(([parent, kids]) => {
-    if (kids.length < 2) return;
-    if (parent.classList.contains('ai-tool-kit-section-grid')) return;
-    parent.classList.add(
-      'ai-tool-kit-section-grid',
-      'grid',
-      'grid-cols-1',
-      'gap-4',
-      'md:grid-cols-2',
-      'md:gap-5',
-    );
-    parent.classList.remove('flex', 'flex-col', 'space-y-1', 'space-y-2', 'space-y-4', 'space-y-5');
-  });
+  return anchors.map((a) => `${a.id}:${a.num}:${a.title}:${a.icon}`).join('|');
 }
 
 const GLANCE_ICONS: AiTool3dIconName[] = [
@@ -126,16 +96,16 @@ export class AiToolViewerErrorBoundary extends Component<
  * progress → section icon tabs → content → At a Glance → tip.
  */
 export function AiToolKitLayout({
-  toolLabel,
   title,
-  subtitle,
+  fallbackLabel,
   children,
   className,
   tip,
 }: {
-  toolLabel?: string;
+  /** Specific generated title (paper title, deck title, concept name…) — shown only when present. */
   title?: string;
-  subtitle?: string;
+  /** Generic tool label used only for the error-boundary fallback text, never rendered. */
+  fallbackLabel?: string;
   children: ReactNode;
   className?: string;
   tip?: ReactNode;
@@ -150,7 +120,6 @@ export function AiToolKitLayout({
   const refresh = useCallback(() => {
     const root = bodyRef.current;
     if (!root) return;
-    applyTwoColumnGrids(root);
     const anchors = collectSectionAnchors(root);
     const fp = anchorsFingerprint(anchors);
     if (fp !== fpRef.current) {
@@ -230,8 +199,6 @@ export function AiToolKitLayout({
   const filled = total;
   const progressPct = total > 0 ? 100 : 0;
   const displayTitle = title ? formatAiToolText(title) : '';
-  const displaySubtitle = subtitle ? formatAiToolText(subtitle) : '';
-  const displayLabel = toolLabel ? formatAiToolText(toolLabel) : '';
 
   const glanceItems = [
     { label: 'Total Sections', value: String(total || '—') },
@@ -243,74 +210,81 @@ export function AiToolKitLayout({
 
   return (
     <div className={cn('w-full space-y-5', className)} id={exportRootId} data-ai-kit-layout>
-      {(displayLabel || displayTitle) && (
+      {/* Generic tool name/description already shown by the page's outer result header —
+          only render this strip when a specific generated title exists (paper/deck/concept name). */}
+      {displayTitle && (
         <div className="rounded-2xl border border-violet-100 bg-gradient-to-r from-violet-50/90 via-white to-sky-50/60 px-4 py-3.5 sm:px-5">
-          {displayLabel ? (
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-violet-700">{displayLabel}</p>
-          ) : null}
-          {displayTitle ? (
-            <h3 className="mt-0.5 text-xl font-bold leading-snug text-slate-900 sm:text-2xl">{displayTitle}</h3>
-          ) : null}
-          {displaySubtitle ? (
-            <p className="mt-1 text-base text-slate-600 sm:text-lg">{displaySubtitle}</p>
-          ) : null}
+          <h3 className="text-xl font-bold leading-snug text-slate-900 sm:text-2xl">{displayTitle}</h3>
         </div>
       )}
 
       {total > 0 ? (
         <div className="space-y-3 print:hidden">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <p className="text-sm font-semibold text-violet-800 sm:text-base">
-              {formatAiToolText('All Sections Generated')}{' '}
-              <span className="font-bold text-violet-950">
-                {filled}/{total}
-              </span>
-            </p>
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-800">
-              <CheckCircle2 className="h-3.5 w-3.5" aria-hidden />
-              {formatAiToolText('Complete')}
+            <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-violet-800 sm:text-base">
+              <CheckCircle2 className="h-4 w-4 text-emerald-600" aria-hidden />
+              {formatAiToolText('All Sections Generated')}
+            </span>
+            <span className="font-bold text-violet-950">
+              {filled}/{total}
             </span>
           </div>
           <div className="h-2.5 overflow-hidden rounded-full bg-violet-100">
             <div
-              className="h-full rounded-full bg-gradient-to-r from-violet-500 to-fuchsia-500 transition-all duration-500"
+              className="h-full rounded-full bg-violet-600 transition-all duration-500"
               style={{ width: `${progressPct}%` }}
             />
           </div>
-          <div className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            {sections.map((sec) => {
-              const pal = paletteForSectionTitle(sec.title);
-              const active = sec.id === activeId;
-              return (
-                <button
-                  key={sec.id}
-                  type="button"
-                  onClick={() => jumpTo(sec.id)}
-                  className={cn(
-                    'inline-flex shrink-0 items-center gap-2 rounded-full border px-3 py-1.5 text-left text-xs font-semibold transition sm:text-sm',
-                    active
-                      ? 'border-violet-400 bg-violet-600 text-white shadow-sm'
-                      : 'border-slate-200 bg-white text-slate-700 hover:border-violet-200 hover:bg-violet-50',
-                  )}
-                >
-                  <span
+
+          <div className="rounded-2xl border border-slate-200 bg-white p-2.5 sm:p-3">
+            <div className="flex gap-1 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] sm:grid sm:grid-cols-4 sm:gap-2 sm:overflow-visible md:grid-cols-5 lg:grid-cols-6 [&::-webkit-scrollbar]:hidden">
+              {sections.map((sec, i) => {
+                const pal = paletteForSectionTitle(sec.title);
+                const active = sec.id === activeId;
+                return (
+                  <button
+                    key={sec.id}
+                    type="button"
+                    onClick={() => jumpTo(sec.id)}
                     className={cn(
-                      'flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-bold',
-                      active ? 'bg-white/20 text-white' : cn(pal.iconWrap, pal.icon),
+                      'flex w-20 shrink-0 flex-col items-center gap-1.5 rounded-xl px-1.5 py-2 text-center transition sm:w-auto',
+                      active ? 'bg-violet-50' : 'hover:bg-slate-50',
                     )}
                   >
-                    {sec.num || '•'}
-                  </span>
-                  <span className="max-w-[10rem] truncate sm:max-w-[14rem]">{formatAiToolText(sec.title)}</span>
-                </button>
-              );
-            })}
+                    <span
+                      className={cn(
+                        'text-[11px] font-bold',
+                        active ? 'text-violet-700' : 'text-slate-400',
+                      )}
+                    >
+                      {sec.num || i + 1}
+                    </span>
+                    <span
+                      className={cn(
+                        'flex h-10 w-10 items-center justify-center rounded-xl border',
+                        active ? 'border-violet-300 bg-violet-100' : pal.iconTile,
+                      )}
+                    >
+                      <RealisticIcon name={sec.icon} alt="" float={false} className="h-6 w-6" />
+                    </span>
+                    <span
+                      className={cn(
+                        'line-clamp-2 text-[11px] font-semibold leading-tight sm:text-xs',
+                        active ? 'text-violet-900' : 'text-slate-600',
+                      )}
+                    >
+                      {formatAiToolText(sec.title)}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
       ) : null}
 
       <div ref={bodyRef} className="min-w-0 space-y-4">
-        <AiToolViewerErrorBoundary fallbackTitle={displayLabel || 'Tool result'}>
+        <AiToolViewerErrorBoundary fallbackTitle={fallbackLabel ? formatAiToolText(fallbackLabel) : 'Tool result'}>
           {children}
         </AiToolViewerErrorBoundary>
       </div>
@@ -327,7 +301,7 @@ export function AiToolKitLayout({
                 key={item.label}
                 className="flex items-start gap-3 rounded-xl border border-white bg-white px-3 py-2.5 shadow-sm"
               >
-                <RealisticIcon name={GLANCE_ICONS[i % GLANCE_ICONS.length]} size={36} />
+                <RealisticIcon name={GLANCE_ICONS[i % GLANCE_ICONS.length]} alt="" float={false} className="h-9 w-9" />
                 <div className="min-w-0">
                   <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">{item.label}</p>
                   <p className="truncate text-sm font-bold text-slate-900">{item.value}</p>
@@ -338,7 +312,14 @@ export function AiToolKitLayout({
         </div>
       ) : null}
 
-      {tip != null ? tip : <AiToolTipBanner />}
+      {tip != null ? (
+        tip
+      ) : (
+        <AiToolTipBanner>
+          Tip: click into any section to review it, then Regenerate to get a fresh version with the
+          same settings.
+        </AiToolTipBanner>
+      )}
     </div>
   );
 }

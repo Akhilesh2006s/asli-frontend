@@ -26,6 +26,12 @@ import {
   resolveActivitiesFromPayload,
   type ParsedActivity,
 } from '@/lib/parse-activity-markdown';
+import {
+  CheckableTimeline,
+  ExpandableText,
+  SelfCheckList,
+  TapToMarkItem,
+} from '@/components/ai-tool-interactive';
 import { stripStructuredAiToolMetadata, stripAiGeneratorLeakage } from '@/lib/strip-ai-tool-metadata';
 import {
   isActivityProjectGeneratorSlug,
@@ -177,9 +183,7 @@ const TEACHER_TEMPLATE_SECTIONS: TemplateSectionDef[] = [
     stripe: 'border-sky-500',
     iconWrap: 'bg-sky-100 text-sky-700',
     hasContent: (a) => !!a.subtopicLink,
-    render: (a) => (
-      <p className="whitespace-pre-wrap rounded-xl bg-sky-50/60 px-3 py-3">{a.subtopicLink}</p>
-    ),
+    render: (a) => <ExpandableText text={a.subtopicLink} />,
   },
   {
     num: 3,
@@ -189,16 +193,7 @@ const TEACHER_TEMPLATE_SECTIONS: TemplateSectionDef[] = [
     stripe: 'border-violet-500',
     iconWrap: 'bg-violet-100 text-violet-700',
     hasContent: (a) => a.learningObjectives.length > 0,
-    render: (a) => (
-      <ul className="space-y-2">
-        {a.learningObjectives.map((line, i) => (
-          <li key={i} className="flex gap-2 rounded-lg bg-violet-50/80 px-3 py-2">
-            <CheckCircle2 className="h-4 w-4 shrink-0 text-violet-600 mt-0.5" aria-hidden />
-            <span>{line}</span>
-          </li>
-        ))}
-      </ul>
-    ),
+    render: (a) => <SelfCheckList items={a.learningObjectives} tone="violet" />,
   },
   {
     num: 4,
@@ -208,13 +203,7 @@ const TEACHER_TEMPLATE_SECTIONS: TemplateSectionDef[] = [
     stripe: 'border-blue-500',
     iconWrap: 'bg-blue-100 text-blue-700',
     hasContent: (a) => a.ncfAlignment.length > 0,
-    render: (a) => (
-      <ul className="list-disc pl-4 space-y-1">
-        {a.ncfAlignment.map((line, i) => (
-          <li key={i}>{line}</li>
-        ))}
-      </ul>
-    ),
+    render: (a) => <SelfCheckList items={a.ncfAlignment} tone="sky" prompt="Tap each alignment point once reviewed" />,
   },
   {
     num: 5,
@@ -225,19 +214,11 @@ const TEACHER_TEMPLATE_SECTIONS: TemplateSectionDef[] = [
     iconWrap: 'bg-amber-100 text-amber-800',
     hasContent: (a) => a.materials.length > 0,
     render: (a) => (
-      <ul className="space-y-2">
+      <div className="space-y-2">
         {a.materials.map((m, i) => (
-          <li
-            key={i}
-            className="flex items-center gap-2 rounded-lg border border-amber-100 bg-amber-50/50 px-3 py-2"
-          >
-            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-amber-200/80 text-mini font-bold text-amber-900">
-              {i + 1}
-            </span>
-            {m}
-          </li>
+          <TapToMarkItem key={i} text={m} tone="amber" iconOff="notebook" iconOn="checklist" markedStyle="strike" />
         ))}
-      </ul>
+      </div>
     ),
   },
   {
@@ -248,21 +229,7 @@ const TEACHER_TEMPLATE_SECTIONS: TemplateSectionDef[] = [
     stripe: 'border-emerald-500',
     iconWrap: 'bg-emerald-100 text-emerald-700',
     hasContent: (a) => a.steps.length > 0,
-    render: (a) => (
-      <ol className="space-y-2.5 list-none pl-0 m-0">
-        {a.steps.map((step, i) => (
-          <li key={i} className="flex gap-3 text-base leading-relaxed text-stone-700">
-            <span
-              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-xs font-semibold text-white"
-              aria-hidden
-            >
-              {i + 1}
-            </span>
-            <span className="pt-1 min-w-0 flex-1">{step}</span>
-          </li>
-        ))}
-      </ol>
-    ),
+    render: (a) => <CheckableTimeline items={a.steps} tone="emerald" />,
   },
   {
     num: 7,
@@ -272,13 +239,7 @@ const TEACHER_TEMPLATE_SECTIONS: TemplateSectionDef[] = [
     stripe: 'border-indigo-500',
     iconWrap: 'bg-indigo-100 text-indigo-700',
     hasContent: (a) => a.teacherInstructions.length > 0,
-    render: (a) => (
-      <ul className="list-disc pl-4 space-y-1">
-        {a.teacherInstructions.map((line, i) => (
-          <li key={i}>{line}</li>
-        ))}
-      </ul>
-    ),
+    render: (a) => <SelfCheckList items={a.teacherInstructions} tone="indigo" prompt="Tap each once done" />,
   },
   {
     num: 8,
@@ -288,13 +249,7 @@ const TEACHER_TEMPLATE_SECTIONS: TemplateSectionDef[] = [
     stripe: 'border-teal-500',
     iconWrap: 'bg-teal-100 text-teal-700',
     hasContent: (a) => a.studentInstructions.length > 0,
-    render: (a) => (
-      <ul className="list-disc pl-4 space-y-1">
-        {a.studentInstructions.map((line, i) => (
-          <li key={i}>{line}</li>
-        ))}
-      </ul>
-    ),
+    render: (a) => <SelfCheckList items={a.studentInstructions} tone="teal" prompt="Tap each once done" />,
   },
   {
     num: 9,
@@ -304,7 +259,7 @@ const TEACHER_TEMPLATE_SECTIONS: TemplateSectionDef[] = [
     stripe: 'border-pink-500',
     iconWrap: 'bg-pink-100 text-pink-700',
     hasContent: (a) => !!a.differentiation,
-    render: (a) => <p className="whitespace-pre-wrap">{a.differentiation}</p>,
+    render: (a) => <ExpandableText text={a.differentiation} />,
   },
   {
     num: 10,
@@ -314,13 +269,7 @@ const TEACHER_TEMPLATE_SECTIONS: TemplateSectionDef[] = [
     stripe: 'border-rose-500',
     iconWrap: 'bg-rose-100 text-rose-700',
     hasContent: (a) => a.assessmentRubric.length > 0,
-    render: (a) => (
-      <ul className="list-disc pl-4 space-y-1">
-        {a.assessmentRubric.map((line, i) => (
-          <li key={i}>{line}</li>
-        ))}
-      </ul>
-    ),
+    render: (a) => <SelfCheckList items={a.assessmentRubric} tone="rose" prompt="Tap each criterion once assessed" />,
   },
   {
     num: 11,
@@ -330,9 +279,7 @@ const TEACHER_TEMPLATE_SECTIONS: TemplateSectionDef[] = [
     stripe: 'border-cyan-600',
     iconWrap: 'bg-cyan-100 text-cyan-800',
     hasContent: (a) => !!a.expectedOutcomes,
-    render: (a) => (
-      <p className="whitespace-pre-wrap rounded-lg bg-cyan-50 px-3 py-3">{a.expectedOutcomes}</p>
-    ),
+    render: (a) => <ExpandableText text={a.expectedOutcomes} />,
   },
   {
     num: 12,
@@ -342,7 +289,7 @@ const TEACHER_TEMPLATE_SECTIONS: TemplateSectionDef[] = [
     stripe: 'border-fuchsia-500',
     iconWrap: 'bg-fuchsia-100 text-fuchsia-700',
     hasContent: (a) => !!a.realLife,
-    render: (a) => <p className="whitespace-pre-wrap">{a.realLife}</p>,
+    render: (a) => <ExpandableText text={a.realLife} />,
   },
   {
     num: 13,
@@ -352,11 +299,7 @@ const TEACHER_TEMPLATE_SECTIONS: TemplateSectionDef[] = [
     stripe: 'border-orange-500',
     iconWrap: 'bg-orange-100 text-orange-800',
     hasContent: (a) => !!a.reflection,
-    render: (a) => (
-      <p className="whitespace-pre-wrap rounded-lg border-l-4 border-orange-400 bg-orange-50/50 px-3 py-3 text-stone-800">
-        {a.reflection}
-      </p>
-    ),
+    render: (a) => <ExpandableText text={a.reflection} />,
   },
 ];
 
@@ -369,9 +312,7 @@ const TEMPLATE_SECTIONS: TemplateSectionDef[] = [
     stripe: 'border-sky-500',
     iconWrap: 'bg-sky-100 text-sky-700',
     hasContent: (a) => !!a.subtopicLink,
-    render: (a) => (
-      <p className="whitespace-pre-wrap rounded-xl bg-sky-50/60 px-3 py-3">{a.subtopicLink}</p>
-    ),
+    render: (a) => <ExpandableText text={a.subtopicLink} />,
   },
   {
     num: 3,
@@ -381,16 +322,7 @@ const TEMPLATE_SECTIONS: TemplateSectionDef[] = [
     stripe: 'border-violet-500',
     iconWrap: 'bg-violet-100 text-violet-700',
     hasContent: (a) => a.learningObjectives.length > 0,
-    render: (a) => (
-      <ul className="space-y-2">
-        {a.learningObjectives.map((line, i) => (
-          <li key={i} className="flex gap-2 rounded-lg bg-violet-50/80 px-3 py-2">
-            <CheckCircle2 className="h-4 w-4 shrink-0 text-violet-600 mt-0.5" aria-hidden />
-            <span>{line}</span>
-          </li>
-        ))}
-      </ul>
-    ),
+    render: (a) => <SelfCheckList items={a.learningObjectives} tone="violet" />,
   },
   {
     num: 4,
@@ -400,13 +332,7 @@ const TEMPLATE_SECTIONS: TemplateSectionDef[] = [
     stripe: 'border-blue-500',
     iconWrap: 'bg-blue-100 text-blue-700',
     hasContent: (a) => a.ncfAlignment.length > 0,
-    render: (a) => (
-      <ul className="list-disc pl-4 space-y-1">
-        {a.ncfAlignment.map((line, i) => (
-          <li key={i}>{line}</li>
-        ))}
-      </ul>
-    ),
+    render: (a) => <SelfCheckList items={a.ncfAlignment} tone="sky" prompt="Tap each alignment point once reviewed" />,
   },
   {
     num: 5,
@@ -417,19 +343,11 @@ const TEMPLATE_SECTIONS: TemplateSectionDef[] = [
     iconWrap: 'bg-amber-100 text-amber-800',
     hasContent: (a) => a.materials.length > 0,
     render: (a) => (
-      <ul className="space-y-2">
+      <div className="space-y-2">
         {a.materials.map((m, i) => (
-          <li
-            key={i}
-            className="flex items-center gap-2 rounded-lg border border-amber-100 bg-amber-50/50 px-3 py-2"
-          >
-            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-amber-200/80 text-mini font-bold text-amber-900">
-              {i + 1}
-            </span>
-            {m}
-          </li>
+          <TapToMarkItem key={i} text={m} tone="amber" iconOff="notebook" iconOn="checklist" markedStyle="strike" />
         ))}
-      </ul>
+      </div>
     ),
   },
   {
@@ -440,21 +358,7 @@ const TEMPLATE_SECTIONS: TemplateSectionDef[] = [
     stripe: 'border-emerald-500',
     iconWrap: 'bg-emerald-100 text-emerald-700',
     hasContent: (a) => a.steps.length > 0,
-    render: (a) => (
-      <ol className="space-y-2.5 list-none pl-0 m-0">
-        {a.steps.map((step, i) => (
-          <li key={i} className="flex gap-3 text-base leading-relaxed text-stone-700">
-            <span
-              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-xs font-semibold text-white"
-              aria-hidden
-            >
-              {i + 1}
-            </span>
-            <span className="pt-1 min-w-0 flex-1">{step}</span>
-          </li>
-        ))}
-      </ol>
-    ),
+    render: (a) => <CheckableTimeline items={a.steps} tone="emerald" />,
   },
   {
     num: 7,
@@ -464,13 +368,7 @@ const TEMPLATE_SECTIONS: TemplateSectionDef[] = [
     stripe: 'border-slate-500',
     iconWrap: 'bg-slate-200 text-slate-700',
     hasContent: (a) => a.safetyCareInstructions.length > 0,
-    render: (a) => (
-      <ul className="list-disc pl-4 space-y-1 text-stone-600">
-        {a.safetyCareInstructions.map((line, i) => (
-          <li key={i}>{line}</li>
-        ))}
-      </ul>
-    ),
+    render: (a) => <SelfCheckList items={a.safetyCareInstructions} tone="slate" prompt="Tap each once you've checked it" />,
   },
   {
     num: 8,
@@ -480,7 +378,7 @@ const TEMPLATE_SECTIONS: TemplateSectionDef[] = [
     stripe: 'border-indigo-500',
     iconWrap: 'bg-indigo-100 text-indigo-700',
     hasContent: (a) => !!a.observationTable,
-    render: (a) => <p className="whitespace-pre-wrap">{a.observationTable}</p>,
+    render: (a) => <ExpandableText text={a.observationTable} />,
   },
   {
     num: 9,
@@ -490,7 +388,7 @@ const TEMPLATE_SECTIONS: TemplateSectionDef[] = [
     stripe: 'border-violet-500',
     iconWrap: 'bg-violet-100 text-violet-700',
     hasContent: (a) => !!a.creativeOutput,
-    render: (a) => <p className="whitespace-pre-wrap">{a.creativeOutput}</p>,
+    render: (a) => <ExpandableText text={a.creativeOutput} />,
   },
   {
     num: 10,
@@ -500,7 +398,7 @@ const TEMPLATE_SECTIONS: TemplateSectionDef[] = [
     stripe: 'border-pink-500',
     iconWrap: 'bg-pink-100 text-pink-700',
     hasContent: (a) => !!a.differentiation,
-    render: (a) => <p className="whitespace-pre-wrap">{a.differentiation}</p>,
+    render: (a) => <ExpandableText text={a.differentiation} />,
   },
   {
     num: 11,
@@ -510,13 +408,7 @@ const TEMPLATE_SECTIONS: TemplateSectionDef[] = [
     stripe: 'border-rose-500',
     iconWrap: 'bg-rose-100 text-rose-700',
     hasContent: (a) => a.selfAssessmentRubric.length > 0,
-    render: (a) => (
-      <ul className="list-disc pl-4 space-y-1">
-        {a.selfAssessmentRubric.map((line, i) => (
-          <li key={i}>{line}</li>
-        ))}
-      </ul>
-    ),
+    render: (a) => <SelfCheckList items={a.selfAssessmentRubric} tone="rose" prompt="Tap each criterion once assessed" />,
   },
   {
     num: 12,
@@ -526,9 +418,7 @@ const TEMPLATE_SECTIONS: TemplateSectionDef[] = [
     stripe: 'border-cyan-600',
     iconWrap: 'bg-cyan-100 text-cyan-800',
     hasContent: (a) => !!a.expectedOutcomes,
-    render: (a) => (
-      <p className="whitespace-pre-wrap rounded-lg bg-cyan-50 px-3 py-3">{a.expectedOutcomes}</p>
-    ),
+    render: (a) => <ExpandableText text={a.expectedOutcomes} />,
   },
   {
     num: 13,
@@ -538,7 +428,7 @@ const TEMPLATE_SECTIONS: TemplateSectionDef[] = [
     stripe: 'border-fuchsia-500',
     iconWrap: 'bg-fuchsia-100 text-fuchsia-700',
     hasContent: (a) => !!a.realLife,
-    render: (a) => <p className="whitespace-pre-wrap">{a.realLife}</p>,
+    render: (a) => <ExpandableText text={a.realLife} />,
   },
   {
     num: 14,
@@ -548,11 +438,7 @@ const TEMPLATE_SECTIONS: TemplateSectionDef[] = [
     stripe: 'border-orange-500',
     iconWrap: 'bg-orange-100 text-orange-800',
     hasContent: (a) => !!a.reflection,
-    render: (a) => (
-      <p className="whitespace-pre-wrap rounded-lg border-l-4 border-orange-400 bg-orange-50/50 px-3 py-3 text-stone-800">
-        {a.reflection}
-      </p>
-    ),
+    render: (a) => <ExpandableText text={a.reflection} />,
   },
 ];
 
