@@ -1,0 +1,362 @@
+import html2canvas from 'html2canvas';
+import { jsPDF } from 'jspdf';
+
+export type WeeklyReportPdfExam = {
+  title?: string;
+  percentage?: number;
+  rank?: number | null;
+};
+
+export type WeeklyReportPdfInput = {
+  title?: string;
+  summary?: string;
+  highlights?: string[];
+  studentName?: string;
+  schoolName?: string;
+  metrics: Record<string, unknown>;
+};
+
+function n(v: unknown, fallback = 0) {
+  const num = Number(v);
+  return Number.isFinite(num) ? num : fallback;
+}
+
+function esc(s: unknown) {
+  return String(s ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function tile(label: string, value: string, hint = '') {
+  return `<div class="tile">
+    <div class="tile-label">${esc(label)}</div>
+    <div class="tile-value">${esc(value)}</div>
+    ${hint ? `<div class="tile-hint">${esc(hint)}</div>` : ''}
+  </div>`;
+}
+
+function section(title: string, bodyHtml: string) {
+  return `<section class="section">
+    <h2>${esc(title)}</h2>
+    ${bodyHtml}
+  </section>`;
+}
+
+function listRows(
+  rows: Array<{ title?: string; percentage?: number; rank?: number | null }>,
+  empty: string,
+) {
+  if (!rows.length) return `<p class="empty">${esc(empty)}</p>`;
+  return `<ul class="list">${rows
+    .map(
+      (r) => `<li>
+        <span class="list-title">${esc(r.title || 'Item')}${
+          r.rank != null && Number(r.rank) > 0 ? ` · Rank #${esc(r.rank)}` : ''
+        }</span>
+        <span class="list-pct">${esc(n(r.percentage))}%</span>
+      </li>`,
+    )
+    .join('')}</ul>`;
+}
+
+export function buildWeeklyReportHtml(input: WeeklyReportPdfInput): string {
+  const m = input.metrics || {};
+  const exams = Array.isArray(m.exams) ? (m.exams as WeeklyReportPdfExam[]) : [];
+  const omr = Array.isArray(m.omrResults) ? (m.omrResults as WeeklyReportPdfExam[]) : [];
+  const highlights = Array.isArray(input.highlights) ? input.highlights : [];
+  const topSubjects = Array.isArray(m.topSubjects) ? (m.topSubjects as string[]) : [];
+
+  return `<!DOCTYPE html><html><head><meta charset="utf-8" />
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Calibri, Arial, sans-serif;
+      color: #0f172a;
+      background: #fff;
+      width: 794px;
+    }
+    .sheet {
+      padding: 28px 32px 36px;
+      background:
+        radial-gradient(ellipse 80% 40% at 10% 0%, #e0f2fe 0%, transparent 55%),
+        radial-gradient(ellipse 60% 35% at 100% 5%, #ccfbf1 0%, transparent 50%),
+        #ffffff;
+    }
+    .hero {
+      border-radius: 20px;
+      padding: 22px 24px;
+      background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 55%, #0f766e 100%);
+      color: #fff;
+      box-shadow: 0 12px 28px rgba(2, 132, 199, 0.28);
+    }
+    .brand {
+      font-size: 11px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      opacity: 0.9;
+      font-weight: 700;
+    }
+    .hero h1 {
+      margin: 8px 0 4px;
+      font-size: 26px;
+      line-height: 1.2;
+      font-weight: 800;
+    }
+    .hero .sub { margin: 0; font-size: 13px; opacity: 0.92; }
+    .meta {
+      margin-top: 14px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .chip {
+      background: rgba(255,255,255,0.18);
+      border: 1px solid rgba(255,255,255,0.28);
+      border-radius: 999px;
+      padding: 5px 12px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .section { margin-top: 22px; }
+    .section h2 {
+      margin: 0 0 10px;
+      font-size: 12px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #0369a1;
+      font-weight: 800;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+    .tile {
+      border: 1px solid #e2e8f0;
+      border-radius: 14px;
+      padding: 12px 14px;
+      background: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
+    }
+    .tile-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #64748b;
+    }
+    .tile-value {
+      margin-top: 4px;
+      font-size: 20px;
+      font-weight: 800;
+      color: #0f172a;
+      word-break: break-word;
+    }
+    .tile-hint { margin-top: 2px; font-size: 11px; color: #64748b; }
+    .list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      border: 1px solid #e2e8f0;
+      border-radius: 14px;
+      overflow: hidden;
+    }
+    .list li {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px 14px;
+      border-top: 1px solid #f1f5f9;
+      background: #fff;
+      font-size: 13px;
+    }
+    .list li:first-child { border-top: none; }
+    .list-title { color: #334155; }
+    .list-pct { font-weight: 800; color: #0f172a; }
+    .empty { margin: 0; font-size: 12px; color: #64748b; }
+    .highlights {
+      border-radius: 14px;
+      padding: 14px 16px;
+      background: #f0f9ff;
+      border: 1px solid #bae6fd;
+    }
+    .highlights h3 {
+      margin: 0 0 8px;
+      font-size: 13px;
+      color: #0369a1;
+      font-weight: 800;
+    }
+    .highlights ul { margin: 0; padding-left: 18px; }
+    .highlights li { margin: 4px 0; font-size: 13px; color: #0f172a; }
+    .footer {
+      margin-top: 26px;
+      padding-top: 12px;
+      border-top: 1px dashed #cbd5e1;
+      font-size: 11px;
+      color: #64748b;
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+    }
+  </style></head><body><div class="sheet">
+    <div class="hero">
+      <div class="brand">AsliLearn · Student weekly report</div>
+      <h1>${esc(input.title || 'Your weekly AsliLearn learning report')}</h1>
+      <p class="sub">${esc(input.summary || '')}</p>
+      <div class="meta">
+        ${input.studentName ? `<span class="chip">${esc(input.studentName)}</span>` : ''}
+        ${input.schoolName ? `<span class="chip">${esc(input.schoolName)}</span>` : ''}
+        <span class="chip">Generated ${esc(new Date().toLocaleString('en-IN'))}</span>
+      </div>
+    </div>
+
+    ${section(
+      'Adoption',
+      `<div class="grid">
+        ${tile('Logins this week', String(n(m.loginCount)), 'Days you opened the app')}
+        ${tile('Last active', String(m.lastActiveDate || '—'))}
+        ${tile('First activation', String(m.activationDate || '—'))}
+      </div>`,
+    )}
+
+    ${section(
+      'Engagement',
+      `<div class="grid">
+        ${tile('Learning sessions', String(n(m.sessions)))}
+        ${tile('Total time', String(m.totalTimeLabel || `${n(m.minutes)} min`))}
+        ${tile('Avg session', n(m.avgSessionMinutes) > 0 ? `${n(m.avgSessionMinutes)} min` : '—')}
+      </div>`,
+    )}
+
+    ${section(
+      'Learning behaviour',
+      `<div class="grid">
+        ${tile('Topics practised', String(n(m.topicsPractised)))}
+        ${tile('Repeated topics', String(n(m.topicsRepeated)))}
+        ${tile('Repeat practice', `${n(m.repeatPracticePct)}%`)}
+      </div>`,
+    )}
+
+    ${section(
+      'AI usage',
+      `<div class="grid">
+        ${tile('AI uses', String(n(m.aiExplanations)), `Vidya ${n(m.aiDoubts)} · Tools ${n(m.aiToolUses)}`)}
+        ${tile('Practice / quizzes', String(n(m.practiceAttempts) + n(m.iqAttempts)))}
+        ${tile('Accuracy', n(m.practiceAttempts) > 0 ? `${n(m.practiceAccuracy)}%` : '—')}
+      </div>`,
+    )}
+
+    ${section(
+      'Exams',
+      `<div class="grid">
+        ${tile('Exams written', String(n(m.examAttempts)))}
+        ${tile('Average score', n(m.examAttempts) > 0 ? `${n(m.avgExamPct)}%` : '—')}
+        ${tile('Best score', n(m.examAttempts) > 0 ? `${n(m.bestExamPct)}%` : '—')}
+      </div>
+      ${listRows(exams.slice(0, 8), 'No exams written this week yet.')}`,
+    )}
+
+    ${section(
+      'OMR results',
+      `<div class="grid">
+        ${tile('OMR tests', String(n(m.omrAttempts)))}
+        ${tile('Average score', n(m.omrAttempts) > 0 ? `${n(m.omrAvgPct)}%` : '—')}
+        ${tile('Best score', n(m.omrAttempts) > 0 ? `${n(m.omrBestPct)}%` : '—')}
+      </div>
+      ${
+        n(m.omrBestRank) > 0
+          ? `<p class="empty" style="margin-top:8px">Best rank this week: #${esc(n(m.omrBestRank))}</p>`
+          : ''
+      }
+      ${listRows(omr.slice(0, 8), 'No OMR results assigned this week yet.')}`,
+    )}
+
+    ${section(
+      'Content & progress',
+      `<div class="grid">
+        ${tile('Top subjects', topSubjects.length ? topSubjects.slice(0, 2).join(', ') : '—')}
+        ${tile('Videos watched', String(n(m.videosWatched)))}
+        ${tile('Chapters updated', String(n(m.chaptersCompleted)))}
+        ${tile('Current streak', n(m.streak) > 0 ? `${n(m.streak)} days` : '0')}
+        ${tile('Mastery', `${n(m.masteryPct)}%`)}
+        ${tile('Homework submitted', String(n(m.homeworkSubmissions)))}
+      </div>`,
+    )}
+
+    ${
+      highlights.length
+        ? `<section class="section"><div class="highlights">
+            <h3>This week at a glance</h3>
+            <ul>${highlights.map((h) => `<li>${esc(h)}</li>`).join('')}</ul>
+          </div></section>`
+        : ''
+    }
+
+    <div class="footer">
+      <span>AsliLearn.ai · Keep practising your weak chapters</span>
+      <span>Confidential student learning report</span>
+    </div>
+  </div></body></html>`;
+}
+
+function addCanvasPages(pdf: jsPDF, canvas: HTMLCanvasElement) {
+  const pageW = pdf.internal.pageSize.getWidth();
+  const pageH = pdf.internal.pageSize.getHeight();
+  const margin = 10;
+  const innerW = pageW - margin * 2;
+  const imgW = innerW;
+  const imgH = (canvas.height * imgW) / canvas.width;
+  const pageInnerH = pageH - margin * 2;
+  const totalPages = Math.max(1, Math.ceil(imgH / pageInnerH));
+
+  for (let page = 0; page < totalPages; page += 1) {
+    if (page > 0) pdf.addPage();
+    const srcY = (page * pageInnerH * canvas.width) / imgW;
+    const srcH = Math.min(canvas.height - srcY, (pageInnerH * canvas.width) / imgW);
+    const slice = document.createElement('canvas');
+    slice.width = canvas.width;
+    slice.height = Math.max(1, Math.floor(srcH));
+    const ctx = slice.getContext('2d');
+    if (!ctx) continue;
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, slice.width, slice.height);
+    ctx.drawImage(canvas, 0, srcY, canvas.width, srcH, 0, 0, canvas.width, srcH);
+    const sliceH = (slice.height * imgW) / slice.width;
+    pdf.addImage(slice.toDataURL('image/jpeg', 0.92), 'JPEG', margin, margin, imgW, sliceH);
+  }
+}
+
+export async function downloadWeeklyReportPdf(input: WeeklyReportPdfInput): Promise<string> {
+  const html = buildWeeklyReportHtml(input);
+  const host = document.createElement('div');
+  host.style.cssText =
+    'position:fixed;left:-10000px;top:0;width:794px;background:#fff;z-index:-1;opacity:1;';
+  host.innerHTML = html;
+  document.body.appendChild(host);
+
+  try {
+    const target = (host.querySelector('.sheet') as HTMLElement) || host;
+    const canvas = await html2canvas(target, {
+      scale: 2,
+      useCORS: true,
+      backgroundColor: '#ffffff',
+      logging: false,
+      width: 794,
+      windowWidth: 794,
+    });
+    const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    addCanvasPages(pdf, canvas);
+    const slug = String(input.studentName || input.title || 'weekly-report')
+      .replace(/[^\w.-]+/g, '_')
+      .slice(0, 48);
+    const filename = `${slug || 'weekly'}_AsliLearn_Weekly_Report_${new Date()
+      .toISOString()
+      .slice(0, 10)}.pdf`;
+    pdf.save(filename);
+    return filename;
+  } finally {
+    host.remove();
+  }
+}

@@ -73,7 +73,7 @@ async function fetchCurriculum(path: string, auth: string | null) {
       ...(auth ? { Authorization: `Bearer ${auth}` } : {}),
       'Content-Type': 'application/json',
     },
-    timeoutMs: 45_000,
+    timeoutMs: path.includes('/topics') || path.includes('/subtopics') ? 20_000 : 45_000,
     retries: 1,
   });
   const json = await res.json();

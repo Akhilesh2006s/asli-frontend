@@ -730,8 +730,8 @@ export default function ExamViewOnly() {
             </CardTitle>
             {handoffReport ? (
               <p className="text-xs text-slate-500 font-normal mt-1">
-                Excel includes Executive Dashboard, Student Data, Subject Data, and one sheet per student
-                (same structure as the developer handoff). Tap a student for the on-screen individual report.
+                Excel includes Executive Dashboard, Student Data, Subject Data, and one sheet per student.
+                Tap a student for the on-screen individual report.
               </p>
             ) : null}
           </CardHeader>

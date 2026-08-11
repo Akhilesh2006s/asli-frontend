@@ -60,6 +60,8 @@ import type { AiToolGenerationMeta } from '@/lib/ai-tool-generation-summary';
 import { useCurriculumCascade } from '@/hooks/use-curriculum-cascade';
 import {
   filterSubjectsForAiTool,
+  filterSubjectsForIitBoard,
+  isIitAiToolBoard,
   isLanguageExcludedTool,
   isStoryPassageLanguageSubject,
   isStoryLanguageTool,
@@ -441,6 +443,11 @@ export default function TeacherToolPage() {
     if (cascade.loadingSubjects && raw.length === 0) {
       return [];
     }
+    // IIT board: AI Tool Topics / IIT STEM only — never merge CBSE assigned subjects
+    // (Social Science, Second Language, etc. leak otherwise).
+    if (isIitAiToolBoard(selectedBoard)) {
+      return filterSubjectsForIitBoard(uniquePreserveOrder(raw));
+    }
     // Prefer assigned subjects even when curriculum taxonomy is incomplete
     // (e.g. Class 6 CBSE cascade may only list English / Math / Science).
     if (assignedSubjectNames.length > 0) {
@@ -565,6 +572,7 @@ export default function TeacherToolPage() {
 
   useEffect(() => {
     if (!formParams.gradeLevel || subjectsForTool.length === 0) return;
+    if (cascade.loadingSubjects) return;
     setFormParams((prev) => {
       const currentSubject = prev.subject || prev.subjects;
       const hasCurrent =
@@ -572,7 +580,18 @@ export default function TeacherToolPage() {
         subjectsForTool.some(
           (s) => normalizeSubjectName(s) === normalizeSubjectName(String(currentSubject)),
         );
+      // Keep current subject when still valid (e.g. after IIT Track change).
+      // Only auto-pick first when subject is empty — never silently swap Biology → Physics.
       if (hasCurrent) return prev;
+      if (currentSubject) {
+        // Current subject left the list (e.g. board change) — clear rather than replace.
+        const next = { ...prev };
+        delete next.subject;
+        delete next.subjects;
+        delete next.topic;
+        delete next.subTopic;
+        return next;
+      }
       const defaultSubject = subjectsForTool[0];
       return {
         ...prev,
@@ -581,7 +600,7 @@ export default function TeacherToolPage() {
         ...(prev.subject === undefined && prev.subjects === undefined ? { subject: defaultSubject } : {}),
       };
     });
-  }, [subjectsForTool, formParams.gradeLevel]);
+  }, [subjectsForTool, formParams.gradeLevel, cascade.loadingSubjects]);
 
   // Fetch assigned students on component mount
   useEffect(() => {
@@ -818,8 +837,40 @@ export default function TeacherToolPage() {
       return;
     }
 
+    const cacheKey = [
+      'twc',
+      classNumber,
+      subjectValue.toLowerCase(),
+      toolType,
+      String(selectedBoard || '').toLowerCase(),
+    ].join('|');
+
     (async () => {
       try {
+        try {
+          const cached = sessionStorage.getItem(cacheKey);
+          if (cached) {
+            const parsed = JSON.parse(cached) as { topics?: string[]; at?: number; degraded?: boolean };
+            if (
+              parsed?.at &&
+              Date.now() - parsed.at < 5 * 60 * 1000 &&
+              Array.isArray(parsed.topics) &&
+              !parsed.degraded
+            ) {
+              if (!cancelled) {
+                setTopicsWithContent(
+                  parsed.topics.length === 0
+                    ? null
+                    : new Set(parsed.topics.map((t) => String(t).trim().toLowerCase())),
+                );
+              }
+              // Still refresh in background below
+            }
+          }
+        } catch {
+          /* ignore cache */
+        }
+
         const token = getAuthToken();
         const boardQs = selectedBoard
           ? `&board=${encodeURIComponent(selectedBoard)}`
@@ -838,12 +889,19 @@ export default function TeacherToolPage() {
         const body = await resp.json();
         const list: string[] = body?.data?.topics || [];
         if (cancelled) return;
+        const degraded = Boolean(body?.data?.degraded) || list.length === 0;
         // Unknown availability must not label anything as unavailable
         setTopicsWithContent(
-          body?.data?.degraded || list.length === 0
-            ? null
-            : new Set(list.map((t) => String(t).trim().toLowerCase())),
+          degraded ? null : new Set(list.map((t) => String(t).trim().toLowerCase())),
         );
+        try {
+          sessionStorage.setItem(
+            cacheKey,
+            JSON.stringify({ topics: list, at: Date.now(), degraded }),
+          );
+        } catch {
+          /* ignore */
+        }
       } catch {
         if (!cancelled) setTopicsWithContent(null);
       }
@@ -1763,7 +1821,12 @@ export default function TeacherToolPage() {
                   fieldOptions = field.options || [];
                   isDisabled = false;
                 } else if (field.isNCERT && field.name === 'topic') {
-                  fieldOptions = availableNCERTTopics;
+                  fieldOptions = [...availableNCERTTopics].sort((a, b) => {
+                    const aReady = topicHasSavedContent(a) === true ? 0 : 1;
+                    const bReady = topicHasSavedContent(b) === true ? 0 : 1;
+                    if (aReady !== bReady) return aReady - bReady;
+                    return 0;
+                  });
                   loadingDropdown = cascade.loadingTopics;
                   isDisabled =
                     !formParams.gradeLevel ||
@@ -1817,10 +1880,8 @@ export default function TeacherToolPage() {
                             handleInputChange(field.name, '');
                           } else if (field.name === 'productCategory') {
                             const next = value === 'NONE' ? '' : value;
-                            // Soft reset: keep class; clear subject/topic cascade only
+                            // Keep subject when changing IIT Track; only reset topic cascade.
                             handleInputChange(field.name, next);
-                            handleInputChange('subject', '');
-                            handleInputChange('subjects', '');
                             handleInputChange('topic', '');
                             handleInputChange('subTopic', '');
                           } else {
@@ -1874,22 +1935,39 @@ export default function TeacherToolPage() {
                         <SelectContent>
                           {fieldOptions.length > 0 ? (
                             fieldOptions.map((option) => {
-                              // Hint when Super Admin has not saved AI Tool Data for this
-                              // chapter yet — keep selectable so title mismatches still work.
+                              // Compact Ready / Not ready badges — long suffixes truncate on mobile.
                               const isTopicField = Boolean(field.isNCERT && field.name === 'topic');
                               const saved = isTopicField ? topicHasSavedContent(String(option)) : null;
                               const noSavedHint = saved === false;
+                              const label =
+                                option === WHOLE_CHAPTER_VALUE
+                                  ? 'Whole chapter'
+                                  : option === 'NONE'
+                                    ? 'General'
+                                    : field.name === 'productCategory'
+                                      ? `IIT ${formatIitCategoryLabel(option)}`
+                                      : option;
                               return (
                                 <SelectItem key={option} value={option}>
-                                  <span className={noSavedHint ? 'text-slate-500' : undefined}>
-                                    {option === WHOLE_CHAPTER_VALUE
-                                      ? 'Whole chapter'
-                                      : option === 'NONE'
-                                        ? 'General'
-                                        : field.name === 'productCategory'
-                                          ? `IIT ${formatIitCategoryLabel(option)}`
-                                          : option}
-                                    {noSavedHint ? ' — no saved content yet' : ''}
+                                  <span
+                                    className={
+                                      noSavedHint
+                                        ? 'flex w-full min-w-0 flex-col gap-1 text-slate-600 sm:flex-row sm:items-center sm:gap-2'
+                                        : 'flex w-full min-w-0 flex-col gap-1 sm:flex-row sm:items-center sm:gap-2'
+                                    }
+                                  >
+                                    <span className="min-w-0 flex-1 whitespace-normal break-words text-left leading-snug">
+                                      {label}
+                                    </span>
+                                    {noSavedHint ? (
+                                      <span className="shrink-0 self-start rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-700 ring-1 ring-amber-200">
+                                        Not ready
+                                      </span>
+                                    ) : saved === true ? (
+                                      <span className="shrink-0 self-start rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-emerald-700 ring-1 ring-emerald-200">
+                                        Ready
+                                      </span>
+                                    ) : null}
                                   </span>
                                 </SelectItem>
                               );
@@ -1907,8 +1985,18 @@ export default function TeacherToolPage() {
                       </Select>
                       {field.isNCERT && field.name === 'topic' && topicsWithContent !== null ? (
                         <p className="mt-1.5 text-[11px] text-slate-500 leading-snug">
-                          Topics with saved AI Tool Data are ready to open. Others need Super Admin
-                          to generate them under AI Tool Generations first (you can still select them).
+                          <span className="font-semibold text-emerald-700">Ready</span> = saved AI Tool
+                          Data (opens fast).{' '}
+                          <span className="font-semibold text-amber-700">Not ready</span> = Super Admin
+                          still needs to generate it (may take longer).
+                        </p>
+                      ) : null}
+                      {field.isNCERT &&
+                      field.name === 'topic' &&
+                      formParams.topic &&
+                      topicHasSavedContent(String(formParams.topic)) === false ? (
+                        <p className="mt-1 text-[11px] text-amber-700 leading-snug">
+                          This chapter has no saved content yet — Generate may take longer while we create it live.
                         </p>
                       ) : null}
                       </>

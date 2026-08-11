@@ -66,6 +66,8 @@ import { resolveStudentAiApiToolType } from '@/lib/student-ai-tool-routes';
 import type { AiToolGenerationMeta } from '@/lib/ai-tool-generation-summary';
 import {
   filterSubjectsForAiTool,
+  filterSubjectsForIitBoard,
+  isIitAiToolBoard,
   isLanguageExcludedTool,
   isStoryLanguageTool,
   isStoryPassageLanguageSubject,
@@ -710,8 +712,11 @@ export default function StudentToolPage() {
     if (!formParams.gradeLevel) return [];
     const raw = cascade.subjects;
     if (cascade.loadingSubjects && raw.length === 0) return [];
-    if (raw.length > 0) return raw;
-    return [];
+    if (raw.length === 0) return [];
+    if (isIitAiToolBoard(selectedBoard)) {
+      return filterSubjectsForIitBoard(raw);
+    }
+    return raw;
   })();
 
   const toolType = params?.toolType || '';
@@ -2041,8 +2046,7 @@ export default function StudentToolPage() {
                             }
                             if (field.name === 'productCategory') {
                               handleInputChange(field.name, value === 'NONE' ? '' : value);
-                              handleInputChange('gradeLevel', assignedGradeLevel || '');
-                              handleInputChange('subject', '');
+                              // Keep subject when changing IIT Track; only reset topic cascade.
                               handleInputChange('topic', '');
                               handleInputChange('chapter', '');
                               handleInputChange('concept', '');

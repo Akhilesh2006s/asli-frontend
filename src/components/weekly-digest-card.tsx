@@ -1,8 +1,19 @@
 import { useEffect, useMemo, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { API_BASE_URL } from "@/lib/api-config";
 import {
+  CheckCircle2,
+  Download,
   FileText,
   Loader2,
   RefreshCw,
@@ -13,14 +24,30 @@ import {
   ClipboardList,
   Flame,
   Target,
+  ScanLine,
+  Sparkles,
 } from "lucide-react";
-import { getAuthToken } from "@/lib/auth-utils";
+import { getAuthToken, getStudentDisplayName, getUser } from "@/lib/auth-utils";
+import { downloadWeeklyReportPdf } from "@/lib/weekly-report-pdf";
+import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 
 type ExamRow = {
   title?: string;
   percentage?: number;
   obtainedMarks?: number;
   totalMarks?: number;
+  completedAt?: string | null;
+};
+
+type OmrRow = {
+  title?: string;
+  percentage?: number;
+  totalMarks?: number;
+  correct?: number;
+  wrong?: number;
+  left?: number;
+  rank?: number | null;
   completedAt?: string | null;
 };
 
@@ -55,6 +82,11 @@ type DigestMetrics = {
   bestExamPct?: number;
   examQuestionAccuracy?: number;
   exams?: ExamRow[];
+  omrAttempts?: number;
+  omrAvgPct?: number;
+  omrBestPct?: number;
+  omrBestRank?: number | null;
+  omrResults?: OmrRow[];
 };
 
 type Digest = {
@@ -109,9 +141,30 @@ function n(v: unknown, fallback = 0) {
  * @param apiBase either `/api/teacher` or `/api/student`
  */
 export function WeeklyDigestCard({ apiBase }: { apiBase: "/api/teacher" | "/api/student" }) {
+  const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [digest, setDigest] = useState<Digest | null>(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [downloading, setDownloading] = useState(false);
+  const [downloadDone, setDownloadDone] = useState(false);
   const isStudent = apiBase === "/api/student";
+
+  const studentName = useMemo(() => {
+    try {
+      return getStudentDisplayName(getUser()) || "";
+    } catch {
+      return "";
+    }
+  }, []);
+
+  const schoolName = useMemo(() => {
+    try {
+      const u = getUser();
+      return String(u?.schoolName || u?.collegeName || u?.institutionName || "").trim();
+    } catch {
+      return "";
+    }
+  }, []);
 
   const load = async (build = false) => {
     setLoading(true);
@@ -136,6 +189,7 @@ export function WeeklyDigestCard({ apiBase }: { apiBase: "/api/teacher" | "/api/
 
   const m = digest?.metrics || {};
   const exams = Array.isArray(m.exams) ? m.exams : [];
+  const omrResults = Array.isArray(m.omrResults) ? m.omrResults : [];
 
   const hasRichStudentMetrics = useMemo(() => {
     if (!isStudent || !digest?.metrics) return false;
@@ -147,17 +201,78 @@ export function WeeklyDigestCard({ apiBase }: { apiBase: "/api/teacher" | "/api/
     );
   }, [digest, isStudent]);
 
+  const canDownload = Boolean(digest);
+
+  const handleDownloadPdf = async () => {
+    if (!digest || downloading) return;
+    setDownloading(true);
+    setDownloadDone(false);
+    try {
+      const filename = await downloadWeeklyReportPdf({
+        title: digest.title,
+        summary: digest.summary,
+        highlights: digest.highlights || [],
+        studentName: studentName || undefined,
+        schoolName: schoolName || undefined,
+        metrics: (digest.metrics || {}) as Record<string, unknown>,
+      });
+      setDownloadDone(true);
+      toast({
+        title: "PDF ready",
+        description: `${filename} saved to your downloads.`,
+      });
+      window.setTimeout(() => setDownloadDone(false), 2500);
+    } catch (err) {
+      console.error(err);
+      toast({
+        title: "Could not create PDF",
+        description: "Please try again in a moment.",
+        variant: "destructive",
+      });
+    } finally {
+      setDownloading(false);
+    }
+  };
+
+  const previewStats = [
+    { label: "Logins", value: String(n(m.loginCount)) },
+    { label: "Sessions", value: String(n(m.sessions)) },
+    { label: "Study time", value: String(m.totalTimeLabel || `${n(m.minutes)} min`) },
+    { label: "Exams", value: String(n(m.examAttempts)) },
+    { label: "Avg exam", value: n(m.examAttempts) > 0 ? `${n(m.avgExamPct)}%` : "—" },
+    { label: "OMR", value: String(n(m.omrAttempts)) },
+    { label: "AI uses", value: String(n(m.aiExplanations)) },
+    { label: "Streak", value: n(m.streak) > 0 ? `${n(m.streak)}d` : "0" },
+  ];
+
   return (
-    <Card className="border-sky-100 shadow-sm">
+    <Card className="border-sky-100 shadow-sm overflow-hidden">
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between gap-2">
           <CardTitle className="text-base flex items-center gap-2">
             <FileText className="h-4 w-4 text-sky-600" />
             Weekly report
           </CardTitle>
-          <Button variant="ghost" size="sm" onClick={() => void load(true)} disabled={loading}>
-            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-          </Button>
+          <div className="flex items-center gap-1">
+            {canDownload ? (
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 gap-1.5 border-sky-200 bg-sky-50/80 text-sky-800 hover:bg-sky-100 hover:text-sky-900"
+                onClick={() => {
+                  setPreviewOpen(true);
+                  setDownloadDone(false);
+                }}
+                disabled={loading}
+              >
+                <Download className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Download PDF</span>
+              </Button>
+            ) : null}
+            <Button variant="ghost" size="sm" onClick={() => void load(true)} disabled={loading}>
+              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+            </Button>
+          </div>
         </div>
       </CardHeader>
       <CardContent>
@@ -242,6 +357,44 @@ export function WeeklyDigestCard({ apiBase }: { apiBase: "/api/teacher" | "/api/
               <p className="text-xs text-slate-500">No exams written this week yet.</p>
             )}
 
+            <SectionTitle icon={ScanLine} title="OMR results" />
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              <MetricTile label="OMR tests" value={n(m.omrAttempts)} />
+              <MetricTile
+                label="Average score"
+                value={n(m.omrAttempts) > 0 ? `${n(m.omrAvgPct)}%` : "—"}
+              />
+              <MetricTile
+                label="Best score"
+                value={n(m.omrAttempts) > 0 ? `${n(m.omrBestPct)}%` : "—"}
+              />
+            </div>
+            {n(m.omrBestRank) > 0 ? (
+              <p className="text-xs text-slate-500">Best rank this week: #{n(m.omrBestRank)}</p>
+            ) : null}
+            {omrResults.length > 0 ? (
+              <ul className="space-y-1.5 rounded-xl border border-slate-100 bg-white px-3 py-2">
+                {omrResults.slice(0, 6).map((row, idx) => (
+                  <li
+                    key={`${row.title}-${idx}`}
+                    className="flex items-start justify-between gap-2 text-sm"
+                  >
+                    <span className="min-w-0 flex-1 text-slate-700 line-clamp-2">
+                      {row.title}
+                      {row.rank != null && Number(row.rank) > 0 ? (
+                        <span className="text-slate-400"> · Rank #{row.rank}</span>
+                      ) : null}
+                    </span>
+                    <span className="shrink-0 font-semibold tabular-nums text-slate-900">
+                      {n(row.percentage)}%
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-xs text-slate-500">No OMR results assigned this week yet.</p>
+            )}
+
             <SectionTitle icon={Target} title="Content & progress" />
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               <MetricTile
@@ -271,19 +424,215 @@ export function WeeklyDigestCard({ apiBase }: { apiBase: "/api/teacher" | "/api/
                 </ul>
               </div>
             ) : null}
+
+            <motion.div
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="rounded-xl border border-teal-100 bg-gradient-to-r from-sky-50 via-white to-teal-50 p-3"
+            >
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-slate-900 flex items-center gap-1.5">
+                    <Sparkles className="h-4 w-4 text-teal-600" />
+                    Save your week as a PDF
+                  </p>
+                  <p className="text-xs text-slate-500">
+                    Share with parents or keep for your records — styled report with all sections.
+                  </p>
+                </div>
+                <Button
+                  size="sm"
+                  className="shrink-0 bg-sky-600 hover:bg-sky-700 text-white"
+                  onClick={() => {
+                    setPreviewOpen(true);
+                    setDownloadDone(false);
+                  }}
+                >
+                  <Download className="h-3.5 w-3.5 mr-1.5" />
+                  Download PDF
+                </Button>
+              </div>
+            </motion.div>
           </div>
         ) : (
-          <div className="space-y-2">
-            <p className="text-sm font-medium text-slate-900">{digest.title}</p>
-            <p className="text-xs text-slate-500">{digest.summary}</p>
-            <ul className="list-disc pl-5 text-sm text-slate-700 space-y-1">
-              {(digest.highlights || []).map((h) => (
-                <li key={h}>{h}</li>
-              ))}
-            </ul>
+          <div className="space-y-3">
+            <div className="space-y-2">
+              <p className="text-sm font-medium text-slate-900">{digest.title}</p>
+              <p className="text-xs text-slate-500">{digest.summary}</p>
+              <ul className="list-disc pl-5 text-sm text-slate-700 space-y-1">
+                {(digest.highlights || []).map((h) => (
+                  <li key={h}>{h}</li>
+                ))}
+              </ul>
+            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              className="border-sky-200 text-sky-800"
+              onClick={() => {
+                setPreviewOpen(true);
+                setDownloadDone(false);
+              }}
+            >
+              <Download className="h-3.5 w-3.5 mr-1.5" />
+              Download PDF
+            </Button>
           </div>
         )}
       </CardContent>
+
+      <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+        <DialogContent className="max-w-lg gap-0 overflow-hidden p-0 sm:rounded-2xl">
+          <div className="relative overflow-hidden bg-gradient-to-br from-sky-500 via-sky-600 to-teal-700 px-5 pb-5 pt-6 text-white">
+            <motion.div
+              aria-hidden
+              className="pointer-events-none absolute -right-8 -top-10 h-36 w-36 rounded-full bg-white/10"
+              animate={{ scale: [1, 1.08, 1], opacity: [0.35, 0.55, 0.35] }}
+              transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+            />
+            <motion.div
+              aria-hidden
+              className="pointer-events-none absolute -bottom-10 left-10 h-28 w-28 rounded-full bg-teal-300/20"
+              animate={{ y: [0, -8, 0] }}
+              transition={{ duration: 3.2, repeat: Infinity, ease: "easeInOut" }}
+            />
+            <DialogHeader className="relative space-y-1 text-left">
+              <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-sky-100">
+                AsliLearn · Weekly report
+              </p>
+              <DialogTitle className="text-xl font-bold text-white leading-snug">
+                {digest?.title || "Your weekly learning report"}
+              </DialogTitle>
+              <DialogDescription className="text-sky-50/90">
+                {digest?.summary || "Preview your report, then download a polished PDF."}
+              </DialogDescription>
+            </DialogHeader>
+            {(studentName || schoolName) && (
+              <div className="relative mt-3 flex flex-wrap gap-2">
+                {studentName ? (
+                  <span className="rounded-full border border-white/25 bg-white/15 px-2.5 py-0.5 text-xs font-semibold">
+                    {studentName}
+                  </span>
+                ) : null}
+                {schoolName ? (
+                  <span className="rounded-full border border-white/25 bg-white/15 px-2.5 py-0.5 text-xs font-semibold">
+                    {schoolName}
+                  </span>
+                ) : null}
+              </div>
+            )}
+          </div>
+
+          <div className="space-y-4 px-5 py-4">
+            {hasRichStudentMetrics ? (
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                {previewStats.map((stat, i) => (
+                  <motion.div
+                    key={stat.label}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.04 * i }}
+                    className="rounded-xl border border-slate-100 bg-slate-50/90 px-2.5 py-2"
+                  >
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+                      {stat.label}
+                    </p>
+                    <p className="mt-0.5 text-sm font-bold tabular-nums text-slate-900">{stat.value}</p>
+                  </motion.div>
+                ))}
+              </div>
+            ) : (
+              <ul className="list-disc space-y-1 pl-5 text-sm text-slate-700">
+                {(digest?.highlights || []).slice(0, 6).map((h) => (
+                  <li key={h}>{h}</li>
+                ))}
+              </ul>
+            )}
+
+            {(digest?.highlights || []).length > 0 && hasRichStudentMetrics ? (
+              <div className="rounded-xl border border-sky-100 bg-sky-50/70 px-3 py-2">
+                <p className="mb-1 text-xs font-bold text-sky-800">Highlights in your PDF</p>
+                <ul className="space-y-1 text-sm text-slate-700">
+                  {(digest?.highlights || []).slice(0, 4).map((h) => (
+                    <li key={h} className="flex gap-2">
+                      <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-sky-500" />
+                      <span>{h}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+
+            <AnimatePresence mode="wait">
+              {downloadDone ? (
+                <motion.div
+                  key="done"
+                  initial={{ opacity: 0, scale: 0.96 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="flex items-center gap-2 rounded-xl border border-teal-200 bg-teal-50 px-3 py-2 text-sm text-teal-900"
+                >
+                  <CheckCircle2 className="h-4 w-4 text-teal-600" />
+                  PDF downloaded — check your Downloads folder.
+                </motion.div>
+              ) : downloading ? (
+                <motion.div
+                  key="busy"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="space-y-2"
+                >
+                  <div className="flex items-center gap-2 text-sm text-slate-600">
+                    <Loader2 className="h-4 w-4 animate-spin text-sky-600" />
+                    Designing your report…
+                  </div>
+                  <div className="h-1.5 overflow-hidden rounded-full bg-slate-100">
+                    <motion.div
+                      className="h-full rounded-full bg-gradient-to-r from-sky-500 to-teal-500"
+                      initial={{ width: "8%" }}
+                      animate={{ width: ["12%", "72%", "88%"] }}
+                      transition={{ duration: 1.8, ease: "easeInOut", repeat: Infinity }}
+                    />
+                  </div>
+                </motion.div>
+              ) : null}
+            </AnimatePresence>
+          </div>
+
+          <DialogFooter className="border-t border-slate-100 bg-slate-50/80 px-5 py-3 sm:justify-between">
+            <Button variant="ghost" size="sm" onClick={() => setPreviewOpen(false)}>
+              Close
+            </Button>
+            <Button
+              size="sm"
+              className={cn(
+                "min-w-[140px] text-white",
+                downloadDone ? "bg-teal-600 hover:bg-teal-700" : "bg-sky-600 hover:bg-sky-700",
+              )}
+              disabled={downloading || !digest}
+              onClick={() => void handleDownloadPdf()}
+            >
+              {downloading ? (
+                <>
+                  <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                  Creating…
+                </>
+              ) : downloadDone ? (
+                <>
+                  <CheckCircle2 className="mr-1.5 h-3.5 w-3.5" />
+                  Downloaded
+                </>
+              ) : (
+                <>
+                  <Download className="mr-1.5 h-3.5 w-3.5" />
+                  Download PDF
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }

@@ -51,6 +51,11 @@ import VidyaAIFloatingAssistant from "@/components/student/VidyaAIFloatingAssist
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import DriveViewer from "@/components/drive-viewer";
 import { getStudentDisplayName } from "@/lib/auth-utils";
+import {
+  learningPathDisplayName,
+  normalizeSubjectDisplayKey,
+  prepareStudentLearningPathSubjects,
+} from "@/lib/learning-path-subjects";
 
 function isTeacherPortalUser(): boolean {
   const stored = getUser();
@@ -349,10 +354,12 @@ export default function LearningPaths() {
               assessments: [],
               totalContent: 0
             }));
-            const uniqueBaseSubjects = baseSubjects.filter((subject, index, self) => {
-              const subjectId = subject._id || subject.id;
-              return index === self.findIndex((s: any) => (s._id || s.id) === subjectId);
-            });
+            const uniqueBaseSubjects = prepareStudentLearningPathSubjects(
+              baseSubjects.filter((subject, index, self) => {
+                const subjectId = subject._id || subject.id;
+                return index === self.findIndex((s: any) => (s._id || s.id) === subjectId);
+              }),
+            );
             setSubjects(uniqueBaseSubjects);
             setIsLoadingSubjects(false);
             
@@ -439,10 +446,12 @@ export default function LearningPaths() {
             
             // Filter out any undefined/null subjects and ensure unique
             const validSubjects = subjectsWithContent.filter((s: any) => s && (s.name || s._id || s.id));
-            const uniqueSubjects = validSubjects.filter((subject, index, self) => {
-              const subjectId = subject._id || subject.id;
-              return index === self.findIndex((s: any) => (s._id || s.id) === subjectId);
-            });
+            const uniqueSubjects = prepareStudentLearningPathSubjects(
+              validSubjects.filter((subject, index, self) => {
+                const subjectId = subject._id || subject.id;
+                return index === self.findIndex((s: any) => (s._id || s.id) === subjectId);
+              }),
+            );
             
             setSubjects(uniqueSubjects);
           } else {
@@ -795,12 +804,13 @@ export default function LearningPaths() {
               </div>
             ) : (
               subjects.map((subject: any) => {
-                const name = String(subject.name || '').toLowerCase();
+                const displayName = learningPathDisplayName(subject.name || '');
+                const name = String(displayName || subject.name || '').toLowerCase();
                 const theme =
                   name.includes('math') ? { Icon: Calculator, chip: 'from-amber-500 to-orange-600', btn: 'bg-amber-500 hover:bg-amber-600', soft: 'bg-amber-50 text-amber-700' }
                   : name.includes('physics') ? { Icon: Atom, chip: 'from-orange-500 to-rose-600', btn: 'bg-orange-500 hover:bg-orange-600', soft: 'bg-orange-50 text-orange-700' }
                   : name.includes('chemistry') ? { Icon: FlaskConical, chip: 'from-sky-500 to-blue-600', btn: 'bg-sky-500 hover:bg-sky-600', soft: 'bg-sky-50 text-sky-700' }
-                  : name.includes('biology') ? { Icon: Microscope, chip: 'from-emerald-500 to-green-600', btn: 'bg-emerald-500 hover:bg-emerald-600', soft: 'bg-emerald-50 text-emerald-700' }
+                  : name.includes('biology') || name === 'bio' ? { Icon: Microscope, chip: 'from-emerald-500 to-green-600', btn: 'bg-emerald-500 hover:bg-emerald-600', soft: 'bg-emerald-50 text-emerald-700' }
                   : name.includes('english') ? { Icon: BookIcon, chip: 'from-violet-500 to-purple-600', btn: 'bg-violet-500 hover:bg-violet-600', soft: 'bg-violet-50 text-violet-700' }
                   : name.includes('social') ? { Icon: BookOpen, chip: 'from-pink-500 to-rose-600', btn: 'bg-pink-500 hover:bg-pink-600', soft: 'bg-pink-50 text-pink-700' }
                   : name.includes('science') ? { Icon: Zap, chip: 'from-teal-500 to-cyan-600', btn: 'bg-teal-500 hover:bg-teal-600', soft: 'bg-teal-50 text-teal-700' }
@@ -808,14 +818,10 @@ export default function LearningPaths() {
 
                 const Icon = theme.Icon;
 
-                // Content subjects are class-scoped ("Maths_6") and live in a
-                // different id space from the subject list, so match on the
-                // normalised name rather than on _id.
-                const normaliseSubject = (n: unknown) =>
-                  String(n || '').toLowerCase().replace(/[_\s-]*\d+$/, '').trim();
-                const key = normaliseSubject(subject.name);
+                // Match library rows by alias (BIO ↔ Biology) and strip class suffixes.
+                const key = normalizeSubjectDisplayKey(subject.name);
                 const mine = allLibraryContent.filter(
-                  (c: any) => normaliseSubject(c?.subject?.name) === key,
+                  (c: any) => normalizeSubjectDisplayKey(c?.subject?.name) === key,
                 );
                 const countOf = (t: string) => mine.filter((c: any) => c?.type === t).length;
                 const tiles = [
@@ -836,8 +842,8 @@ export default function LearningPaths() {
                         <Icon className="h-6 w-6 text-white" aria-hidden="true" />
                       </span>
                       <div className="min-w-0 flex-1">
-                        <h3 className="truncate font-display text-lg font-bold text-ink">{subject.name}</h3>
-                        <p className="truncate text-sm text-muted-foreground">Content for {subject.name}</p>
+                        <h3 className="truncate font-display text-lg font-bold text-ink">{displayName}</h3>
+                        <p className="truncate text-sm text-muted-foreground">Content for {displayName}</p>
                       </div>
                       <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${theme.soft}`}>
                         {mine.length} {mine.length === 1 ? 'Item' : 'Items'}

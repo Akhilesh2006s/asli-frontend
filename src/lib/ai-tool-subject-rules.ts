@@ -56,6 +56,46 @@ export function filterSubjectsForAiTool(toolType: string, subjects: string[]): s
   return subjects;
 }
 
+/** IIT / NEET / JEE boards in AI Tools — STEM only (matches AI Tool Topics + IIT-6 catalog). */
+export function isIitAiToolBoard(board?: string | null): boolean {
+  const compact = String(board || '')
+    .toUpperCase()
+    .replace(/[\s/\\-]+/g, '');
+  return compact.includes('IIT') || compact.includes('NEET') || compact.includes('JEE');
+}
+
+const IIT_STEM_PLAIN_KEYS = new Set([
+  'physics',
+  'phy',
+  'chemistry',
+  'chem',
+  'maths',
+  'math',
+  'mathematics',
+  'biology',
+  'bio',
+]);
+
+export function isIitStemSubject(subject: string | undefined | null): boolean {
+  const raw = String(subject || '')
+    .trim()
+    .toLowerCase()
+    .replace(/\b(iit|neet|jee)\b/g, ' ')
+    .replace(/[/_.]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (!raw) return false;
+  const plain = extractPlainSubjectName(raw).toLowerCase().trim();
+  if (IIT_STEM_PLAIN_KEYS.has(plain)) return true;
+  const first = plain.split(/\s+/)[0];
+  return Boolean(first && IIT_STEM_PLAIN_KEYS.has(first));
+}
+
+/** Drop CBSE-only subjects that leak into IIT board subject dropdowns. */
+export function filterSubjectsForIitBoard(subjects: string[]): string[] {
+  return subjects.filter(isIitStemSubject);
+}
+
 export function hasStoryPassageLanguageSubject(subjects: string[]): boolean {
   return subjects.some(isStoryPassageLanguageSubject);
 }

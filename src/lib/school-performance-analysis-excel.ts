@@ -214,7 +214,7 @@ function buildExecutiveSheet(workbook: ExcelJS.Workbook, report: ExamAnalyticsHa
 
   mergeBanner(sheet, row, 'WHAT THE EXAM IS SHOWCASING', 4);
   row += 1;
-  writeHeaderRow(sheet, row, ['Dimension', 'Measured Signal', 'Interpretation', 'Developer / Academic Use']);
+  writeHeaderRow(sheet, row, ['Dimension', 'Measured Signal', 'Interpretation', 'Academic Use']);
   row += 1;
   for (const item of report.showcase) {
     writeDataRow(sheet, row, [item.dimension, item.signal, item.interpretation, item.use], {
@@ -459,38 +459,6 @@ function buildSubjectDataSheet(workbook: ExcelJS.Workbook, report: ExamAnalytics
   setColumnWidths(sheet, [16, 14, 10, 10, 10, 12, 16, 16, 14, 14, 12, 16, 14, 12]);
 }
 
-function buildContractSheet(workbook: ExcelJS.Workbook) {
-  const sheet = workbook.addWorksheet('Developer Data Contract');
-  const rows: Array<[string, string, string, string]> = [
-    ['ANALYTICS DATA CONTRACT | DEVELOPER HANDOFF', '', '', ''],
-    ['', '', '', ''],
-    ['Level', 'Metric', 'Definition', 'Source Fields'],
-    ['Overall', 'Accuracy', 'Correct / Total', 'Correct, Total'],
-    ['Overall / Student', 'Recorded Attempt Rate', '(Correct + Wrong) / Total', 'Correct, Wrong, Total'],
-    ['Overall / Student', 'Attempted Precision', 'Correct / (Correct + Wrong)', 'Correct, Wrong'],
-    ['Overall / Student', 'Wrong Burden', 'Wrong / (Correct + Wrong)', 'Wrong, Correct'],
-    ['Overall / Student', 'Recorded Left Rate', 'Left / Total', 'Left, Total'],
-    ['Overall / Student', 'Pace-Accuracy Profile', 'Accuracy and Avg Time/Q relative to cohort means', 'Accuracy, Avg Time/Q'],
-    ['Student', 'Percentile Position', 'Rank position scaled across current cohort', 'Rank, Student Count'],
-    ['Student', 'Subject Spread', 'Highest subject accuracy - lowest subject accuracy', 'Subject accuracies'],
-    ['Student', 'Strongest / Weakest Subject', 'Max / min subject accuracy', 'Subject accuracies'],
-    ['Subject', 'Subject Accuracy', 'Subject Correct / Subject Responses', 'Subject totals'],
-    ['Subject', 'Subject Attempted Precision', 'Subject Correct / (Correct + Wrong)', 'Subject totals'],
-    ['Subject', 'Zero-Correct / >=50% Count', 'Student distribution on subject accuracy', 'Student subject accuracies'],
-  ];
-  rows.forEach((values, idx) => {
-    values.forEach((value, col) => {
-      const cell = sheet.getCell(idx + 1, col + 1);
-      cell.value = value;
-      if (idx === 0) styleCell(cell, { bold: true, fill: COLORS.titleBg, color: COLORS.white, align: 'left' });
-      else if (idx === 2) styleCell(cell, { bold: true, fill: COLORS.headerBg, color: COLORS.white, align: 'left' });
-      else styleCell(cell, { align: 'left', fill: idx % 2 === 0 ? COLORS.zebra : undefined });
-    });
-  });
-  if (rows[0]) sheet.mergeCells(1, 1, 1, 4);
-  setColumnWidths(sheet, [22, 28, 52, 36]);
-}
-
 function buildIndividualSheet(
   workbook: ExcelJS.Workbook,
   individual: HandoffIndividualReport,
@@ -639,7 +607,7 @@ export function schoolPerformanceAnalysisExcelFilename(examTitle: string): strin
     .replace(/^_+|_+$/g, '')
     .slice(0, 80);
   const date = new Date().toISOString().slice(0, 10);
-  return `${slug || 'exam'}_Exam_Analytics_Handoff_${date}.xlsx`;
+  return `${slug || 'exam'}_Exam_Analytics_${date}.xlsx`;
 }
 
 export async function buildSchoolPerformanceAnalysisExcel(
@@ -657,7 +625,6 @@ export async function buildSchoolPerformanceAnalysisExcel(
   buildExecutiveSheet(workbook, report);
   buildStudentDataSheet(workbook, report);
   buildSubjectDataSheet(workbook, report);
-  buildContractSheet(workbook);
 
   const usedNames = new Set(
     workbook.worksheets.map((ws) => ws.name.toLowerCase()),
