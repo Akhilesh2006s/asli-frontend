@@ -182,18 +182,24 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
     return String(u?._id || u?.id || getUserIdFromAuthToken() || '');
   };
 
-  const persistDraftNow = async (opts?: { keepalive?: boolean }) => {
+  const persistDraftNow = async (opts?: { keepalive?: boolean; remainingSeconds?: number }) => {
     if (!exam || isSubmittedRef.current || submissionInProgressRef.current) return;
     const durationSeconds = Math.max(
       60,
       Math.round((Number(exam.duration) > 0 ? Number(exam.duration) : 30) * 60),
+    );
+    const remainingSeconds = Math.max(
+      0,
+      Number.isFinite(Number(opts?.remainingSeconds))
+        ? Number(opts?.remainingSeconds)
+        : timeLeftRef.current || 0,
     );
     const payload = {
       answers: answersRef.current || {},
       flaggedQuestions: Array.from(flaggedRef.current || []),
       questionTimings: questionTimingsRef.current || {},
       currentQuestionIndex: currentIndexRef.current || 0,
-      remainingSeconds: Math.max(0, timeLeftRef.current || 0),
+      remainingSeconds,
       durationSeconds,
     };
     writeLocalExamDraft(examId, payload, resolveDraftUserId());
@@ -355,27 +361,34 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
 
       const localDraft = readLocalExamDraft(examId, resolveDraftUserId());
       const draft = pickResumeDraft(serverDraft, localDraft);
-      const hasProgress =
-        draft &&
-        (Object.keys(draft.answers || {}).length > 0 ||
-          draft.remainingSeconds < fullSeconds - 5);
 
-      if (hasProgress && draft) {
+      if (draft) {
         setAnswers(draft.answers || {});
         setFlaggedQuestions(new Set(draft.flaggedQuestions || []));
         setQuestionTimings(draft.questionTimings || {});
         const maxIdx = Math.max(0, (exam.questions?.length || 1) - 1);
         setCurrentQuestionIndex(Math.min(maxIdx, Math.max(0, draft.currentQuestionIndex || 0)));
         const resumeSeconds = Math.min(fullSeconds, Math.max(0, Number(draft.remainingSeconds) || 0));
+        timeLeftRef.current = resumeSeconds;
         setTimeLeft(resumeSeconds);
         const answered = Object.keys(draft.answers || {}).length;
         const mm = Math.floor(resumeSeconds / 60);
         const ss = resumeSeconds % 60;
         setResumeNotice(
-          `Resumed from autosave — ${answered} answer(s) restored · ${mm}:${String(ss).padStart(2, '0')} left (timer was paused while offline)`,
+          answered > 0 || resumeSeconds < fullSeconds - 5
+            ? `Resumed from autosave — ${answered} answer(s) restored · ${mm}:${String(ss).padStart(2, '0')} left (timer was paused while offline)`
+            : `Resuming your in-progress exam — ${mm}:${String(ss).padStart(2, '0')} left`,
         );
+        if (!cancelled) {
+          void persistDraftNow({ remainingSeconds: resumeSeconds });
+        }
       } else {
+        timeLeftRef.current = fullSeconds;
         setTimeLeft(fullSeconds);
+        // Seed draft immediately so closing and returning shows "Resume Exam".
+        if (!cancelled) {
+          void persistDraftNow({ remainingSeconds: fullSeconds });
+        }
       }
 
       setTimerInitialized(true);

@@ -40,6 +40,7 @@ import {
 import { useIsMobile } from '@/hooks/use-mobile';
 import { dedupeStudentExamResults } from '@/lib/dedupe-exam-results';
 import { getUserIdFromAuthToken, getAuthToken } from '@/lib/auth-utils';
+import { readLocalExamDraft } from '@/lib/exam-attempt-draft';
 
 /** Accent schemes for exam cards — full colored border + tinted meta icons */
 const EXAM_CARD_SCHEMES = [
@@ -111,6 +112,8 @@ interface Exam {
   subject?: 'maths' | 'physics' | 'chemistry' | 'biology';
   subjects?: Array<'maths' | 'physics' | 'chemistry' | 'biology'>;
   maxAttempts?: number;
+  hasInProgressDraft?: boolean;
+  draftRemainingSeconds?: number;
 }
 
 interface ExamResult {
@@ -620,6 +623,14 @@ export default function StudentExams() {
     return map;
   }, [dedupedExamResults, exams, examSubjectFilter, getExamIdFromResult]);
 
+  const canResumeExam = useCallback(
+    (exam: Exam) => {
+      if (exam?.hasInProgressDraft) return true;
+      return Boolean(readLocalExamDraft(String(exam._id), effectiveStudentId));
+    },
+    [effectiveStudentId],
+  );
+
   const handleStartExam = async (exam: Exam) => {
     console.log('Starting exam:', exam);
     console.log('Current exam result state:', examResult);
@@ -764,6 +775,7 @@ export default function StudentExams() {
     exitFullscreenIfActive();
     setCurrentExam(null);
     setIsTakingExam(false);
+    void queryClient.invalidateQueries({ queryKey: ['/api/student/exams'] });
   };
 
   const handleRetakeExam = () => {
@@ -1173,8 +1185,8 @@ export default function StudentExams() {
                         <Play className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                         {startingExamId === exam._id
                           ? 'Checking...'
-                          : status.status === 'active'
-                          ? 'Start Exam'
+                          : canResumeExam(exam)
+                          ? 'Resume Exam'
                           : status.status === 'upcoming'
                           ? 'Start Exam (Upcoming)'
                           : 'Start Exam'}
