@@ -201,7 +201,7 @@ export function SchoolImpactReportCard() {
                   type="date"
                   value={weekStart}
                   onChange={(e) => setWeekStart(e.target.value)}
-                  className="w-[170px] bg-white"
+                  className="asli-date-input h-10 w-[12.5rem] min-w-[12.5rem] bg-white py-2 pl-3 pr-10"
                 />
               </div>
               <Button type="button" size="sm" variant="outline" onClick={() => shiftWeek(-1)}>
@@ -223,7 +223,7 @@ export function SchoolImpactReportCard() {
                   type="date"
                   value={fromDate}
                   onChange={(e) => setFromDate(e.target.value)}
-                  className="min-w-[11.5rem] w-full sm:w-[11.5rem] bg-white"
+                  className="asli-date-input h-10 min-w-[12.5rem] w-full sm:w-[12.5rem] bg-white py-2 pl-3 pr-10"
                 />
               </div>
               <div className="space-y-1 min-w-0 flex-1 sm:flex-none">
@@ -233,7 +233,7 @@ export function SchoolImpactReportCard() {
                   type="date"
                   value={toDate}
                   onChange={(e) => setToDate(e.target.value)}
-                  className="min-w-[11.5rem] w-full sm:w-[11.5rem] bg-white"
+                  className="asli-date-input h-10 min-w-[12.5rem] w-full sm:w-[12.5rem] bg-white py-2 pl-3 pr-10"
                 />
               </div>
               <Button type="button" size="sm" onClick={() => void load()} disabled={loading}>

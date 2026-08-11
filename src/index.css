@@ -197,7 +197,8 @@
   input[type="week"],
   .asli-date-input {
     box-sizing: border-box;
-    padding-inline-end: 2.5rem !important;
+    padding-inline-end: 2.75rem !important;
+    overflow: visible;
   }
 
   input[type="date"]::-webkit-calendar-picker-indicator,
@@ -206,10 +207,12 @@
   input[type="month"]::-webkit-calendar-picker-indicator,
   input[type="week"]::-webkit-calendar-picker-indicator,
   .asli-date-input::-webkit-calendar-picker-indicator {
-    margin-inline-end: 0.15rem;
-    padding: 0.2rem;
+    margin-inline-end: 0.35rem;
+    padding: 0.25rem;
     cursor: pointer;
     opacity: 0.85;
+    position: relative;
+    z-index: 1;
   }
   
   /* Product-wide readability contract. Legacy pages still use Tailwind's
