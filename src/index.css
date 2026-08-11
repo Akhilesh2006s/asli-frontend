@@ -746,6 +746,40 @@ body.dashboard-no-scrollbar::-webkit-scrollbar {
   }
 }
 
+/* AppShell (admin/teacher/student) sidebar — plain, slim scrollbar */
+.app-shell-sidebar-nav {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(100, 116, 139, 0.45) transparent;
+}
+
+.app-shell-sidebar-nav::-webkit-scrollbar {
+  width: 5px;
+}
+
+.app-shell-sidebar-nav::-webkit-scrollbar-track {
+  background: transparent;
+  margin: 6px 0;
+}
+
+.app-shell-sidebar-nav::-webkit-scrollbar-thumb {
+  background: rgba(100, 116, 139, 0.35);
+  border-radius: 999px;
+}
+
+.app-shell-sidebar-nav::-webkit-scrollbar-thumb:hover {
+  background: rgba(71, 85, 105, 0.55);
+}
+
+.app-shell-sidebar-nav::-webkit-scrollbar-button {
+  display: none;
+  height: 0;
+  width: 0;
+}
+
+.app-shell-sidebar-nav::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
 /* Super Admin sidebar — thin, soft scrollbar */
 .super-admin-sidebar-nav {
   scrollbar-width: thin;

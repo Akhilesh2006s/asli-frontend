@@ -113,7 +113,7 @@ function SidebarBody({
       </Link>
 
       {/* Nav */}
-      <nav aria-label="Main" className="flex-1 space-y-1.5 overflow-y-auto px-3 pb-4">
+      <nav aria-label="Main" className="app-shell-sidebar-nav flex-1 space-y-1.5 overflow-y-auto px-3 pb-4">
         {nav.map((item) => (
           <NavRow
             key={item.id}
