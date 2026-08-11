@@ -5,21 +5,17 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { API_BASE_URL } from '@/lib/api-config';
 import { useToast } from '@/hooks/use-toast';
-import { useConfirm } from '@/hooks/use-confirm';
 import { getAuthToken } from '@/lib/auth-utils';
 import { 
   BookOpen, 
-  Plus, 
   Search, 
-  Edit, 
-  Trash2, 
+  UserPlus,
   Eye, 
   Users,
   GraduationCap,
@@ -108,7 +104,6 @@ const formatClassLabels = (subject: Subject) => {
 
 const SubjectManagement = () => {
   const { toast } = useToast();
-  const { confirm, ConfirmDialog } = useConfirm();
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [classes, setClasses] = useState<ClassOption[]>([]);
   const [teachers, setTeachers] = useState<Teacher[]>([]);
@@ -117,17 +112,10 @@ const SubjectManagement = () => {
   const [filterByStatus, setFilterByStatus] = useState<string>('active');
   /** Show one subject at a time instead of the whole list at once. */
   const [filterBySubject, setFilterBySubject] = useState<string>('all');
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isAssignDialogOpen, setIsAssignDialogOpen] = useState(false);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [viewingSubject, setViewingSubject] = useState<Subject | null>(null);
-  const [editingSubject, setEditingSubject] = useState<Subject | null>(null);
-  const [newSubject, setNewSubject] = useState({
-    name: '',
-    description: '',
-    teacherId: '',
-    classIds: [] as string[],
-  });
+  const [assigningSubject, setAssigningSubject] = useState<Subject | null>(null);
 
   useEffect(() => {
     fetchSubjects();
@@ -276,124 +264,41 @@ const SubjectManagement = () => {
     return classIds.filter((id) => id !== classId);
   };
 
-  const handleAddSubject = async (e: React.FormEvent) => {
+  const handleAssignSubject = async (e: React.FormEvent) => {
     e.preventDefault();
-    try {
-      const token = getAuthToken();
-      const response = await fetch(`${API_BASE_URL}/api/admin/subjects`, {
-        method: 'POST',
-        headers: { 
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json' 
-        },
-        body: JSON.stringify({
-          name: newSubject.name.trim(),
-          description: newSubject.description,
-          teacherId: newSubject.teacherId || undefined,
-          classIds: newSubject.classIds,
-        }),
-      });
-
-      if (response.ok) {
-        setNewSubject({ name: '', description: '', teacherId: '', classIds: [] });
-        setIsAddDialogOpen(false);
-        fetchSubjects();
-        toast({ title: 'Success', description: 'Subject added successfully!' });
-      } else {
-        const errorData = await response.json();
-        toast({
-          title: 'Error',
-          description: errorData.message || 'Failed to add subject',
-          variant: 'destructive',
-        });
-      }
-    } catch (error) {
-      console.error('Failed to add subject:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to add subject. Please try again.',
-        variant: 'destructive',
-      });
-    }
-  };
-
-  const handleEditSubject = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!editingSubject) return;
+    if (!assigningSubject) return;
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/admin/subjects/${editingSubject.id}`, {
+      const response = await fetch(`${API_BASE_URL}/api/admin/subjects/${assigningSubject.id}`, {
         method: 'PUT',
         headers: { 
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${getAuthToken()}`
         },
         body: JSON.stringify({
-          name: editingSubject.name,
-          description: editingSubject.description,
-          teacherId: editingSubject.teacher?.id || undefined,
-          classIds: editingSubject.classIds || editingSubject.classes?.map((c) => c.id) || [],
+          teacherId: assigningSubject.teacher?.id || null,
+          classIds: assigningSubject.classIds || assigningSubject.classes?.map((c) => c.id) || [],
         }),
       });
 
       if (response.ok) {
-        setEditingSubject(null);
-        setIsEditDialogOpen(false);
+        setAssigningSubject(null);
+        setIsAssignDialogOpen(false);
         fetchSubjects();
-        toast({ title: 'Success', description: 'Subject updated successfully!' });
+        toast({ title: 'Success', description: 'Subject assignments updated!' });
       } else {
         const errorData = await response.json();
         toast({
           title: 'Error',
-          description: errorData.message || 'Failed to update subject',
+          description: errorData.message || 'Failed to update assignments',
           variant: 'destructive',
         });
       }
     } catch (error) {
-      console.error('Failed to update subject:', error);
+      console.error('Failed to assign subject:', error);
       toast({
         title: 'Error',
-        description: 'Failed to update subject. Please try again.',
-        variant: 'destructive',
-      });
-    }
-  };
-
-  const handleDeleteSubject = async (subjectId: string, subjectName: string) => {
-    const ok = await confirm({
-      title: `Delete ${subjectName}?`,
-      description: 'This action cannot be undone.',
-      confirmLabel: 'Delete',
-      destructive: true,
-    });
-    if (!ok) {
-      return;
-    }
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/admin/subjects/${subjectId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${getAuthToken()}`
-        }
-      });
-
-      if (response.ok) {
-        setSubjects((prev) => prev.filter((s) => s.id !== subjectId));
-        fetchSubjects();
-        toast({ title: 'Success', description: `${subjectName} has been deleted successfully.` });
-      } else {
-        const errorData = await response.json();
-        toast({
-          title: 'Error',
-          description: errorData.message || 'Failed to delete subject',
-          variant: 'destructive',
-        });
-      }
-    } catch (error) {
-      console.error('Failed to delete subject:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to delete subject. Please try again.',
+        description: 'Failed to update assignments. Please try again.',
         variant: 'destructive',
       });
     }
@@ -551,97 +456,10 @@ const SubjectManagement = () => {
         {/* Action Bar with Filters */}
         <div className="bg-white/40 backdrop-blur-xl rounded-2xl p-3 sm:p-4 lg:p-6 shadow-lg border border-sky-200">
           <div className="flex flex-col gap-4">
-            <div className="flex justify-end">
-              <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button className="bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700 text-white">
-                    <Plus className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
-                    Add Subject
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-lg">
-                  <DialogHeader>
-                    <DialogTitle>Create New Subject</DialogTitle>
-                    <DialogDescription>Add a new subject for your school.</DialogDescription>
-                  </DialogHeader>
-                  <form onSubmit={handleAddSubject} className="space-y-3">
-                    <div>
-                      <Label>Subject Name</Label>
-                      <Input
-                        value={newSubject.name}
-                        onChange={(e) => setNewSubject({ ...newSubject, name: e.target.value })}
-                        className={SUBJECT_FORM_FIELD_CLASS}
-                        required
-                      />
-                    </div>
-                    <div>
-                      <Label>Description</Label>
-                      <Textarea
-                        value={newSubject.description}
-                        onChange={(e) => setNewSubject({ ...newSubject, description: e.target.value })}
-                        rows={3}
-                        className={SUBJECT_FORM_FIELD_CLASS}
-                      />
-                    </div>
-                    <div>
-                      <Label>Assign Teacher</Label>
-                      <Select
-                        value={newSubject.teacherId || 'none'}
-                        onValueChange={(v) =>
-                          setNewSubject({ ...newSubject, teacherId: v === 'none' ? '' : v })
-                        }
-                      >
-                        <SelectTrigger className={SUBJECT_FORM_FIELD_CLASS}>
-                          <SelectValue placeholder="Select teacher" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="none">Unassigned</SelectItem>
-                          {teachers.map((t) => (
-                            <SelectItem key={t.id} value={t.id}>
-                              {t.fullName}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <Label>Assign to Class(es)</Label>
-                      {classes.length === 0 ? (
-                        <p className="text-sm text-sky-600">No classes yet. Add classes first.</p>
-                      ) : (
-                        <div className="max-h-40 overflow-y-auto border border-sky-200 rounded-lg p-3 space-y-2 bg-sky-50/50">
-                          {classes.map((cls) => (
-                            <label key={cls.id} className="flex items-center gap-2 text-sm text-sky-900">
-                              <Checkbox
-                                checked={newSubject.classIds.includes(cls.id)}
-                                onCheckedChange={(checked) =>
-                                  setNewSubject({
-                                    ...newSubject,
-                                    classIds: toggleClassId(
-                                      newSubject.classIds,
-                                      cls.id,
-                                      checked === true
-                                    ),
-                                  })
-                                }
-                              />
-                              <span>
-                                {cls.className} ({cls.classNumber}
-                                {cls.section ? `-${cls.section}` : ''})
-                              </span>
-                            </label>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex justify-end gap-2">
-                      <Button type="button" variant="outline" onClick={() => setIsAddDialogOpen(false)}>Cancel</Button>
-                      <Button type="submit">Create Subject</Button>
-                    </div>
-                  </form>
-                </DialogContent>
-              </Dialog>
-            </div>
+            <p className="text-sm text-sky-800">
+              Subjects are created by Super Admin. You can view them and assign teachers / classes —
+              you cannot edit or delete subjects.
+            </p>
             {/* Search Bar */}
           <div className="flex flex-col sm:flex-row gap-4 items-center">
               <div className="relative flex-1 max-w-md">
@@ -821,27 +639,23 @@ const SubjectManagement = () => {
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
-                      <Button size="icon" variant="outline" className="h-9 w-9 sm:h-10 sm:w-10 border-sky-200 text-sky-700 hover:bg-sky-50 shrink-0" onClick={() => handleViewSubject(subject)}>
+                      <Button size="icon" variant="outline" className="h-9 w-9 sm:h-10 sm:w-10 border-sky-200 text-sky-700 hover:bg-sky-50 shrink-0" onClick={() => handleViewSubject(subject)} title="View">
                         <Eye className="w-4 h-4 sm:w-5 sm:h-5" />
                       </Button>
                       <Button 
                         size="icon"
                         variant="outline" 
-                        className="h-9 w-9 sm:h-10 sm:w-10 border-sky-200 text-sky-700 hover:bg-sky-50 shrink-0"
+                        className="h-9 w-9 sm:h-10 sm:w-10 border-teal-200 text-teal-700 hover:bg-teal-50 shrink-0"
+                        title="Assign teachers & classes"
                         onClick={() => {
-                          setEditingSubject(subject);
-                          setIsEditDialogOpen(true);
+                          setAssigningSubject({
+                            ...subject,
+                            classIds: subject.classIds || subject.classes?.map((c) => c.id) || [],
+                          });
+                          setIsAssignDialogOpen(true);
                         }}
                       >
-                        <Edit className="w-4 h-4 sm:w-5 sm:h-5" />
-                      </Button>
-                      <Button 
-                        size="icon"
-                        variant="outline" 
-                        className="h-9 w-9 sm:h-10 sm:w-10 border-red-200 text-red-700 hover:bg-red-50 shrink-0"
-                        onClick={() => handleDeleteSubject(subject.id, subject.name)}
-                      >
-                        <Trash2 className="w-4 h-4 sm:w-5 sm:h-5" />
+                        <UserPlus className="w-4 h-4 sm:w-5 sm:h-5" />
                       </Button>
                     </div>
                   </TableCell>
@@ -855,49 +669,29 @@ const SubjectManagement = () => {
           <div className="text-center py-12">
             <BookOpen className="w-16 h-16 text-sky-300 mx-auto mb-4" />
             <h3 className="text-lg sm:text-xl font-semibold text-sky-700 mb-2">No subjects found</h3>
-            <p className="text-sky-600">Try adjusting your search criteria or add a new subject.</p>
+            <p className="text-sky-600">Try adjusting your search. Subjects are created by Super Admin.</p>
           </div>
         )}
       </div>
 
-      {/* Edit Subject Dialog */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+      {/* Assign teachers & classes — admin cannot edit/delete subject metadata */}
+      <Dialog open={isAssignDialogOpen} onOpenChange={setIsAssignDialogOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>Edit Subject</DialogTitle>
-            <DialogDescription>Update subject details.</DialogDescription>
+            <DialogTitle>Assign Subject</DialogTitle>
+            <DialogDescription>
+              Assign teachers and classes to{' '}
+              <span className="font-medium text-sky-900">{assigningSubject?.name}</span>. Subject
+              details are managed by Super Admin.
+            </DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleEditSubject} className="space-y-3">
-            <div>
-              <Label>Subject Name</Label>
-              <Input
-                value={editingSubject?.name || ''}
-                onChange={(e) =>
-                  setEditingSubject((prev) => (prev ? { ...prev, name: e.target.value } : prev))
-                }
-                className={SUBJECT_FORM_FIELD_CLASS}
-                required
-              />
-            </div>
-            <div>
-              <Label>Description</Label>
-              <Textarea
-                value={editingSubject?.description || ''}
-                onChange={(e) =>
-                  setEditingSubject((prev) =>
-                    prev ? { ...prev, description: e.target.value } : prev
-                  )
-                }
-                rows={3}
-                className={SUBJECT_FORM_FIELD_CLASS}
-              />
-            </div>
+          <form onSubmit={handleAssignSubject} className="space-y-3">
             <div>
               <Label>Assign Teacher</Label>
               <Select
-                value={editingSubject?.teacher?.id || 'none'}
+                value={assigningSubject?.teacher?.id || 'none'}
                 onValueChange={(v) =>
-                  setEditingSubject((prev) =>
+                  setAssigningSubject((prev) =>
                     prev
                       ? {
                           ...prev,
@@ -934,14 +728,14 @@ const SubjectManagement = () => {
               <div className="max-h-40 overflow-y-auto border border-sky-200 rounded-lg p-3 space-y-2 bg-sky-50/50">
                 {classes.map((cls) => {
                   const selected =
-                    editingSubject?.classIds?.includes(cls.id) ||
-                    editingSubject?.classes?.some((c) => c.id === cls.id);
+                    assigningSubject?.classIds?.includes(cls.id) ||
+                    assigningSubject?.classes?.some((c) => c.id === cls.id);
                   return (
                     <label key={cls.id} className="flex items-center gap-2 text-sm text-sky-900">
                       <Checkbox
                         checked={!!selected}
                         onCheckedChange={(checked) =>
-                          setEditingSubject((prev) => {
+                          setAssigningSubject((prev) => {
                             if (!prev) return prev;
                             const current =
                               prev.classIds || prev.classes?.map((c) => c.id) || [];
@@ -962,8 +756,8 @@ const SubjectManagement = () => {
               </div>
             </div>
             <div className="flex justify-end gap-2">
-              <Button type="button" variant="outline" onClick={() => setIsEditDialogOpen(false)}>Cancel</Button>
-              <Button type="submit">Update Subject</Button>
+              <Button type="button" variant="outline" onClick={() => setIsAssignDialogOpen(false)}>Cancel</Button>
+              <Button type="submit">Save assignments</Button>
             </div>
           </form>
         </DialogContent>
@@ -993,7 +787,6 @@ const SubjectManagement = () => {
           )}
         </DialogContent>
       </Dialog>
-      {ConfirmDialog}
     </div>
   );
 };

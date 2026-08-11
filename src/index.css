@@ -749,25 +749,24 @@ body.dashboard-no-scrollbar::-webkit-scrollbar {
 /* AppShell (admin/teacher/student) sidebar — plain, slim scrollbar */
 .app-shell-sidebar-nav {
   scrollbar-width: thin;
-  scrollbar-color: rgba(100, 116, 139, 0.45) transparent;
+  scrollbar-color: rgba(100, 116, 139, 0.2) transparent;
 }
 
 .app-shell-sidebar-nav::-webkit-scrollbar {
-  width: 5px;
+  width: 3px;
 }
 
 .app-shell-sidebar-nav::-webkit-scrollbar-track {
   background: transparent;
-  margin: 6px 0;
 }
 
 .app-shell-sidebar-nav::-webkit-scrollbar-thumb {
-  background: rgba(100, 116, 139, 0.35);
+  background: rgba(100, 116, 139, 0.2);
   border-radius: 999px;
 }
 
 .app-shell-sidebar-nav::-webkit-scrollbar-thumb:hover {
-  background: rgba(71, 85, 105, 0.55);
+  background: rgba(100, 116, 139, 0.45);
 }
 
 .app-shell-sidebar-nav::-webkit-scrollbar-button {
@@ -783,31 +782,34 @@ body.dashboard-no-scrollbar::-webkit-scrollbar {
 /* Super Admin sidebar — thin, soft scrollbar */
 .super-admin-sidebar-nav {
   scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.45) transparent;
+  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
 }
 
 .super-admin-sidebar-nav::-webkit-scrollbar {
-  width: 6px;
+  width: 3px;
 }
 
 .super-admin-sidebar-nav::-webkit-scrollbar-track {
   background: transparent;
-  margin: 4px 0;
 }
 
 .super-admin-sidebar-nav::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.2);
   border-radius: 999px;
 }
 
 .super-admin-sidebar-nav::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.65);
+  background: rgba(255, 255, 255, 0.4);
 }
 
 .super-admin-sidebar-nav::-webkit-scrollbar-button {
   display: none;
   height: 0;
   width: 0;
+}
+
+.super-admin-sidebar-nav::-webkit-scrollbar-corner {
+  background: transparent;
 }
 
 /* Visible text cursor in all editable fields (QA: cursor missing in some dashboards) */

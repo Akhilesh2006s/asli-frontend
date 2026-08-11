@@ -4293,122 +4293,99 @@ export default function ExamManagement() {
                   <h3 className="text-base sm:text-lg font-semibold text-gray-900">{classLabel}</h3>
                 </div>
 
-                <div className="grid grid-cols-1 items-stretch md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
                   {classExams.map((exam) => {
                         const examClassLabels = getExamClassStrings(exam);
                         const examSubjects = getExamSubjects(exam);
 
                         return (
-                          <Card
+                          <div
                             key={exam._id}
-                            className="flex h-full flex-col border border-gray-200 bg-white shadow-sm transition-shadow hover:shadow-md"
+                            className="flex h-full flex-col rounded-xl border border-gray-200 bg-white shadow-sm transition-shadow hover:shadow-md"
                           >
-                            <CardHeader className="px-4 pb-2 pt-4">
-                              <div className="space-y-2">
-                                <CardTitle className="text-sm sm:text-base font-bold text-gray-900 leading-tight line-clamp-2">{exam.title}</CardTitle>
-                                <div className="flex flex-wrap gap-1.5">
-                                  <Badge className={`${getExamTypeBadgeColor(exam.examType)} border text-mini`}>
-                                    {EXAM_TYPES.find(t => t.value === exam.examType)?.label}
-                                  </Badge>
-                                  {exam.isActive ? (
-                                    <Badge className="bg-green-100 text-green-700 border border-green-200 text-mini">Active</Badge>
-                                  ) : (
-                                    <Badge className="bg-gray-100 text-gray-600 border border-gray-200 text-mini">Inactive</Badge>
-                                  )}
-                                  {exam.isAllBoards ? (
-                                    <Badge className="border border-violet-200 bg-violet-50 text-mini text-violet-800">
-                                      All boards
-                                    </Badge>
-                                  ) : exam.isSchoolSpecific ? (
-                                    <Badge className="border border-amber-200 bg-amber-50 text-mini text-amber-900">
-                                      Specific schools
-                                      {(exam.targetSchools?.length ?? 0) > 0
-                                        ? ` · ${exam.targetSchools.length}`
-                                        : ''}
-                                    </Badge>
-                                  ) : (
-                                    <Badge
-                                      className={`${getBoardBadgeColor(exam.board)} border text-mini`}
-                                    >
-                                      {BOARDS.find((b) => b.value === exam.board)?.label ||
-                                        exam.board ||
-                                        'Board'}
-                                    </Badge>
-                                  )}
-                                </div>
-                              </div>
-                            </CardHeader>
-                            <CardContent className="flex flex-1 flex-col px-4 pb-4 pt-1">
-                              <div className="min-h-0 flex-1 space-y-3">
-                                {exam.description && (
-                                  <p className="text-xs text-gray-600 line-clamp-2">{exam.description}</p>
+                            {/* Header — title + badges */}
+                            <div className="px-4 pt-3 pb-2">
+                              <p className="mb-1.5 text-sm font-bold leading-tight text-gray-900 line-clamp-2">{exam.title}</p>
+                              <div className="flex flex-wrap gap-1">
+                                <Badge className={`${getExamTypeBadgeColor(exam.examType)} border text-mini`}>
+                                  {EXAM_TYPES.find(t => t.value === exam.examType)?.label}
+                                </Badge>
+                                {exam.isActive ? (
+                                  <Badge className="bg-green-100 text-green-700 border border-green-200 text-mini">Active</Badge>
+                                ) : (
+                                  <Badge className="bg-gray-100 text-gray-600 border border-gray-200 text-mini">Inactive</Badge>
                                 )}
-                                <div className="space-y-1.5 text-xs text-gray-600">
-                                  <div className="flex items-center gap-1.5">
-                                    <Clock className="h-3.5 w-3.5 shrink-0 text-gray-500" />
-                                    <span>
-                                      {Number.isFinite(Number(exam.duration)) && Number(exam.duration) > 0
-                                        ? `${exam.duration} min`
-                                        : 'Duration not set'}
-                                    </span>
-                                  </div>
-                                  <div className="flex items-center gap-1.5">
-                                    <BookOpen className="h-3.5 w-3.5 shrink-0 text-gray-500" />
-                                    <span>
-                                      {typeof exam.actualQuestionCount === 'number'
-                                        ? `${exam.actualQuestionCount}/${exam.totalQuestions}`
-                                        : exam.totalQuestions}{' '}
-                                      questions ·{' '}
-                                      {typeof exam.actualMarksSum === 'number'
-                                        ? `${exam.actualMarksSum}/${exam.totalMarks}`
-                                        : exam.totalMarks}{' '}
-                                      marks
-                                    </span>
-                                  </div>
-                                  <div className="flex items-center gap-1.5">
-                                    <Eye className="h-3.5 w-3.5 shrink-0 text-gray-500" />
-                                    <span>{exam.maxAttempts || 1} attempt(s)</span>
-                                  </div>
-                                  <div className="flex items-center gap-1.5">
-                                    <Calendar className="h-3.5 w-3.5 shrink-0 text-gray-500" />
-                                    <span>
-                                      {new Date(exam.startDate).toLocaleDateString()} - {new Date(exam.endDate).toLocaleDateString()}
-                                    </span>
-                                  </div>
+                                {exam.isAllBoards ? (
+                                  <Badge className="border border-violet-200 bg-violet-50 text-mini text-violet-800">All boards</Badge>
+                                ) : exam.isSchoolSpecific ? (
+                                  <Badge className="border border-amber-200 bg-amber-50 text-mini text-amber-900">
+                                    Specific schools{(exam.targetSchools?.length ?? 0) > 0 ? ` · ${exam.targetSchools.length}` : ''}
+                                  </Badge>
+                                ) : (
+                                  <Badge className={`${getBoardBadgeColor(exam.board)} border text-mini`}>
+                                    {BOARDS.find((b) => b.value === exam.board)?.label || exam.board || 'Board'}
+                                  </Badge>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Body — grows to fill card height */}
+                            <div className="flex flex-1 flex-col gap-2 px-4 pb-3">
+                              {exam.description && (
+                                <p className="text-xs text-gray-600 line-clamp-2">{exam.description}</p>
+                              )}
+                              <div className="space-y-1 text-xs text-gray-600">
+                                <div className="flex items-center gap-1.5">
+                                  <Clock className="h-3.5 w-3.5 shrink-0 text-gray-400" />
+                                  <span>{Number.isFinite(Number(exam.duration)) && Number(exam.duration) > 0 ? `${exam.duration} min` : 'Duration not set'}</span>
                                 </div>
-                                <div className="flex flex-wrap gap-1">
-                                  {examSubjects.map((subj) => (
-                                    <Badge key={`${exam._id}-subject-${subj}`} variant="outline" className="text-micro bg-blue-50 text-blue-700 border-blue-200">
-                                      {EXAM_SUBJECTS.find((x) => x.value === subj)?.label || normalizeDisplayText(subj)}
-                                    </Badge>
-                                  ))}
-                                  {examClassLabels.length > 0 ? (
-                                    examClassLabels.map((cls: string, idx: number) => (
-                                      <Badge key={`${exam._id}-class-${idx}`} variant="outline" className="text-micro bg-gray-50">
-                                        {`Class ${cls}`}
-                                      </Badge>
-                                    ))
-                                  ) : (
-                                    <Badge variant="outline" className="text-micro bg-gray-50">No Class Assigned</Badge>
-                                  )}
+                                <div className="flex items-center gap-1.5">
+                                  <BookOpen className="h-3.5 w-3.5 shrink-0 text-gray-400" />
+                                  <span>
+                                    {typeof exam.actualQuestionCount === 'number' ? `${exam.actualQuestionCount}/${exam.totalQuestions}` : exam.totalQuestions} questions · {typeof exam.actualMarksSum === 'number' ? `${exam.actualMarksSum}/${exam.totalMarks}` : exam.totalMarks} marks
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-1.5">
+                                  <Eye className="h-3.5 w-3.5 shrink-0 text-gray-400" />
+                                  <span>{exam.maxAttempts || 1} attempt(s)</span>
+                                </div>
+                                <div className="flex items-center gap-1.5">
+                                  <Calendar className="h-3.5 w-3.5 shrink-0 text-gray-400" />
+                                  <span>{new Date(exam.startDate).toLocaleDateString()} – {new Date(exam.endDate).toLocaleDateString()}</span>
                                 </div>
                               </div>
-                              <div className="mt-auto grid grid-cols-3 gap-2 border-t border-gray-100 pt-3 select-none">
+                              <div className="flex flex-wrap gap-1">
+                                {examSubjects.map((subj) => (
+                                  <Badge key={`${exam._id}-s-${subj}`} variant="outline" className="text-micro bg-blue-50 text-blue-700 border-blue-200">
+                                    {EXAM_SUBJECTS.find((x) => x.value === subj)?.label || normalizeDisplayText(subj)}
+                                  </Badge>
+                                ))}
+                                {examClassLabels.length > 0
+                                  ? examClassLabels.map((cls: string, idx: number) => (
+                                      <Badge key={`${exam._id}-c-${idx}`} variant="outline" className="text-micro bg-gray-50">Class {cls}</Badge>
+                                    ))
+                                  : <Badge variant="outline" className="text-micro bg-gray-50">No Class Assigned</Badge>
+                                }
+                              </div>
+
+                              {/* Spacer pushes buttons to bottom */}
+                              <div className="flex-1" />
+
+                              {/* Action buttons — always at bottom */}
+                              <div className="flex items-center gap-1.5 border-t border-gray-100 pt-2.5 select-none">
                                 <Button
                                   type="button"
-                                  variant="outline"
                                   size="sm"
-                                  className="h-8 justify-center px-2 text-xs select-none"
+                                  className="h-7 flex-1 justify-center gap-1 bg-indigo-600 px-2 text-xs font-medium text-white hover:bg-indigo-700"
                                   onClick={() => openEditExamDialog(exam)}
                                 >
-                                  <Edit className="mr-1 h-3.5 w-3.5 shrink-0" />
-                                  <span className="whitespace-nowrap">Edit</span>
+                                  <Edit className="h-3 w-3 shrink-0" />
+                                  Edit
                                 </Button>
                                 <Button
                                   type="button"
-                                  variant="outline"
                                   size="sm"
-                                  className="h-8 justify-center px-2 text-xs select-none border-teal-200 text-teal-800 hover:bg-teal-50"
+                                  className="h-7 flex-1 justify-center gap-1 bg-teal-600 px-2 text-xs font-medium text-white hover:bg-teal-700"
                                   onClick={() => {
                                     setSelectedExam(exam);
                                     resetQuestionForm();
@@ -4417,22 +4394,21 @@ export default function ExamManagement() {
                                     fetchQuestions(exam._id);
                                   }}
                                 >
-                                  <Plus className="mr-1 h-3.5 w-3.5 shrink-0" />
-                                  <span className="whitespace-nowrap">Add</span>
+                                  <Plus className="h-3 w-3 shrink-0" />
+                                  Add
                                 </Button>
                                 <Button
                                   type="button"
-                                  variant="outline"
                                   size="sm"
-                                  className="h-8 justify-center px-2 text-xs text-red-600 border-red-200 hover:bg-red-50 select-none"
+                                  className="h-7 flex-1 justify-center gap-1 border border-red-200 bg-red-50 px-2 text-xs font-medium text-red-600 hover:bg-red-100"
                                   onClick={() => handleDeleteExam(exam._id)}
                                 >
-                                  <Trash2 className="mr-1 h-3.5 w-3.5 shrink-0" />
-                                  <span className="whitespace-nowrap">Delete</span>
+                                  <Trash2 className="h-3 w-3 shrink-0" />
+                                  Delete
                                 </Button>
                               </div>
-                            </CardContent>
-                          </Card>
+                            </div>
+                          </div>
                         );
                       })}
                 </div>

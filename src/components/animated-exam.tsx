@@ -8,7 +8,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { getAuthToken } from '@/lib/auth-utils';
+import { getAuthToken, getUser, getUserIdFromAuthToken } from '@/lib/auth-utils';
 import { AuthenticatedUploadImage } from '@/components/AuthenticatedUploadImage';
 import { MatchColumnsTable } from '@/components/exam/MatchColumnsTable';
 import {
@@ -26,6 +26,13 @@ import {
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { normalizeAndFormatExamDisplayText, resolveAssertionReasonDisplay } from '@/lib/exam-text-normalize';
+import {
+  clearLocalExamDraft,
+  pickResumeDraft,
+  readLocalExamDraft,
+  writeLocalExamDraft,
+  type ExamDraftLocal,
+} from '@/lib/exam-attempt-draft';
 
 interface Question {
   _id: string;
@@ -146,6 +153,7 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
   const [showReenterPrompt, setShowReenterPrompt] = useState(false);
   const [timerInitialized, setTimerInitialized] = useState(false);
   const [questionTimings, setQuestionTimings] = useState<Record<string, number>>({});
+  const [resumeNotice, setResumeNotice] = useState<string | null>(null);
   const MAX_EXIT_ATTEMPTS = 5;
   const submissionInProgressRef = useRef(false);
   const autoSubmitTriggeredRef = useRef(false);
@@ -154,6 +162,56 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
   const questionEnterTimestampRef = useRef<number>(Date.now());
   const lastTrackedQuestionIdRef = useRef<string | null>(null);
   const initializedExamIdRef = useRef<string | null>(null);
+  const answersRef = useRef(answers);
+  const timeLeftRef = useRef(timeLeft);
+  const flaggedRef = useRef(flaggedQuestions);
+  const questionTimingsRef = useRef(questionTimings);
+  const currentIndexRef = useRef(currentQuestionIndex);
+  const isSubmittedRef = useRef(isSubmitted);
+  const draftHydratedRef = useRef(false);
+
+  answersRef.current = answers;
+  timeLeftRef.current = timeLeft;
+  flaggedRef.current = flaggedQuestions;
+  questionTimingsRef.current = questionTimings;
+  currentIndexRef.current = currentQuestionIndex;
+  isSubmittedRef.current = isSubmitted;
+
+  const resolveDraftUserId = () => {
+    const u = getUser();
+    return String(u?._id || u?.id || getUserIdFromAuthToken() || '');
+  };
+
+  const persistDraftNow = async (opts?: { keepalive?: boolean }) => {
+    if (!exam || isSubmittedRef.current || submissionInProgressRef.current) return;
+    const durationSeconds = Math.max(
+      60,
+      Math.round((Number(exam.duration) > 0 ? Number(exam.duration) : 30) * 60),
+    );
+    const payload = {
+      answers: answersRef.current || {},
+      flaggedQuestions: Array.from(flaggedRef.current || []),
+      questionTimings: questionTimingsRef.current || {},
+      currentQuestionIndex: currentIndexRef.current || 0,
+      remainingSeconds: Math.max(0, timeLeftRef.current || 0),
+      durationSeconds,
+    };
+    writeLocalExamDraft(examId, payload, resolveDraftUserId());
+    try {
+      await fetch(`${API_BASE_URL}/api/student/exams/${examId}/attempt-draft`, {
+        method: 'PUT',
+        headers: {
+          Authorization: `Bearer ${getAuthToken()}`,
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify(payload),
+        keepalive: opts?.keepalive === true,
+      });
+    } catch (err) {
+      console.warn('Exam autosave failed (local backup kept):', err);
+    }
+  };
 
   // Fetch exam data
   const { data: exam, isLoading, isError, error } = useQuery({
@@ -240,26 +298,133 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
     refetchOnReconnect: false,
   });
 
-  // Initialize timer
+  // Initialize timer + restore autosaved answers (timer freezes at last save while offline)
   useEffect(() => {
-    if (exam) {
-      const incomingExamId = String(exam._id || examId || '');
-      const alreadyInitializedForSameExam = initializedExamIdRef.current === incomingExamId;
-      if (alreadyInitializedForSameExam && timerInitialized) {
-        return;
-      }
-      const rawDuration = Number(exam.duration);
-      const safeDurationMinutes =
-        Number.isFinite(rawDuration) && rawDuration > 0 ? rawDuration : 30;
-      setTimeLeft(Math.round(safeDurationMinutes * 60));
-      setTimerInitialized(true);
-      initializedExamIdRef.current = incomingExamId;
-    } else {
+    if (!exam) {
       setTimeLeft(0);
       setTimerInitialized(false);
       initializedExamIdRef.current = null;
+      draftHydratedRef.current = false;
+      return;
     }
+
+    const incomingExamId = String(exam._id || examId || '');
+    const alreadyInitializedForSameExam = initializedExamIdRef.current === incomingExamId;
+    if (alreadyInitializedForSameExam && timerInitialized) {
+      return;
+    }
+
+    let cancelled = false;
+    const rawDuration = Number(exam.duration);
+    const safeDurationMinutes =
+      Number.isFinite(rawDuration) && rawDuration > 0 ? rawDuration : 30;
+    const fullSeconds = Math.round(safeDurationMinutes * 60);
+
+    (async () => {
+      let serverDraft: ExamDraftLocal | null = null;
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/student/exams/${examId}/attempt-draft`, {
+          headers: {
+            Authorization: `Bearer ${getAuthToken()}`,
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+        });
+        if (res.ok) {
+          const json = await res.json();
+          if (json?.data) {
+            serverDraft = {
+              examId: String(json.data.examId || examId),
+              answers: json.data.answers || {},
+              flaggedQuestions: Array.isArray(json.data.flaggedQuestions)
+                ? json.data.flaggedQuestions
+                : [],
+              questionTimings: json.data.questionTimings || {},
+              currentQuestionIndex: Number(json.data.currentQuestionIndex) || 0,
+              remainingSeconds: Math.max(0, Number(json.data.remainingSeconds) || 0),
+              durationSeconds: Math.max(1, Number(json.data.durationSeconds) || fullSeconds),
+              lastSavedAt: String(json.data.lastSavedAt || new Date().toISOString()),
+            };
+          }
+        }
+      } catch (err) {
+        console.warn('Failed to load exam draft from server:', err);
+      }
+
+      if (cancelled) return;
+
+      const localDraft = readLocalExamDraft(examId, resolveDraftUserId());
+      const draft = pickResumeDraft(serverDraft, localDraft);
+      const hasProgress =
+        draft &&
+        (Object.keys(draft.answers || {}).length > 0 ||
+          draft.remainingSeconds < fullSeconds - 5);
+
+      if (hasProgress && draft) {
+        setAnswers(draft.answers || {});
+        setFlaggedQuestions(new Set(draft.flaggedQuestions || []));
+        setQuestionTimings(draft.questionTimings || {});
+        const maxIdx = Math.max(0, (exam.questions?.length || 1) - 1);
+        setCurrentQuestionIndex(Math.min(maxIdx, Math.max(0, draft.currentQuestionIndex || 0)));
+        const resumeSeconds = Math.min(fullSeconds, Math.max(0, Number(draft.remainingSeconds) || 0));
+        setTimeLeft(resumeSeconds);
+        const answered = Object.keys(draft.answers || {}).length;
+        const mm = Math.floor(resumeSeconds / 60);
+        const ss = resumeSeconds % 60;
+        setResumeNotice(
+          `Resumed from autosave — ${answered} answer(s) restored · ${mm}:${String(ss).padStart(2, '0')} left (timer was paused while offline)`,
+        );
+      } else {
+        setTimeLeft(fullSeconds);
+      }
+
+      setTimerInitialized(true);
+      initializedExamIdRef.current = incomingExamId;
+      draftHydratedRef.current = true;
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [exam, examId, timerInitialized]);
+
+  // Periodic autosave + save on tab hide / page close (freezes remaining time on server)
+  useEffect(() => {
+    if (!exam || !timerInitialized || isSubmitted) return;
+
+    const interval = window.setInterval(() => {
+      void persistDraftNow();
+    }, 15000);
+
+    const onHide = () => {
+      if (document.visibilityState === 'hidden') {
+        void persistDraftNow({ keepalive: true });
+      }
+    };
+    const onUnload = () => {
+      void persistDraftNow({ keepalive: true });
+    };
+
+    document.addEventListener('visibilitychange', onHide);
+    window.addEventListener('pagehide', onUnload);
+    window.addEventListener('beforeunload', onUnload);
+
+    return () => {
+      window.clearInterval(interval);
+      document.removeEventListener('visibilitychange', onHide);
+      window.removeEventListener('pagehide', onUnload);
+      window.removeEventListener('beforeunload', onUnload);
+    };
+  }, [exam, examId, timerInitialized, isSubmitted]);
+
+  // Debounced autosave when answers change
+  useEffect(() => {
+    if (!exam || !timerInitialized || isSubmitted || !draftHydratedRef.current) return;
+    const t = window.setTimeout(() => {
+      void persistDraftNow();
+    }, 1200);
+    return () => window.clearTimeout(t);
+  }, [answers, flaggedQuestions, currentQuestionIndex, exam, timerInitialized, isSubmitted]);
 
   // Function to enter/re-enter fullscreen
   const enterFullscreen = async () => {
@@ -669,6 +834,7 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
         }
 
         console.log('✅ Exam result saved successfully:', responseData);
+        clearLocalExamDraft(examId, resolveDraftUserId());
 
         // Server is the source of truth for grading.
         let authoritativeResult: ExamResult = result;
@@ -1112,6 +1278,18 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
               Submit
             </Button>
           </div>
+          {resumeNotice ? (
+            <div className="mt-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-900">
+              {resumeNotice}
+              <button
+                type="button"
+                className="ml-2 underline"
+                onClick={() => setResumeNotice(null)}
+              >
+                Dismiss
+              </button>
+            </div>
+          ) : null}
 
           {/* Progress Bar */}
           <div className="mt-3">

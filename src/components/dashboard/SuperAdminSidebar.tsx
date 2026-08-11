@@ -114,7 +114,7 @@ export function SuperAdminSidebar({ currentView, onViewChange, user, onLogout }:
 
   const sidebarContent = (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="shrink-0 p-3 sm:p-4 lg:p-6 pb-2">
+      <div className="shrink-0 px-3 pt-3 pb-1 lg:px-4 lg:pt-4">
         <button
           type="button"
           onClick={() => {
@@ -122,7 +122,7 @@ export function SuperAdminSidebar({ currentView, onViewChange, user, onLogout }:
             setMobileOpen(false);
           }}
           className={cn(
-            "flex w-full items-center mb-4 lg:mb-6 rounded-lg text-left transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60",
+            "flex w-full items-center mb-1 rounded-lg text-left transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60",
             useDrawerNav ? "space-x-3 px-1 py-1" : "justify-center lg:justify-start lg:space-x-3 px-1 py-1",
           )}
           aria-label="Go to Super Admin home"

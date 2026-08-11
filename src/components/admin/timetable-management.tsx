@@ -786,9 +786,10 @@ export default function TimetableManagement() {
                 <span className="block">
                   1) Class weekly grid (like school printouts): header such as{' '}
                   <span className="font-medium text-gray-800">6A - Teacher</span>, then Time / Period
-                  rows and Mon–Sat subject cells. Missing classes (e.g. 6-C, 10-A) and activity
-                  subjects are created automatically. Re-upload replaces that week for the classes
-                  in the file. Teacher column is optional.
+                  rows and Mon–Sat subject cells. Subjects must already exist (managed by Super Admin)
+                  and be assignable to the class. Missing classes (e.g. 6-C, 10-A) can still be
+                  auto-created. Re-upload replaces that week for the classes in the file. Teacher
+                  column is optional.
                 </span>
                 <span className="block">
                   2) Flat row file (Date, Day, StartTime, EndTime, Class, Section, Subject, Teacher).
@@ -871,9 +872,10 @@ export default function TimetableManagement() {
                   })()}
                   {importErrors.some((e) => String(e.reason || '').includes('not found')) && (
                     <p className="text-amber-800">
-                      Tip: create missing classes in School Management, or re-upload a class grid —
-                      missing classes are auto-created. Re-uploading a class grid replaces that
-                      week&apos;s periods for those classes.
+                      Tip: create missing classes in School Management if needed. Subjects must
+                      already exist (Super Admin catalog) — timetable import no longer auto-creates
+                      subjects. Re-uploading a class grid replaces that week&apos;s periods for those
+                      classes.
                     </p>
                   )}
                 </div>

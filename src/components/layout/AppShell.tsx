@@ -95,17 +95,17 @@ function SidebarBody({
       <Link
         href={homeHref}
         onClick={onNavigate}
-        className="flex items-center gap-3 px-5 py-6 transition-colors hover:bg-sidebar-accent/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
+        className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-sidebar-accent/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
         aria-label="Go to home"
         title="Home"
       >
         <img
           src="/logo.jpg"
           alt=""
-          className="h-10 w-10 shrink-0 rounded-xl object-cover ring-1 ring-sidebar-border"
+          className="h-8 w-8 shrink-0 rounded-lg object-cover ring-1 ring-sidebar-border"
         />
         <div className="min-w-0">
-          <p className="font-display text-lg font-extrabold leading-tight text-sidebar-heading">
+          <p className="font-display text-base font-extrabold leading-tight text-sidebar-heading">
             AsliLearn <span className="text-primary">AI</span>
           </p>
           <p className="truncate text-xs text-sidebar-foreground">AI-Powered Learning</p>
@@ -113,7 +113,7 @@ function SidebarBody({
       </Link>
 
       {/* Nav */}
-      <nav aria-label="Main" className="app-shell-sidebar-nav flex-1 space-y-1.5 overflow-y-auto px-3 pb-4">
+      <nav aria-label="Main" className="app-shell-sidebar-nav flex-1 space-y-0.5 overflow-y-auto px-3 pb-4">
         {nav.map((item) => (
           <NavRow
             key={item.id}
