@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { MapPin, User } from 'lucide-react';
+import { MapPin, Pencil, User } from 'lucide-react';
 import type { TimetableEntry } from '@/types/timetable';
 import {
   entryAccentStyle,
@@ -99,7 +99,7 @@ export function TimetableGridCell({
             style={accent}
             title={`${primaryLabel}${teacherName ? ` · ${teacherName}` : ''} · ${entry.startTime}–${entry.endTime}`}
             className={cn(
-              'relative rounded-lg border shadow-sm overflow-hidden',
+              'relative rounded-lg border shadow-sm overflow-hidden group',
               interactive && onEntryClick ? 'cursor-pointer' : 'cursor-default',
               dense ? 'px-1.5 py-1.5' : compact ? 'p-1.5' : 'p-2',
               isTeacher && 'bg-[#F0EBFF] border-violet-200/70',
@@ -111,6 +111,11 @@ export function TimetableGridCell({
               ongoing && 'ring-2 ring-orange-400 ring-offset-1 shadow-md z-[1]',
             )}
           >
+            {interactive && onEntryClick ? (
+              <span className="absolute top-1 right-1 z-[2] rounded-md bg-white/95 p-0.5 text-orange-700 opacity-0 shadow-sm group-hover:opacity-100 transition-opacity">
+                <Pencil className="w-3 h-3" />
+              </span>
+            ) : null}
             {isAdmin && cls ? (
               <p className="text-[9px] font-bold text-orange-700 mb-0.5 tracking-wide">{cls}</p>
             ) : null}

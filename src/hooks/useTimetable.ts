@@ -133,12 +133,19 @@ export function useRemapPeriodTimes() {
       endDate: string;
       mappings: Array<{ fromStart: string; toStart: string; toEnd: string }>;
       breaksToAdd?: Array<{ startTime: string; endTime: string; label: string }>;
+      breaksToUpdate?: Array<{ fromStart: string; toStart: string; toEnd: string; label: string }>;
+      breaksToRemove?: Array<{ fromStart: string }>;
     }) => {
       const res = await apiFetch('/api/timetable/remap-periods', {
         method: 'POST',
         body: JSON.stringify(payload),
       });
-      return parseJson<{ updated: number; breaksCreated: number }>(res);
+      return parseJson<{
+        updated: number;
+        breaksCreated: number;
+        breaksUpdated?: number;
+        breaksRemoved?: number;
+      }>(res);
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['timetable'] }),
   });

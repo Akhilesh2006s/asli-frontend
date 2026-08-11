@@ -119,3 +119,41 @@ export function getExamClassLabelsForStudent(
   if (!c || !examIncludesClass(exam, c)) return [];
   return [c];
 }
+
+export type ExamClassCard<T extends ExamClassLike = ExamClassLike> = T & {
+  /** Class this card represents (one card per assigned class). */
+  viewClassNumber: string;
+  /** Stable list key when the same exam is shown for multiple classes. */
+  cardKey: string;
+};
+
+/**
+ * Expand exams into one card per assigned class so school admins see
+ * Class 6 / 7 / 8 separately (matches Super Admin class sections).
+ * Exams with no class still appear once with viewClassNumber ''.
+ */
+export function expandExamsByClass<T extends ExamClassLike & { _id?: string }>(
+  exams: T[],
+): ExamClassCard<T>[] {
+  const out: ExamClassCard<T>[] = [];
+  for (const exam of exams || []) {
+    const classes = getExamClassStrings(exam);
+    const examId = String((exam as { _id?: string })._id || '');
+    if (classes.length === 0) {
+      out.push({
+        ...exam,
+        viewClassNumber: '',
+        cardKey: examId || `exam-${out.length}`,
+      });
+      continue;
+    }
+    for (const cl of classes) {
+      out.push({
+        ...exam,
+        viewClassNumber: cl,
+        cardKey: `${examId}::${cl}`,
+      });
+    }
+  }
+  return out;
+}

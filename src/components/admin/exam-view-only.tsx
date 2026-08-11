@@ -12,7 +12,9 @@ import { getAuthToken } from '@/lib/auth-utils';
 import {
   CLASS_FILTER_OPTIONS,
   examIncludesClass,
+  expandExamsByClass,
   getExamClassStrings,
+  type ExamClassCard,
 } from '@/lib/exam-classes';
 import { downloadSchoolPerformanceAnalysisExcel } from '@/lib/school-performance-analysis-excel';
 
@@ -162,7 +164,7 @@ export default function ExamViewOnly() {
     });
   };
   const [exams, setExams] = useState<Exam[]>([]);
-  const [selectedExam, setSelectedExam] = useState<Exam | null>(null);
+  const [selectedExam, setSelectedExam] = useState<(Exam & { viewClassNumber?: string }) | null>(null);
   const [examResults, setExamResults] = useState<ExamResult[]>([]);
   const [analytics, setAnalytics] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -199,13 +201,24 @@ export default function ExamViewOnly() {
   };
 
   const filteredExams = useMemo(() => {
+    const expanded = expandExamsByClass(exams);
     const list =
       listClassFilter === 'all'
-        ? [...exams]
-        : exams.filter((e) => examIncludesClass(e, listClassFilter));
+        ? expanded
+        : expanded.filter(
+            (e) =>
+              e.viewClassNumber === listClassFilter ||
+              (!e.viewClassNumber && examIncludesClass(e, listClassFilter)),
+          );
     list.sort((a, b) => {
       const timeDiff = getExamSortTime(b) - getExamSortTime(a);
       if (timeDiff !== 0) return timeDiff;
+      const classDiff = String(a.viewClassNumber || '').localeCompare(
+        String(b.viewClassNumber || ''),
+        undefined,
+        { numeric: true },
+      );
+      if (classDiff !== 0) return classDiff;
       return (a.title || '').localeCompare(b.title || '');
     });
     return list;
@@ -321,15 +334,17 @@ export default function ExamViewOnly() {
     }
   };
 
-  const handleViewExam = async (exam: Exam) => {
+  const handleViewExam = async (exam: ExamClassCard<Exam>) => {
     const examId = String(exam._id ?? '');
-    setSelectedExam(exam);
+    const focusClass = String(exam.viewClassNumber || '').trim();
+    setSelectedExam({ ...exam, viewClassNumber: focusClass });
     setAnalytics(null);
     setShowAllPerformers(false);
     setShowFilters(false);
     const examClasses = getExamClassStrings(exam);
     const nextFilters = {
-      classNumber: examClasses.length === 1 ? examClasses[0] : '',
+      // Always scope to the card's class when present so Class 6 never shows Class 7 results
+      classNumber: focusClass || (examClasses.length === 1 ? examClasses[0] : ''),
       subject: '',
       startDate: '',
       endDate: '',
@@ -434,11 +449,18 @@ export default function ExamViewOnly() {
             <Button variant="outline" onClick={() => setSelectedExam(null)}>
               ← Back to Exams
             </Button>
-            <h2 className="text-xl sm:text-2xl font-bold mt-4">{selectedExam.title}</h2>
+            <h2 className="text-xl sm:text-2xl font-bold mt-4">
+              {selectedExam.title}
+              {selectedExam.viewClassNumber
+                ? ` · Class ${normalizeClassNumberForDisplay(selectedExam.viewClassNumber)}`
+                : ''}
+            </h2>
             <p className="text-sm text-gray-600 mt-1">
               {(() => {
-                const classes =
-                  analytics?.examClasses?.length > 0
+                const focus = selectedExam.viewClassNumber || filters.classNumber;
+                const classes = focus
+                  ? [focus]
+                  : analytics?.examClasses?.length > 0
                     ? analytics.examClasses
                     : getExamClassStrings(selectedExam);
                 const classLabel =
@@ -800,7 +822,9 @@ export default function ExamViewOnly() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h2 className="text-xl sm:text-2xl font-bold">Exams (View Only)</h2>
-          <p className="text-gray-600 mt-1">View exams Super Admin assigned to your school</p>
+          <p className="text-gray-600 mt-1">
+            View exams Super Admin assigned to your school. Each class is shown as its own card.
+          </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Label className="text-xs sm:text-sm text-gray-600 whitespace-nowrap">Class</Label>
@@ -840,7 +864,9 @@ export default function ExamViewOnly() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:p-4 lg:p-6">
           {filteredExams.map((exam, index) => {
             const status = getExamStatus(exam);
-            const classLabels = getExamClassStrings(exam);
+            const classLabels = exam.viewClassNumber
+              ? [exam.viewClassNumber]
+              : getExamClassStrings(exam);
             // Cycle through orange, sky blue, and teal gradients
             const colorSchemes = [
               { bg: 'from-orange-300 to-orange-400', text: 'text-gray-900', badge: 'bg-orange-500/20 text-gray-900' },
@@ -851,7 +877,7 @@ export default function ExamViewOnly() {
             
             return (
               <Card
-                key={exam._id}
+                key={exam.cardKey}
                 className={`bg-gradient-to-br ${colorScheme.bg} border-0 hover:shadow-xl transition-all duration-300 h-full flex flex-col`}
               >
                 <CardHeader className="pb-3">

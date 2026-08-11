@@ -29,12 +29,38 @@ import type { TimetableEntry, TimetableFilters, SessionType } from '@/types/time
 import { SESSION_TYPE_COLORS, STATUS_COLORS, COLOR_PRESETS } from '@/types/timetable';
 import { cn } from '@/lib/utils';
 import { WeeklyTimetableGrid } from '@/components/timetable/WeeklyTimetableGrid';
-import { colorTagForSubject, dateForWeekdayIndex, getPeriodColumnsFromEntries, getWeekDates, type WeekdayIndex } from '@/lib/student-timetable-utils';
+import {
+  colorTagForSubject,
+  dateForWeekdayIndex,
+  getPeriodColumnsFromEntries,
+  getWeekDates,
+  isBreakEntry,
+  type WeekdayIndex,
+} from '@/lib/student-timetable-utils';
+import { ScrollTimePicker, addMinutesToHhMm } from '@/components/ui/scroll-time-picker';
 
 const FORM_INPUT =
   'rounded-xl border-orange-200 bg-white min-w-0 w-full h-10 text-sm focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-0 focus-visible:border-orange-500 selection:bg-orange-200 selection:text-orange-950';
 const FORM_SELECT_TRIGGER =
   'rounded-xl border-orange-200 bg-white w-full min-w-0 h-10 focus:ring-2 focus:ring-orange-500 focus:ring-offset-0 focus:border-orange-500';
+
+type BreakPreset = 'short' | 'lunch' | 'long' | 'custom';
+
+type BreakDraft = {
+  id: string;
+  fromStart: string;
+  startTime: string;
+  endTime: string;
+  label: string;
+  isNew: boolean;
+};
+
+const BREAK_PRESETS: Array<{ id: BreakPreset; label: string; minutes: number; name: string }> = [
+  { id: 'short', label: 'Short Break', minutes: 15, name: 'Break' },
+  { id: 'lunch', label: 'Lunch', minutes: 40, name: 'Lunch' },
+  { id: 'long', label: 'Long Break', minutes: 20, name: 'Long Break' },
+  { id: 'custom', label: 'Custom', minutes: 15, name: 'Break' },
+];
 
 type ViewMode = 'week' | 'teacher' | 'class' | 'room';
 
@@ -177,9 +203,11 @@ export default function TimetableManagement() {
   const [periodDrafts, setPeriodDrafts] = useState<
     Array<{ key: string; fromStart: string; startTime: string; endTime: string }>
   >([]);
-  const [breakDrafts, setBreakDrafts] = useState<
-    Array<{ id: string; startTime: string; endTime: string; label: string }>
-  >([]);
+  const [breakDrafts, setBreakDrafts] = useState<BreakDraft[]>([]);
+  const [removedBreakStarts, setRemovedBreakStarts] = useState<string[]>([]);
+  const [breakPreset, setBreakPreset] = useState<BreakPreset>('short');
+  const [insertAfterPeriod, setInsertAfterPeriod] = useState(0);
+  const [focusBreakId, setFocusBreakId] = useState<string | null>(null);
 
   const weekStartDate = useMemo(
     () => startOfWeek(currentDate, { weekStartsOn: 1 }),
@@ -236,18 +264,64 @@ export default function TimetableManagement() {
   const importCsv = useImportTimetableCSV();
   const remapPeriodsMut = useRemapPeriodTimes();
 
-  const openPeriodsEditor = () => {
-    const cols = getPeriodColumnsFromEntries(displayEntries).filter((c) => c.kind !== 'break');
+  const openPeriodsEditor = (focusBreakStart?: string) => {
+    const cols = getPeriodColumnsFromEntries(displayEntries);
+    const periodCols = cols.filter((c) => c.kind !== 'break');
+    const breakCols = cols.filter((c) => c.kind === 'break');
     setPeriodDrafts(
-      cols.map((c) => ({
+      periodCols.map((c) => ({
         key: c.key,
         fromStart: c.startTime,
         startTime: c.startTime,
         endTime: c.endTime,
       })),
     );
-    setBreakDrafts([]);
+    const drafts: BreakDraft[] = breakCols.map((c) => ({
+      id: `br-existing-${c.startTime}`,
+      fromStart: c.startTime,
+      startTime: c.startTime,
+      endTime: c.endTime,
+      label: c.label || 'Break',
+      isNew: false,
+    }));
+    setBreakDrafts(drafts);
+    setRemovedBreakStarts([]);
+    setBreakPreset('short');
+    setInsertAfterPeriod(Math.max(0, periodCols.length - 1));
+    const focus = focusBreakStart
+      ? drafts.find((d) => d.fromStart === focusBreakStart || d.startTime === focusBreakStart)
+      : null;
+    setFocusBreakId(focus?.id || null);
     setPeriodsEditOpen(true);
+  };
+
+  const addBreakDraft = () => {
+    const preset = BREAK_PRESETS.find((p) => p.id === breakPreset) || BREAK_PRESETS[0];
+    const after = periodDrafts[insertAfterPeriod] || periodDrafts[periodDrafts.length - 1];
+    const start = after?.endTime || '11:00';
+    const end = addMinutesToHhMm(start, preset.minutes);
+    const id = `br-new-${Date.now()}`;
+    setBreakDrafts((rows) => [
+      ...rows,
+      {
+        id,
+        fromStart: '',
+        startTime: start,
+        endTime: end,
+        label: preset.name,
+        isNew: true,
+      },
+    ]);
+    setFocusBreakId(id);
+  };
+
+  const removeBreakDraft = (draft: BreakDraft) => {
+    setBreakDrafts((rows) => rows.filter((r) => r.id !== draft.id));
+    if (!draft.isNew && draft.fromStart) {
+      setRemovedBreakStarts((prev) =>
+        prev.includes(draft.fromStart) ? prev : [...prev, draft.fromStart],
+      );
+    }
   };
 
   const savePeriodTimes = async () => {
@@ -265,21 +339,40 @@ export default function TimetableManagement() {
       toEnd: p.endTime,
     }));
 
+    const breaksToAdd = breakDrafts
+      .filter((b) => b.isNew)
+      .map((b) => ({
+        startTime: b.startTime,
+        endTime: b.endTime,
+        label: b.label || 'Break',
+      }));
+
+    const breaksToUpdate = breakDrafts
+      .filter((b) => !b.isNew && b.fromStart)
+      .map((b) => ({
+        fromStart: b.fromStart,
+        toStart: b.startTime,
+        toEnd: b.endTime,
+        label: b.label || 'Break',
+      }));
+
     try {
       const r = await remapPeriodsMut.mutateAsync({
         classId: filters.classId,
         startDate: rangeStart,
         endDate: rangeEnd,
         mappings,
-        breaksToAdd: breakDrafts.map((b) => ({
-          startTime: b.startTime,
-          endTime: b.endTime,
-          label: b.label || 'Break',
-        })),
+        breaksToAdd,
+        breaksToUpdate,
+        breaksToRemove: removedBreakStarts.map((fromStart) => ({ fromStart })),
       });
+      const parts = [`Updated ${r.updated} period slots`];
+      if (r.breaksCreated) parts.push(`added ${r.breaksCreated} break cells`);
+      if (r.breaksUpdated) parts.push(`updated ${r.breaksUpdated} break cells`);
+      if (r.breaksRemoved) parts.push(`removed ${r.breaksRemoved} break cells`);
       toast({
-        title: 'Period times updated',
-        description: `Updated ${r.updated} slots${r.breaksCreated ? `, added ${r.breaksCreated} break cells` : ''}.`,
+        title: 'Schedule times saved',
+        description: parts.join(' · '),
       });
       setPeriodsEditOpen(false);
       refetch();
@@ -290,6 +383,29 @@ export default function TimetableManagement() {
         variant: 'destructive',
       });
     }
+  };
+
+  const openBreakFromGrid = (startTime: string, endTime: string, label?: string) => {
+    openPeriodsEditor(startTime);
+    // Ensure inferred breaks (not stored) still appear as editable new drafts
+    setTimeout(() => {
+      setBreakDrafts((rows) => {
+        if (rows.some((r) => r.startTime === startTime || r.fromStart === startTime)) return rows;
+        const id = `br-inferred-${startTime}`;
+        setFocusBreakId(id);
+        return [
+          ...rows,
+          {
+            id,
+            fromStart: '',
+            startTime,
+            endTime,
+            label: label || 'Break',
+            isNew: true,
+          },
+        ];
+      });
+    }, 0);
   };
 
   useEffect(() => {
@@ -908,19 +1024,31 @@ export default function TimetableManagement() {
                     <div className="space-y-3">
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <p className="text-xs text-gray-600">
-                          Periods follow school bell times. Breaks show between gaps (or from import).
+                          Click a lesson or break to edit · use Edit schedule for bells and multiple breaks.
                         </p>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          className="rounded-xl border-orange-300 text-orange-800"
-                          disabled={!filters.classId || displayEntries.length === 0}
-                          onClick={openPeriodsEditor}
-                        >
-                          <Clock className="w-3.5 h-3.5 mr-1.5" />
-                          Edit period times
-                        </Button>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="rounded-xl border-orange-300 text-orange-800"
+                            onClick={() => openAdd()}
+                          >
+                            <Plus className="w-3.5 h-3.5 mr-1.5" />
+                            Add entry
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="rounded-xl border-orange-300 text-orange-800"
+                            disabled={!filters.classId || displayEntries.length === 0}
+                            onClick={() => openPeriodsEditor()}
+                          >
+                            <Clock className="w-3.5 h-3.5 mr-1.5" />
+                            Edit schedule
+                          </Button>
+                        </div>
                       </div>
                       {!filters.classId && (
                         <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
@@ -932,7 +1060,20 @@ export default function TimetableManagement() {
                         variant="admin"
                         interactive
                         showClassOnCard={!filters.classId}
-                        onEntryClick={openEdit}
+                        onEntryClick={(entry) => {
+                          if (isBreakEntry(entry)) {
+                            openBreakFromGrid(
+                              entry.startTime,
+                              entry.endTime,
+                              entry.notes || undefined,
+                            );
+                            return;
+                          }
+                          openEdit(entry);
+                        }}
+                        onBreakClick={(col) => {
+                          openBreakFromGrid(col.startTime, col.endTime, col.label);
+                        }}
                         onEmptyClick={(dayIndex, hourOrStart) => {
                           if (typeof hourOrStart === 'string') {
                             openAdd(undefined, undefined, dayIndex, hourOrStart);
@@ -953,48 +1094,46 @@ export default function TimetableManagement() {
       </Card>
 
       <Dialog open={periodsEditOpen} onOpenChange={setPeriodsEditOpen}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl border-orange-100">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl border-orange-100">
           <DialogHeader>
-            <DialogTitle className="text-orange-900">Edit period times</DialogTitle>
+            <DialogTitle className="text-orange-900">Edit schedule</DialogTitle>
             <DialogDescription className="text-sm text-gray-600">
-              Change bell times for this class for the visible week. Add Break / Lunch slots to match
-              the school timetable.
+              Scroll or type bell times for periods. Add multiple Short Break / Lunch / Long Break
+              slots after any period.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
+          <div className="space-y-5">
+            <div className="space-y-3">
               <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Periods</p>
               {periodDrafts.map((p, idx) => (
                 <div
                   key={p.key}
-                  className="grid grid-cols-[2.5rem_1fr_1fr] gap-2 items-center rounded-xl border border-orange-100 bg-orange-50/40 p-2"
+                  className="rounded-xl border border-orange-100 bg-orange-50/40 p-3 space-y-2"
                 >
-                  <span className="text-xs font-bold text-orange-800 text-center">P{idx + 1}</span>
-                  <div>
-                    <Label className="text-[10px] text-gray-500">Start</Label>
-                    <Input
-                      type="time"
-                      className="h-9 rounded-lg border-orange-200"
-                      value={p.startTime}
-                      onChange={(e) =>
-                        setPeriodDrafts((rows) =>
-                          rows.map((r) => (r.key === p.key ? { ...r, startTime: e.target.value } : r)),
-                        )
-                      }
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-[10px] text-gray-500">End</Label>
-                    <Input
-                      type="time"
-                      className="h-9 rounded-lg border-orange-200"
-                      value={p.endTime}
-                      onChange={(e) =>
-                        setPeriodDrafts((rows) =>
-                          rows.map((r) => (r.key === p.key ? { ...r, endTime: e.target.value } : r)),
-                        )
-                      }
-                    />
+                  <span className="text-xs font-bold text-orange-800">P{idx + 1}</span>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <Label className="text-[10px] text-gray-500">Start</Label>
+                      <ScrollTimePicker
+                        value={p.startTime}
+                        onChange={(startTime) =>
+                          setPeriodDrafts((rows) =>
+                            rows.map((r) => (r.key === p.key ? { ...r, startTime } : r)),
+                          )
+                        }
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-[10px] text-gray-500">End</Label>
+                      <ScrollTimePicker
+                        value={p.endTime}
+                        onChange={(endTime) =>
+                          setPeriodDrafts((rows) =>
+                            rows.map((r) => (r.key === p.key ? { ...r, endTime } : r)),
+                          )
+                        }
+                      />
+                    </div>
                   </div>
                 </div>
               ))}
@@ -1003,89 +1142,127 @@ export default function TimetableManagement() {
               )}
             </div>
 
-            <div className="space-y-2">
-              <div className="flex items-center justify-between gap-2">
-                <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Breaks to add</p>
+            <div className="space-y-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Breaks</p>
+              <div className="flex flex-wrap items-end gap-2 rounded-xl border border-stone-200 bg-stone-50/80 p-3">
+                <div className="space-y-1">
+                  <Label className="text-[10px] text-gray-500">Type</Label>
+                  <Select
+                    value={breakPreset}
+                    onValueChange={(v) => setBreakPreset(v as BreakPreset)}
+                  >
+                    <SelectTrigger className="h-9 w-[9.5rem] rounded-lg border-stone-300">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {BREAK_PRESETS.map((p) => (
+                        <SelectItem key={p.id} value={p.id}>
+                          {p.label} ({p.minutes}m)
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px] text-gray-500">Insert after</Label>
+                  <Select
+                    value={String(insertAfterPeriod)}
+                    onValueChange={(v) => setInsertAfterPeriod(Number(v))}
+                    disabled={periodDrafts.length === 0}
+                  >
+                    <SelectTrigger className="h-9 w-[7rem] rounded-lg border-stone-300">
+                      <SelectValue placeholder="Period" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {periodDrafts.map((_, idx) => (
+                        <SelectItem key={`after-p-${idx}`} value={String(idx)}>
+                          P{idx + 1}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
                 <Button
                   type="button"
                   size="sm"
                   variant="outline"
-                  className="rounded-lg h-8 text-xs"
-                  onClick={() => {
-                    const last = periodDrafts[periodDrafts.length - 1];
-                    const start = last?.endTime || '11:05';
-                    const [h, m] = start.split(':').map(Number);
-                    const endMins = h * 60 + m + 15;
-                    const end = `${String(Math.floor(endMins / 60)).padStart(2, '0')}:${String(endMins % 60).padStart(2, '0')}`;
-                    setBreakDrafts((rows) => [
-                      ...rows,
-                      {
-                        id: `br-${Date.now()}`,
-                        startTime: start,
-                        endTime: end,
-                        label: endMins - (h * 60 + m) >= 30 ? 'Lunch' : 'Break',
-                      },
-                    ]);
-                  }}
+                  className="rounded-lg h-9 text-xs"
+                  disabled={periodDrafts.length === 0}
+                  onClick={addBreakDraft}
                 >
                   <Plus className="w-3.5 h-3.5 mr-1" />
                   Add break
                 </Button>
               </div>
+
               {breakDrafts.map((b) => (
                 <div
                   key={b.id}
-                  className="grid grid-cols-[1fr_1fr_1fr_auto] gap-2 items-end rounded-xl border border-stone-200 bg-stone-50 p-2"
+                  className={cn(
+                    'rounded-xl border p-3 space-y-2 transition-shadow',
+                    focusBreakId === b.id
+                      ? 'border-orange-400 ring-2 ring-orange-200 bg-orange-50/50'
+                      : 'border-stone-200 bg-stone-50',
+                  )}
                 >
-                  <div>
-                    <Label className="text-[10px] text-gray-500">Label</Label>
+                  <div className="flex items-center justify-between gap-2">
                     <Input
-                      className="h-9 rounded-lg"
+                      className="h-9 max-w-[10rem] rounded-lg"
                       value={b.label}
                       onChange={(e) =>
                         setBreakDrafts((rows) =>
                           rows.map((r) => (r.id === b.id ? { ...r, label: e.target.value } : r)),
                         )
                       }
+                      placeholder="Break / Lunch"
                     />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-9 w-9 text-red-600"
+                      onClick={() => removeBreakDraft(b)}
+                      aria-label="Remove break"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
                   </div>
-                  <div>
-                    <Label className="text-[10px] text-gray-500">Start</Label>
-                    <Input
-                      type="time"
-                      className="h-9 rounded-lg"
-                      value={b.startTime}
-                      onChange={(e) =>
-                        setBreakDrafts((rows) =>
-                          rows.map((r) => (r.id === b.id ? { ...r, startTime: e.target.value } : r)),
-                        )
-                      }
-                    />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <Label className="text-[10px] text-gray-500">Start</Label>
+                      <ScrollTimePicker
+                        value={b.startTime}
+                        onChange={(startTime) =>
+                          setBreakDrafts((rows) =>
+                            rows.map((r) => (r.id === b.id ? { ...r, startTime } : r)),
+                          )
+                        }
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-[10px] text-gray-500">End</Label>
+                      <ScrollTimePicker
+                        value={b.endTime}
+                        onChange={(endTime) =>
+                          setBreakDrafts((rows) =>
+                            rows.map((r) => (r.id === b.id ? { ...r, endTime } : r)),
+                          )
+                        }
+                      />
+                    </div>
                   </div>
-                  <div>
-                    <Label className="text-[10px] text-gray-500">End</Label>
-                    <Input
-                      type="time"
-                      className="h-9 rounded-lg"
-                      value={b.endTime}
-                      onChange={(e) =>
-                        setBreakDrafts((rows) =>
-                          rows.map((r) => (r.id === b.id ? { ...r, endTime: e.target.value } : r)),
-                        )
-                      }
-                    />
-                  </div>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="h-9 w-9 text-red-600"
-                    onClick={() => setBreakDrafts((rows) => rows.filter((r) => r.id !== b.id))}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
+                  {b.isNew ? (
+                    <p className="text-[10px] text-emerald-700">New · will be created for each day in this week</p>
+                  ) : (
+                    <p className="text-[10px] text-stone-500">Existing break · edits apply across the week</p>
+                  )}
                 </div>
               ))}
+              {breakDrafts.length === 0 && (
+                <p className="text-sm text-gray-500">
+                  No breaks yet. Choose a type and Insert after Pn, then Add break.
+                </p>
+              )}
             </div>
           </div>
           <DialogFooter className="gap-2">
@@ -1098,7 +1275,7 @@ export default function TimetableManagement() {
               disabled={remapPeriodsMut.isPending}
               onClick={() => void savePeriodTimes()}
             >
-              {remapPeriodsMut.isPending ? 'Saving…' : 'Save times'}
+              {remapPeriodsMut.isPending ? 'Saving…' : 'Save schedule'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1132,20 +1309,16 @@ export default function TimetableManagement() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 min-w-0">
               <div className="space-y-1.5 min-w-0 isolate">
                 <Label className="text-gray-700">Start</Label>
-                <Input
-                  type="time"
-                  className={FORM_INPUT}
+                <ScrollTimePicker
                   value={form.startTime}
-                  onChange={(e) => setForm((f) => ({ ...f, startTime: e.target.value }))}
+                  onChange={(startTime) => setForm((f) => ({ ...f, startTime }))}
                 />
               </div>
               <div className="space-y-1.5 min-w-0 isolate">
                 <Label className="text-gray-700">End</Label>
-                <Input
-                  type="time"
-                  className={FORM_INPUT}
+                <ScrollTimePicker
                   value={form.endTime}
-                  onChange={(e) => setForm((f) => ({ ...f, endTime: e.target.value }))}
+                  onChange={(endTime) => setForm((f) => ({ ...f, endTime }))}
                 />
               </div>
             </div>

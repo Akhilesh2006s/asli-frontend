@@ -1,8 +1,8 @@
 import { motion } from 'framer-motion';
-import { Clock, Coffee } from 'lucide-react';
+import { Clock, Coffee, Pencil } from 'lucide-react';
 import { TimetableGridCell } from '@/components/student/timetable/TimetableGridCell';
 import type { TimetableEntry } from '@/types/timetable';
-import type { WeekdayIndex } from '@/lib/student-timetable-utils';
+import type { PeriodColumn, WeekdayIndex } from '@/lib/student-timetable-utils';
 import {
   WEEKDAY_LABELS,
   buildWeekdayPlacements,
@@ -33,6 +33,8 @@ export type WeeklyTimetableGridProps = {
   interactive?: boolean;
   onEntryClick?: (entry: TimetableEntry) => void;
   onEmptyClick?: (dayIndex: WeekdayIndex, hourOrStart: number | string) => void;
+  /** Admin: edit break column times (stored or inferred). */
+  onBreakClick?: (col: PeriodColumn) => void;
   className?: string;
   /** When true, show class code on each card (multi-class dumps). */
   showClassOnCard?: boolean;
@@ -89,9 +91,27 @@ const themes = {
   },
 };
 
-function BreakCell({ label, startTime, endTime }: { label: string; startTime: string; endTime: string }) {
-  return (
-    <div className="h-full min-h-[56px] w-full rounded-lg border border-dashed border-stone-300 bg-stone-100/80 flex flex-col items-center justify-center gap-0.5 px-1 py-2">
+function BreakCell({
+  label,
+  startTime,
+  endTime,
+  interactive,
+  onClick,
+}: {
+  label: string;
+  startTime: string;
+  endTime: string;
+  interactive?: boolean;
+  onClick?: () => void;
+}) {
+  const canEdit = Boolean(interactive && onClick);
+  const body = (
+    <>
+      {canEdit ? (
+        <span className="absolute top-1 right-1 rounded-md bg-white/90 p-0.5 text-orange-700 opacity-0 shadow-sm group-hover:opacity-100 transition-opacity">
+          <Pencil className="w-3 h-3" />
+        </span>
+      ) : null}
       <Coffee className="w-3.5 h-3.5 text-stone-500" />
       <p className="text-[10px] font-bold uppercase tracking-wide text-stone-700 text-center leading-tight">
         {label}
@@ -99,7 +119,26 @@ function BreakCell({ label, startTime, endTime }: { label: string; startTime: st
       <p className="text-[9px] tabular-nums text-stone-500 leading-tight">
         {startTime}–{endTime}
       </p>
-    </div>
+    </>
+  );
+
+  if (!canEdit) {
+    return (
+      <div className="h-full min-h-[56px] w-full rounded-lg border border-dashed border-stone-300 bg-stone-100/80 flex flex-col items-center justify-center gap-0.5 px-1 py-2 relative">
+        {body}
+      </div>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={`Edit ${label} ${startTime}–${endTime}`}
+      className="h-full min-h-[56px] w-full rounded-lg border border-dashed border-stone-300 bg-stone-100/80 flex flex-col items-center justify-center gap-0.5 px-1 py-2 relative group cursor-pointer hover:border-orange-400 hover:bg-orange-50/80 transition-colors"
+    >
+      {body}
+    </button>
   );
 }
 
@@ -109,6 +148,7 @@ export function WeeklyTimetableGrid({
   interactive = false,
   onEntryClick,
   onEmptyClick,
+  onBreakClick,
   className,
   showClassOnCard = false,
 }: WeeklyTimetableGridProps) {
@@ -291,12 +331,24 @@ export function WeeklyTimetableGrid({
                                 label={col.label || 'Break'}
                                 startTime={col.startTime}
                                 endTime={col.endTime}
+                                interactive={interactive}
+                                onClick={
+                                  interactive && onBreakClick ? () => onBreakClick(col) : undefined
+                                }
                               />
                             ) : isBreakCol ? (
                               <BreakCell
                                 label={col.label || 'Break'}
                                 startTime={col.startTime}
                                 endTime={col.endTime}
+                                interactive={interactive}
+                                onClick={
+                                  interactive && onBreakClick
+                                    ? () => onBreakClick(col)
+                                    : interactive && onEntryClick && displayEntries[0]
+                                      ? () => onEntryClick(displayEntries[0])
+                                      : undefined
+                                }
                               />
                             ) : (
                               <TimetableGridCell
@@ -364,7 +416,7 @@ export function WeeklyTimetableGrid({
           {usePeriodLayout ? ' · periods + breaks' : ' · hourly slots'}
         </span>
         {interactive && variant !== 'teacher' && (
-          <span>Click a class to edit · use Edit period times to change bells</span>
+          <span>Click a lesson or break to edit · use Edit schedule for bells</span>
         )}
       </div>
     </div>
