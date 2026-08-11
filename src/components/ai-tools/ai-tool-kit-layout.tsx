@@ -201,43 +201,46 @@ export function AiToolKitLayout({
   const displayTitle = title ? formatAiToolText(title) : '';
 
   const glanceItems = [
-    { label: 'Total Sections', value: String(total || '—') },
-    { label: 'Ready', value: total ? `${filled}/${total}` : '—' },
+    { label: 'Sections', value: String(total || '—') },
+    { label: 'Status', value: total ? 'Ready' : '—' },
     ...(displayTitle
       ? [{ label: 'Focus', value: displayTitle.length > 36 ? `${displayTitle.slice(0, 36)}…` : displayTitle }]
       : []),
   ];
 
   return (
-    <div className={cn('w-full space-y-5', className)} id={exportRootId} data-ai-kit-layout>
-      {/* Generic tool name/description already shown by the page's outer result header —
-          only render this strip when a specific generated title exists (paper/deck/concept name). */}
-      {displayTitle && (
-        <div className="rounded-2xl border border-violet-100 bg-gradient-to-r from-violet-50/90 via-white to-sky-50/60 px-4 py-3.5 sm:px-5">
-          <h3 className="text-xl font-bold leading-snug text-slate-900 sm:text-2xl">{displayTitle}</h3>
+    <div className={cn('w-full space-y-4 sm:space-y-5', className)} id={exportRootId} data-ai-kit-layout>
+      {displayTitle ? (
+        <div className="relative overflow-hidden rounded-2xl border border-sky-100 bg-gradient-to-br from-sky-50 via-white to-teal-50/70 px-4 py-4 sm:px-5 sm:py-5">
+          <div className="pointer-events-none absolute -right-8 -top-10 h-28 w-28 rounded-full bg-sky-200/30" />
+          <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-sky-700">Generated result</p>
+          <h3 className="mt-1 text-xl font-bold leading-snug text-slate-900 sm:text-2xl">{displayTitle}</h3>
         </div>
-      )}
+      ) : null}
 
       {total > 0 ? (
         <div className="space-y-3 print:hidden">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-violet-800 sm:text-base">
-              <CheckCircle2 className="h-4 w-4 text-emerald-600" aria-hidden />
-              {formatAiToolText('All Sections Generated')}
+          <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2.5 sm:px-4">
+            <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-teal-800 sm:text-base">
+              <CheckCircle2 className="h-4 w-4 text-teal-600" aria-hidden />
+              {formatAiToolText('All sections ready')}
             </span>
-            <span className="font-bold text-violet-950">
+            <span className="rounded-full bg-sky-50 px-2.5 py-0.5 text-xs font-bold tabular-nums text-sky-800 ring-1 ring-sky-100">
               {filled}/{total}
             </span>
           </div>
-          <div className="h-2.5 overflow-hidden rounded-full bg-violet-100">
+          <div className="h-2 overflow-hidden rounded-full bg-sky-100">
             <div
-              className="h-full rounded-full bg-violet-600 transition-all duration-500"
+              className="h-full rounded-full bg-gradient-to-r from-sky-500 to-teal-500 transition-all duration-500"
               style={{ width: `${progressPct}%` }}
             />
           </div>
 
-          <div className="rounded-2xl border border-slate-200 bg-white p-2.5 sm:p-3">
-            <div className="flex gap-1 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] sm:grid sm:grid-cols-4 sm:gap-2 sm:overflow-visible md:grid-cols-5 lg:grid-cols-6 [&::-webkit-scrollbar]:hidden">
+          <div className="rounded-2xl border border-slate-200 bg-white p-2 sm:p-3">
+            <p className="mb-2 px-1 text-[11px] font-bold uppercase tracking-wide text-slate-500">
+              Jump to section
+            </p>
+            <div className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] sm:grid sm:grid-cols-4 sm:gap-2 sm:overflow-visible md:grid-cols-5 lg:grid-cols-6 [&::-webkit-scrollbar]:hidden">
               {sections.map((sec, i) => {
                 const pal = paletteForSectionTitle(sec.title);
                 const active = sec.id === activeId;
@@ -247,14 +250,16 @@ export function AiToolKitLayout({
                     type="button"
                     onClick={() => jumpTo(sec.id)}
                     className={cn(
-                      'flex w-20 shrink-0 flex-col items-center gap-1.5 rounded-xl px-1.5 py-2 text-center transition sm:w-auto',
-                      active ? 'bg-violet-50' : 'hover:bg-slate-50',
+                      'flex w-[4.75rem] shrink-0 flex-col items-center gap-1.5 rounded-xl px-1.5 py-2 text-center transition sm:w-auto',
+                      active
+                        ? 'bg-sky-50 ring-1 ring-sky-200 shadow-sm'
+                        : 'hover:bg-slate-50',
                     )}
                   >
                     <span
                       className={cn(
-                        'text-[11px] font-bold',
-                        active ? 'text-violet-700' : 'text-slate-400',
+                        'text-[11px] font-bold tabular-nums',
+                        active ? 'text-sky-700' : 'text-slate-400',
                       )}
                     >
                       {sec.num || i + 1}
@@ -262,7 +267,7 @@ export function AiToolKitLayout({
                     <span
                       className={cn(
                         'flex h-10 w-10 items-center justify-center rounded-xl border',
-                        active ? 'border-violet-300 bg-violet-100' : pal.iconTile,
+                        active ? 'border-sky-300 bg-sky-100' : pal.iconTile,
                       )}
                     >
                       <RealisticIcon name={sec.icon} alt="" float={false} className="h-6 w-6" />
@@ -270,7 +275,7 @@ export function AiToolKitLayout({
                     <span
                       className={cn(
                         'line-clamp-2 text-[11px] font-semibold leading-tight sm:text-xs',
-                        active ? 'text-violet-900' : 'text-slate-600',
+                        active ? 'text-sky-900' : 'text-slate-600',
                       )}
                     >
                       {formatAiToolText(sec.title)}
@@ -283,23 +288,26 @@ export function AiToolKitLayout({
         </div>
       ) : null}
 
-      <div ref={bodyRef} className="min-w-0 space-y-4">
+      <div
+        ref={bodyRef}
+        className="min-w-0 space-y-4 rounded-2xl border border-slate-100 bg-slate-50/40 p-2 sm:space-y-5 sm:p-3"
+      >
         <AiToolViewerErrorBoundary fallbackTitle={fallbackLabel ? formatAiToolText(fallbackLabel) : 'Tool result'}>
           {children}
         </AiToolViewerErrorBoundary>
       </div>
 
       {total > 0 ? (
-        <div className="rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-4 sm:px-5">
+        <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4 sm:px-5">
           <div className="mb-3 flex items-center gap-2">
-            <Layers className="h-4 w-4 text-violet-700" aria-hidden />
-            <p className="text-sm font-bold text-slate-900 sm:text-base">{formatAiToolText('At a Glance')}</p>
+            <Layers className="h-4 w-4 text-sky-700" aria-hidden />
+            <p className="text-sm font-bold text-slate-900 sm:text-base">{formatAiToolText('At a glance')}</p>
           </div>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             {glanceItems.map((item, i) => (
               <div
                 key={item.label}
-                className="flex items-start gap-3 rounded-xl border border-white bg-white px-3 py-2.5 shadow-sm"
+                className="flex items-start gap-3 rounded-xl border border-slate-100 bg-gradient-to-br from-white to-sky-50/50 px-3 py-2.5 shadow-sm"
               >
                 <RealisticIcon name={GLANCE_ICONS[i % GLANCE_ICONS.length]} alt="" float={false} className="h-9 w-9" />
                 <div className="min-w-0">
@@ -316,8 +324,7 @@ export function AiToolKitLayout({
         tip
       ) : (
         <AiToolTipBanner>
-          Tip: click into any section to review it, then Regenerate to get a fresh version with the
-          same settings.
+          Tip: jump between sections above, then Regenerate anytime for a fresh version with the same settings.
         </AiToolTipBanner>
       )}
     </div>

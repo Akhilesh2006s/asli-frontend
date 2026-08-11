@@ -1894,9 +1894,6 @@ export default function Dashboard() {
               ) : null}
             </div>
           </div>
-        <div className="mt-4">
-          <WeeklyDigestCard apiBase="/api/student" />
-        </div>
         </div>
 
         {/* Summary Statistics Cards */}
@@ -2636,6 +2633,9 @@ export default function Dashboard() {
             {/* Adaptive Learning - Recommendation Engine */}
             <AdaptiveRecommendations />
 
+            <div className="mt-4">
+              <WeeklyDigestCard apiBase="/api/student" />
+            </div>
 
                   </div>
         </div>

@@ -167,9 +167,6 @@ export function AiToolStackedSection({
             aiToolSectionBodyClasses(palette),
           )}
         >
-          <p className={cn('mb-3 text-lg font-bold leading-snug sm:text-xl', palette.title)}>
-            {displayTitle}
-          </p>
           {children}
         </div>
 
@@ -225,14 +222,16 @@ export function AiToolStackedList({
 export function AiToolInnerBox({
   children,
   className,
-  tone = 'violet',
+  tone = 'sky',
 }: {
   children: ReactNode;
   className?: string;
-  tone?: 'violet' | 'blue' | 'amber' | 'emerald' | 'rose' | 'slate';
+  tone?: 'violet' | 'sky' | 'blue' | 'amber' | 'emerald' | 'rose' | 'slate' | 'teal';
 }) {
   const tones: Record<string, string> = {
     violet: 'border-violet-100 bg-violet-50/80',
+    sky: 'border-sky-100 bg-sky-50/80',
+    teal: 'border-teal-100 bg-teal-50/80',
     blue: 'border-blue-100 bg-blue-50/80',
     amber: 'border-amber-100 bg-amber-50/80',
     emerald: 'border-emerald-100 bg-emerald-50/80',
@@ -263,7 +262,7 @@ export function AiToolFormatChip({
   return (
     <span
       className={cn(
-        'inline-flex items-center rounded-lg border border-violet-200 bg-violet-100 px-3 py-1.5 text-sm font-semibold text-violet-950',
+        'inline-flex items-center rounded-lg border border-sky-200 bg-sky-100 px-3 py-1.5 text-sm font-semibold text-sky-950',
         className,
       )}
     >
@@ -277,14 +276,14 @@ export function AiToolMetaPair({
   label,
   value,
   className,
-  tone = 'violet',
+  tone = 'sky',
 }: {
   label: string;
   value: ReactNode;
   className?: string;
   tone?: keyof typeof META_PAIR_TONES;
 }) {
-  const t = META_PAIR_TONES[tone] || META_PAIR_TONES.violet;
+  const t = META_PAIR_TONES[tone] || META_PAIR_TONES.sky;
   return (
     <div className={cn('min-w-0', className)}>
       <p className={cn('text-sm font-bold uppercase tracking-wide', t.label)}>{label}</p>
@@ -295,6 +294,7 @@ export function AiToolMetaPair({
 
 const META_PAIR_TONES = {
   violet: { label: 'text-violet-700' },
+  sky: { label: 'text-sky-700' },
   blue: { label: 'text-blue-700' },
   amber: { label: 'text-amber-800' },
   emerald: { label: 'text-emerald-700' },
@@ -316,12 +316,15 @@ export function AiToolTipBanner({
   return (
     <div
       className={cn(
-        'flex gap-3 rounded-xl border border-sky-200 bg-sky-50 px-4 py-3.5 text-base text-sky-950',
+        'flex gap-3 rounded-xl border border-sky-200 bg-gradient-to-r from-sky-50 to-teal-50/60 px-4 py-3.5 text-base text-sky-950',
         className,
       )}
     >
-      <span className="mt-0.5 text-lg" aria-hidden>
-        ✨
+      <span
+        className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-sky-100 text-sm font-bold text-sky-700"
+        aria-hidden
+      >
+        i
       </span>
       <div className="min-w-0 leading-relaxed">{children}</div>
     </div>

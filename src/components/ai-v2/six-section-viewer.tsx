@@ -630,10 +630,10 @@ export function SixSectionViewer({ tool, curriculum, chapter, summary, sections,
   return (
     <div className={cn('mx-auto w-full max-w-4xl space-y-5 text-slate-900 dark:text-slate-100', className)}>
       {/* tool header — hero */}
-      <div className="relative overflow-hidden rounded-[1.75rem] border border-slate-200/80 bg-gradient-to-br from-white via-white to-indigo-50/40 p-6 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.08)] dark:border-slate-800 dark:from-slate-900 dark:via-slate-900 dark:to-indigo-950/30">
-        <div className="pointer-events-none absolute -right-8 -top-10 h-40 w-40 rounded-full bg-gradient-to-br from-amber-300/20 to-orange-400/10 blur-2xl" />
+      <div className="relative overflow-hidden rounded-[1.75rem] border border-sky-100 bg-gradient-to-br from-white via-sky-50/40 to-teal-50/50 p-6 shadow-[0_2px_12px_-4px_rgba(14,165,233,0.12)] dark:border-slate-800 dark:from-slate-900 dark:via-slate-900 dark:to-sky-950/30">
+        <div className="pointer-events-none absolute -right-8 -top-10 h-40 w-40 rounded-full bg-gradient-to-br from-sky-300/25 to-teal-400/15 blur-2xl" />
         <div className="relative flex items-center gap-4">
-          <div className="grid h-16 w-16 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 text-white shadow-lg shadow-amber-500/30 ring-1 ring-white/40">
+          <div className="grid h-16 w-16 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-sky-500 to-teal-500 text-white shadow-lg shadow-sky-500/25 ring-1 ring-white/40">
             <ToolIcon className="h-8 w-8" />
           </div>
           <div className="min-w-0">
@@ -642,7 +642,7 @@ export function SixSectionViewer({ tool, curriculum, chapter, summary, sections,
               <p className="mt-0.5 text-sm text-slate-500 dark:text-slate-400">{formatAiToolText(tool.subtitle)}</p>
             )}
           </div>
-          <span className="ml-auto hidden shrink-0 items-center gap-1.5 self-start rounded-full bg-gradient-to-r from-blue-500 to-indigo-500 px-3 py-1.5 text-xs font-bold text-white shadow-sm shadow-blue-500/30 sm:inline-flex">
+          <span className="ml-auto hidden shrink-0 items-center gap-1.5 self-start rounded-full bg-gradient-to-r from-sky-500 to-teal-500 px-3 py-1.5 text-xs font-bold text-white shadow-sm shadow-sky-500/25 sm:inline-flex">
             <Sparkles className="h-3.5 w-3.5" /> AI Powered
           </span>
         </div>
@@ -669,16 +669,16 @@ export function SixSectionViewer({ tool, curriculum, chapter, summary, sections,
 
       {/* chapter hero */}
       {(chapter?.title || chapterSubtopicShown) && (
-        <div className="flex items-center gap-4 overflow-hidden rounded-[1.75rem] border border-blue-100 bg-gradient-to-r from-blue-50 via-indigo-50/40 to-white p-5 shadow-sm dark:border-slate-800 dark:from-slate-800/60 dark:via-slate-900 dark:to-slate-900">
+        <div className="flex items-center gap-4 overflow-hidden rounded-[1.75rem] border border-sky-100 bg-gradient-to-r from-sky-50 via-teal-50/40 to-white p-5 shadow-sm dark:border-slate-800 dark:from-slate-800/60 dark:via-slate-900 dark:to-slate-900">
           <div className="min-w-0">
             {chapter.title && (
               <h3 className="flex items-center gap-2 text-lg font-black tracking-tight">
-                {ChapterIcon && <ChapterIcon className="h-5 w-5 shrink-0 text-blue-500 dark:text-blue-300" />}
+                {ChapterIcon && <ChapterIcon className="h-5 w-5 shrink-0 text-sky-600 dark:text-sky-300" />}
                 <span className="truncate">{chapter.title}</span>
               </h3>
             )}
             {chapterSubtopicShown ? (
-              <p className="mt-1 font-bold text-blue-600 dark:text-blue-300">{chapterSubtopicShown}</p>
+              <p className="mt-1 font-bold text-teal-700 dark:text-teal-300">{chapterSubtopicShown}</p>
             ) : null}
           </div>
           {chapter.emoji && <div className="ml-auto shrink-0 text-4xl drop-shadow-sm">{chapter.emoji}</div>}
@@ -687,8 +687,8 @@ export function SixSectionViewer({ tool, curriculum, chapter, summary, sections,
 
       {/* AI Teaching Summary hero — what students will learn + quick stats */}
       {summary && ((summary.learn && summary.learn.length > 0) || (summary.stats && summary.stats.length > 0)) && (
-        <div className="overflow-hidden rounded-[1.75rem] border border-indigo-100 bg-gradient-to-br from-indigo-50 via-white to-blue-50/40 p-5 shadow-[0_2px_12px_-4px_rgba(0,0,0,0.08)] dark:border-indigo-900/50 dark:from-indigo-950/40 dark:via-slate-900 dark:to-blue-950/20">
-          <div className="flex items-center gap-2 text-micro font-black uppercase tracking-[0.18em] text-indigo-500 dark:text-indigo-300">
+        <div className="overflow-hidden rounded-[1.75rem] border border-sky-100 bg-gradient-to-br from-sky-50 via-white to-teal-50/40 p-5 shadow-[0_2px_12px_-4px_rgba(14,165,233,0.1)] dark:border-sky-900/50 dark:from-sky-950/40 dark:via-slate-900 dark:to-teal-950/20">
+          <div className="flex items-center gap-2 text-micro font-black uppercase tracking-[0.18em] text-sky-600 dark:text-sky-300">
             <Sparkles className="h-4 w-4" /> AI Teaching Summary
           </div>
           {summary.learn && summary.learn.length > 0 && (

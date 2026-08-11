@@ -328,7 +328,7 @@ export function AiToolResultShell({
         </div>
 
         {hasMeta && !inputSummary ? (
-          <div className="border-b border-slate-100 bg-gradient-to-r from-violet-50/80 via-white to-sky-50/60 px-4 py-3.5 sm:px-5">
+          <div className="border-b border-slate-100 bg-gradient-to-r from-sky-50/90 via-white to-teal-50/50 px-4 py-3.5 sm:px-5">
             <p className="mb-2 text-micro font-bold uppercase tracking-[0.16em] text-slate-500">
               At a glance
             </p>
@@ -352,7 +352,7 @@ export function AiToolResultShell({
 
         <div
           className={cn(
-            'space-y-6 p-4 sm:p-6 lg:p-8',
+            'space-y-6 bg-gradient-to-b from-slate-50/60 to-white p-3 sm:p-5 lg:p-7',
             toolType === 'worksheet-mcq-generator' && 'sm:p-5 lg:p-6',
           )}
         >
@@ -362,7 +362,7 @@ export function AiToolResultShell({
                 <div className={cn('asli-state-icon mb-0 h-20 w-20 animate-ai-pulse border', theme.iconBg)}>
                   <RealisticIcon name={heroIcon} alt="" className="h-14 w-14" />
                 </div>
-                <Sparkles className="absolute -right-2 -top-2 h-7 w-7 animate-pulse text-indigo-blue-600" />
+                <Sparkles className="absolute -right-2 -top-2 h-7 w-7 animate-pulse text-sky-600" />
               </div>
               <div className="mt-6 space-y-2 text-center">
                 <p className="font-display text-2xl font-bold text-slate-900">{formatAiToolText('Creating Your Content')}</p>
@@ -371,21 +371,12 @@ export function AiToolResultShell({
                 </p>
               </div>
               <div className="mt-7 w-full max-w-xl space-y-3" aria-hidden="true">
-                <div className="h-4 w-2/3 animate-pulse rounded-full bg-indigo-blue-100" />
+                <div className="h-4 w-2/3 animate-pulse rounded-full bg-sky-100" />
                 <div className="h-4 w-full animate-pulse rounded-full bg-slate-200" />
                 <div className="h-4 w-5/6 animate-pulse rounded-full bg-slate-200" />
               </div>
             </div>
           ) : children ? (
-            /*
-              The card is overflow-hidden, so anything wider than it — a
-              generated table, a long formula, an unbroken URL — was clipped
-              with no way to reach it. min-w-0 lets this shrink inside its
-              flex parent, wide blocks scroll horizontally on their own, and
-              long words wrap instead of pushing the layout open.
-              Science Focus strip removed so results match Concept Mastery:
-              header + chips + stacked content boxes only.
-            */
             <div className="w-full min-w-0 break-words [&_pre]:overflow-x-auto [&_table]:block [&_table]:w-max [&_table]:min-w-full [&_table]:overflow-x-auto">
               {children}
             </div>

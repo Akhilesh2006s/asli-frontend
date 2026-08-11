@@ -13,6 +13,7 @@ export type AiToolDocumentAccent =
   | 'orange'
   | 'teal'
   | 'magenta'
+  | 'sky'
   | 'violet'
   | 'blue'
   | 'emerald'
@@ -43,14 +44,20 @@ const ACCENT_HEADER: Record<
     label: 'text-pink-100/90',
     ring: 'border-pink-200/80 shadow-pink-900/10',
   },
+  sky: {
+    header: 'from-sky-800 via-cyan-800 to-teal-900',
+    iconBg: 'bg-sky-300/90 text-sky-950',
+    label: 'text-sky-100/90',
+    ring: 'border-sky-200/80 shadow-sky-900/10',
+  },
   violet: {
-    header: 'from-slate-800 via-violet-900 to-fuchsia-900',
-    iconBg: 'bg-fuchsia-400/90 text-slate-900',
-    label: 'text-fuchsia-200/90',
-    ring: 'border-fuchsia-200/80 shadow-fuchsia-900/10',
+    header: 'from-sky-800 via-cyan-800 to-teal-900',
+    iconBg: 'bg-sky-300/90 text-sky-950',
+    label: 'text-sky-100/90',
+    ring: 'border-sky-200/80 shadow-sky-900/10',
   },
   blue: {
-    header: 'from-blue-800 via-indigo-800 to-slate-900',
+    header: 'from-blue-800 via-sky-800 to-slate-900',
     iconBg: 'bg-sky-300/90 text-blue-950',
     label: 'text-sky-100/90',
     ring: 'border-blue-200/80 shadow-blue-900/10',
@@ -80,10 +87,10 @@ const ACCENT_HEADER: Record<
     ring: 'border-cyan-200/80 shadow-cyan-900/10',
   },
   indigo: {
-    header: 'from-indigo-800 via-violet-900 to-slate-900',
-    iconBg: 'bg-indigo-300/90 text-indigo-950',
-    label: 'text-indigo-100/90',
-    ring: 'border-indigo-200/80 shadow-indigo-900/10',
+    header: 'from-teal-800 via-cyan-800 to-slate-900',
+    iconBg: 'bg-teal-300/90 text-teal-950',
+    label: 'text-teal-100/90',
+    ring: 'border-teal-200/80 shadow-teal-900/10',
   },
 };
 
@@ -91,8 +98,8 @@ const ACCENT_HEADER: Record<
 export function accentForToolSlug(slug: string): AiToolDocumentAccent {
   const s = String(slug || '').toLowerCase();
   const map: Record<string, AiToolDocumentAccent> = {
-    'concept-mastery-helper': 'violet',
-    'concept-breakdown-explainer': 'violet',
+    'concept-mastery-helper': 'sky',
+    'concept-breakdown-explainer': 'sky',
     'lesson-planner': 'amber',
     'study-schedule-maker': 'cyan',
     'daily-class-plan-maker': 'indigo',
@@ -102,22 +109,23 @@ export function accentForToolSlug(slug: string): AiToolDocumentAccent {
     'mock-test-builder': 'rose',
     'smart-qa-practice-generator': 'emerald',
     'quick-assignment-builder': 'rose',
-    'smart-study-guide-generator': 'violet',
+    'smart-study-guide-generator': 'sky',
     'chapter-summary-creator': 'blue',
     'key-points-formula-extractor': 'amber',
-    'short-notes-summaries-maker': 'violet',
+    'short-notes-summaries-maker': 'sky',
     'flashcard-generator': 'indigo',
-    'my-study-decks': 'violet',
+    'my-study-decks': 'sky',
     'activity-project-generator': 'orange',
     'project-idea-lab': 'indigo',
     'story-passage-creator': 'teal',
     'reading-practice-room': 'teal',
   };
-  return map[s] || 'violet';
+  return map[s] || 'sky';
 }
 
 function paletteForAccent(accent: AiToolDocumentAccent): AiToolSectionPalette {
-  return AI_TOOL_SECTION_PALETTES.find((p) => p.id === accent) || AI_TOOL_SECTION_PALETTES[3];
+  const id = accent === 'violet' ? 'sky' : accent;
+  return AI_TOOL_SECTION_PALETTES.find((p) => p.id === id) || AI_TOOL_SECTION_PALETTES[3];
 }
 
 /**
@@ -129,7 +137,7 @@ export function AiToolDocumentShell({
   title,
   subtitle,
   badge,
-  accent = 'violet',
+  accent = 'sky',
   icon: Icon = Sparkles,
   children,
   className,

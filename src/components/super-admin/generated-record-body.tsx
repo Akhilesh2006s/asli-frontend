@@ -194,14 +194,14 @@ function parseSegments(lines: string[]): Segment[] {
   return segments;
 }
 
-/** Section accent themes cycled across grouped section cards (matches the AI_V2 look). */
+/** Section accent themes cycled across grouped section cards. */
 const SECTION_ACCENTS = [
-  { bar: 'from-violet-500 to-fuchsia-500', bg: 'from-violet-50/70', ring: 'border-violet-100', badge: 'bg-violet-100 text-violet-700', dot: 'bg-violet-400' },
-  { bar: 'from-emerald-500 to-teal-500', bg: 'from-emerald-50/70', ring: 'border-emerald-100', badge: 'bg-emerald-100 text-emerald-700', dot: 'bg-emerald-400' },
-  { bar: 'from-sky-500 to-blue-500', bg: 'from-sky-50/70', ring: 'border-sky-100', badge: 'bg-sky-100 text-sky-700', dot: 'bg-sky-400' },
-  { bar: 'from-amber-500 to-orange-500', bg: 'from-amber-50/70', ring: 'border-amber-100', badge: 'bg-amber-100 text-amber-700', dot: 'bg-amber-400' },
-  { bar: 'from-rose-500 to-pink-500', bg: 'from-rose-50/70', ring: 'border-rose-100', badge: 'bg-rose-100 text-rose-700', dot: 'bg-rose-400' },
-  { bar: 'from-indigo-500 to-violet-500', bg: 'from-indigo-50/70', ring: 'border-indigo-100', badge: 'bg-indigo-100 text-indigo-700', dot: 'bg-indigo-400' },
+  { bar: 'from-sky-500 to-teal-500', bg: 'from-sky-50/80', ring: 'border-sky-100', badge: 'bg-sky-100 text-sky-800', dot: 'bg-sky-500' },
+  { bar: 'from-teal-500 to-emerald-500', bg: 'from-teal-50/70', ring: 'border-teal-100', badge: 'bg-teal-100 text-teal-800', dot: 'bg-teal-500' },
+  { bar: 'from-cyan-500 to-sky-500', bg: 'from-cyan-50/70', ring: 'border-cyan-100', badge: 'bg-cyan-100 text-cyan-800', dot: 'bg-cyan-500' },
+  { bar: 'from-amber-500 to-orange-500', bg: 'from-amber-50/70', ring: 'border-amber-100', badge: 'bg-amber-100 text-amber-800', dot: 'bg-amber-500' },
+  { bar: 'from-emerald-500 to-teal-500', bg: 'from-emerald-50/70', ring: 'border-emerald-100', badge: 'bg-emerald-100 text-emerald-800', dot: 'bg-emerald-500' },
+  { bar: 'from-blue-500 to-sky-500', bg: 'from-blue-50/70', ring: 'border-blue-100', badge: 'bg-blue-100 text-blue-800', dot: 'bg-blue-500' },
 ] as const;
 
 type SectionAccent = (typeof SECTION_ACCENTS)[number];
@@ -390,10 +390,20 @@ export function GeneratedRecordBody({
 
   if (segments.length === 0) {
     return (
-      <div className={`space-y-2 text-xs sm:text-sm leading-relaxed text-slate-800 ${className}`}>
-        {lines.map((ln, j) => (
-          <p key={j}>{ln}</p>
-        ))}
+      <div className={`space-y-3 ${className}`}>
+        <section className="overflow-hidden rounded-2xl border border-sky-100 bg-gradient-to-b from-sky-50/80 to-white shadow-sm">
+          <header className="flex items-center gap-3 border-b border-slate-100/80 px-4 py-3 sm:px-5">
+            <span className="h-8 w-1.5 shrink-0 rounded-full bg-gradient-to-b from-sky-500 to-teal-500" />
+            <h2 className="text-base font-bold tracking-tight text-slate-900 sm:text-lg">Generated content</h2>
+          </header>
+          <div className="space-y-3 px-4 py-4 text-sm leading-relaxed text-slate-800 sm:px-5 sm:text-base">
+            {lines.map((ln, j) => (
+              <p key={j} className="rounded-xl bg-white/80 px-3 py-2 ring-1 ring-slate-100">
+                {ln}
+              </p>
+            ))}
+          </div>
+        </section>
       </div>
     );
   }
