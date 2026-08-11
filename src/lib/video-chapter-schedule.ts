@@ -110,7 +110,7 @@ export function getSortedChapterNumbers(videos: { chapter?: string }[]): string[
   );
 }
 
-function chapterNumberFromContent(item: {
+export function chapterNumberFromContent(item: {
   title?: string;
   topic?: string;
   chapter?: string;

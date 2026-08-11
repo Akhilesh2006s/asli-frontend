@@ -23,7 +23,7 @@ import {
   isOurBackendPdfUrl,
   isPdfPreviewContent,
 } from '@/lib/api-config';
-import { getVideoDisplayTitle, sortContentsChapterWise } from '@/lib/video-chapter-schedule';
+import { getVideoDisplayTitle, sortContentsChapterWise, chapterNumberFromContent } from '@/lib/video-chapter-schedule';
 import PdfPreviewPanel from '@/components/shared/PdfPreviewPanel';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -740,6 +740,8 @@ export default function SubjectContentManagement() {
   const [isLoadingContents, setIsLoadingContents] = useState(false);
 
   const [selectedSubjectId, setSelectedSubjectId] = useState<string | null>(null);
+  /** Chapter key for content list dropdown: "1" | "2" | … | "unassigned" */
+  const [selectedChapterKey, setSelectedChapterKey] = useState<string>('');
 
   const [isAddClassOpen, setIsAddClassOpen] = useState(false);
   const [newClassNumber, setNewClassNumber] = useState('');
@@ -1133,25 +1135,59 @@ export default function SubjectContentManagement() {
     selectedSubjectId,
   ]);
 
-  const contentSections = useMemo(() => {
-    const knownTypes = new Set(
-      CONTENT_TYPE_SECTIONS.flatMap((s) => s.types)
-    );
-    const sections = CONTENT_TYPE_SECTIONS.map(({ title, types }) => ({
-      title,
-      // Videos (and any type with chapter/module) show chapter 1 → 2 → … → 10, then module.
-      items: sortContentsChapterWise(
-        filteredContents.filter((c) => types.includes(c.type)),
-      ),
-    }));
-    const other = sortContentsChapterWise(
-      filteredContents.filter((c) => !knownTypes.has(c.type)),
-    );
-    if (other.length > 0) {
-      sections.push({ title: 'Other', items: other });
+  const chapterContentGroups = useMemo(() => {
+    const knownTypes = new Set(CONTENT_TYPE_SECTIONS.flatMap((s) => s.types));
+    const byChapter = new Map<string, ContentItem[]>();
+
+    for (const item of filteredContents) {
+      const n = chapterNumberFromContent(item);
+      const key = n != null ? String(n) : 'unassigned';
+      const list = byChapter.get(key);
+      if (list) list.push(item);
+      else byChapter.set(key, [item]);
     }
-    return sections.filter((s) => s.items.length > 0);
+
+    const keys = Array.from(byChapter.keys()).sort((a, b) => {
+      if (a === 'unassigned') return 1;
+      if (b === 'unassigned') return -1;
+      return parseInt(a, 10) - parseInt(b, 10);
+    });
+
+    return keys.map((key) => {
+      const items = sortContentsChapterWise(byChapter.get(key) || []);
+      const typeSections = CONTENT_TYPE_SECTIONS.map(({ title, types }) => ({
+        title,
+        items: items.filter((c) => types.includes(c.type)),
+      })).filter((s) => s.items.length > 0);
+
+      const other = items.filter((c) => !knownTypes.has(c.type));
+      if (other.length > 0) {
+        typeSections.push({ title: 'Other', items: other });
+      }
+
+      return {
+        key,
+        label: key === 'unassigned' ? 'General (no chapter)' : `Chapter ${key}`,
+        total: items.length,
+        typeSections,
+      };
+    });
   }, [filteredContents]);
+
+  const selectedChapterGroup = useMemo(
+    () => chapterContentGroups.find((g) => g.key === selectedChapterKey) ?? null,
+    [chapterContentGroups, selectedChapterKey],
+  );
+
+  useEffect(() => {
+    if (!chapterContentGroups.length) {
+      setSelectedChapterKey('');
+      return;
+    }
+    if (!chapterContentGroups.some((g) => g.key === selectedChapterKey)) {
+      setSelectedChapterKey(chapterContentGroups[0].key);
+    }
+  }, [chapterContentGroups, selectedChapterKey]);
 
   const fetchSubjects = async () => {
     setIsLoadingSubjects(true);
@@ -1996,10 +2032,12 @@ export default function SubjectContentManagement() {
       if (contentForm.date?.trim()) {
         body.date = contentForm.date.trim();
       }
+      if (isVideoNumber(chapterNum)) {
+        body.chapter = chapterNum;
+      } else if (editingContentId && saveContentType !== 'Video') {
+        body.chapter = '';
+      }
       if (saveContentType === 'Video') {
-        if (isVideoNumber(chapterNum)) {
-          body.chapter = chapterNum;
-        }
         // Module optional — send number when set; empty string clears on edit
         if (isVideoNumber(moduleNum)) {
           body.module = moduleNum;
@@ -2600,7 +2638,7 @@ export default function SubjectContentManagement() {
               <CardTitle>Content under Subject</CardTitle>
               <p className="text-xs sm:text-sm text-gray-500">
                 {selectedSubjectId
-                  ? 'Content items linked to the selected subject.'
+                  ? 'Pick a chapter from the dropdown to see textbooks, workbooks, and more.'
                   : 'Select a subject to see its content.'}
               </p>
             </div>
@@ -2627,19 +2665,37 @@ export default function SubjectContentManagement() {
                 No content found for this subject. Use &quot;Add Content&quot; to create one.
               </div>
             ) : (
-              <div className="space-y-10">
-                {contentSections.map((section) => (
-                  <div key={section.title} className="space-y-4">
-                    <h3 className="text-sm sm:text-base font-semibold text-gray-900 border-b border-gray-200 pb-2">
-                      {section.title}
-                      {section.title === 'Videos' ? (
-                        <span className="ml-2 text-xs font-normal text-stone-500">
-                          (sorted chapter → module)
-                        </span>
-                      ) : null}
-                    </h3>
-                    <div className="grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(280px,1fr))]">
-                      {section.items.map((content) => {
+              <div className="space-y-5">
+                <div className="flex flex-col gap-2 sm:max-w-sm">
+                  <Label htmlFor="content-chapter-select">Chapter</Label>
+                  <Select value={selectedChapterKey} onValueChange={setSelectedChapterKey}>
+                    <SelectTrigger id="content-chapter-select" className="bg-white">
+                      <SelectValue placeholder="Select chapter" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {chapterContentGroups.map((chapter) => (
+                        <SelectItem key={chapter.key} value={chapter.key}>
+                          {chapter.label} ({chapter.total})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {!selectedChapterGroup ? (
+                  <p className="text-xs text-gray-500 sm:text-sm">Select a chapter to view content.</p>
+                ) : (
+                  <div className="space-y-8">
+                    {selectedChapterGroup.typeSections.map((section) => (
+                      <div key={`${selectedChapterGroup.key}-${section.title}`} className="space-y-3">
+                        <h3 className="border-b border-gray-200 pb-2 text-sm font-semibold text-gray-900 sm:text-base">
+                          {section.title}
+                          <span className="ml-2 text-xs font-normal text-stone-500">
+                            ({section.items.length})
+                          </span>
+                        </h3>
+                        <div className="grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(280px,1fr))]">
+                          {section.items.map((content) => {
                         const Icon = getContentTypeIcon(content.type);
                         const subjectLabel = content.subject?.name
                           ? extractPlainSubjectName(content.subject.name)
@@ -2852,10 +2908,12 @@ export default function SubjectContentManagement() {
                             </div>
                           </div>
                         );
-                      })}
-                    </div>
+                          })}
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                ))}
+                )}
               </div>
             )}
           </CardContent>
@@ -3247,7 +3305,6 @@ export default function SubjectContentManagement() {
                       ...prev,
                       type: value,
                       fileUrl: '',
-                      chapter: value === 'Video' ? prev.chapter : '',
                       module: value === 'Video' ? prev.module : '',
                     }));
                     setSelectedUploadFile(null);
@@ -3335,7 +3392,28 @@ export default function SubjectContentManagement() {
                   </p>
                 </div>
               </>
-            ) : contentForm.type === 'Audio' ? (
+            ) : (
+              <div>
+                <Label>
+                  Chapter{' '}
+                  <span className="text-muted-foreground font-normal text-xs">(optional)</span>
+                </Label>
+                <Input
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  value={contentForm.chapter}
+                  onChange={(e) =>
+                    setContentForm((prev) => ({
+                      ...prev,
+                      chapter: videoNumberOnly(e.target.value),
+                    }))
+                  }
+                  placeholder="e.g. 1 — groups this under Chapter 1"
+                />
+              </div>
+            )}
+            {contentForm.type === 'Audio' ? (
               <div className="space-y-4">
                 <div>
                   <Label>

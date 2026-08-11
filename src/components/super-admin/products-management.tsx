@@ -120,30 +120,23 @@ export default function ProductsManagement() {
     }
   };
 
-  const deactivate = async (row: (typeof categories)[0]) => {
+  const deleteCategory = async (row: (typeof categories)[0]) => {
     if (!row.id) return;
-    if (row.isBuiltIn) {
-      // toggle inactive via PUT
-      setSaving(true);
-      try {
-        const res = await fetch(`${API_BASE_URL}/api/super-admin/product-categories/${row.id}`, {
-          method: 'PUT',
-          headers: authHeaders(),
-          body: JSON.stringify({ isActive: false }),
-        });
-        const json = await res.json();
-        if (!res.ok || !json.success) throw new Error(json.message || 'Failed');
-        toast({ title: `${row.label} deactivated` });
-        await reload();
-      } catch (e) {
-        toast({
-          title: 'Failed',
-          description: e instanceof Error ? e.message : 'Error',
-          variant: 'destructive',
-        });
-      } finally {
-        setSaving(false);
-      }
+    const isActiveBuiltIn = row.isBuiltIn && row.isActive !== false;
+    if (isActiveBuiltIn) {
+      toast({
+        title: 'Cannot delete',
+        description: 'Built-in categories (Alpha / Beta / Gamma / Delta) cannot be deleted.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    const name = row.label || formatIitCategoryLabel(row.code);
+    if (
+      !window.confirm(
+        `Delete “${name}” permanently? This cannot be undone.`,
+      )
+    ) {
       return;
     }
     setSaving(true);
@@ -154,35 +147,11 @@ export default function ProductsManagement() {
       });
       const json = await res.json();
       if (!res.ok || !json.success) throw new Error(json.message || 'Failed');
-      toast({ title: json.message || 'Deactivated' });
+      toast({ title: json.message || `${name} deleted` });
       await reload();
     } catch (e) {
       toast({
-        title: 'Failed',
-        description: e instanceof Error ? e.message : 'Error',
-        variant: 'destructive',
-      });
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const reactivate = async (row: (typeof categories)[0]) => {
-    if (!row.id) return;
-    setSaving(true);
-    try {
-      const res = await fetch(`${API_BASE_URL}/api/super-admin/product-categories/${row.id}`, {
-        method: 'PUT',
-        headers: authHeaders(),
-        body: JSON.stringify({ isActive: true }),
-      });
-      const json = await res.json();
-      if (!res.ok || !json.success) throw new Error(json.message || 'Failed');
-      toast({ title: `${row.label} reactivated` });
-      await reload();
-    } catch (e) {
-      toast({
-        title: 'Failed',
+        title: 'Delete failed',
         description: e instanceof Error ? e.message : 'Error',
         variant: 'destructive',
       });
@@ -276,11 +245,16 @@ export default function ProductsManagement() {
                       size="sm"
                       variant="ghost"
                       className="h-8 text-red-700 hover:text-red-800"
-                      disabled={saving}
-                      onClick={() => void deactivate(cat)}
+                      disabled={saving || (cat.isBuiltIn && cat.isActive !== false)}
+                      title={
+                        cat.isBuiltIn && cat.isActive !== false
+                          ? 'Built-in categories cannot be deleted'
+                          : `Delete ${cat.label || cat.code}`
+                      }
+                      onClick={() => void deleteCategory(cat)}
                     >
                       <Trash2 className="mr-1 h-3 w-3" />
-                      Deactivate
+                      Delete
                     </Button>
                   </div>
                 </div>
@@ -301,7 +275,7 @@ export default function ProductsManagement() {
           {inactive.length > 0 && (
             <div className="mt-6">
               <p className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">
-                Inactive
+                Previously deactivated — delete permanently
               </p>
               <div className="flex flex-wrap gap-2">
                 {inactive.map((cat) => (
@@ -316,10 +290,12 @@ export default function ProductsManagement() {
                       type="button"
                       size="sm"
                       variant="outline"
-                      className="h-7"
-                      onClick={() => void reactivate(cat)}
+                      className="h-7 text-red-700"
+                      disabled={saving}
+                      onClick={() => void deleteCategory(cat)}
                     >
-                      Reactivate
+                      <Trash2 className="mr-1 h-3 w-3" />
+                      Delete
                     </Button>
                   </div>
                 ))}
