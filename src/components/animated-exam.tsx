@@ -1469,9 +1469,7 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
                 <div className="mb-6">
                   <div className="flex items-start space-x-3">
                     <span className="text-base sm:text-lg font-bold text-gray-900 flex-shrink-0">
-                      Q{Number(currentQuestion.displayOrder) > 0
-                        ? Number(currentQuestion.displayOrder)
-                        : currentQuestionIndex + 1}.
+                      Q{currentQuestionIndex + 1}.
                     </span>
                     <div className="flex-1">
                       {arMatterText ? (
