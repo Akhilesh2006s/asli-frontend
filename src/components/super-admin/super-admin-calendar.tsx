@@ -17,6 +17,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
+import { useConfirm } from '@/hooks/use-confirm';
 import { API_BASE_URL } from '@/lib/api-config';
 import {
   Tooltip,
@@ -182,6 +183,7 @@ interface SuperAdminCalendarProps {
 
 export default function SuperAdminCalendar({ onNavigateToExams }: SuperAdminCalendarProps) {
   const { toast } = useToast();
+  const { confirm, ConfirmDialog } = useConfirm();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [events, setEvents] = useState<CalendarEventRecord[]>([]);
   const [admins, setAdmins] = useState<Admin[]>([]);
@@ -391,9 +393,12 @@ export default function SuperAdminCalendar({ onNavigateToExams }: SuperAdminCale
 
   const deleteSelectedEvent = async () => {
     if (!selectedEvent || selectedEvent.type === 'exam') return;
-    const ok = window.confirm(
-      `Delete “${selectedEvent.title}”? This removes it from the school calendar.`,
-    );
+    const ok = await confirm({
+      title: 'Delete this event?',
+      description: `Delete “${selectedEvent.title}”? This removes it from the school calendar.`,
+      confirmLabel: 'Delete',
+      destructive: true,
+    });
     if (!ok) return;
     setIsDeletingEvent(true);
     try {
@@ -567,6 +572,7 @@ export default function SuperAdminCalendar({ onNavigateToExams }: SuperAdminCale
 
   return (
     <TooltipProvider>
+      {ConfirmDialog}
       <div className="space-y-3 sm:space-y-4 lg:space-y-6">
         <div className="flex items-start justify-between gap-3">
           <div>

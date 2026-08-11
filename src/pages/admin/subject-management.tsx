@@ -22,6 +22,7 @@ import {
   Clock
 } from "lucide-react";
 import Navigation from "@/components/navigation";
+import { useConfirm } from "@/hooks/use-confirm";
 
 interface Subject {
   _id: string;
@@ -49,6 +50,7 @@ const iconMap = {
 };
 
 export default function SubjectManagement() {
+  const { confirm, ConfirmDialog } = useConfirm();
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -127,18 +129,23 @@ export default function SubjectManagement() {
   };
 
   const handleDelete = async (id: string) => {
-    if (confirm('Are you sure you want to delete this subject?')) {
-      try {
-        const response = await fetch(`/api/subjects/${id}`, {
-          method: 'DELETE',
-        });
+    const ok = await confirm({
+      title: 'Delete this subject?',
+      description: 'Are you sure you want to delete this subject?',
+      confirmLabel: 'Delete',
+      destructive: true,
+    });
+    if (!ok) return;
+    try {
+      const response = await fetch(`/api/subjects/${id}`, {
+        method: 'DELETE',
+      });
 
-        if (response.ok) {
-          await fetchSubjects();
-        }
-      } catch (error) {
-        console.error('Error deleting subject:', error);
+      if (response.ok) {
+        await fetchSubjects();
       }
+    } catch (error) {
+      console.error('Error deleting subject:', error);
     }
   };
 
@@ -179,6 +186,7 @@ export default function SubjectManagement() {
 
   return (
     <>
+      {ConfirmDialog}
       <Navigation />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
         <div className="mb-8">

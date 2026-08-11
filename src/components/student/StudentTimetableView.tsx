@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { useTimetableEntries } from '@/hooks/useTimetable';
 import type { TimetableEntry } from '@/types/timetable';
 import { WeeklyTimetableGrid } from '@/components/timetable/WeeklyTimetableGrid';
-import { buildWeekdayPlacements } from '@/lib/student-timetable-utils';
+import { buildWeekdayPlacements, sanitizeTimetableEntries } from '@/lib/student-timetable-utils';
 
 type Props = {
   entries?: TimetableEntry[];
@@ -46,7 +46,8 @@ export default function StudentTimetableView({
   const rawEntries = entriesProp ?? fetchedEntries;
   const isLoading = isLoadingProp ?? (entriesProp ? false : fetchLoading);
 
-  const placements = useMemo(() => buildWeekdayPlacements(rawEntries), [rawEntries]);
+  const safeEntries = useMemo(() => sanitizeTimetableEntries(rawEntries), [rawEntries]);
+  const placements = useMemo(() => buildWeekdayPlacements(safeEntries), [safeEntries]);
   const sessionCount = placements.length;
   const schoolLabel = useMemo(() => resolveSchoolLabel(schoolNameProp), [schoolNameProp]);
 
@@ -100,7 +101,7 @@ export default function StudentTimetableView({
                   No classes in your weekly timetable yet.
                 </p>
               )}
-              <WeeklyTimetableGrid entries={rawEntries} variant="student" />
+              <WeeklyTimetableGrid entries={safeEntries} variant="student" />
             </div>
           )}
         </CardContent>

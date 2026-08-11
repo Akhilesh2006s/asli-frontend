@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Plus, BookOpen, Trash2, Edit, AlertCircle } from 'lucide-react';
 import { API_BASE_URL } from '@/lib/api-config';
 import { useToast } from '@/hooks/use-toast';
+import { useConfirm } from '@/hooks/use-confirm';
 import { getAuthToken } from '@/lib/auth-utils';
 
 interface Subject {
@@ -29,6 +30,7 @@ const BOARDS = [
 
 export default function SubjectManagement() {
   const { toast } = useToast();
+  const { confirm, ConfirmDialog } = useConfirm();
   const [selectedBoard, setSelectedBoard] = useState<string>('ASLI_EXCLUSIVE_SCHOOLS');
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -231,7 +233,13 @@ export default function SubjectManagement() {
   });
 
   const handleDelete = async (subjectId: string) => {
-    if (!confirm('Are you sure you want to delete this subject? This will also delete all associated content.')) return;
+    const ok = await confirm({
+      title: 'Delete this subject?',
+      description: 'Are you sure you want to delete this subject? This will also delete all associated content.',
+      confirmLabel: 'Delete',
+      destructive: true,
+    });
+    if (!ok) return;
 
     setIsDeleting(subjectId);
     try {
@@ -271,6 +279,7 @@ export default function SubjectManagement() {
 
   return (
     <div className="space-y-3 sm:space-y-4 lg:space-y-6">
+      {ConfirmDialog}
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

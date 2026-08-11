@@ -18,6 +18,7 @@ import { API_BASE_URL } from '@/lib/api-config';
 import { PRODUCT_IIT, formatIitCategoryLabel, normalizeCategoryCode } from '@/lib/products';
 import { useProductCategories } from '@/hooks/use-product-categories';
 import { useToast } from '@/hooks/use-toast';
+import { useConfirm } from '@/hooks/use-confirm';
 import { Layers, Loader2, Pencil, Plus, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -34,6 +35,7 @@ function authHeaders(): HeadersInit {
  */
 export default function ProductsManagement() {
   const { toast } = useToast();
+  const { confirm, ConfirmDialog } = useConfirm();
   const { categories, loading, reload } = useProductCategories({ includeInactive: true });
   const [addOpen, setAddOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
@@ -132,13 +134,13 @@ export default function ProductsManagement() {
       return;
     }
     const name = row.label || formatIitCategoryLabel(row.code);
-    if (
-      !window.confirm(
-        `Delete “${name}” permanently? This cannot be undone.`,
-      )
-    ) {
-      return;
-    }
+    const ok = await confirm({
+      title: 'Delete this category?',
+      description: `Delete “${name}” permanently? This cannot be undone.`,
+      confirmLabel: 'Delete',
+      destructive: true,
+    });
+    if (!ok) return;
     setSaving(true);
     try {
       const res = await fetch(`${API_BASE_URL}/api/super-admin/product-categories/${row.id}`, {
@@ -162,6 +164,7 @@ export default function ProductsManagement() {
 
   return (
     <div className="space-y-6">
+      {ConfirmDialog}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h2 className="text-xl font-semibold text-slate-900 sm:text-2xl">Products</h2>

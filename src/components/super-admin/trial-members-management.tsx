@@ -24,6 +24,7 @@ import {
 import { API_BASE_URL } from '@/lib/api-config';
 import { getAuthToken } from '@/lib/auth-utils';
 import { useToast } from '@/hooks/use-toast';
+import { useConfirm } from '@/hooks/use-confirm';
 import { formatIitCategoryLabel } from '@/lib/products';
 import {
   Clock,
@@ -152,6 +153,7 @@ function statusBadge(m: TrialMember) {
 
 export default function TrialMembersManagement() {
   const { toast } = useToast();
+  const { confirm, ConfirmDialog } = useConfirm();
   const [members, setMembers] = useState<TrialMember[]>([]);
   const [summary, setSummary] = useState<Summary | null>(null);
   const [contentTypeOptions, setContentTypeOptions] = useState<string[]>([]);
@@ -358,9 +360,12 @@ export default function TrialMembersManagement() {
   };
 
   const deleteMember = async (m: TrialMember) => {
-    const ok = window.confirm(
-      `Delete ${m.fullName || m.email}? This permanently removes their individual trial account.`,
-    );
+    const ok = await confirm({
+      title: 'Delete this member?',
+      description: `Delete ${m.fullName || m.email}? This permanently removes their individual trial account.`,
+      confirmLabel: 'Delete',
+      destructive: true,
+    });
     if (!ok) return;
     setDeletingId(m.id);
     try {
@@ -467,6 +472,7 @@ export default function TrialMembersManagement() {
 
   return (
     <div className="space-y-6">
+      {ConfirmDialog}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h2 className="text-xl font-semibold text-slate-900 sm:text-2xl">Trial members</h2>

@@ -8,6 +8,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useToast } from '@/hooks/use-toast';
 import { getAuthToken, getUser, getUserIdFromAuthToken } from '@/lib/auth-utils';
 import { AuthenticatedUploadImage } from '@/components/AuthenticatedUploadImage';
 import { MatchColumnsTable } from '@/components/exam/MatchColumnsTable';
@@ -135,6 +136,7 @@ function isAnswerProvidedForQuestion(question: Question, raw: any): boolean {
 }
 
 export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExamProps) {
+  const { toast } = useToast();
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, any>>({});
   const [flaggedQuestions, setFlaggedQuestions] = useState<Set<number>>(new Set());
@@ -819,7 +821,11 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
         console.error('Exam questions are not available:', exam.questions);
         setIsSubmitted(false);
         submissionInProgressRef.current = false;
-        alert('No questions found in this exam. Please try again.');
+        toast({
+          title: 'Error',
+          description: 'No questions found in this exam. Please try again.',
+          variant: 'destructive',
+        });
         return;
       }
 
@@ -919,10 +925,13 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
             error: errorData
           });
           const msg = errorData?.message || response.statusText;
-          alert(
-            msg ||
-              'Could not save your attempt. Check your connection and tap Submit again — your answers are still on this screen.'
-          );
+          toast({
+            title: 'Error',
+            description:
+              msg ||
+              'Could not save your attempt. Check your connection and tap Submit again — your answers are still on this screen.',
+            variant: 'destructive',
+          });
           setIsSubmitted(false);
           submissionInProgressRef.current = false;
           return;
@@ -987,11 +996,13 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
       } catch (error) {
         console.error('❌ Failed to save result:', error);
         const aborted = error instanceof Error && error.name === 'AbortError';
-        alert(
-          aborted
+        toast({
+          title: aborted ? 'Timed out' : 'Error',
+          description: aborted
             ? 'Saving timed out. Tap Submit again — your answers are still here.'
-            : 'Could not save your attempt. Check your connection and tap Submit again — your answers are still on this screen.'
-        );
+            : 'Could not save your attempt. Check your connection and tap Submit again — your answers are still on this screen.',
+          variant: 'destructive',
+        });
         setIsSubmitted(false);
       } finally {
         clearTimeout(timeout);
@@ -1012,9 +1023,11 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
         window.clearTimeout(autoSubmitTimeoutRef.current);
         autoSubmitTimeoutRef.current = null;
       }
-      alert(
-        `Submit failed (${errorText}). Your answers are still on this screen — please try Submit again.`
-      );
+      toast({
+        title: 'Error',
+        description: `Submit failed (${errorText}). Your answers are still on this screen — please try Submit again.`,
+        variant: 'destructive',
+      });
     }
   };
 

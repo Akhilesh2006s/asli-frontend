@@ -12,6 +12,7 @@ import {
 } from "./api";
 import type { RecordRow } from "./api";
 import { useToast } from "@/hooks/use-toast";
+import { useConfirm } from "@/hooks/use-confirm";
 import {
   displayMcqQuestionSerial,
   extractMcqQuestionsFromRecord,
@@ -105,6 +106,7 @@ export function GenerationRecordsList({
   renderRowExtras,
 }: GenerationRecordsListProps) {
   const { toast } = useToast();
+  const { confirm, ConfirmDialog } = useConfirm();
   const [view, setView] = useState<RecordRow | null>(null);
   const [fullText, setFullText] = useState<string | null>(null);
   const [editRow, setEditRow] = useState<RecordRow | null>(null);
@@ -224,7 +226,12 @@ export function GenerationRecordsList({
   };
 
   const removeRow = async (row: RecordRow) => {
-    const ok = window.confirm("Delete this record permanently?");
+    const ok = await confirm({
+      title: "Delete this record?",
+      description: "Delete this record permanently?",
+      confirmLabel: "Delete",
+      destructive: true,
+    });
     if (!ok) return;
     setDeletingId(row._id);
     try {
@@ -277,6 +284,7 @@ export function GenerationRecordsList({
 
   return (
     <>
+      {ConfirmDialog}
       <ul className="space-y-3">
         {sortAiToolRecordsByVariantThenDate(items).map((row) => {
           const toolSlug = normalizeAiToolSlug(resolveToolName(row));

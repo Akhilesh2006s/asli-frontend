@@ -26,6 +26,7 @@ import { API_BASE_URL } from "@/lib/api-config";
 import { networkErrorUserMessage, resilientFetch } from "@/lib/resilient-fetch";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
+import { useConfirm } from "@/hooks/use-confirm";
 import { useCurriculumCascade } from "@/hooks/use-curriculum-cascade";
 import { useProductCategories } from "@/hooks/use-product-categories";
 import { formatIitCategoryLabel, normalizeIitCategory } from "@/lib/products";
@@ -318,6 +319,7 @@ function isWorksheetToolValue(v: unknown): boolean {
 
 export default function SuperAdminAiGenerator() {
   const { toast } = useToast();
+  const { confirm, ConfirmDialog } = useConfirm();
   const [board, setBoard] = useState("CBSE");
   /** Records list is filtered only by board; independent of the generate form. */
   const [recordsBoardFilter, setRecordsBoardFilter] = useState("CBSE");
@@ -953,7 +955,13 @@ export default function SuperAdminAiGenerator() {
   };
 
   const deleteRecord = async (id: string) => {
-    if (!window.confirm("Delete this record permanently?")) return;
+    const ok = await confirm({
+      title: "Delete this record?",
+      description: "Delete this record permanently?",
+      confirmLabel: "Delete",
+      destructive: true,
+    });
+    if (!ok) return;
     setDeletingId(id);
     try {
       const res = await fetch(`${API_BASE_URL}/api/ai-generator/records/${id}`, {
@@ -1018,13 +1026,13 @@ export default function SuperAdminAiGenerator() {
   ) => {
     const ids = records.map((r) => r._id).filter(Boolean);
     if (ids.length === 0) return;
-    if (
-      !window.confirm(
-        `Delete all ${ids.length} record${ids.length !== 1 ? "s" : ""} in subtopic “${subtopicLabel}”? This cannot be undone.`,
-      )
-    ) {
-      return;
-    }
+    const ok = await confirm({
+      title: "Delete all subtopic records?",
+      description: `Delete all ${ids.length} record${ids.length !== 1 ? "s" : ""} in subtopic “${subtopicLabel}”? This cannot be undone.`,
+      confirmLabel: "Delete",
+      destructive: true,
+    });
+    if (!ok) return;
     setDeletingSubtopicKey(sectionKey);
     try {
       const res = await fetch(`${API_BASE_URL}/api/ai-generator/records/bulk-delete`, {
@@ -1074,6 +1082,7 @@ export default function SuperAdminAiGenerator() {
 
   return (
     <div className="space-y-3 sm:space-y-4 lg:space-y-6">
+      {ConfirmDialog}
       <div className="flex gap-2">
         <Button
           variant={activeTab === "generate" ? "default" : "outline"}

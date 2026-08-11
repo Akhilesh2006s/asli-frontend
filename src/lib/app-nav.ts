@@ -9,6 +9,7 @@ import {
   ScanLine,
   Settings,
   Sparkles,
+  Trophy,
   User,
   Users,
   Users2,
@@ -37,6 +38,7 @@ export const teacherNav: NavItem[] = [
   { id: "students", label: "Students", icon: Users2, href: "/teacher/dashboard?tab=students" },
   { id: "edu-ott", label: "EduOTT", icon: MonitorPlay, href: "/edu-ott" },
   { id: "learning-paths", label: "Learning Paths", icon: BookOpen, href: "/learning-paths" },
+  { id: "quiz", label: "Quiz", icon: Trophy, href: "/teacher/quiz" },
   { id: "vidya-ai", label: "Vidya AI", icon: Sparkles, href: "/teacher/dashboard?tab=vidya-ai" },
   // NOTE: /teacher/timetable is currently a redirect back to the dashboard,
   // so Calendar points at a tab until a real calendar page exists.
@@ -56,6 +58,7 @@ export const studentNav: NavItem[] = [
   { id: "learning-paths", label: "Learning Paths", icon: BookOpen, href: "/learning-paths" },
   { id: "edu-ott", label: "EduOTT", icon: MonitorPlay, href: "/edu-ott" },
   { id: "exams", label: "Exams", icon: FileText, href: "/student-exams" },
+  { id: "quiz", label: "Quiz", icon: Trophy, href: "/iq-rank-boost-subjects" },
   { id: "results", label: "OMR Results", icon: ScanLine, href: "/student/results" },
   // Flashcards / Practice / Mock Tests intentionally live inside Vidya AI
   // rather than the sidebar — the AI tools are the core of the platform and

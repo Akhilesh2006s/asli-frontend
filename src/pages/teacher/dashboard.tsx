@@ -20,6 +20,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { useLocation, useSearch } from 'wouter';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useConfirm } from '@/hooks/use-confirm';
 import { 
   GraduationCap, 
   Users, 
@@ -230,6 +231,7 @@ interface Assessment {
 
 const TeacherDashboard = () => {
   const { toast } = useToast();
+  const { confirm, ConfirmDialog } = useConfirm();
   const notify = (message, variant = 'default') => {
     toast({
       title: variant === 'destructive' ? 'Error' : 'Notice',
@@ -889,7 +891,13 @@ const TeacherDashboard = () => {
   };
 
   const handleDeleteVideo = async (video: any) => {
-    if (!confirm(`Are you sure you want to delete "${video.title}"?`)) return;
+    const ok = await confirm({
+      title: 'Delete this video?',
+      description: `Are you sure you want to delete "${video.title}"?`,
+      confirmLabel: 'Delete',
+      destructive: true,
+    });
+    if (!ok) return;
 
     try {
       const token = getAuthToken();
@@ -2192,6 +2200,7 @@ const TeacherDashboard = () => {
 
   return (
     <TeacherShell contentClassName="teacher-playful-dashboard">
+      {ConfirmDialog}
       {/* Main Content */}
       <div className="relative z-10 mx-auto w-full max-w-7xl px-4 py-4 pb-8 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
         {(() => {

@@ -33,6 +33,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
+import { useConfirm } from '@/hooks/use-confirm';
 import { API_BASE_URL } from '@/lib/api-config';
 import { getExamClassStrings } from '@/lib/exam-classes';
 import {
@@ -1136,6 +1137,7 @@ const getExamTimestamp = (exam: Partial<Exam>) => {
 
 export default function ExamManagement() {
   const { toast } = useToast();
+  const { confirm, ConfirmDialog } = useConfirm();
   const [exams, setExams] = useState<Exam[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedSchool, setSelectedSchool] = useState('all-schools');
@@ -2249,9 +2251,11 @@ export default function ExamManagement() {
       });
       return;
     }
-    const shouldUpload = window.confirm(
-      `Upload ${pdfQuestionRows.length} extracted question(s) to this exam now?\n\nThis will immediately save them to the database (including figures and Assertion–Reason directions).`
-    );
+    const shouldUpload = await confirm({
+      title: 'Upload extracted questions?',
+      description: `Upload ${pdfQuestionRows.length} extracted question(s) to this exam now?\n\nThis will immediately save them to the database (including figures and Assertion–Reason directions).`,
+      confirmLabel: 'Upload',
+    });
     if (!shouldUpload) return;
     setIsUploadingExtractedQuestions(true);
     try {
@@ -2432,9 +2436,12 @@ export default function ExamManagement() {
       return;
     }
 
-    const shouldDelete = window.confirm(
-      `Are you sure you want to delete all ${questions.length} question(s)? This cannot be undone.`
-    );
+    const shouldDelete = await confirm({
+      title: 'Delete all questions?',
+      description: `Are you sure you want to delete all ${questions.length} question(s)? This cannot be undone.`,
+      confirmLabel: 'Delete',
+      destructive: true,
+    });
     if (!shouldDelete) return;
 
     setIsDeletingAllQuestions(true);
@@ -2864,12 +2871,16 @@ export default function ExamManagement() {
         response.status === 409 &&
         String(data.message || '').toLowerCase().includes('duplicate')
       ) {
-        const shouldReplace = window.confirm(
-          'A question with the same text AND image already exists for this exam/subject.\n\n' +
-            'OK = DELETE the existing question and save this one.\n' +
+        const shouldReplace = await confirm({
+          title: 'Replace duplicate question?',
+          description:
+            'A question with the same text AND image already exists for this exam/subject.\n\n' +
+            'Confirm = DELETE the existing question and save this one.\n' +
             'Cancel = keep the existing question and do not save.\n\n' +
-            'Different image questions are not duplicates — cancel if you meant to add a new question.'
-        );
+            'Different image questions are not duplicates — cancel if you meant to add a new question.',
+          confirmLabel: 'Replace',
+          destructive: true,
+        });
 
         if (!shouldReplace) {
           return;
@@ -3412,9 +3423,13 @@ export default function ExamManagement() {
   };
 
   const handleDeleteExam = async (examId: string) => {
-    if (!confirm('Are you sure you want to delete this exam? This will also delete all associated questions.')) {
-      return;
-    }
+    const ok = await confirm({
+      title: 'Delete this exam?',
+      description: 'Are you sure you want to delete this exam? This will also delete all associated questions.',
+      confirmLabel: 'Delete',
+      destructive: true,
+    });
+    if (!ok) return;
 
     try {
       const token = getAuthToken();
@@ -3659,6 +3674,7 @@ export default function ExamManagement() {
 
   return (
     <div className="p-3 sm:p-6 space-y-3 sm:space-y-4 lg:space-y-6">
+      {ConfirmDialog}
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
         <div className="min-w-0">
           <h2 className="text-xl sm:text-2xl sm:text-3xl font-bold text-gray-900 break-words">Exam Management</h2>

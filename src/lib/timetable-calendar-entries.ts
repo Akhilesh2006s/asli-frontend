@@ -1,10 +1,6 @@
 import { parseISO } from 'date-fns';
 import type { TimetableEntry } from '@/types/timetable';
-
-function refName(v: string | { name?: string; fullName?: string } | undefined) {
-  if (!v || typeof v === 'string') return '';
-  return v.name || v.fullName || '';
-}
+import { refName, sanitizeTimetableEntries } from '@/lib/student-timetable-utils';
 
 export type TimetableCalendarEntry = {
   id: string;
@@ -28,9 +24,7 @@ export function parseTimetableDateTime(entry: TimetableEntry): Date {
 }
 
 export function buildTimetableCalendarEntries(entries: TimetableEntry[]): TimetableCalendarEntry[] {
-  return entries
-    .filter((e) => e.status !== 'Cancelled')
-    .map((entry) => ({
+  return sanitizeTimetableEntries(entries).map((entry) => ({
       id: entry._id,
       type: 'timetable' as const,
       title: refName(entry.subjectId) || 'Class',

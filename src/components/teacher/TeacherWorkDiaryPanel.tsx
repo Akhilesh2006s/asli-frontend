@@ -15,6 +15,7 @@ import { API_BASE_URL } from '@/lib/api-config';
 import { Badge } from '@/components/ui/badge';
 import { BookMarked, Loader2, Save, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useConfirm } from '@/hooks/use-confirm';
 
 type TeacherClassOption = {
   id: string;
@@ -73,6 +74,7 @@ function entryClassLabel(entry: DiaryEntry) {
 }
 
 export function TeacherWorkDiaryPanel({ className }: { className?: string }) {
+  const { confirm, ConfirmDialog } = useConfirm();
   const [entries, setEntries] = useState<DiaryEntry[]>([]);
   const [classes, setClasses] = useState<TeacherClassOption[]>([]);
   const [loadingClasses, setLoadingClasses] = useState(true);
@@ -178,7 +180,13 @@ export function TeacherWorkDiaryPanel({ className }: { className?: string }) {
   };
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm('Remove this diary entry?')) return;
+    const ok = await confirm({
+      title: 'Remove diary entry?',
+      description: 'Remove this diary entry?',
+      confirmLabel: 'Delete',
+      destructive: true,
+    });
+    if (!ok) return;
     try {
       const token = getAuthToken();
       await fetch(`${API_BASE_URL}/api/teacher/work-diary/${id}`, {
@@ -200,6 +208,7 @@ export function TeacherWorkDiaryPanel({ className }: { className?: string }) {
         className
       )}
     >
+      {ConfirmDialog}
       <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex items-start gap-3">
           <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-indigo-600 text-white shadow-md ring-4 ring-indigo-600/15">

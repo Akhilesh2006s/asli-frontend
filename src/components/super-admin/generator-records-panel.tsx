@@ -22,6 +22,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Eye, FileDown, Loader2, Pencil, Trash2 } from "lucide-react";
 import { API_BASE_URL } from "@/lib/api-config";
 import { useToast } from "@/hooks/use-toast";
+import { useConfirm } from "@/hooks/use-confirm";
 import { GeneratorRecordViewer } from "@/components/super-admin/generator-record-viewer";
 import { AiToolRecordPreviewBody } from "@/components/super-admin/ai-tool-record-preview-body";
 import { displaySubtopicLabel, isSingleSubtopicLabel } from "@/lib/curriculum-subtopic-display";
@@ -127,6 +128,7 @@ export function GeneratorRecordsPanel({
   headerExtra,
 }: GeneratorRecordsPanelProps) {
   const { toast } = useToast();
+  const { confirm, ConfirmDialog } = useConfirm();
   const [recordsBoardFilter, setRecordsBoardFilter] = useState(boardFilterDefault);
   const [effectiveBoardOptions, setEffectiveBoardOptions] = useState(boardOptions);
   const [recordsTree, setRecordsTree] = useState<GroupedTool[]>([]);
@@ -297,7 +299,13 @@ export function GeneratorRecordsPanel({
   };
 
   const deleteRecord = async (id: string) => {
-    if (!window.confirm("Delete this record permanently?")) return;
+    const ok = await confirm({
+      title: "Delete this record?",
+      description: "Delete this record permanently?",
+      confirmLabel: "Delete",
+      destructive: true,
+    });
+    if (!ok) return;
     setDeletingId(id);
     try {
       const res = await fetch(`${API_BASE_URL}${apiPrefix}/records/${id}`, {
@@ -361,13 +369,13 @@ export function GeneratorRecordsPanel({
   ) => {
     const ids = records.map((r) => r._id).filter(Boolean);
     if (ids.length === 0) return;
-    if (
-      !window.confirm(
-        `Delete all ${ids.length} record${ids.length !== 1 ? "s" : ""} in subtopic “${subtopicLabel}”? This cannot be undone.`,
-      )
-    ) {
-      return;
-    }
+    const ok = await confirm({
+      title: "Delete all subtopic records?",
+      description: `Delete all ${ids.length} record${ids.length !== 1 ? "s" : ""} in subtopic “${subtopicLabel}”? This cannot be undone.`,
+      confirmLabel: "Delete",
+      destructive: true,
+    });
+    if (!ok) return;
     setDeletingSubtopicKey(sectionKey);
     try {
       const res = await fetch(`${API_BASE_URL}${apiPrefix}/records/bulk-delete`, {
@@ -406,6 +414,7 @@ export function GeneratorRecordsPanel({
 
   return (
     <>
+      {ConfirmDialog}
       <Card>
         <CardHeader className="space-y-3">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">

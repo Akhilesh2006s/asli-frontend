@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+import { useConfirm } from "@/hooks/use-confirm";
 import { API_BASE_URL } from "@/lib/api-config";
 import { cn } from "@/lib/utils";
 import { toCurriculumSelectRows, type CurriculumSelectRow } from "@/lib/vidya-subjects";
@@ -158,6 +159,7 @@ const STEP_MESSAGES: Record<UploadStep, string> = {
 
 export default function AIContentEngine() {
   const { toast } = useToast();
+  const { confirm, ConfirmDialog } = useConfirm();
   const [items, setItems] = useState<PdfItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [listLoadError, setListLoadError] = useState<string | null>(null);
@@ -4066,13 +4068,13 @@ export default function AIContentEngine() {
   ) => {
     const ids = records.map((r) => r._id).filter(Boolean);
     if (ids.length === 0) return;
-    if (
-      !window.confirm(
-        `Delete all ${ids.length} record${ids.length !== 1 ? "s" : ""} in subtopic “${subtopicLabel}”? This cannot be undone.`,
-      )
-    ) {
-      return;
-    }
+    const ok = await confirm({
+      title: "Delete all subtopic records?",
+      description: `Delete all ${ids.length} record${ids.length !== 1 ? "s" : ""} in subtopic “${subtopicLabel}”? This cannot be undone.`,
+      confirmLabel: "Delete",
+      destructive: true,
+    });
+    if (!ok) return;
     setDeletingSubtopicKey(sectionKey);
     try {
       const res = await fetch(`${API_BASE_URL}/api/pdf/bulk-delete`, {
@@ -4109,6 +4111,7 @@ export default function AIContentEngine() {
 
   return (
     <div className="space-y-3 sm:space-y-4 lg:space-y-6 max-lg:space-y-4">
+      {ConfirmDialog}
       <Card>
         <CardHeader>
           <CardTitle>AI PDF</CardTitle>

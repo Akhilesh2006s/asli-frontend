@@ -29,6 +29,7 @@ import {
 import { Checkbox } from '@/components/ui/checkbox';
 import { API_BASE_URL } from '@/lib/api-config';
 import { useToast } from '@/hooks/use-toast';
+import { useConfirm } from '@/hooks/use-confirm';
 import { Skeleton } from '@/components/ui/skeleton';
 import QuestionGenerator from './question-generator';
 
@@ -36,7 +37,7 @@ interface IQActivity {
   _id: string;
   title: string;
   description: string;
-  type: 'iq-test' | 'rank-boost' | 'challenge' | 'quiz';
+  type: 'iq-test' | 'rank-boost' | 'challenge' | 'quiz' | 'daily' | 'weekly';
   difficulty: 'easy' | 'medium' | 'hard' | 'expert';
   points: number;
   duration: number; // in minutes
@@ -50,6 +51,12 @@ interface IQActivity {
   isActive: boolean;
   trialOnly?: boolean;
   promptOnLogin?: boolean;
+  scheduleType?: 'once' | 'daily' | 'weekly';
+  scheduleDays?: number[];
+  audienceType?: 'all_schools' | 'schools' | 'trial' | 'all_members' | 'specific_members';
+  audienceRoles?: Array<'student' | 'teacher'>;
+  targetSchools?: string[];
+  targetUserIds?: string[];
   createdAt: string;
   updatedAt: string;
   participants?: number;
@@ -59,6 +66,7 @@ interface IQActivity {
 
 export default function IQRankBoostActivities() {
   const { toast } = useToast();
+  const { confirm, ConfirmDialog } = useConfirm();
   const [activities, setActivities] = useState<IQActivity[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -71,10 +79,11 @@ export default function IQRankBoostActivities() {
   const [boards, setBoards] = useState<any[]>([]);
   const [selectedClass, setSelectedClass] = useState<number | null>(null);
 
+  const [schools, setSchools] = useState<Array<{ _id: string; name: string }>>([]);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    type: 'iq-test' as 'iq-test' | 'rank-boost' | 'challenge' | 'quiz',
+    type: 'quiz' as 'iq-test' | 'rank-boost' | 'challenge' | 'quiz' | 'daily' | 'weekly',
     difficulty: 'medium' as 'easy' | 'medium' | 'hard' | 'expert',
     points: 100,
     duration: 30,
@@ -85,13 +94,45 @@ export default function IQRankBoostActivities() {
     isActive: true,
     trialOnly: false,
     promptOnLogin: false,
+    scheduleType: 'once' as 'once' | 'daily' | 'weekly',
+    audienceType: 'all_schools' as 'all_schools' | 'schools' | 'trial' | 'all_members' | 'specific_members',
+    audienceRoles: ['student'] as Array<'student' | 'teacher'>,
+    targetSchools: [] as string[],
+    targetUserIdsText: '',
   });
 
   useEffect(() => {
     fetchActivities();
     fetchSubjects();
     fetchBoards();
+    fetchSchools();
   }, []);
+
+  const fetchSchools = async () => {
+    try {
+      const token = getAuthToken();
+      const response = await fetch(`${API_BASE_URL}/api/super-admin/admins`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+      });
+      if (!response.ok) return;
+      const data = await response.json();
+      const list = Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : [];
+      setSchools(
+        list
+          .map((admin: any) => ({
+            _id: String(admin._id || admin.id || ''),
+            name: String(admin.schoolName || admin.name || admin.email || 'School').trim(),
+          }))
+          .filter((s: { _id: string }) => s._id),
+      );
+    } catch {
+      setSchools([]);
+    }
+  };
 
   const fetchActivities = async () => {
     try {
@@ -183,6 +224,33 @@ export default function IQRankBoostActivities() {
     }
   };
 
+  const buildPayload = () => {
+    const targetUserIds = String(formData.targetUserIdsText || '')
+      .split(/[\s,]+/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+    return {
+      title: formData.title,
+      description: formData.description,
+      type: formData.scheduleType === 'daily' ? 'daily' : formData.scheduleType === 'weekly' ? 'weekly' : 'quiz',
+      difficulty: formData.difficulty,
+      points: formData.points,
+      duration: formData.duration,
+      subject: formData.subject,
+      board: formData.board,
+      classNumber: formData.classNumber || 'all',
+      questions: formData.questions,
+      isActive: formData.isActive,
+      scheduleType: formData.scheduleType,
+      audienceType: formData.audienceType,
+      audienceRoles: formData.audienceRoles,
+      targetSchools: formData.audienceType === 'schools' ? formData.targetSchools : [],
+      targetUserIds: formData.audienceType === 'specific_members' ? targetUserIds : [],
+      trialOnly: formData.audienceType === 'trial',
+      promptOnLogin: formData.audienceType === 'trial' ? formData.promptOnLogin : false,
+    };
+  };
+
   const handleCreate = async () => {
     try {
       const token = getAuthToken();
@@ -192,13 +260,14 @@ export default function IQRankBoostActivities() {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(formData)
+        credentials: 'include',
+        body: JSON.stringify(buildPayload())
       });
 
       if (response.ok) {
         toast({
           title: 'Success',
-          description: 'Activity created successfully'
+          description: 'Quiz created successfully'
         });
         setIsCreateModalOpen(false);
         resetForm();
@@ -207,14 +276,14 @@ export default function IQRankBoostActivities() {
         const data = await response.json();
         toast({
           title: 'Error',
-          description: data.message || 'Failed to create activity',
+          description: data.message || 'Failed to create quiz',
           variant: 'destructive'
         });
       }
     } catch (error) {
       toast({
         title: 'Error',
-        description: 'Failed to create activity',
+        description: 'Failed to create quiz',
         variant: 'destructive'
       });
     }
@@ -231,13 +300,13 @@ export default function IQRankBoostActivities() {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(buildPayload())
       });
 
       if (response.ok) {
         toast({
           title: 'Success',
-          description: 'Activity updated successfully'
+          description: 'Quiz updated successfully'
         });
         setIsEditModalOpen(false);
         setSelectedActivity(null);
@@ -247,21 +316,27 @@ export default function IQRankBoostActivities() {
         const data = await response.json();
         toast({
           title: 'Error',
-          description: data.message || 'Failed to update activity',
+          description: data.message || 'Failed to update quiz',
           variant: 'destructive'
         });
       }
     } catch (error) {
       toast({
         title: 'Error',
-        description: 'Failed to update activity',
+        description: 'Failed to update quiz',
         variant: 'destructive'
       });
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this activity?')) return;
+    const ok = await confirm({
+      title: 'Delete this activity?',
+      description: 'Are you sure you want to delete this activity?',
+      confirmLabel: 'Delete',
+      destructive: true,
+    });
+    if (!ok) return;
 
     try {
       const token = getAuthToken();
@@ -299,7 +374,7 @@ export default function IQRankBoostActivities() {
     setFormData({
       title: '',
       description: '',
-      type: 'iq-test',
+      type: 'quiz',
       difficulty: 'medium',
       points: 100,
       duration: 30,
@@ -310,6 +385,11 @@ export default function IQRankBoostActivities() {
       isActive: true,
       trialOnly: false,
       promptOnLogin: false,
+      scheduleType: 'once',
+      audienceType: 'all_schools',
+      audienceRoles: ['student'],
+      targetSchools: [],
+      targetUserIdsText: '',
     });
   };
 
@@ -329,6 +409,13 @@ export default function IQRankBoostActivities() {
       isActive: activity.isActive,
       trialOnly: Boolean(activity.trialOnly),
       promptOnLogin: Boolean(activity.promptOnLogin),
+      scheduleType: activity.scheduleType || (activity.type === 'daily' ? 'daily' : activity.type === 'weekly' ? 'weekly' : 'once'),
+      audienceType:
+        activity.audienceType ||
+        (activity.trialOnly ? 'trial' : 'all_schools'),
+      audienceRoles: activity.audienceRoles?.length ? activity.audienceRoles : ['student'],
+      targetSchools: (activity.targetSchools || []).map(String),
+      targetUserIdsText: (activity.targetUserIds || []).map(String).join(', '),
     });
     setIsEditModalOpen(true);
   };
@@ -383,11 +470,12 @@ export default function IQRankBoostActivities() {
 
   return (
     <div className="space-y-3 sm:space-y-4 lg:space-y-6">
+      {ConfirmDialog}
       {/* Header */}
       <div className="flex items-center justify-between gap-3">
         <div>
-          <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">IQ/Rank Boost Activities</h2>
-          <p className="text-gray-600 mt-1">Manage IQ tests and rank boost activities by class</p>
+          <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">Quiz</h2>
+          <p className="text-gray-600 mt-1">Create daily or weekly quizzes for schools, trial users, or specific members</p>
         </div>
         <Button
           onClick={() => {
@@ -397,7 +485,7 @@ export default function IQRankBoostActivities() {
           className="bg-gradient-to-r from-sky-300 to-teal-400 hover:from-sky-400 hover:to-teal-500 text-white"
         >
           <Plus className="w-4 h-4 mr-2" />
-          Create activity
+          Create quiz
         </Button>
       </div>
 
@@ -421,7 +509,7 @@ export default function IQRankBoostActivities() {
                      </div>
                      <div>
                        <CardTitle className="text-base sm:text-lg text-white">Class {classNum}</CardTitle>
-                       <CardDescription className="text-white">IQ/Rank Activities</CardDescription>
+                       <CardDescription className="text-white">Quizzes</CardDescription>
                      </div>
                    </div>
                  </div>
@@ -544,9 +632,9 @@ export default function IQRankBoostActivities() {
       <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Create IQ/Rank Boost Activity</DialogTitle>
+            <DialogTitle>Create quiz</DialogTitle>
             <DialogDescription>
-              Create a new activity to boost student IQ and rankings
+              Daily or weekly quizzes for schools, all members, trial users, or specific people — students and/or teachers
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
@@ -670,48 +758,145 @@ export default function IQRankBoostActivities() {
               </div>
             </div>
             <div>
-              <Label>Class Number (Optional)</Label>
+              <Label>Class Number (use &quot;all&quot; for every class)</Label>
               <Input
                 value={formData.classNumber}
                 onChange={(e) => setFormData({ ...formData, classNumber: e.target.value })}
-                placeholder="e.g., 10, 11, 12"
+                placeholder="e.g., 10, 11, 12, or all"
               />
             </div>
-            <div className="space-y-3 rounded-lg border border-amber-200 bg-amber-50/60 p-3">
-              <label className="flex items-center gap-2 text-sm font-medium">
-                <Checkbox
-                  checked={formData.trialOnly}
-                  onCheckedChange={(v) =>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <Label>Schedule</Label>
+                <Select
+                  value={formData.scheduleType}
+                  onValueChange={(value: 'once' | 'daily' | 'weekly') =>
+                    setFormData({ ...formData, scheduleType: value })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="once">One-time</SelectItem>
+                    <SelectItem value="daily">Daily quiz</SelectItem>
+                    <SelectItem value="weekly">Weekly quiz</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Audience</Label>
+                <Select
+                  value={formData.audienceType}
+                  onValueChange={(value: any) =>
                     setFormData({
                       ...formData,
-                      trialOnly: v === true,
-                      promptOnLogin: v === true ? formData.promptOnLogin : false,
+                      audienceType: value,
+                      trialOnly: value === 'trial',
+                      promptOnLogin: value === 'trial' ? formData.promptOnLogin : false,
                     })
                   }
-                />
-                Trial users only
-              </label>
-              <p className="text-xs text-slate-600">
-                When enabled, only individual trial accounts see this quiz — not school students.
-                Paid individuals stop receiving it.
-              </p>
-              <label className="flex items-center gap-2 text-sm">
-                <Checkbox
-                  checked={formData.promptOnLogin}
-                  disabled={!formData.trialOnly}
-                  onCheckedChange={(v) =>
-                    setFormData({ ...formData, promptOnLogin: v === true })
-                  }
-                />
-                Prompt on login
-              </label>
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all_schools">All schools</SelectItem>
+                    <SelectItem value="schools">Specific school(s)</SelectItem>
+                    <SelectItem value="trial">Trial members</SelectItem>
+                    <SelectItem value="all_members">All members</SelectItem>
+                    <SelectItem value="specific_members">Specific members</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
+            <div className="space-y-2 rounded-lg border border-sky-200 bg-sky-50/60 p-3">
+              <p className="text-sm font-medium text-slate-800">Available to</p>
+              <div className="flex flex-wrap gap-4">
+                <label className="flex items-center gap-2 text-sm">
+                  <Checkbox
+                    checked={formData.audienceRoles.includes('student')}
+                    onCheckedChange={(v) => {
+                      const next = new Set(formData.audienceRoles);
+                      if (v === true) next.add('student');
+                      else next.delete('student');
+                      if (next.size === 0) next.add('student');
+                      setFormData({ ...formData, audienceRoles: Array.from(next) as Array<'student' | 'teacher'> });
+                    }}
+                  />
+                  Students
+                </label>
+                <label className="flex items-center gap-2 text-sm">
+                  <Checkbox
+                    checked={formData.audienceRoles.includes('teacher')}
+                    onCheckedChange={(v) => {
+                      const next = new Set(formData.audienceRoles);
+                      if (v === true) next.add('teacher');
+                      else next.delete('teacher');
+                      if (next.size === 0) next.add('student');
+                      setFormData({ ...formData, audienceRoles: Array.from(next) as Array<'student' | 'teacher'> });
+                    }}
+                  />
+                  Teachers
+                </label>
+              </div>
+            </div>
+            {formData.audienceType === 'schools' ? (
+              <div className="max-h-40 space-y-2 overflow-y-auto rounded-lg border border-slate-200 p-3">
+                <p className="text-sm font-medium">Select schools</p>
+                {schools.length === 0 ? (
+                  <p className="text-xs text-slate-500">No schools loaded.</p>
+                ) : (
+                  schools.map((school) => (
+                    <label key={school._id} className="flex items-center gap-2 text-sm">
+                      <Checkbox
+                        checked={formData.targetSchools.includes(school._id)}
+                        onCheckedChange={(v) => {
+                          const set = new Set(formData.targetSchools);
+                          if (v === true) set.add(school._id);
+                          else set.delete(school._id);
+                          setFormData({ ...formData, targetSchools: Array.from(set) });
+                        }}
+                      />
+                      <span className="truncate">{school.name}</span>
+                    </label>
+                  ))
+                )}
+              </div>
+            ) : null}
+            {formData.audienceType === 'specific_members' ? (
+              <div>
+                <Label>Member user IDs (comma-separated)</Label>
+                <Textarea
+                  value={formData.targetUserIdsText}
+                  onChange={(e) => setFormData({ ...formData, targetUserIdsText: e.target.value })}
+                  placeholder="Paste student or teacher user IDs"
+                  rows={2}
+                />
+              </div>
+            ) : null}
+            {formData.audienceType === 'trial' ? (
+              <div className="space-y-3 rounded-lg border border-amber-200 bg-amber-50/60 p-3">
+                <p className="text-xs text-slate-600">
+                  Only individual trial accounts see this quiz — not school students. Paid individuals stop receiving it.
+                </p>
+                <label className="flex items-center gap-2 text-sm">
+                  <Checkbox
+                    checked={formData.promptOnLogin}
+                    onCheckedChange={(v) =>
+                      setFormData({ ...formData, promptOnLogin: v === true })
+                    }
+                  />
+                  Prompt on login
+                </label>
+              </div>
+            ) : null}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsCreateModalOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleCreate} className="bg-gradient-to-r from-sky-300 to-teal-400 hover:from-sky-400 hover:to-teal-500 text-white">Create Activity</Button>
+            <Button onClick={handleCreate} className="bg-gradient-to-r from-sky-300 to-teal-400 hover:from-sky-400 hover:to-teal-500 text-white">Create quiz</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -720,9 +905,9 @@ export default function IQRankBoostActivities() {
       <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Edit IQ/Rank Boost Activity</DialogTitle>
+            <DialogTitle>Edit quiz</DialogTitle>
             <DialogDescription>
-              Update activity details
+              Update quiz details, schedule, and audience
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">

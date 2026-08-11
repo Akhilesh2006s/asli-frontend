@@ -202,7 +202,7 @@ export default function IQRankBoostSubjects() {
                 <Zap className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-white" />
               </div>
               <div>
-                <h1 className="text-xl sm:text-2xl sm:text-3xl font-bold text-gray-900">IQ/Rank Boost Practice</h1>
+                <h1 className="text-xl sm:text-2xl sm:text-3xl font-bold text-gray-900">Quiz</h1>
                 <p className="text-gray-600">
                   {studentClass ? `Practice questions for Class ${studentClass}` : 'Practice questions to boost your IQ and rank'}
                 </p>
@@ -231,8 +231,8 @@ export default function IQRankBoostSubjects() {
                 <Brain className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                 <h3 className="text-base sm:text-lg font-semibold text-gray-600 mb-2">No Quizzes Available</h3>
                 <p className="text-gray-500">
-                  {studentClass 
-                    ? `No IQ/Rank Boost quizzes have been generated for Class ${studentClass} yet.`
+                  {studentClass
+                    ? `No quizzes have been generated for Class ${studentClass} yet.`
                     : 'No quizzes available. Please contact your administrator.'}
                 </p>
               </CardContent>

@@ -21,6 +21,7 @@ import {
   MoreHorizontal,
   ArrowRight
 } from 'lucide-react';
+import { useConfirm } from '@/hooks/use-confirm';
 
 interface LearningPath {
   id: number;
@@ -33,6 +34,7 @@ interface LearningPath {
 }
 
 const LearningPathManagement = () => {
+  const { confirm, ConfirmDialog } = useConfirm();
   const [learningPaths, setLearningPaths] = useState<LearningPath[]>([]);
   const [filteredPaths, setFilteredPaths] = useState<LearningPath[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -131,19 +133,24 @@ const LearningPathManagement = () => {
   };
 
   const handleDelete = async (id: number) => {
-    if (confirm('Are you sure you want to delete this learning path?')) {
-      try {
-        const response = await fetch(`/api/admin/learning-paths/${id}`, {
-          method: 'DELETE',
-          credentials: 'include'
-        });
+    const ok = await confirm({
+      title: 'Delete this learning path?',
+      description: 'Are you sure you want to delete this learning path?',
+      confirmLabel: 'Delete',
+      destructive: true,
+    });
+    if (!ok) return;
+    try {
+      const response = await fetch(`/api/admin/learning-paths/${id}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
 
-        if (response.ok) {
-          fetchLearningPaths();
-        }
-      } catch (error) {
-        console.error('Failed to delete learning path:', error);
+      if (response.ok) {
+        fetchLearningPaths();
       }
+    } catch (error) {
+      console.error('Failed to delete learning path:', error);
     }
   };
 
@@ -178,6 +185,7 @@ const LearningPathManagement = () => {
 
   return (
     <div className="space-y-3 sm:space-y-4 lg:space-y-6">
+      {ConfirmDialog}
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

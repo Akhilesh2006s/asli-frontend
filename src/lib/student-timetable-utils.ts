@@ -24,9 +24,84 @@ export interface GridPlacement {
   slotHour: number;
 }
 
+export function rawRefName(v: string | { name?: string; fullName?: string } | undefined): string {
+  if (!v || typeof v === 'string') return typeof v === 'string' ? v.trim() : '';
+  return String(v.name || v.fullName || '').trim();
+}
+
+/**
+ * Soft-deleted subjects are stored as `Name__deleted__<timestamp>`.
+ * Truncated cells often show leftovers like `__dele`.
+ */
+export function isDeletedSubjectName(raw: string): boolean {
+  const s = String(raw || '').trim();
+  if (!s) return false;
+  if (/__deleted__/i.test(s)) return true;
+  if (/__dele[a-z]*$/i.test(s)) return true;
+  if (/_deleted?$/i.test(s)) return true;
+  return false;
+}
+
+/** Strip soft-delete suffixes / junk for display. */
+export function cleanSubjectDisplayName(raw: string): string {
+  let s = String(raw || '').trim();
+  if (!s) return '';
+  const cut = s.search(/__deleted__/i);
+  if (cut >= 0) s = s.slice(0, cut);
+  s = s.replace(/__dele[a-z]*$/i, '');
+  s = s.replace(/_deleted?$/i, '');
+  s = s.replace(/_+$/g, '').trim();
+  return s;
+}
+
 export function refName(v: string | { name?: string; fullName?: string } | undefined): string {
-  if (!v || typeof v === 'string') return '';
-  return v.name || v.fullName || '';
+  return cleanSubjectDisplayName(rawRefName(v));
+}
+
+/** Hide cancelled / soft-deleted subject slots and collapse duplicate cells. */
+export function sanitizeTimetableEntries(entries: TimetableEntry[]): TimetableEntry[] {
+  const cleaned: TimetableEntry[] = [];
+  for (const entry of entries || []) {
+    if (!entry) continue;
+    if (entry.status === 'Cancelled') continue;
+
+    const rawSubject = rawRefName(entry.subjectId);
+    if (isDeletedSubjectName(rawSubject)) continue;
+
+    const display = cleanSubjectDisplayName(rawSubject);
+    let next = entry;
+    if (typeof entry.subjectId === 'object' && entry.subjectId && display && display !== rawSubject) {
+      next = {
+        ...entry,
+        subjectId: { ...entry.subjectId, name: display },
+      };
+    }
+    cleaned.push(next);
+  }
+
+  const seen = new Set<string>();
+  const out: TimetableEntry[] = [];
+  for (const entry of cleaned) {
+    const dayIndex = entryWeekdayIndex(entry);
+    const subject = refName(entry.subjectId).toLowerCase() || 'class';
+    const classKey =
+      typeof entry.classId === 'object'
+        ? String(entry.classId?._id || entry.classId?.classNumber || '')
+        : String(entry.classId || '');
+    const key = [
+      dayIndex ?? 'x',
+      String(entry.startTime || '').trim(),
+      String(entry.endTime || '').trim(),
+      subject,
+      classKey,
+      String(entry.sectionId || ''),
+      String(typeof entry.teacherId === 'object' ? entry.teacherId?._id || '' : entry.teacherId || ''),
+    ].join('|');
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(entry);
+  }
+  return out;
 }
 
 export function parseTimeToMinutes(time: string): number {

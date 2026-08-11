@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useLocation } from 'wouter';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { getAuthToken } from '@/lib/auth-utils';
+import { authJsonHeaders, hasAuthSession } from '@/lib/auth-utils';
 import {
   Dialog,
   DialogContent,
@@ -180,17 +180,14 @@ export default function AdaptiveRecommendations(_props: AdaptiveRecommendationsP
     try {
       setLoading(true);
       setError(null);
-      const token = getAuthToken();
-      if (!token) {
+      if (!hasAuthSession()) {
         setCards([]);
         setError('Sign in to load adaptive recommendations.');
         return;
       }
       const response = await fetch(`${API_BASE_URL}/api/student/adaptive-learning`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
+        headers: authJsonHeaders(),
+        credentials: 'include',
         cache: 'no-store',
       });
       if (!response.ok) {

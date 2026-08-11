@@ -122,8 +122,12 @@ export function TimetableGridCell({
 
             <p
               className={cn(
-                'font-bold leading-tight',
-                dense ? 'text-[11px] line-clamp-2' : compact ? 'text-[10px] sm:text-[11px] line-clamp-2' : 'text-xs',
+                'font-bold leading-snug break-words hyphens-none',
+                dense
+                  ? 'text-[11px] line-clamp-2'
+                  : compact
+                    ? 'text-[10px] sm:text-[11px] line-clamp-2'
+                    : 'text-[11px] sm:text-xs line-clamp-2',
                 isTeacher ? 'text-[#6C5CE7]' : theme.text,
               )}
             >

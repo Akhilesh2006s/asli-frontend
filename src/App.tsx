@@ -31,6 +31,7 @@ const AdminSubjectContent = lazy(() => import("./pages/admin/subject-content"));
 const SubjectManagement = lazy(() => import("./pages/admin/subject-management"));
 const TimetableManagementPage = lazy(() => import("./pages/admin/timetable"));
 const TeacherDashboard = lazy(() => import("./pages/teacher/dashboard"));
+const TeacherPlatformQuizPage = lazy(() => import("./pages/teacher/quiz"));
 const TeacherOmrResults = lazy(() => import("./pages/teacher-omr-results"));
 const TeacherTimetablePage = lazy(() => import("./pages/teacher/timetable"));
 const TeacherSubjectContent = lazy(() => import("./pages/teacher/subject-content"));
@@ -138,6 +139,8 @@ function Router() {
         <Route path="/admin/subjects" component={() => <Guarded Guard={AdminRoute} Page={SubjectManagement} />} />
         <Route path="/admin/timetable" component={() => <Guarded Guard={AdminRoute} Page={TimetableManagementPage} />} />
         <Route path="/teacher/dashboard" component={() => <Guarded Guard={TeacherRoute} Page={TeacherDashboard} />} />
+        <Route path="/teacher/quiz/:quizId" component={() => <Guarded Guard={TeacherRoute} Page={IQRankBoostQuiz} />} />
+        <Route path="/teacher/quiz" component={() => <Guarded Guard={TeacherRoute} Page={TeacherPlatformQuizPage} />} />
         <Route path="/teacher/results" component={() => <Guarded Guard={TeacherRoute} Page={TeacherOmrResults} />} />
         <Route path="/teacher/timetable" component={() => <Guarded Guard={TeacherRoute} Page={TeacherTimetablePage} />} />
         <Route path="/teacher/subject/:id" component={() => <Guarded Guard={TeacherRoute} Page={TeacherSubjectContent} />} />

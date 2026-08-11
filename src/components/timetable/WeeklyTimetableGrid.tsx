@@ -12,10 +12,12 @@ import {
   getScheduleColumns,
   getTimeSlotsForEntries,
   isBreakEntry,
+  sanitizeTimetableEntries,
   shouldUsePeriodColumns,
   todayWeekdayIndex,
 } from '@/lib/student-timetable-utils';
 import { cn } from '@/lib/utils';
+import { useMemo } from 'react';
 
 function formatSlotRange(hour: number): string {
   const start = `${String(hour).padStart(2, '0')}:00`;
@@ -156,14 +158,15 @@ export function WeeklyTimetableGrid({
   const labelMode = variant === 'teacher' ? 'teacher' : showClassOnCard ? 'admin' : 'subject';
   const now = new Date();
   const todayIdx = todayWeekdayIndex(now);
-  const usePeriods = variant === 'admin' || shouldUsePeriodColumns(entries);
-  const scheduleCols = usePeriods ? getScheduleColumns(entries) : [];
+  const safeEntries = useMemo(() => sanitizeTimetableEntries(entries), [entries]);
+  const usePeriods = variant === 'admin' || shouldUsePeriodColumns(safeEntries);
+  const scheduleCols = usePeriods ? getScheduleColumns(safeEntries) : [];
   const usePeriodLayout = scheduleCols.length > 0;
   const timeSlots = usePeriodLayout ? [] : getTimeSlotsForEntries();
-  const placements = usePeriodLayout ? [] : buildWeekdayPlacements(entries);
+  const placements = usePeriodLayout ? [] : buildWeekdayPlacements(safeEntries);
 
-  const dayColWidth = usePeriodLayout ? 84 : 96;
-  const colMin = usePeriodLayout ? 100 : 92;
+  const dayColWidth = usePeriodLayout ? 88 : 96;
+  const colMin = usePeriodLayout ? 112 : 96;
   const colCount = usePeriodLayout ? scheduleCols.length : timeSlots.length;
 
   let periodNumber = 0;
@@ -299,13 +302,13 @@ export function WeeklyTimetableGrid({
                       const isBreakCol = col.kind === 'break';
                       const cellEntries = col.inferred
                         ? []
-                        : getEntriesForPeriod(entries, dayIndex as WeekdayIndex, col.startTime).filter(
+                        : getEntriesForPeriod(safeEntries, dayIndex as WeekdayIndex, col.startTime).filter(
                             (e) => (isBreakCol ? isBreakEntry(e) : !isBreakEntry(e)),
                           );
                       // If stored break and teaching share unlikely same start, prefer matching kind
                       const allAtStart = col.inferred
                         ? []
-                        : getEntriesForPeriod(entries, dayIndex as WeekdayIndex, col.startTime);
+                        : getEntriesForPeriod(safeEntries, dayIndex as WeekdayIndex, col.startTime);
                       const displayEntries =
                         cellEntries.length > 0
                           ? cellEntries

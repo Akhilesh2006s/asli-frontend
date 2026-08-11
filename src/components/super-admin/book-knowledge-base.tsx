@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import { API_BASE_URL } from "@/lib/api-config";
 import { useToast } from "@/hooks/use-toast";
+import { useConfirm } from "@/hooks/use-confirm";
 import { useCurriculumCascade } from "@/hooks/use-curriculum-cascade";
 import { cn } from "@/lib/utils";
 import { formatIitCategoryLabel, normalizeIitCategory } from "@/lib/products";
@@ -69,6 +70,7 @@ type ImportableContentRow = {
 
 export default function BookKnowledgeBase() {
   const { toast } = useToast();
+  const { confirm, ConfirmDialog } = useConfirm();
   const { codes: iitCategoryCodes, labelMap: iitLabelMap } = useProductCategories();
   const [books, setBooks] = useState<BookRow[]>([]);
   const [loading, setLoading] = useState(false);
@@ -378,13 +380,13 @@ export default function BookKnowledgeBase() {
   const handleDelete = async (id: string) => {
     const book = books.find((b) => b._id === id);
     const label = book?.title || "this book";
-    if (
-      !window.confirm(
-        `Remove "${label}" from the Book Knowledge Base?\n\nThis unlinks/deletes the indexed book so Book-Based Generator can no longer use it. Learning-path source files (if any) are not deleted from Subjects & Content.`,
-      )
-    ) {
-      return;
-    }
+    const ok = await confirm({
+      title: "Remove this book?",
+      description: `Remove "${label}" from the Book Knowledge Base?\n\nThis unlinks/deletes the indexed book so Book-Based Generator can no longer use it. Learning-path source files (if any) are not deleted from Subjects & Content.`,
+      confirmLabel: "Delete",
+      destructive: true,
+    });
+    if (!ok) return;
     setDeletingId(id);
     try {
       const res = await fetch(`${API_BASE_URL}/api/book-knowledge/books/${id}`, {
@@ -435,6 +437,7 @@ export default function BookKnowledgeBase() {
 
   return (
     <div className="w-full max-w-[min(100%,1400px)] mx-auto space-y-6">
+      {ConfirmDialog}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">

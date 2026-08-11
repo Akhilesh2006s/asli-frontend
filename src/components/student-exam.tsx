@@ -9,6 +9,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { getAuthToken } from '@/lib/auth-utils';
+import { useToast } from '@/hooks/use-toast';
 import {
   Clock, 
   CheckCircle, 
@@ -80,6 +81,7 @@ interface ExamResult {
 }
 
 export default function StudentExam({ examId, onComplete, onExit }: StudentExamProps) {
+  const { toast } = useToast();
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, any>>({});
   const [timeLeft, setTimeLeft] = useState(0);
@@ -208,7 +210,11 @@ export default function StudentExam({ examId, onComplete, onExit }: StudentExamP
     if (!exam.questions || !Array.isArray(exam.questions)) {
       console.error('Exam questions are not available:', exam.questions);
       setIsSubmitted(false);
-      alert('No questions found in this exam. Please try again.');
+      toast({
+        title: 'Error',
+        description: 'No questions found in this exam. Please try again.',
+        variant: 'destructive',
+      });
       return;
     }
 

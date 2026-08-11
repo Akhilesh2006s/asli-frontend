@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
+import { useConfirm } from '@/hooks/use-confirm';
 import { Edit, Plus, Search, Trash2, X } from 'lucide-react';
 import { notifyCurriculumTaxonomyChanged } from '@/lib/curriculum-taxonomy-refresh';
 import { formatIitCategoryLabel } from '@/lib/products';
@@ -97,6 +98,7 @@ function normalizeBoardProductKey(value: string) {
 
 export default function AiToolTopicsManagement() {
   const { toast } = useToast();
+  const { confirm, ConfirmDialog } = useConfirm();
   const [boards, setBoards] = useState<Board[]>([]);
   const [rows, setRows] = useState<TopicRow[]>([]);
   const [total, setTotal] = useState(0);
@@ -582,7 +584,13 @@ export default function AiToolTopicsManagement() {
   };
 
   const remove = async (id: string) => {
-    if (!window.confirm('Delete this topic/sub topic mapping?')) return;
+    const ok = await confirm({
+      title: 'Delete this mapping?',
+      description: 'Delete this topic/sub topic mapping?',
+      confirmLabel: 'Delete',
+      destructive: true,
+    });
+    if (!ok) return;
     try {
       const response = await fetch(`${API_BASE_URL}/api/super-admin/ai-tool-topics/${id}`, {
         method: 'DELETE',
@@ -624,7 +632,13 @@ export default function AiToolTopicsManagement() {
       scope === 'class'
         ? `Delete all AI Tool Topic mappings for ${selectedBoard} / ${selectedClass}?`
         : `Delete all AI Tool Topic mappings for ${selectedBoard} / ${selectedClass} / ${selectedSubject}?`;
-    if (!window.confirm(confirmMessage)) return;
+    const ok = await confirm({
+      title: 'Delete topic mappings?',
+      description: confirmMessage,
+      confirmLabel: 'Delete',
+      destructive: true,
+    });
+    if (!ok) return;
 
     setBulkDeleting(scope);
     try {
@@ -658,6 +672,7 @@ export default function AiToolTopicsManagement() {
 
   return (
     <div className="space-y-3 sm:space-y-4 lg:space-y-6">
+      {ConfirmDialog}
       <Card>
         <CardHeader>
           <CardTitle>AI Tool Topics Management</CardTitle>

@@ -38,6 +38,7 @@ import {
   normalizeClassNumber,
 } from '@/lib/exam-classes';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useToast } from '@/hooks/use-toast';
 import { dedupeStudentExamResults } from '@/lib/dedupe-exam-results';
 import { getUserIdFromAuthToken, getAuthToken } from '@/lib/auth-utils';
 import { readLocalExamDraft } from '@/lib/exam-attempt-draft';
@@ -172,6 +173,7 @@ function formatAttemptHistoryLabel(result: any, totalMarks: number): string {
 
 export default function StudentExams() {
   const isMobile = useIsMobile();
+  const { toast } = useToast();
   const [currentExam, setCurrentExam] = useState<Exam | null>(null);
   const [examResult, setExamResult] = useState<ExamResult | null>(null);
   const [isTakingExam, setIsTakingExam] = useState(false);
@@ -657,9 +659,11 @@ export default function StudentExams() {
     const maxA = getMaxAttemptsForExam(exam);
     const used = attemptCountByExamId.get(String(exam._id)) || 0;
     if (used >= maxA) {
-      alert(
-        `You have used all ${maxA} attempt(s) for this exam. Open "Attempted Exams" to review your results.`
-      );
+      toast({
+        title: 'No attempts left',
+        description: `You have used all ${maxA} attempt(s) for this exam. Open "Attempted Exams" to review your results.`,
+        variant: 'destructive',
+      });
       return;
     }
 
@@ -676,7 +680,11 @@ export default function StudentExams() {
       if (!response.ok) {
         const payload = await response.json().catch(() => ({}));
         const message = payload?.message || 'This exam is not available yet. Questions are not uploaded.';
-        alert(message);
+        toast({
+          title: 'Unavailable',
+          description: message,
+          variant: 'destructive',
+        });
         await queryClient.invalidateQueries({ queryKey: ['/api/student/exams'] });
         await queryClient.refetchQueries({ queryKey: ['/api/student/exams', effectiveStudentId] });
         return;
@@ -685,14 +693,22 @@ export default function StudentExams() {
       const payload = await response.json().catch(() => ({}));
       const hydratedQuestions = Array.isArray(payload?.data?.questions) ? payload.data.questions : [];
       if (hydratedQuestions.length === 0) {
-        alert('This exam is not available yet. Questions are not uploaded.');
+        toast({
+          title: 'Unavailable',
+          description: 'This exam is not available yet. Questions are not uploaded.',
+          variant: 'destructive',
+        });
         await queryClient.invalidateQueries({ queryKey: ['/api/student/exams'] });
         await queryClient.refetchQueries({ queryKey: ['/api/student/exams', effectiveStudentId] });
         return;
       }
     } catch (error) {
       console.error('Failed to validate exam before start:', error);
-      alert('Unable to start exam right now. Please try again.');
+      toast({
+        title: 'Error',
+        description: 'Unable to start exam right now. Please try again.',
+        variant: 'destructive',
+      });
       return;
     } finally {
       setStartingExamId(null);
@@ -808,12 +824,20 @@ export default function StudentExams() {
         : 0;
     const used = Math.max(counted, fromResult);
     if (used >= maxA) {
-      alert('No attempts remaining for this exam.');
+      toast({
+        title: 'No attempts left',
+        description: 'No attempts remaining for this exam.',
+        variant: 'destructive',
+      });
       return;
     }
     const status = getExamStatus(currentExam);
     if (status.status === 'ended') {
-      alert('This exam window has ended. Retakes are not available.');
+      toast({
+        title: 'Exam ended',
+        description: 'This exam window has ended. Retakes are not available.',
+        variant: 'destructive',
+      });
       return;
     }
     setExamResult(null);

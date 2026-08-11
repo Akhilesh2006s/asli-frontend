@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
 import { API_BASE_URL } from '@/lib/api-config';
 import { getAuthToken } from '@/lib/auth-utils';
+import { useConfirm } from '@/hooks/use-confirm';
 import {
   Plus, 
   Edit, 
@@ -49,6 +50,7 @@ interface Video {
 }
 
 const TeacherVideoManagement = () => {
+  const { confirm, ConfirmDialog } = useConfirm();
   const [videos, setVideos] = useState<Video[]>([]);
   const [subjects, setSubjects] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -224,19 +226,24 @@ const TeacherVideoManagement = () => {
   };
 
   const handleDeleteVideo = async (videoId: string) => {
-    if (confirm('Are you sure you want to delete this video?')) {
-      try {
-        const response = await fetch(`/api/teacher/videos/${videoId}`, {
-          method: 'DELETE',
-          credentials: 'include',
-        });
+    const ok = await confirm({
+      title: 'Delete this video?',
+      description: 'Are you sure you want to delete this video?',
+      confirmLabel: 'Delete',
+      destructive: true,
+    });
+    if (!ok) return;
+    try {
+      const response = await fetch(`/api/teacher/videos/${videoId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
 
-        if (response.ok) {
-          setVideos(videos.filter(v => v.id !== videoId));
-        }
-      } catch (error) {
-        console.error('Failed to delete video:', error);
+      if (response.ok) {
+        setVideos(videos.filter(v => v.id !== videoId));
       }
+    } catch (error) {
+      console.error('Failed to delete video:', error);
     }
   };
 
@@ -278,6 +285,7 @@ const TeacherVideoManagement = () => {
 
   return (
     <div className="space-y-3 sm:space-y-4 lg:space-y-6">
+      {ConfirmDialog}
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

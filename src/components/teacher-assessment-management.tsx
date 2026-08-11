@@ -30,6 +30,7 @@ import {
   ExternalLink
 } from 'lucide-react';
 import DriveViewer from '@/components/drive-viewer';
+import { useConfirm } from '@/hooks/use-confirm';
 
 interface Assessment {
   id: string;
@@ -51,6 +52,7 @@ interface Assessment {
 }
 
 const TeacherAssessmentManagement = () => {
+  const { confirm, ConfirmDialog } = useConfirm();
   const [assessments, setAssessments] = useState<Assessment[]>([]);
   const [subjects, setSubjects] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -213,19 +215,24 @@ const TeacherAssessmentManagement = () => {
   };
 
   const handleDeleteAssessment = async (assessmentId: string) => {
-    if (confirm('Are you sure you want to delete this assessment?')) {
-      try {
-        const response = await fetch(`/api/teacher/assessments/${assessmentId}`, {
-          method: 'DELETE',
-          credentials: 'include',
-        });
+    const ok = await confirm({
+      title: 'Delete this assessment?',
+      description: 'Are you sure you want to delete this assessment?',
+      confirmLabel: 'Delete',
+      destructive: true,
+    });
+    if (!ok) return;
+    try {
+      const response = await fetch(`/api/teacher/assessments/${assessmentId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
 
-        if (response.ok) {
-          setAssessments(assessments.filter(a => a.id !== assessmentId));
-        }
-      } catch (error) {
-        console.error('Failed to delete assessment:', error);
+      if (response.ok) {
+        setAssessments(assessments.filter(a => a.id !== assessmentId));
       }
+    } catch (error) {
+      console.error('Failed to delete assessment:', error);
     }
   };
 
@@ -269,6 +276,7 @@ const TeacherAssessmentManagement = () => {
 
   return (
     <div className="space-y-3 sm:space-y-4 lg:space-y-6">
+      {ConfirmDialog}
       {/* Header */}
           <div className="flex items-center justify-between">
             <div>

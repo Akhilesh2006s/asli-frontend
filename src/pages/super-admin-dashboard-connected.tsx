@@ -579,13 +579,13 @@ export default function SuperAdminDashboard() {
                     <TableCell>{new Date(admin.createdAt).toLocaleDateString()}</TableCell>
                     <TableCell>
                       <div className="flex space-x-2">
-                        <Button size="sm" variant="outline" onClick={() => alert(`View ${admin.fullName} details`)}>
+                        <Button size="sm" variant="outline" onClick={() => toast({ title: 'Coming soon', description: `View ${admin.fullName} details` })}>
                           <EyeIcon className="w-3 h-3" />
                         </Button>
-                        <Button size="sm" variant="outline" onClick={() => alert(`Edit ${admin.fullName} permissions`)}>
+                        <Button size="sm" variant="outline" onClick={() => toast({ title: 'Coming soon', description: `Edit ${admin.fullName} permissions` })}>
                           <EditIcon className="w-3 h-3" />
                         </Button>
-                        <Button size="sm" variant="outline" onClick={() => alert(`Deactivate ${admin.fullName}`)}>
+                        <Button size="sm" variant="outline" onClick={() => toast({ title: 'Coming soon', description: `Deactivate ${admin.fullName}` })}>
                           <XCircleIcon className="w-3 h-3" />
                         </Button>
                       </div>
@@ -655,13 +655,13 @@ export default function SuperAdminDashboard() {
                     <TableCell>{new Date(user.createdAt).toLocaleDateString()}</TableCell>
                     <TableCell>
                       <div className="flex space-x-2">
-                        <Button size="sm" variant="outline" onClick={() => alert(`View ${user.fullName} details`)}>
+                        <Button size="sm" variant="outline" onClick={() => toast({ title: 'Coming soon', description: `View ${user.fullName} details` })}>
                           <EyeIcon className="w-3 h-3" />
                         </Button>
-                        <Button size="sm" variant="outline" onClick={() => alert(`Edit ${user.fullName}`)}>
+                        <Button size="sm" variant="outline" onClick={() => toast({ title: 'Coming soon', description: `Edit ${user.fullName}` })}>
                           <EditIcon className="w-3 h-3" />
                         </Button>
-                        <Button size="sm" variant="outline" onClick={() => alert(`Delete ${user.fullName}`)}>
+                        <Button size="sm" variant="outline" onClick={() => toast({ title: 'Coming soon', description: `Delete ${user.fullName}` })}>
                           <TrashIcon className="w-3 h-3" />
                         </Button>
                       </div>
@@ -729,13 +729,13 @@ export default function SuperAdminDashboard() {
                     <TableCell>{new Date(course.createdAt).toLocaleDateString()}</TableCell>
                     <TableCell>
                       <div className="flex space-x-2">
-                        <Button size="sm" variant="outline" onClick={() => alert(`View ${course.title}`)}>
+                        <Button size="sm" variant="outline" onClick={() => toast({ title: 'Coming soon', description: `View ${course.title}` })}>
                           <EyeIcon className="w-3 h-3" />
                         </Button>
-                        <Button size="sm" variant="outline" onClick={() => alert(`Edit ${course.title}`)}>
+                        <Button size="sm" variant="outline" onClick={() => toast({ title: 'Coming soon', description: `Edit ${course.title}` })}>
                           <EditIcon className="w-3 h-3" />
                         </Button>
-                        <Button size="sm" variant="outline" onClick={() => alert(`Delete ${course.title}`)}>
+                        <Button size="sm" variant="outline" onClick={() => toast({ title: 'Coming soon', description: `Delete ${course.title}` })}>
                           <TrashIcon className="w-3 h-3" />
                         </Button>
                       </div>
@@ -902,10 +902,10 @@ export default function SuperAdminDashboard() {
                     <TableCell>{sub.paymentMethod}</TableCell>
                     <TableCell>
                       <div className="flex space-x-2">
-                        <Button size="sm" variant="outline" onClick={() => alert(`View ${sub.user} subscription`)}>
+                        <Button size="sm" variant="outline" onClick={() => toast({ title: 'Coming soon', description: `View ${sub.user} subscription` })}>
                           <EyeIcon className="w-3 h-3" />
                         </Button>
-                        <Button size="sm" variant="outline" onClick={() => alert(`Edit ${sub.user} subscription`)}>
+                        <Button size="sm" variant="outline" onClick={() => toast({ title: 'Coming soon', description: `Edit ${sub.user} subscription` })}>
                           <EditIcon className="w-3 h-3" />
                         </Button>
                       </div>
@@ -942,7 +942,7 @@ export default function SuperAdminDashboard() {
               <span>Maintenance Mode</span>
               <Badge variant="destructive">Disabled</Badge>
             </div>
-            <Button onClick={() => alert('Edit general settings')}>Edit Settings</Button>
+            <Button onClick={() => toast({ title: 'Coming soon', description: 'Edit general settings' })}>Edit Settings</Button>
           </CardContent>
         </Card>
         
@@ -963,7 +963,7 @@ export default function SuperAdminDashboard() {
               <span>Currency</span>
               <span className="font-medium">INR (₹)</span>
             </div>
-            <Button onClick={() => alert('Edit payment settings')}>Configure Payments</Button>
+            <Button onClick={() => toast({ title: 'Coming soon', description: 'Edit payment settings' })}>Configure Payments</Button>
           </CardContent>
         </Card>
         
@@ -984,7 +984,7 @@ export default function SuperAdminDashboard() {
               <span>Marketing Emails</span>
               <Badge variant="secondary">Disabled</Badge>
             </div>
-            <Button onClick={() => alert('Edit email settings')}>Email Configuration</Button>
+            <Button onClick={() => toast({ title: 'Coming soon', description: 'Edit email settings' })}>Email Configuration</Button>
           </CardContent>
         </Card>
         
@@ -1005,7 +1005,7 @@ export default function SuperAdminDashboard() {
               <span>Password Strength</span>
               <Badge variant="outline">High</Badge>
             </div>
-            <Button onClick={() => alert('Edit security settings')}>Security Configuration</Button>
+            <Button onClick={() => toast({ title: 'Coming soon', description: 'Edit security settings' })}>Security Configuration</Button>
           </CardContent>
         </Card>
       </div>
@@ -1162,7 +1162,7 @@ export default function SuperAdminDashboard() {
               <p className="text-xs sm:text-sm text-gray-600">Welcome back, Super Admin!</p>
             </div>
             <div className="flex items-center flex-wrap gap-2 sm:gap-4">
-              <Button variant="outline" size="sm" onClick={() => alert('Notifications feature - Would show recent platform activities')}>
+              <Button variant="outline" size="sm" onClick={() => toast({ title: 'Coming soon', description: 'Notifications feature - Would show recent platform activities' })}>
                 <BellIcon className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                 Notifications
               </Button>

@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Upload, Video, FileText, File, X, Trash2, Edit, Play, Eye, Plus, Calendar, Grid3x3, ChevronDown, ChevronUp, BookOpen, GraduationCap, ExternalLink } from 'lucide-react';
 import { API_BASE_URL } from '@/lib/api-config';
 import { useToast } from '@/hooks/use-toast';
+import { useConfirm } from '@/hooks/use-confirm';
 import { getAuthToken } from '@/lib/auth-utils';
 
 interface Content {
@@ -46,6 +47,7 @@ const BOARD_SELECT_OPTIONS = [
 
 export default function ContentManagement() {
   const { toast } = useToast();
+  const { confirm, ConfirmDialog } = useConfirm();
   const [selectedBoard, setSelectedBoard] = useState<string>('ASLI_EXCLUSIVE_SCHOOLS');
   const [subjects, setSubjects] = useState<any[]>([]);
   const [contents, setContents] = useState<Content[]>([]);
@@ -481,7 +483,13 @@ export default function ContentManagement() {
   };
 
   const handleDelete = async (contentId: string) => {
-    if (!confirm('Are you sure you want to delete this content?')) return;
+    const ok = await confirm({
+      title: 'Delete this content?',
+      description: 'Are you sure you want to delete this content?',
+      confirmLabel: 'Delete',
+      destructive: true,
+    });
+    if (!ok) return;
 
     setIsDeleting(contentId);
     try {
@@ -621,9 +629,13 @@ export default function ContentManagement() {
   });
 
   const handleDeleteAll = async () => {
-    if (!confirm('Are you sure you want to delete ALL content? This action cannot be undone.')) {
-      return;
-    }
+    const ok = await confirm({
+      title: 'Delete all content?',
+      description: 'Are you sure you want to delete ALL content? This action cannot be undone.',
+      confirmLabel: 'Delete',
+      destructive: true,
+    });
+    if (!ok) return;
 
     setIsDeletingAll(true);
     try {
@@ -795,6 +807,7 @@ export default function ContentManagement() {
 
   return (
     <div className="space-y-3 sm:space-y-4 lg:space-y-6">
+      {ConfirmDialog}
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

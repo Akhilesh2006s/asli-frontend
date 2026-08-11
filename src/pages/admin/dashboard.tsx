@@ -8,6 +8,7 @@ import AdminShell from '@/components/layout/AdminShell';
 import StatCard from '@/components/dashboard/StatCard';
 import { API_BASE_URL } from '@/lib/api-config';
 import { formatSeatUsage } from '@/hooks/use-account-seats';
+import { useToast } from '@/hooks/use-toast';
 import { AtRiskStudentsPanel } from '@/components/admin/AtRiskStudentsPanel';
 import { getAuthToken } from '@/lib/auth-utils';
 import {
@@ -62,6 +63,7 @@ const VALID_ADMIN_TABS = new Set([
 const AdminDashboard = () => {
   const [, setLocation] = useLocation();
   const search = useSearch() || '';
+  const { toast } = useToast();
   const [activeTab, setActiveTab] = useState('overview');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -97,7 +99,11 @@ const AdminDashboard = () => {
           console.log('Admin dashboard auth check failed with status:', response.status);
           const errorText = await response.text();
           console.log('Response text:', errorText);
-          alert(`Authentication failed. Status: ${response.status}, Response: ${errorText}`);
+          toast({
+            title: 'Authentication failed',
+            description: `Status: ${response.status}, Response: ${errorText}`,
+            variant: 'destructive',
+          });
           window.location.href = '/signin';
         }
       } catch (error) {

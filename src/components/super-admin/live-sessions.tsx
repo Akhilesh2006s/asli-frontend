@@ -13,6 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Video, Plus, Trash2, Search, Radio, School, Pencil } from 'lucide-react';
 import { API_BASE_URL } from '@/lib/api-config';
 import { useToast } from '@/hooks/use-toast';
+import { useConfirm } from '@/hooks/use-confirm';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { getAuthToken } from '@/lib/auth-utils';
@@ -121,6 +122,7 @@ function SchoolsCell({ names }: { names: string[] }) {
 
 export default function LiveSessions() {
   const { toast } = useToast();
+  const { confirm, ConfirmDialog } = useConfirm();
   const [sessions, setSessions] = useState<LiveSessionRow[]>([]);
   const [schools, setSchools] = useState<SchoolOption[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -327,7 +329,13 @@ export default function LiveSessions() {
   };
 
   const handleDelete = async (sessionId: string) => {
-    if (!confirm('Remove this live session from Edu OTT?')) return;
+    const ok = await confirm({
+      title: 'Remove live session?',
+      description: 'Remove this live session from Edu OTT?',
+      confirmLabel: 'Delete',
+      destructive: true,
+    });
+    if (!ok) return;
 
     try {
       const response = await fetch(`${API_BASE_URL}/api/streams/${sessionId}`, {
@@ -372,6 +380,7 @@ export default function LiveSessions() {
 
   return (
     <div className="space-y-4 lg:space-y-6">
+      {ConfirmDialog}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Edu OTT — Live Sessions</h1>

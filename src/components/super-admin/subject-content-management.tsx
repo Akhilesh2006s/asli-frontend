@@ -26,6 +26,7 @@ import {
 import { getVideoDisplayTitle, sortContentsChapterWise, chapterNumberFromContent } from '@/lib/video-chapter-schedule';
 import PdfPreviewPanel from '@/components/shared/PdfPreviewPanel';
 import { useToast } from '@/hooks/use-toast';
+import { useConfirm } from '@/hooks/use-confirm';
 import {
   formatIitCategoryLabel,
   normalizeIitCategory,
@@ -717,6 +718,7 @@ function getStreamingEmbedSrc(url: string): string | null {
 
 export default function SubjectContentManagement() {
   const { toast } = useToast();
+  const { confirm, ConfirmDialog } = useConfirm();
   const { codes: iitCategoryCodes, labelMap: iitLabelMap } = useProductCategories();
   const { catalogOptions } = useBoards();
 
@@ -1395,7 +1397,13 @@ export default function SubjectContentManagement() {
       ? `Delete "${label}" and all its subjects (${subjectsToDelete.length}) and content (${contentsToDelete.length})? This cannot be undone.`
       : `Remove "${label}" from the list?`;
 
-    if (!window.confirm(confirmMsg)) return;
+    const ok = await confirm({
+      title: hasData ? 'Delete this class?' : 'Remove this class?',
+      description: confirmMsg,
+      confirmLabel: 'Delete',
+      destructive: true,
+    });
+    if (!ok) return;
 
     setDeletingClassLabel(label);
     try {
@@ -1726,13 +1734,13 @@ export default function SubjectContentManagement() {
     }
 
     const label = extractPlainSubjectName(row?.name || catalogRow.name);
-    if (
-      !window.confirm(
-        `Delete "${label}" and all its content for this class? This only removes this one subject.`
-      )
-    ) {
-      return;
-    }
+    const ok = await confirm({
+      title: 'Delete this subject?',
+      description: `Delete "${label}" and all its content for this class? This only removes this one subject.`,
+      confirmLabel: 'Delete',
+      destructive: true,
+    });
+    if (!ok) return;
 
     setDeletingSubjectId(subjectId);
     try {
@@ -2246,7 +2254,13 @@ export default function SubjectContentManagement() {
   };
 
   const handleDeleteContent = async (contentId: string) => {
-    if (!window.confirm('Delete this content item?')) return;
+    const ok = await confirm({
+      title: 'Delete this content?',
+      description: 'Delete this content item?',
+      confirmLabel: 'Delete',
+      destructive: true,
+    });
+    if (!ok) return;
     setDeletingContentId(contentId);
     try {
       const token = getAuthToken();
@@ -2291,6 +2305,7 @@ export default function SubjectContentManagement() {
 
   return (
     <div className="space-y-3 sm:space-y-4 lg:space-y-6">
+      {ConfirmDialog}
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">

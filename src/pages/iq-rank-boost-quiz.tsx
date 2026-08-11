@@ -34,7 +34,11 @@ interface Question {
 }
 
 export default function IQRankBoostQuiz() {
-  const [, params] = useRoute('/iq-rank-boost/quiz/:quizId');
+  const [, studentParams] = useRoute('/iq-rank-boost/quiz/:quizId');
+  const [, teacherParams] = useRoute('/teacher/quiz/:quizId');
+  const params = teacherParams?.quizId ? teacherParams : studentParams;
+  const isTeacherAudience = Boolean(teacherParams?.quizId);
+  const backHref = isTeacherAudience ? '/teacher/quiz' : '/iq-rank-boost-subjects';
   const { toast } = useToast();
   const [questions, setQuestions] = useState<Question[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -66,12 +70,15 @@ export default function IQRankBoostQuiz() {
 
       // Fetch questions for this quiz - backend automatically filters by student's class
       const questionsResponse = await fetch(
-        `${API_BASE_URL}/api/student/iq-rank-questions?quizId=${encodeURIComponent(params!.quizId)}`,
+        isTeacherAudience
+          ? `${API_BASE_URL}/api/teacher/platform-quizzes/${encodeURIComponent(params!.quizId)}/questions`
+          : `${API_BASE_URL}/api/student/iq-rank-questions?quizId=${encodeURIComponent(params!.quizId)}`,
         {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
-          }
+          },
+          credentials: 'include',
         }
       );
 
@@ -86,7 +93,7 @@ export default function IQRankBoostQuiz() {
         
         // Get subject name and quiz title
         if (quiz) {
-          setQuizTitle(quiz.title || 'IQ Quiz');
+          setQuizTitle(quiz.title || 'Quiz');
           if (quiz.subject && typeof quiz.subject === 'object' && quiz.subject.name) {
             setSubjectName(quiz.subject.name);
           }
@@ -97,7 +104,7 @@ export default function IQRankBoostQuiz() {
           } else {
             setSubjectName('Subject');
           }
-          setQuizTitle('IQ Quiz');
+          setQuizTitle('Quiz');
         }
       } else {
         toast({
@@ -174,15 +181,21 @@ export default function IQRankBoostQuiz() {
         ? (typeof questions[0].subject === 'object' ? questions[0].subject._id : questions[0].subject)
         : null;
       
-      await fetch(`${API_BASE_URL}/api/student/iq-rank-quiz-result`, {
+      await fetch(
+        isTeacherAudience
+          ? `${API_BASE_URL}/api/teacher/platform-quizzes/${encodeURIComponent(quizId || params?.quizId || '')}/result`
+          : `${API_BASE_URL}/api/student/iq-rank-quiz-result`,
+        {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
+        credentials: 'include',
         body: JSON.stringify({
           quizId: quizId || params?.quizId,
           subjectId: subjectId,
+          subject: subjectId,
           totalQuestions: questions.length,
           correctAnswers: correct,
           incorrectAnswers: incorrect,
@@ -237,7 +250,7 @@ export default function IQRankBoostQuiz() {
                 <p className="text-gray-500 mb-6">
                   No questions have been generated for this subject yet.
                 </p>
-                <Link href="/iq-rank-boost-subjects">
+                <Link href={backHref}>
                   <Button variant="outline">
                     <ArrowLeft className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                     Back to Subjects
@@ -266,7 +279,7 @@ export default function IQRankBoostQuiz() {
                     </CardTitle>
                     <p className="text-gray-600 mt-2">{subjectName}</p>
                   </div>
-                  <Link href="/iq-rank-boost-subjects">
+                  <Link href={backHref}>
                     <Button variant="outline">
                       <ArrowLeft className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                       Back to Subjects
@@ -390,11 +403,11 @@ export default function IQRankBoostQuiz() {
               <div>
                 <h1 className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center gap-2">
                   <Brain className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-blue-500" />
-                  IQ/Rank Boost Practice
+                  Quiz
                 </h1>
                 <p className="text-gray-600 mt-1">{subjectName}</p>
               </div>
-              <Link href="/iq-rank-boost-subjects">
+              <Link href={backHref}>
                 <Button variant="ghost" size="sm">
                   <ArrowLeft className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                   Back
