@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import DetailedAnalysis from './detailed-analysis';
 import { 
   Trophy, 
@@ -32,6 +32,8 @@ interface Question {
   negativeMarks: number;
   explanation?: string;
   subject: string;
+  chapter?: string;
+  topic?: string;
 }
 
 interface ExamResult {
@@ -54,6 +56,12 @@ interface ExamResult {
   };
   answers?: Record<string, any>;
   questions?: Question[];
+  questionAnalytics?: Array<{
+    subject?: string;
+    chapter?: string;
+    topic?: string;
+    status?: string;
+  }>;
 }
 
 interface ExamResultsProps {
@@ -77,6 +85,43 @@ export default function ExamResults({
   attemptsRemaining = 0,
 }: ExamResultsProps) {
   const [showDetailedAnalysis, setShowDetailedAnalysis] = useState(openDetailedByDefault);
+
+  const focusChapters = useMemo(() => {
+    const counts = new Map<string, { chapter: string; subject: string; wrong: number; skipped: number }>();
+    const push = (subject: string, chapterRaw: string, status: string) => {
+      const chapter = String(chapterRaw || '').trim();
+      if (!chapter || /^(general|unknown|n\/a|na|misc|chapter|unit|other|none)$/i.test(chapter)) return;
+      const key = `${subject}::${chapter.toLowerCase()}`;
+      const prev = counts.get(key) || { chapter, subject, wrong: 0, skipped: 0 };
+      if (status === 'wrong' || status === 'incorrect') prev.wrong += 1;
+      else prev.skipped += 1;
+      counts.set(key, prev);
+    };
+
+    const analytics = Array.isArray(result.questionAnalytics) ? result.questionAnalytics : [];
+    for (const row of analytics) {
+      const st = String(row.status || '');
+      if (st !== 'wrong' && st !== 'not_answered' && st !== 'unattempted') continue;
+      const chapter = String(row.chapter || row.topic || '').trim();
+      push(String(row.subject || 'general'), chapter, st === 'wrong' ? 'wrong' : 'skipped');
+    }
+
+    if (counts.size === 0 && Array.isArray(result.questions)) {
+      result.questions.forEach((q, idx) => {
+        const chapter = String(q.chapter || q.topic || '').trim();
+        if (!chapter) return;
+        const answerKey = String(q._id || idx);
+        const ans = result.answers?.[answerKey] ?? result.answers?.[String(idx)];
+        const attempted = ans !== undefined && ans !== null && ans !== '';
+        // Without grading here, treat missing answers as skips for focus listing
+        if (!attempted) push(String(q.subject || 'general'), chapter, 'skipped');
+      });
+    }
+
+    return Array.from(counts.values())
+      .sort((a, b) => b.wrong + b.skipped - (a.wrong + a.skipped))
+      .slice(0, 8);
+  }, [result]);
 
   if (showDetailedAnalysis) {
     return (
@@ -332,6 +377,47 @@ export default function ExamResults({
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
+              {focusChapters.length > 0 ? (
+                <div className="p-4 bg-rose-50 border border-rose-200 rounded-lg">
+                  <div className="flex items-start gap-3">
+                    <BookOpen className="w-4 h-4 sm:w-5 sm:h-5 text-rose-600 mt-0.5 shrink-0" />
+                    <div className="min-w-0 flex-1">
+                      <h4 className="font-semibold text-rose-900">Chapters / subtopics to focus on</h4>
+                      <p className="text-rose-800 text-xs sm:text-sm mt-1 mb-3">
+                        Built from wrong and skipped questions on this attempt.
+                      </p>
+                      <ul className="space-y-2">
+                        {focusChapters.map((ch) => (
+                          <li
+                            key={`${ch.subject}-${ch.chapter}`}
+                            className="flex items-start justify-between gap-2 rounded-lg border border-rose-100 bg-white px-3 py-2 text-sm"
+                          >
+                            <div className="min-w-0">
+                              <p className="font-semibold text-slate-900">{ch.chapter}</p>
+                              <p className="text-xs text-slate-500 capitalize">{ch.subject}</p>
+                            </div>
+                            <span className="shrink-0 text-xs font-medium text-rose-700">
+                              {ch.wrong > 0 ? `${ch.wrong} wrong` : null}
+                              {ch.wrong > 0 && ch.skipped > 0 ? ' · ' : null}
+                              {ch.skipped > 0 ? `${ch.skipped} skipped` : null}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="mt-3 border-rose-200 text-rose-800"
+                        onClick={() => setShowDetailedAnalysis(true)}
+                      >
+                        Open full analysis &amp; study plan
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+
               {displayPercentage < 50 && (
                 <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
                   <div className="flex items-start space-x-3">
@@ -339,7 +425,9 @@ export default function ExamResults({
                     <div>
                       <h4 className="font-semibold text-red-800">Need More Practice</h4>
                       <p className="text-red-700 text-xs sm:text-sm mt-1">
-                        Focus on fundamental concepts and practice more questions in your weak areas.
+                        {focusChapters.length > 0
+                          ? `Start with the chapters listed above, then practise similar questions.`
+                          : `Focus on fundamental concepts and practice more questions in your weak areas.`}
                       </p>
                     </div>
                   </div>
@@ -353,7 +441,9 @@ export default function ExamResults({
                     <div>
                       <h4 className="font-semibold text-yellow-800">Good Progress</h4>
                       <p className="text-yellow-700 text-xs sm:text-sm mt-1">
-                        You're on the right track! Focus on improving accuracy and speed.
+                        {focusChapters.length > 0
+                          ? `You're on track — close the gaps in the focus chapters above to push past 70%.`
+                          : `You're on the right track! Focus on improving accuracy and speed.`}
                       </p>
                     </div>
                   </div>
@@ -367,7 +457,9 @@ export default function ExamResults({
                     <div>
                       <h4 className="font-semibold text-green-800">Excellent Performance!</h4>
                       <p className="text-green-700 text-xs sm:text-sm mt-1">
-                        Great job! Keep up the good work and aim for even higher scores.
+                        {focusChapters.length > 0
+                          ? `Strong overall — still review the remaining weak chapters above before the next mock.`
+                          : `Great job! Keep up the good work and aim for even higher scores.`}
                       </p>
                     </div>
                   </div>

@@ -17,6 +17,9 @@ import {
   type ExamClassCard,
 } from '@/lib/exam-classes';
 import { downloadSchoolPerformanceAnalysisExcel } from '@/lib/school-performance-analysis-excel';
+import { buildExamAnalyticsHandoffReport } from '@/lib/exam-analytics-handoff';
+import StudentExamHandoffModal from '@/components/admin/StudentExamHandoffModal';
+import type { HandoffIndividualReport } from '@/lib/exam-analytics-handoff';
 
 interface Exam {
   _id: string;
@@ -414,6 +417,21 @@ export default function ExamViewOnly() {
   };
 
   const [isExporting, setIsExporting] = useState(false);
+  const [studentReport, setStudentReport] = useState<HandoffIndividualReport | null>(null);
+
+  const handoffReport = useMemo(() => {
+    if (!selectedExam || examResults.length === 0) return null;
+    return buildExamAnalyticsHandoffReport(selectedExam.title, examResults);
+  }, [selectedExam, examResults]);
+
+  const openStudentReport = (fullName: string) => {
+    if (!handoffReport) return;
+    const match =
+      handoffReport.individuals.find(
+        (row) => row.student.name.trim().toLowerCase() === String(fullName || '').trim().toLowerCase(),
+      ) || null;
+    setStudentReport(match);
+  };
 
   const exportToExcel = async () => {
     if (!selectedExam || examResults.length === 0) {
@@ -669,6 +687,32 @@ export default function ExamViewOnly() {
           );
         })()}
 
+        {handoffReport ? (
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base">Executive analytics</CardTitle>
+              <p className="text-xs text-slate-500 font-normal">
+                Class accuracy {Math.round(handoffReport.classAccuracy * 1000) / 10}% · precision{' '}
+                {Math.round(handoffReport.classPrecision * 1000) / 10}% · avg{' '}
+                {handoffReport.classAvgTimeSec.toFixed(1)}s/Q · {handoffReport.studentsAtLeast50}/
+                {handoffReport.studentCount} students ≥50%
+              </p>
+            </CardHeader>
+            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {handoffReport.subjectRows.slice(0, 4).map((subj) => (
+                <div key={subj.subjectKey} className="rounded-xl border bg-slate-50/80 px-3 py-2">
+                  <p className="text-sm font-semibold text-slate-900">{subj.label}</p>
+                  <p className="text-xs text-slate-600 mt-0.5">
+                    Accuracy {(subj.accuracy * 100).toFixed(1)}% · precision{' '}
+                    {(subj.precision * 100).toFixed(1)}% · left {(subj.leftRate * 100).toFixed(1)}%
+                  </p>
+                  <p className="text-[11px] text-slate-500 mt-1">{subj.keyReading}</p>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        ) : null}
+
         {/* All Results */}
         <Card>
           <CardHeader>
@@ -681,9 +725,15 @@ export default function ExamViewOnly() {
                 onClick={() => void exportToExcel()}
               >
                 <Download className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
-                {isExporting ? 'Exporting…' : 'Export Excel'}
+                {isExporting ? 'Exporting…' : 'Export analytics Excel'}
               </Button>
             </CardTitle>
+            {handoffReport ? (
+              <p className="text-xs text-slate-500 font-normal mt-1">
+                Excel includes Executive Dashboard, Student Data, Subject Data, and one sheet per student
+                (same structure as the developer handoff). Tap a student for the on-screen individual report.
+              </p>
+            ) : null}
           </CardHeader>
           <CardContent>
             {isLoadingResults ? (
@@ -702,6 +752,7 @@ export default function ExamViewOnly() {
                       <th className="text-left py-3 px-3 font-semibold text-slate-700">Accuracy</th>
                       <th className="text-left py-3 px-3 font-semibold text-slate-700">Time</th>
                       <th className="text-left py-3 px-3 font-semibold text-slate-700">Completed</th>
+                      <th className="text-left py-3 px-3 font-semibold text-slate-700">Report</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -800,6 +851,17 @@ export default function ExamViewOnly() {
                             <p className="font-medium text-slate-800">{completed.date}</p>
                             <p className="text-xs text-slate-500">{completed.time}</p>
                           </td>
+                          <td className="py-3 px-3">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="whitespace-nowrap"
+                              onClick={() => openStudentReport(result.userId.fullName)}
+                            >
+                              View analysis
+                            </Button>
+                          </td>
                         </tr>
                       );
                     })}
@@ -813,6 +875,15 @@ export default function ExamViewOnly() {
             )}
           </CardContent>
         </Card>
+
+        <StudentExamHandoffModal
+          open={Boolean(studentReport)}
+          onOpenChange={(open) => {
+            if (!open) setStudentReport(null);
+          }}
+          individual={studentReport}
+          examTitle={selectedExam?.title}
+        />
       </div>
     );
   }

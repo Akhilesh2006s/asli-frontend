@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRoute } from 'wouter';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -99,6 +99,15 @@ export default function SubjectContent() {
   const [loadingContents, setLoadingContents] = useState(false);
   const [completedContentIds, setCompletedContentIds] = useState<Set<string>>(new Set());
   const [selectedContentType, setSelectedContentType] = useState<string | null>(null);
+
+  const focusChapter = useMemo(() => {
+    if (typeof window === 'undefined') return '';
+    try {
+      return String(new URLSearchParams(window.location.search).get('focus') || '').trim();
+    } catch {
+      return '';
+    }
+  }, [params?.id]);
 
   useEffect(() => {
     if (params?.id) {
@@ -478,6 +487,20 @@ export default function SubjectContent() {
             </div>
           </div>
         </div>
+
+        {focusChapter ? (
+          <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-950">
+            <p className="text-xs font-bold uppercase tracking-wide text-amber-800">
+              Focus from your exam
+            </p>
+            <p className="text-sm sm:text-base font-semibold mt-1">
+              Study chapter / subtopic: {focusChapter}
+            </p>
+            <p className="text-xs text-amber-800/80 mt-1">
+              Look for videos or materials on this topic in the list below, then practise related questions.
+            </p>
+          </div>
+        ) : null}
 
         {/* Calendar View */}
         {showCalendar ? (

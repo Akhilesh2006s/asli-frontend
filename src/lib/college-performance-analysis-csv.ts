@@ -1,14 +1,9 @@
+import type { SchoolAnalysisExamResult } from './school-performance-analysis-data';
 import {
-  COMPLEXITY_DISPLAY,
-  DIFFICULTY_BUCKETS,
-  type SchoolAnalysisExamResult,
-  buildSchoolPerformanceAnalysisReport,
-  displaySubject,
-  formatAvgTime,
-  formatPct,
-  shortSubject,
-  topChapter,
-} from './school-performance-analysis-data';
+  buildExamAnalyticsHandoffReport,
+  formatHandoffNumber,
+  formatHandoffPct,
+} from './exam-analytics-handoff';
 
 export type { QuestionAnalyticsRow, SchoolAnalysisExamResult } from './school-performance-analysis-data';
 /** @deprecated Use SchoolAnalysisExamResult */
@@ -26,148 +21,60 @@ export function buildCollegePerformanceAnalysisCsv(
   return buildSchoolPerformanceAnalysisCsv(examTitle, results);
 }
 
+/** CSV mirrors the Student Data sheet from the exam analytics handoff Excel. */
 export function buildSchoolPerformanceAnalysisCsv(
   examTitle: string,
   results: SchoolAnalysisExamResult[],
 ): string {
-  const report = buildSchoolPerformanceAnalysisReport(examTitle, results);
+  const report = buildExamAnalyticsHandoffReport(examTitle, results);
   if (!report) return '';
 
   const lines: string[] = [];
-
-  lines.push(csvRow(['SCHOOL PERFORMANCE ANALYSIS REPORT']));
-  lines.push(csvRow(['Exam Name', report.examTitle]));
-  lines.push(csvRow(['Attempt basis', report.attemptNote]));
+  lines.push(csvRow([`${report.examTitle} | STUDENT DATA`]));
   lines.push(
     csvRow([
-      'Total Students',
+      'Class accuracy',
+      formatHandoffPct(report.classAccuracy),
+      'Precision',
+      formatHandoffPct(report.classPrecision),
+      'Avg time/Q',
+      `${formatHandoffNumber(report.classAvgTimeSec)}s`,
+      'Students',
       report.studentCount,
-      'Total Attempts',
-      report.totalAttempts,
-      'Total Questions',
-      report.overall.total,
-      'Subjects',
-      report.subjectLabels.length ? report.subjectLabels.join(', ') : '—',
     ]),
   );
   lines.push('');
 
-  lines.push(csvRow(['SECTION A: OVERALL PERFORMANCE SNAPSHOT']));
-  lines.push(
-    csvRow([
-      'Total Questions',
-      'Correct Answers',
-      'Wrong Answers',
-      'Left / Unattempted',
-      'Overall Accuracy',
-      'Avg Time/Que',
-      'Total Students',
-      'Total Attempts',
-      'Avg Q per Student',
-      'Avg Q per Attempt',
-    ]),
-  );
-  lines.push(
-    csvRow([
-      report.overall.total,
-      report.overall.correct,
-      report.overall.wrong,
-      report.overall.left,
-      formatPct(report.overall.correct, report.overall.total),
-      formatAvgTime(report.overall.totalTime, report.overall.total),
-      report.studentCount,
-      report.totalAttempts,
-      report.overall.avgQPerStudent,
-      report.overall.avgQPerAttempt,
-    ]),
-  );
-  lines.push('');
+  const headers = [
+    'Rank',
+    'Student',
+    'Class',
+    'Attempt',
+    'Completed At',
+    'Total',
+    'Correct',
+    'Wrong',
+    'Left',
+    'Accuracy',
+    'Avg Time/Q (s)',
+    ...report.subjectLabels,
+    'Attempted',
+    'Recorded Attempt Rate',
+    'Attempted Precision',
+    'Wrong / Attempted',
+    'Correct / Est. Active Min',
+    'Accuracy Gap vs Class',
+    'Time Gap vs Class (s)',
+    'Subject Spread',
+    'Percentile Position',
+    'Strongest Subject',
+    'Weakest Subject',
+    'Pace-Accuracy Profile',
+    'Cohort Band',
+  ];
+  lines.push(csvRow(headers));
 
-  lines.push(csvRow(['SECTION B: SUBJECT-WISE PERFORMANCE']));
-  lines.push(
-    csvRow([
-      'Subject',
-      'Total Qs',
-      'Correct',
-      'Wrong',
-      'Left',
-      'Accuracy',
-      'Avg Time/Que',
-      'Easy Qs',
-      'Medium Qs',
-      'Hard Qs',
-      'Very Hard Qs',
-      'Numerical Qs',
-      'Formula Qs',
-      'Top Chapter',
-    ]),
-  );
-  for (const subjectKey of report.subjects) {
-    const agg = report.bySubject.get(subjectKey)!;
-    lines.push(
-      csvRow([
-        displaySubject(subjectKey),
-        agg.total,
-        agg.correct,
-        agg.wrong,
-        agg.left,
-        formatPct(agg.correct, agg.total),
-        formatAvgTime(agg.totalTime, agg.total),
-        report.hasQuestionAnalytics ? agg.easy : '—',
-        report.hasQuestionAnalytics ? agg.moderate : '—',
-        report.hasQuestionAnalytics ? agg.difficult : '—',
-        report.hasQuestionAnalytics ? agg.highly_difficult : '—',
-        report.hasQuestionAnalytics ? agg.numerical : '—',
-        report.hasQuestionAnalytics ? agg.formula : '—',
-        report.hasQuestionAnalytics ? topChapter(agg) : '—',
-      ]),
-    );
-  }
-  lines.push('');
-
-  lines.push(csvRow(['SECTION C: COMPLEXITY-WISE PERFORMANCE']));
-  lines.push(csvRow(['Complexity', 'Total Qs', 'Correct', 'Wrong', 'Left', 'Accuracy', 'Avg Time/Que']));
-  for (const bucket of DIFFICULTY_BUCKETS) {
-    const agg = report.byDifficulty.get(bucket)!;
-    if (!report.hasQuestionAnalytics && agg.total === 0) continue;
-    lines.push(
-      csvRow([
-        COMPLEXITY_DISPLAY[bucket],
-        agg.total,
-        agg.correct,
-        agg.wrong,
-        agg.left,
-        formatPct(agg.correct, agg.total),
-        formatAvgTime(agg.totalTime, agg.total),
-      ]),
-    );
-  }
-  if (!report.hasQuestionAnalytics) {
-    lines.push(csvRow(['—', '—', '—', '—', '—', '—', 'Question-level analytics not available']));
-  }
-  lines.push('');
-
-  lines.push(csvRow(['SECTION D: STUDENT PERFORMANCE RANKING']));
-  lines.push(
-    csvRow([
-      'Rank',
-      'Student',
-      'Class',
-      'Attempt',
-      'Completed At',
-      'Total',
-      'Correct',
-      'Wrong',
-      'Left',
-      'Accuracy',
-      'Avg',
-      ...report.subjects.map((k) => `${shortSubject(k)} Acc%`),
-      'Top',
-      'Performance',
-    ]),
-  );
-
-  for (const student of report.rankedStudents) {
+  for (const student of report.students) {
     lines.push(
       csvRow([
         student.rank,
@@ -179,14 +86,63 @@ export function buildSchoolPerformanceAnalysisCsv(
         student.correct,
         student.wrong,
         student.left,
-        student.accuracyLabel,
-        student.avgTime,
-        ...report.subjects.map((key) => {
-          const acc = student.subjectAcc.get(key);
-          return acc != null ? `${acc.toFixed(1)}%` : '—';
-        }),
-        student.topSubject,
-        student.performance,
+        formatHandoffPct(student.accuracy),
+        formatHandoffNumber(student.avgTimeSec),
+        ...report.subjects.map((key) => formatHandoffPct(student.subjectAcc.get(key) ?? 0)),
+        student.attempted,
+        formatHandoffPct(student.attemptRate),
+        formatHandoffPct(student.precision),
+        formatHandoffPct(student.wrongBurden),
+        formatHandoffNumber(student.correctPerActiveMin, 2),
+        formatHandoffPct(student.accuracyGap),
+        formatHandoffNumber(student.timeGap),
+        formatHandoffPct(student.subjectSpread),
+        formatHandoffNumber(student.percentile, 3),
+        student.strongestSubject,
+        student.weakestSubject,
+        student.paceAccuracyProfile,
+        student.cohortBand,
+      ]),
+    );
+  }
+
+  lines.push('');
+  lines.push(csvRow(['SUBJECT DATA']));
+  lines.push(
+    csvRow([
+      'Subject',
+      'Total Responses',
+      'Correct',
+      'Wrong',
+      'Left',
+      'Accuracy',
+      'Recorded Attempt Rate',
+      'Attempted Precision',
+      'Wrong / Attempted',
+      'Recorded Left Rate',
+      'Avg Time/Q (s)',
+      'Correct / Est. Active Min',
+      'Zero-Correct Students',
+      'Students >=50%',
+    ]),
+  );
+  for (const subj of report.subjectRows) {
+    lines.push(
+      csvRow([
+        subj.label,
+        subj.total,
+        subj.correct,
+        subj.wrong,
+        subj.left,
+        formatHandoffPct(subj.accuracy),
+        formatHandoffPct(subj.attemptRate),
+        formatHandoffPct(subj.precision),
+        formatHandoffPct(subj.wrongBurden),
+        formatHandoffPct(subj.leftRate),
+        formatHandoffNumber(subj.avgTimeSec),
+        formatHandoffNumber(subj.correctPerActiveMin, 2),
+        subj.zeroCorrectStudents,
+        subj.studentsAtLeast50,
       ]),
     );
   }
@@ -201,15 +157,5 @@ export function schoolPerformanceAnalysisFilename(examTitle: string): string {
     .replace(/^_+|_+$/g, '')
     .slice(0, 80);
   const date = new Date().toISOString().slice(0, 10);
-  return `${slug || 'exam'}_School_Performance_Analysis_${date}.csv`;
-}
-
-/** @deprecated Use schoolPerformanceAnalysisFilename */
-export function collegePerformanceAnalysisFilename(examTitle: string): string {
-  return schoolPerformanceAnalysisFilename(examTitle);
-}
-
-/** UTF-8 BOM so Excel opens the file with correct encoding and column layout. */
-export function withExcelCsvBom(csv: string): string {
-  return csv.startsWith('\uFEFF') ? csv : `\uFEFF${csv}`;
+  return `${slug || 'exam'}_Exam_Analytics_${date}.csv`;
 }

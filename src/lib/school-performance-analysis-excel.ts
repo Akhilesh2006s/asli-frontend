@@ -1,15 +1,12 @@
 import ExcelJS from 'exceljs';
+import type { SchoolAnalysisExamResult } from './school-performance-analysis-data';
 import {
-  COMPLEXITY_DISPLAY,
-  DIFFICULTY_BUCKETS,
-  type SchoolAnalysisExamResult,
-  buildSchoolPerformanceAnalysisReport,
-  displaySubject,
-  formatAvgTime,
-  formatPct,
-  shortSubject,
-  topChapter,
-} from './school-performance-analysis-data';
+  buildExamAnalyticsHandoffReport,
+  formatHandoffNumber,
+  formatHandoffPct,
+  type ExamAnalyticsHandoffReport,
+  type HandoffIndividualReport,
+} from './exam-analytics-handoff';
 
 const COLORS = {
   titleBg: 'FF1F4E79',
@@ -77,17 +74,11 @@ const styleCell = (
   if (opts.border !== false) cell.border = thinBorder;
 };
 
-const accuracyFill = (pct: number): { fill: string; color: string } => {
+const accuracyFill = (pct01: number): { fill: string; color: string } => {
+  const pct = pct01 * 100;
   if (pct >= 70) return { fill: COLORS.excellentBg, color: COLORS.excellentText };
   if (pct >= 55) return { fill: COLORS.goodBg, color: COLORS.goodText };
   if (pct >= 40) return { fill: COLORS.averageBg, color: COLORS.averageText };
-  return { fill: COLORS.poorBg, color: COLORS.poorText };
-};
-
-const performanceStyle = (label: string): { fill: string; color: string } => {
-  if (label === 'Excellent') return { fill: COLORS.excellentBg, color: COLORS.excellentText };
-  if (label === 'Good') return { fill: COLORS.goodBg, color: COLORS.goodText };
-  if (label === 'Average') return { fill: COLORS.averageBg, color: COLORS.averageText };
   return { fill: COLORS.poorBg, color: COLORS.poorText };
 };
 
@@ -108,16 +99,13 @@ const writeHeaderRow = (sheet: ExcelJS.Worksheet, row: number, headers: string[]
   sheet.getRow(row).height = 22;
 };
 
-type HighlightKind = 'correct' | 'wrong' | 'left' | 'accuracy' | 'performance';
-
 const writeDataRow = (
   sheet: ExcelJS.Worksheet,
   row: number,
   values: unknown[],
   opts?: {
     zebra?: boolean;
-    highlights?: Record<number, HighlightKind>;
-    accuracyValues?: Record<number, number>;
+    accuracyCols?: Record<number, number>;
     leftAlignCols?: number[];
   },
 ) => {
@@ -126,23 +114,12 @@ const writeDataRow = (
     const cell = sheet.getCell(row, col);
     cell.value = value as ExcelJS.CellValue;
     const align = opts?.leftAlignCols?.includes(col) ? 'left' : 'center';
-    const base = { border: true as const, align };
-    const highlight = opts?.highlights?.[col];
-
-    if (highlight === 'correct') {
-      styleCell(cell, { ...base, fill: COLORS.correctBg, color: COLORS.correctText, bold: true });
-    } else if (highlight === 'wrong') {
-      styleCell(cell, { ...base, fill: COLORS.wrongBg, color: COLORS.wrongText, bold: true });
-    } else if (highlight === 'left') {
-      styleCell(cell, { ...base, fill: COLORS.leftBg, color: COLORS.leftText });
-    } else if (highlight === 'accuracy' && opts?.accuracyValues?.[col] != null) {
-      const tone = accuracyFill(opts.accuracyValues[col]);
-      styleCell(cell, { ...base, fill: tone.fill, color: tone.color, bold: true });
-    } else if (highlight === 'performance' && typeof value === 'string') {
-      const tone = performanceStyle(value);
-      styleCell(cell, { ...base, fill: tone.fill, color: tone.color, bold: true });
+    const acc = opts?.accuracyCols?.[col];
+    if (acc != null) {
+      const tone = accuracyFill(acc);
+      styleCell(cell, { bold: true, fill: tone.fill, color: tone.color, align });
     } else {
-      styleCell(cell, { ...base, fill: opts?.zebra ? COLORS.zebra : undefined });
+      styleCell(cell, { fill: opts?.zebra ? COLORS.zebra : undefined, align });
     }
   });
 };
@@ -153,11 +130,212 @@ const setColumnWidths = (sheet: ExcelJS.Worksheet, widths: number[]) => {
   });
 };
 
-function buildReportSheet(
-  workbook: ExcelJS.Workbook,
-  report: NonNullable<ReturnType<typeof buildSchoolPerformanceAnalysisReport>>,
-) {
-  const sectionDHeaders = [
+const safeSheetName = (raw: string, fallback: string) => {
+  const cleaned = String(raw || '')
+    .replace(/[\\/*?:[\]]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 28);
+  return cleaned || fallback;
+};
+
+function buildExecutiveSheet(workbook: ExcelJS.Workbook, report: ExamAnalyticsHandoffReport) {
+  const sheet = workbook.addWorksheet('Executive Dashboard', {
+    properties: { defaultRowHeight: 20 },
+  });
+  let row = 1;
+  const maxCol = 17;
+
+  sheet.mergeCells(row, 1, row, maxCol);
+  const title = sheet.getCell(row, 1);
+  title.value = `${report.examTitle.toUpperCase()} | EXECUTIVE ANALYTICS DASHBOARD`;
+  styleCell(title, { bold: true, size: 14, fill: COLORS.titleBg, color: COLORS.white, align: 'left' });
+  sheet.getRow(row).height = 30;
+  row += 2;
+
+  const meta = [
+    'Students',
+    report.studentCount,
+    'Questions / Student',
+    report.questionsPerStudent,
+    'Question Records',
+    report.questionRecords,
+    'Subjects',
+    report.subjectCount,
+    'Attempts',
+    report.totalAttempts,
+    'Exam Date',
+    report.examDateLabel,
+    'Class',
+    report.classLabel,
+    'Student Reports',
+    report.studentCount,
+  ];
+  meta.forEach((value, idx) => {
+    const cell = sheet.getCell(row, idx + 1);
+    cell.value = value as ExcelJS.CellValue;
+    styleCell(cell, {
+      bold: idx % 2 === 0,
+      fill: idx % 2 === 0 ? COLORS.labelBg : undefined,
+      align: 'center',
+    });
+  });
+  row += 2;
+
+  mergeBanner(sheet, row, 'CLASS PERFORMANCE', 8);
+  row += 1;
+  writeHeaderRow(sheet, row, [
+    'Overall Accuracy',
+    'Recorded Attempt Rate',
+    'Attempted Precision',
+    'Recorded Left Rate',
+    'Avg Time/Q',
+    'Median Accuracy',
+    'Accuracy-Time Corr.',
+    'Students >=50%',
+  ]);
+  row += 1;
+  writeDataRow(
+    sheet,
+    row,
+    [
+      formatHandoffPct(report.classAccuracy),
+      formatHandoffPct(report.classAttemptRate),
+      formatHandoffPct(report.classPrecision),
+      formatHandoffPct(report.classLeftRate),
+      `${formatHandoffNumber(report.classAvgTimeSec)}s`,
+      formatHandoffPct(report.medianAccuracy),
+      formatHandoffNumber(report.accuracyTimeCorr, 2),
+      report.studentsAtLeast50,
+    ],
+    { accuracyCols: { 1: report.classAccuracy, 3: report.classPrecision } },
+  );
+  row += 2;
+
+  mergeBanner(sheet, row, 'WHAT THE EXAM IS SHOWCASING', 4);
+  row += 1;
+  writeHeaderRow(sheet, row, ['Dimension', 'Measured Signal', 'Interpretation', 'Developer / Academic Use']);
+  row += 1;
+  for (const item of report.showcase) {
+    writeDataRow(sheet, row, [item.dimension, item.signal, item.interpretation, item.use], {
+      zebra: row % 2 === 0,
+      leftAlignCols: [1, 2, 3, 4],
+    });
+    sheet.getRow(row).height = 36;
+    row += 1;
+  }
+  row += 1;
+
+  mergeBanner(sheet, row, 'SUBJECT DIAGNOSTIC', 14);
+  row += 1;
+  writeHeaderRow(sheet, row, [
+    'Subject',
+    'Total Records',
+    'Correct',
+    'Wrong',
+    'Left',
+    'Accuracy',
+    'Recorded Attempt Rate',
+    'Attempted Precision',
+    'Recorded Left Rate',
+    'Avg Time/Q',
+    'Correct / Est. Active Min',
+    'Zero-Correct Students',
+    'Students >=50%',
+    'Key Reading',
+  ]);
+  row += 1;
+  for (const subj of report.subjectRows) {
+    writeDataRow(
+      sheet,
+      row,
+      [
+        subj.label,
+        subj.total,
+        subj.correct,
+        subj.wrong,
+        subj.left,
+        formatHandoffPct(subj.accuracy),
+        formatHandoffPct(subj.attemptRate),
+        formatHandoffPct(subj.precision),
+        formatHandoffPct(subj.leftRate),
+        formatHandoffNumber(subj.avgTimeSec),
+        formatHandoffNumber(subj.correctPerActiveMin, 2),
+        subj.zeroCorrectStudents,
+        subj.studentsAtLeast50,
+        subj.keyReading,
+      ],
+      {
+        zebra: row % 2 === 0,
+        accuracyCols: { 6: subj.accuracy },
+        leftAlignCols: [1, 14],
+      },
+    );
+    row += 1;
+  }
+  row += 1;
+
+  mergeBanner(sheet, row, 'STUDENT COHORT DIAGNOSTIC', maxCol);
+  row += 1;
+  const cohortHeaders = [
+    'Rank',
+    'Student',
+    'Accuracy',
+    'Percentile',
+    'Attempt Rate',
+    'Precision',
+    'Avg Time/Q',
+    'Accuracy Gap',
+    ...report.subjectLabels,
+    'Strongest',
+    'Weakest',
+    'Spread',
+    'Pace-Accuracy',
+    'Cohort Band',
+  ];
+  writeHeaderRow(sheet, row, cohortHeaders);
+  row += 1;
+  for (const student of report.students) {
+    writeDataRow(
+      sheet,
+      row,
+      [
+        student.rank,
+        student.name,
+        formatHandoffPct(student.accuracy),
+        formatHandoffNumber(student.percentile, 3),
+        formatHandoffPct(student.attemptRate),
+        formatHandoffPct(student.precision),
+        formatHandoffNumber(student.avgTimeSec),
+        formatHandoffPct(student.accuracyGap),
+        ...report.subjects.map((key) => formatHandoffPct(student.subjectAcc.get(key) ?? 0)),
+        student.strongestSubject,
+        student.weakestSubject,
+        formatHandoffPct(student.subjectSpread),
+        student.paceAccuracyProfile,
+        student.cohortBand,
+      ],
+      {
+        zebra: row % 2 === 0,
+        accuracyCols: { 3: student.accuracy },
+        leftAlignCols: [2, 12 + report.subjects.length, 13 + report.subjects.length, 15 + report.subjects.length, 16 + report.subjects.length],
+      },
+    );
+    row += 1;
+  }
+  row += 1;
+  sheet.mergeCells(row, 1, row, maxCol);
+  const note = sheet.getCell(row, 1);
+  note.value = report.interpretationNote;
+  styleCell(note, { align: 'left', wrap: true, fill: COLORS.labelBg });
+  sheet.getRow(row).height = 28;
+
+  setColumnWidths(sheet, [10, 28, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 14, 18, 14, 18, 14]);
+}
+
+function buildStudentDataSheet(workbook: ExcelJS.Workbook, report: ExamAnalyticsHandoffReport) {
+  const sheet = workbook.addWorksheet('Student Data');
+  const headers = [
     'Rank',
     'Student',
     'Class',
@@ -168,190 +346,25 @@ function buildReportSheet(
     'Wrong',
     'Left',
     'Accuracy',
-    'Avg Time/Que',
-    ...report.subjects.map((k) => `${shortSubject(k)} Acc%`),
-    'Top Subject',
-    'Performance',
+    'Avg Time/Q (s)',
+    ...report.subjectLabels,
+    'Attempted',
+    'Recorded Attempt Rate',
+    'Attempted Precision',
+    'Wrong / Attempted',
+    'Correct / Est. Active Min',
+    'Accuracy Gap vs Class',
+    'Time Gap vs Class (s)',
+    'Subject Spread',
+    'Percentile Position',
+    'Strongest Subject',
+    'Weakest Subject',
+    'Pace-Accuracy Profile',
+    'Cohort Band',
   ];
-  const sectionDColCount = sectionDHeaders.length;
-  const maxCol = Math.max(14, sectionDColCount);
-  const performanceCol = sectionDColCount;
-
-  const sheet = workbook.addWorksheet('Report', {
-    properties: { defaultRowHeight: 20 },
-  });
-
-  let row = 1;
-
-  sheet.mergeCells(row, 1, row, maxCol);
-  const titleCell = sheet.getCell(row, 1);
-  titleCell.value = 'SCHOOL PERFORMANCE ANALYSIS REPORT';
-  styleCell(titleCell, { bold: true, size: 16, fill: COLORS.titleBg, color: COLORS.white });
-  sheet.getRow(row).height = 34;
-  row += 1;
-
-  sheet.getCell(row, 1).value = 'Exam Name';
-  styleCell(sheet.getCell(row, 1), { bold: true, fill: COLORS.labelBg, align: 'left' });
-  sheet.mergeCells(row, 2, row, maxCol);
-  const examCell = sheet.getCell(row, 2);
-  examCell.value = report.examTitle;
-  styleCell(examCell, { bold: true, align: 'left', wrap: true });
-  sheet.getRow(row).height = 22;
-  row += 1;
-
-  const meta = [
-    ['Total Students', report.studentCount],
-    ['Total Attempts', report.totalAttempts],
-    ['Total Questions', report.overall.total],
-    ['Subjects', report.subjectLabels.join(', ') || '—'],
-    ['Attempt basis', report.attemptNote],
-  ] as const;
-  meta.forEach(([label, value]) => {
-    sheet.getCell(row, 1).value = label;
-    styleCell(sheet.getCell(row, 1), { bold: true, fill: COLORS.labelBg, align: 'left' });
-    sheet.mergeCells(row, 2, row, maxCol);
-    const valueCell = sheet.getCell(row, 2);
-    valueCell.value = value;
-    styleCell(valueCell, { align: 'left', wrap: true });
-    row += 1;
-  });
-  row += 1;
-
-  mergeBanner(sheet, row, 'SECTION A: OVERALL PERFORMANCE SNAPSHOT', 10);
-  row += 1;
-  writeHeaderRow(sheet, row, [
-    'Total Questions',
-    'Correct Answers',
-    'Wrong Answers',
-    'Left / Unattempted',
-    'Overall Accuracy',
-    'Avg Time/Que',
-    'Total Students',
-    'Total Attempts',
-    'Avg Q per Student',
-    'Avg Q per Attempt',
-  ]);
-  row += 1;
-  writeDataRow(
-    sheet,
-    row,
-    [
-      report.overall.total,
-      report.overall.correct,
-      report.overall.wrong,
-      report.overall.left,
-      formatPct(report.overall.correct, report.overall.total),
-      formatAvgTime(report.overall.totalTime, report.overall.total),
-      report.studentCount,
-      report.totalAttempts,
-      report.overall.avgQPerStudent,
-      report.overall.avgQPerAttempt,
-    ],
-    {
-      highlights: { 2: 'correct', 3: 'wrong', 4: 'left', 5: 'accuracy' },
-      accuracyValues: {
-        5: report.overall.total > 0 ? (report.overall.correct / report.overall.total) * 100 : 0,
-      },
-    },
-  );
-  row += 2;
-
-  mergeBanner(sheet, row, 'SECTION B: SUBJECT-WISE PERFORMANCE', 14);
-  row += 1;
-  writeHeaderRow(sheet, row, [
-    'Subject',
-    'Total Qs',
-    'Correct',
-    'Wrong',
-    'Left',
-    'Accuracy',
-    'Avg Time/Que',
-    'Easy Qs',
-    'Medium Qs',
-    'Hard Qs',
-    'Very Hard Qs',
-    'Numerical Qs',
-    'Formula Qs',
-    'Top Chapter',
-  ]);
-  row += 1;
-  for (const subjectKey of report.subjects) {
-    const agg = report.bySubject.get(subjectKey)!;
-    const accPct = agg.total > 0 ? (agg.correct / agg.total) * 100 : 0;
-    writeDataRow(
-      sheet,
-      row,
-      [
-        displaySubject(subjectKey),
-        agg.total,
-        agg.correct,
-        agg.wrong,
-        agg.left,
-        formatPct(agg.correct, agg.total),
-        formatAvgTime(agg.totalTime, agg.total),
-        report.hasQuestionAnalytics ? agg.easy : '—',
-        report.hasQuestionAnalytics ? agg.moderate : '—',
-        report.hasQuestionAnalytics ? agg.difficult : '—',
-        report.hasQuestionAnalytics ? agg.highly_difficult : '—',
-        report.hasQuestionAnalytics ? agg.numerical : '—',
-        report.hasQuestionAnalytics ? agg.formula : '—',
-        report.hasQuestionAnalytics ? topChapter(agg) : '—',
-      ],
-      {
-        zebra: row % 2 === 0,
-        highlights: { 3: 'correct', 4: 'wrong', 5: 'left', 6: 'accuracy' },
-        accuracyValues: { 6: accPct },
-        leftAlignCols: [1, 14],
-      },
-    );
-    row += 1;
-  }
-  row += 1;
-
-  mergeBanner(sheet, row, 'SECTION C: COMPLEXITY-WISE PERFORMANCE', 7);
-  row += 1;
-  writeHeaderRow(sheet, row, ['Complexity', 'Total Qs', 'Correct', 'Wrong', 'Left', 'Accuracy', 'Avg Time/Que']);
-  row += 1;
-  for (const bucket of DIFFICULTY_BUCKETS) {
-    const agg = report.byDifficulty.get(bucket)!;
-    if (!report.hasQuestionAnalytics && agg.total === 0) continue;
-    const accPct = agg.total > 0 ? (agg.correct / agg.total) * 100 : 0;
-    writeDataRow(
-      sheet,
-      row,
-      [
-        COMPLEXITY_DISPLAY[bucket],
-        agg.total,
-        agg.correct,
-        agg.wrong,
-        agg.left,
-        formatPct(agg.correct, agg.total),
-        formatAvgTime(agg.totalTime, agg.total),
-      ],
-      {
-        zebra: row % 2 === 0,
-        highlights: { 3: 'correct', 4: 'wrong', 5: 'left', 6: 'accuracy' },
-        accuracyValues: { 6: accPct },
-        leftAlignCols: [1],
-      },
-    );
-    row += 1;
-  }
-  row += 1;
-
-  mergeBanner(sheet, row, 'SECTION D: STUDENT PERFORMANCE RANKING', maxCol);
-  row += 1;
-
-  const sectionDHeaderRow = row;
-  writeHeaderRow(sheet, row, sectionDHeaders);
-  row += 1;
-
-  const firstStudentRow = row;
-  for (const student of report.rankedStudents) {
-    const subjectCols = report.subjects.map((key) => {
-      const acc = student.subjectAcc.get(key);
-      return acc != null ? `${acc.toFixed(1)}%` : '—';
-    });
+  writeHeaderRow(sheet, 1, headers);
+  let row = 2;
+  for (const student of report.students) {
     writeDataRow(
       sheet,
       row,
@@ -365,47 +378,258 @@ function buildReportSheet(
         student.correct,
         student.wrong,
         student.left,
-        student.accuracyLabel,
-        student.avgTime,
-        ...subjectCols,
-        student.topSubject,
-        student.performance,
+        formatHandoffPct(student.accuracy),
+        formatHandoffNumber(student.avgTimeSec),
+        ...report.subjects.map((key) => formatHandoffPct(student.subjectAcc.get(key) ?? 0)),
+        student.attempted,
+        formatHandoffPct(student.attemptRate),
+        formatHandoffPct(student.precision),
+        formatHandoffPct(student.wrongBurden),
+        formatHandoffNumber(student.correctPerActiveMin, 2),
+        formatHandoffPct(student.accuracyGap),
+        formatHandoffNumber(student.timeGap),
+        formatHandoffPct(student.subjectSpread),
+        formatHandoffNumber(student.percentile, 3),
+        student.strongestSubject,
+        student.weakestSubject,
+        student.paceAccuracyProfile,
+        student.cohortBand,
       ],
       {
         zebra: row % 2 === 0,
-        highlights: {
-          7: 'correct',
-          8: 'wrong',
-          9: 'left',
-          10: 'accuracy',
-          [performanceCol]: 'performance',
-        },
-        accuracyValues: { 10: student.accuracy },
-        leftAlignCols: [2, 3, 4, 5, sectionDColCount - 1],
+        accuracyCols: { 10: student.accuracy },
+        leftAlignCols: [2, 3, 4, 5],
       },
     );
     row += 1;
   }
+  sheet.autoFilter = {
+    from: { row: 1, column: 1 },
+    to: { row: Math.max(1, row - 1), column: headers.length },
+  };
+  setColumnWidths(
+    sheet,
+    headers.map((h, i) => (i === 1 ? 30 : i === 4 ? 22 : h.length > 18 ? 18 : 12)),
+  );
+}
 
-  const lastStudentRow = row - 1;
+function buildSubjectDataSheet(workbook: ExcelJS.Workbook, report: ExamAnalyticsHandoffReport) {
+  const sheet = workbook.addWorksheet('Subject Data');
+  writeHeaderRow(sheet, 1, [
+    'Subject',
+    'Total Responses',
+    'Correct',
+    'Wrong',
+    'Left',
+    'Accuracy',
+    'Recorded Attempt Rate',
+    'Attempted Precision',
+    'Wrong / Attempted',
+    'Recorded Left Rate',
+    'Avg Time/Q (s)',
+    'Correct / Est. Active Min',
+    'Zero-Correct Students',
+    'Students >=50%',
+  ]);
+  let row = 2;
+  for (const subj of report.subjectRows) {
+    writeDataRow(
+      sheet,
+      row,
+      [
+        subj.label,
+        subj.total,
+        subj.correct,
+        subj.wrong,
+        subj.left,
+        formatHandoffPct(subj.accuracy),
+        formatHandoffPct(subj.attemptRate),
+        formatHandoffPct(subj.precision),
+        formatHandoffPct(subj.wrongBurden),
+        formatHandoffPct(subj.leftRate),
+        formatHandoffNumber(subj.avgTimeSec),
+        formatHandoffNumber(subj.correctPerActiveMin, 2),
+        subj.zeroCorrectStudents,
+        subj.studentsAtLeast50,
+      ],
+      { zebra: row % 2 === 0, accuracyCols: { 6: subj.accuracy }, leftAlignCols: [1] },
+    );
+    row += 1;
+  }
+  setColumnWidths(sheet, [16, 14, 10, 10, 10, 12, 16, 16, 14, 14, 12, 16, 14, 12]);
+}
 
-  if (lastStudentRow >= firstStudentRow) {
-    sheet.autoFilter = {
-      from: { row: sectionDHeaderRow, column: 1 },
-      to: { row: lastStudentRow, column: sectionDColCount },
-    };
+function buildContractSheet(workbook: ExcelJS.Workbook) {
+  const sheet = workbook.addWorksheet('Developer Data Contract');
+  const rows: Array<[string, string, string, string]> = [
+    ['ANALYTICS DATA CONTRACT | DEVELOPER HANDOFF', '', '', ''],
+    ['', '', '', ''],
+    ['Level', 'Metric', 'Definition', 'Source Fields'],
+    ['Overall', 'Accuracy', 'Correct / Total', 'Correct, Total'],
+    ['Overall / Student', 'Recorded Attempt Rate', '(Correct + Wrong) / Total', 'Correct, Wrong, Total'],
+    ['Overall / Student', 'Attempted Precision', 'Correct / (Correct + Wrong)', 'Correct, Wrong'],
+    ['Overall / Student', 'Wrong Burden', 'Wrong / (Correct + Wrong)', 'Wrong, Correct'],
+    ['Overall / Student', 'Recorded Left Rate', 'Left / Total', 'Left, Total'],
+    ['Overall / Student', 'Pace-Accuracy Profile', 'Accuracy and Avg Time/Q relative to cohort means', 'Accuracy, Avg Time/Q'],
+    ['Student', 'Percentile Position', 'Rank position scaled across current cohort', 'Rank, Student Count'],
+    ['Student', 'Subject Spread', 'Highest subject accuracy - lowest subject accuracy', 'Subject accuracies'],
+    ['Student', 'Strongest / Weakest Subject', 'Max / min subject accuracy', 'Subject accuracies'],
+    ['Subject', 'Subject Accuracy', 'Subject Correct / Subject Responses', 'Subject totals'],
+    ['Subject', 'Subject Attempted Precision', 'Subject Correct / (Correct + Wrong)', 'Subject totals'],
+    ['Subject', 'Zero-Correct / >=50% Count', 'Student distribution on subject accuracy', 'Student subject accuracies'],
+  ];
+  rows.forEach((values, idx) => {
+    values.forEach((value, col) => {
+      const cell = sheet.getCell(idx + 1, col + 1);
+      cell.value = value;
+      if (idx === 0) styleCell(cell, { bold: true, fill: COLORS.titleBg, color: COLORS.white, align: 'left' });
+      else if (idx === 2) styleCell(cell, { bold: true, fill: COLORS.headerBg, color: COLORS.white, align: 'left' });
+      else styleCell(cell, { align: 'left', fill: idx % 2 === 0 ? COLORS.zebra : undefined });
+    });
+  });
+  if (rows[0]) sheet.mergeCells(1, 1, 1, 4);
+  setColumnWidths(sheet, [22, 28, 52, 36]);
+}
+
+function buildIndividualSheet(
+  workbook: ExcelJS.Workbook,
+  individual: HandoffIndividualReport,
+  sheetName: string,
+) {
+  const sheet = workbook.addWorksheet(sheetName);
+  const student = individual.student;
+  let row = 1;
+
+  sheet.mergeCells(row, 1, row, 8);
+  const title = sheet.getCell(row, 1);
+  title.value = `${student.name.toUpperCase()} | INDIVIDUAL EXAM ANALYSIS`;
+  styleCell(title, { bold: true, size: 13, fill: COLORS.titleBg, color: COLORS.white, align: 'left' });
+  sheet.getRow(row).height = 28;
+  row += 2;
+
+  writeDataRow(
+    sheet,
+    row,
+    [
+      'Rank',
+      student.rank,
+      'Percentile',
+      formatHandoffNumber(student.percentile, 3),
+      'Cohort Band',
+      student.cohortBand,
+      'Completed',
+      student.completedAt,
+    ],
+    { leftAlignCols: [1, 3, 5, 7] },
+  );
+  row += 2;
+
+  mergeBanner(sheet, row, 'PERFORMANCE SNAPSHOT', 8);
+  row += 1;
+  writeHeaderRow(sheet, row, [
+    'Total',
+    'Correct',
+    'Wrong',
+    'Recorded Left',
+    'Accuracy',
+    'Recorded Attempt Rate',
+    'Precision',
+    'Avg Time/Q',
+  ]);
+  row += 1;
+  writeDataRow(
+    sheet,
+    row,
+    [
+      student.total,
+      student.correct,
+      student.wrong,
+      student.left,
+      formatHandoffPct(student.accuracy),
+      formatHandoffPct(student.attemptRate),
+      formatHandoffPct(student.precision),
+      formatHandoffNumber(student.avgTimeSec),
+    ],
+    { accuracyCols: { 5: student.accuracy, 7: student.precision } },
+  );
+  row += 2;
+
+  mergeBanner(sheet, row, 'SUBJECT DIAGNOSTIC', 6);
+  row += 1;
+  writeHeaderRow(sheet, row, [
+    'Subject',
+    'Student Accuracy',
+    'Class Accuracy',
+    'Gap',
+    'Subject Rank',
+    'Position',
+  ]);
+  row += 1;
+  for (const diag of individual.subjectDiagnostics) {
+    writeDataRow(
+      sheet,
+      row,
+      [
+        diag.label,
+        formatHandoffPct(diag.studentAccuracy),
+        formatHandoffPct(diag.classAccuracy),
+        formatHandoffPct(diag.gap),
+        diag.subjectRank,
+        diag.position,
+      ],
+      {
+        zebra: row % 2 === 0,
+        accuracyCols: { 2: diag.studentAccuracy },
+        leftAlignCols: [1, 6],
+      },
+    );
+    row += 1;
+  }
+  row += 1;
+
+  mergeBanner(sheet, row, 'EXAM BEHAVIOUR', 4);
+  row += 1;
+  writeHeaderRow(sheet, row, ['Metric', 'Student', 'Class', 'Reading']);
+  row += 1;
+  for (const item of individual.behaviour) {
+    const studentVal =
+      typeof item.student === 'number' && item.metric.toLowerCase().includes('time')
+        ? formatHandoffNumber(item.student)
+        : typeof item.student === 'number' && item.metric.toLowerCase().includes('correct')
+          ? formatHandoffNumber(item.student, 2)
+          : typeof item.student === 'number'
+            ? formatHandoffPct(item.student)
+            : item.student;
+    const classVal =
+      typeof item.classValue === 'number' && String(item.metric).toLowerCase().includes('time')
+        ? formatHandoffNumber(item.classValue)
+        : typeof item.classValue === 'number' && String(item.metric).toLowerCase().includes('correct')
+          ? formatHandoffNumber(item.classValue, 2)
+          : typeof item.classValue === 'number'
+            ? formatHandoffPct(item.classValue)
+            : item.classValue;
+    writeDataRow(sheet, row, [item.metric, studentVal, classVal, item.reading], {
+      zebra: row % 2 === 0,
+      leftAlignCols: [1, 4],
+    });
+    row += 1;
+  }
+  row += 1;
+
+  mergeBanner(sheet, row, 'PRIORITY ACTION PLAN', 3);
+  row += 1;
+  writeHeaderRow(sheet, row, ['Priority', 'Focus', 'Recommended Action']);
+  row += 1;
+  for (const action of individual.actions) {
+    writeDataRow(sheet, row, [action.priority, action.focus, action.action], {
+      zebra: row % 2 === 0,
+      leftAlignCols: [2, 3],
+    });
+    sheet.getRow(row).height = 28;
+    row += 1;
   }
 
-  const widths = [8, 28, 12, 12, 20, 10, 10, 10, 10, 12, 12];
-  for (let i = 8; i < maxCol; i += 1) {
-    if (i >= widths.length) widths.push(12);
-  }
-  widths[0] = 8;
-  widths[1] = Math.max(widths[1], 30);
-  if (widths.length >= 14) widths[13] = 24;
-  setColumnWidths(sheet, widths.slice(0, maxCol));
-
-  sheet.views = [{ showGridLines: true, zoomScale: 100 }];
+  setColumnWidths(sheet, [18, 16, 16, 16, 14, 16, 18, 22]);
 }
 
 export function schoolPerformanceAnalysisExcelFilename(examTitle: string): string {
@@ -415,14 +639,14 @@ export function schoolPerformanceAnalysisExcelFilename(examTitle: string): strin
     .replace(/^_+|_+$/g, '')
     .slice(0, 80);
   const date = new Date().toISOString().slice(0, 10);
-  return `${slug || 'exam'}_School_Performance_Analysis_${date}.xlsx`;
+  return `${slug || 'exam'}_Exam_Analytics_Handoff_${date}.xlsx`;
 }
 
 export async function buildSchoolPerformanceAnalysisExcel(
   examTitle: string,
   results: SchoolAnalysisExamResult[],
 ): Promise<ArrayBuffer | null> {
-  const report = buildSchoolPerformanceAnalysisReport(examTitle, results);
+  const report = buildExamAnalyticsHandoffReport(examTitle, results);
   if (!report) return null;
 
   const workbook = new ExcelJS.Workbook();
@@ -430,12 +654,24 @@ export async function buildSchoolPerformanceAnalysisExcel(
   workbook.created = new Date();
   workbook.modified = new Date();
 
-  buildReportSheet(workbook, report);
+  buildExecutiveSheet(workbook, report);
+  buildStudentDataSheet(workbook, report);
+  buildSubjectDataSheet(workbook, report);
+  buildContractSheet(workbook);
 
-  while (workbook.worksheets.length > 1) {
-    const extra = workbook.worksheets[workbook.worksheets.length - 1];
-    if (extra.id) workbook.removeWorksheet(extra.id);
-    else break;
+  const usedNames = new Set(
+    workbook.worksheets.map((ws) => ws.name.toLowerCase()),
+  );
+  for (const individual of report.individuals) {
+    const prefix = String(individual.student.rank).padStart(2, '0');
+    let name = safeSheetName(`${prefix} ${individual.student.name}`, `${prefix} Student`);
+    let suffix = 2;
+    while (usedNames.has(name.toLowerCase())) {
+      name = safeSheetName(`${prefix} ${individual.student.name} ${suffix}`, `${prefix} Student ${suffix}`);
+      suffix += 1;
+    }
+    usedNames.add(name.toLowerCase());
+    buildIndividualSheet(workbook, individual, name);
   }
 
   const buffer = await workbook.xlsx.writeBuffer();

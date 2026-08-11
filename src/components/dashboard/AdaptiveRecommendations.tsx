@@ -23,6 +23,7 @@ import {
   GraduationCap,
   Loader2,
   AlertCircle,
+  Target,
 } from 'lucide-react';
 import { API_BASE_URL } from '@/lib/api-config';
 import { capAdaptiveRecommendationsPerSubject } from '@/utils/adaptive-recommendations-display';
@@ -58,6 +59,13 @@ interface AdaptiveCard {
   examScorePercent?: number;
   weakTopicCount: number;
   priority: 'High' | 'Medium' | 'Low';
+  focusChapters?: Array<{
+    chapter: string;
+    wrong?: number;
+    skipped?: number;
+    weight?: number;
+    navigatePath?: string;
+  }>;
   gapsWithoutContent: string[];
   usesLibraryFallback?: boolean;
   recommendedContent: RecommendedItem[];
@@ -252,7 +260,7 @@ export default function AdaptiveRecommendations(_props: AdaptiveRecommendationsP
             Adaptive Learning
           </CardTitle>
           <p className="text-xs sm:text-sm text-gray-600">
-            Personalized resources from your performance — only content available in your library
+            Chapters and subtopics from your exam misses — then matching library resources
           </p>
         </div>
       </div>
@@ -364,6 +372,39 @@ export default function AdaptiveRecommendations(_props: AdaptiveRecommendationsP
                     </div>
                   </div>
                 </div>
+
+                {Array.isArray(rec.focusChapters) && rec.focusChapters.length > 0 ? (
+                  <div className="mb-4">
+                    <p className="mb-2 flex items-center gap-1 text-xs font-semibold uppercase tracking-wide text-rose-700">
+                      <Target className="h-3.5 w-3.5" />
+                      Chapters / subtopics to focus on
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {rec.focusChapters.map((ch) => (
+                        <button
+                          key={ch.chapter}
+                          type="button"
+                          onClick={() => {
+                            if (ch.navigatePath) setLocation(ch.navigatePath);
+                            else setLocation(`/learning-paths?focus=${encodeURIComponent(ch.chapter)}`);
+                          }}
+                          className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-left text-xs sm:text-sm text-rose-950 hover:bg-rose-100 transition-colors"
+                        >
+                          <span className="font-semibold">{ch.chapter}</span>
+                          <span className="mt-0.5 block text-[11px] text-rose-700/80">
+                            {(ch.wrong || 0) > 0 ? `${ch.wrong} wrong` : null}
+                            {(ch.wrong || 0) > 0 && (ch.skipped || 0) > 0 ? ' · ' : null}
+                            {(ch.skipped || 0) > 0 ? `${ch.skipped} skipped` : null}
+                            {(ch.wrong || 0) === 0 && (ch.skipped || 0) === 0
+                              ? 'From recent exams'
+                              : null}
+                            {' · Study this'}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
 
                 {hasContent ? (
                   <div>

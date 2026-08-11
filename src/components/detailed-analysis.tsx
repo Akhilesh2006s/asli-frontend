@@ -12,7 +12,6 @@ import AiReportTab from '@/components/exam-analysis/AiReportTab';
 import { getAuthToken } from '@/lib/auth-utils';
 import { AuthenticatedUploadImage } from '@/components/AuthenticatedUploadImage';
 import {
-  WeakSubjectResourcesCard,
   type WeakSubjectContentMap,
 } from '@/components/weak-subject-resources-card';
 import { 
@@ -158,8 +157,9 @@ interface AiExamAnalysis {
   videoRecommendations?: Array<{
     title: string;
     subject?: string;
+    subjectId?: string;
     topic?: string;
-    url: string;
+    url?: string;
     why?: string;
   }>;
   questionInsights?: Array<{
@@ -426,6 +426,7 @@ function resolveQuestionTopicLabel(
   const candidates = [
     q.chapter,
     q.topic,
+    (q as { subTopic?: string }).subTopic,
     q.sectionHeading,
     insight?.topic,
   ];
@@ -1848,21 +1849,90 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
 
   const openQuestionInReview = useCallback((index: number) => {
     setQuestionFilter('wrong');
-    setShowAllQuestionsList(true);
+    // Stay on the answer panel — do not open the long list-only view.
+    setShowAllQuestionsList(false);
     setMobileQuestionIndex(index);
     setExpandedQuestionIndex(index);
     setActiveTab('questions');
+    window.setTimeout(() => {
+      document
+        .getElementById('exam-review-answer-panel')
+        ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 120);
   }, []);
 
   const openAllWrongInReview = useCallback(() => {
     setQuestionFilter('wrong');
-    setShowAllQuestionsList(true);
-    if (planTopicWrongQuestions[0]) {
-      setMobileQuestionIndex(planTopicWrongQuestions[0].index);
-      setExpandedQuestionIndex(planTopicWrongQuestions[0].index);
+    setShowAllQuestionsList(false);
+    const first = planTopicWrongQuestions[0]?.index;
+    if (typeof first === 'number') {
+      setMobileQuestionIndex(first);
+      setExpandedQuestionIndex(first);
     }
     setActiveTab('questions');
+    window.setTimeout(() => {
+      document
+        .getElementById('exam-review-answer-panel')
+        ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 120);
   }, [planTopicWrongQuestions]);
+
+  const focusChapters = useMemo(() => {
+    const collected: Array<{
+      chapter: string;
+      subject: string;
+      pct: number;
+      wrong: number;
+      total: number;
+      subjectId?: string;
+    }> = [];
+
+    Object.entries(chapterHeatmap || {}).forEach(([subj, rows]) => {
+      rows.forEach((row) => {
+        if (row.pct >= 70 || !isUsableTopicLabel(row.name)) return;
+        collected.push({
+          chapter: row.name,
+          subject: subj,
+          pct: row.pct,
+          wrong: row.wrong || 0,
+          total: row.total || 0,
+        });
+      });
+    });
+
+    (aiAnalysis?.focusAreas || []).forEach((f) => {
+      const chapter = sanitizePlanTopicTitle(
+        (f as { topic?: string }).topic || f.issue || '',
+        f.subject,
+      );
+      if (!isUsableTopicLabel(chapter)) return;
+      if (collected.some((c) => c.chapter.toLowerCase() === chapter.toLowerCase())) return;
+      collected.push({
+        chapter,
+        subject: normalizeSubjectKey(f.subject),
+        pct: 35,
+        wrong: 0,
+        total: 0,
+      });
+    });
+
+    collected.sort((a, b) => a.pct - b.pct || b.wrong - a.wrong);
+
+    const subjectIdByName = new Map<string, string>();
+    for (const item of [
+      ...(weakSubjectContent?.Video || []),
+      ...(weakSubjectContent?.TextBook || []),
+    ]) {
+      const id = item.subject?._id;
+      const name = item.subject?.name;
+      if (id && name) subjectIdByName.set(normalizeSubjectKey(name), id);
+    }
+
+    return collected.slice(0, 8).map((row) => ({
+      ...row,
+      subjectId: subjectIdByName.get(normalizeSubjectKey(row.subject)),
+    }));
+  }, [chapterHeatmap, aiAnalysis, weakSubjectContent]);
 
   const planVideoCards = useMemo(() => {
     const bgFor = (subj: string) => {
@@ -1874,58 +1944,69 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
       return 'bg-slate-50';
     };
 
+    // Always lead with exam-derived chapters / subtopics — not generic book titles.
+    const fromChapters = focusChapters.slice(0, 6).map((c) => ({
+      subj: subjectDisplayName(c.subject).toUpperCase(),
+      bg: bgFor(c.subject),
+      title: c.chapter,
+      min: 10 + Math.min(8, Math.floor((100 - c.pct) / 12)),
+      mastery: c.pct,
+      subjectId: c.subjectId,
+      focusChapter: c.chapter,
+      why:
+        c.wrong > 0
+          ? `${c.wrong} miss${c.wrong === 1 ? '' : 'es'} · ${Math.round(c.pct)}% on this chapter — study this next`
+          : `${Math.round(c.pct)}% on this paper — focus this chapter / subtopic`,
+    }));
+    if (fromChapters.length > 0) return fromChapters;
+
+    const subjectIdByName = new Map<string, string>();
+    for (const item of weakSubjectContent?.Video || []) {
+      const id = item.subject?._id;
+      const name = item.subject?.name;
+      if (id && name) subjectIdByName.set(normalizeSubjectKey(name), id);
+    }
+
+    const resolveSubjectId = (name?: string, fallbackId?: string) => {
+      if (fallbackId) return fallbackId;
+      if (!name) return undefined;
+      return subjectIdByName.get(normalizeSubjectKey(name));
+    };
+
     const fromAi = (aiAnalysis?.videoRecommendations || [])
-      .filter((v) => v?.url && v?.title)
+      .filter((v) => v?.title && (isUsableTopicLabel(v.title) || isUsableTopicLabel(String(v.topic || ''))))
       .slice(0, 3)
-      .map((v) => ({
-        subj: subjectDisplayName(v.subject || activePlanTopic?.subject || 'Focus').toUpperCase(),
-        bg: bgFor(v.subject || activePlanTopic?.subject || ''),
-        title: v.title,
-        min: 8,
-        mastery: activePlanTopic?.pct ?? 0,
-        url: v.url,
-        why: v.why || v.topic || '',
-      }));
+      .map((v) => {
+        const subjectName = v.subject || activePlanTopic?.subject || 'Focus';
+        const chapter = isUsableTopicLabel(String(v.topic || ''))
+          ? String(v.topic)
+          : isUsableTopicLabel(v.title)
+            ? v.title
+            : activePlanTopic?.title || v.title;
+        return {
+          subj: subjectDisplayName(subjectName).toUpperCase(),
+          bg: bgFor(subjectName),
+          title: chapter,
+          min: 8,
+          mastery: activePlanTopic?.pct ?? 0,
+          subjectId: resolveSubjectId(subjectName, v.subjectId),
+          focusChapter: chapter,
+          why: v.why || 'Open Learning Paths for this chapter',
+        };
+      });
     if (fromAi.length > 0) return fromAi;
 
-    const fromLibrary = (weakSubjectContent?.Video || []).slice(0, 3).map((v) => {
-      const href =
-        v.fileUrl && /^https?:\/\//i.test(v.fileUrl)
-          ? v.fileUrl
-          : v.fileUrl
-            ? `${API_BASE_URL}${v.fileUrl.startsWith('/') ? '' : '/'}${v.fileUrl}`
-            : '';
-      return {
-        subj: subjectDisplayName(v.subject?.name || activePlanTopic?.subject || 'Focus').toUpperCase(),
-        bg: bgFor(v.subject?.name || ''),
-        title: v.title || 'Video lesson',
-        min: 8,
-        mastery: activePlanTopic?.pct ?? 0,
-        url: href,
-        why: v.topic || '',
-      };
-    });
-    if (fromLibrary.length > 0) return fromLibrary;
-
-    return (chapterHeatmap
-      ? Object.entries(chapterHeatmap).flatMap(([subj, rows]) =>
-          rows
-            .filter((r) => r.pct < 70)
-            .map((r) => ({
-              subj: subjectDisplayName(subj).toUpperCase(),
-              bg: bgFor(subj),
-              title: r.name,
-              min: 8 + Math.min(4, Math.floor(r.pct / 25)),
-              mastery: r.pct,
-              url: '',
-              why: `${Math.round(r.pct)}% on this paper — open Asli Prep for lessons`,
-            }))
-        )
-      : []
-    )
-      .sort((a, b) => a.mastery - b.mastery)
-      .slice(0, 3);
-  }, [aiAnalysis, weakSubjectContent, chapterHeatmap, activePlanTopic]);
+    return (planTopics || []).slice(0, 3).map((t) => ({
+      subj: subjectDisplayName(t.subject || 'Focus').toUpperCase(),
+      bg: bgFor(t.subject || ''),
+      title: t.title,
+      min: 12,
+      mastery: t.pct ?? 0,
+      subjectId: resolveSubjectId(t.subject),
+      focusChapter: t.title,
+      why: t.subtitle || 'Focus this topic in Learning Paths',
+    }));
+  }, [focusChapters, aiAnalysis, weakSubjectContent, activePlanTopic, planTopics]);
 
   const questionRowStatuses = useMemo(() => {
     const avgT = avgTimePerQuestion || 60;
@@ -2530,6 +2611,11 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
                       onClick={() => {
                         setExpandedQuestionIndex(expandedQuestionIndex === index ? null : index);
                         setMobileQuestionIndex(index);
+                        window.setTimeout(() => {
+                          document
+                            .getElementById('exam-review-answer-panel')
+                            ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        }, 80);
                       }}
                       className={`w-full text-left rounded-xl border border-gray-100 bg-white shadow-sm p-3 border-l-4 ${border}`}
                     >
@@ -2681,7 +2767,7 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
                 </div>
 
                 {/* Main Question Area */}
-                <div className="lg:col-span-3">
+                <div id="exam-review-answer-panel" className="lg:col-span-3 scroll-mt-24">
                 {/* Question Container */}
                 <Card className="shadow-lg border-0 bg-white">
                   <CardContent className="p-3 sm:p-4 lg:p-6">
@@ -3117,20 +3203,6 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={() => {
-                      const topic = encodeURIComponent(activePlanTopic?.title || '');
-                      const subject = encodeURIComponent(activePlanTopic?.subject || '');
-                      setLocation(
-                        `/asli-prep-content?topic=${topic}${subject ? `&subject=${subject}` : ''}`
-                      );
-                    }}
-                  >
-                    Practice in Asli Prep
-                    <ExternalLink className="w-3.5 h-3.5 ml-1.5" />
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
                     onClick={() => setLocation('/ai-tutor')}
                   >
                     Ask AI Tutor
@@ -3140,7 +3212,7 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
 
                 <div>
                   <p className="text-xs font-bold text-gray-500 mb-2 uppercase tracking-wide">
-                    Your misses on this topic · tap to open
+                    Your misses on this topic · tap to see answer below
                   </p>
                   {planTopicWrongQuestions.length > 0 ? (
                     <div className="space-y-2">
@@ -3173,7 +3245,7 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
                   <ol className="mt-2 list-decimal pl-4 space-y-1 text-violet-800">
                     <li>Re-attempt each wrong question above without looking at the answer.</li>
                     <li>Write a 1-line reason you missed it (concept / careless / time).</li>
-                    <li>Do 5–10 similar questions in Asli Prep on the same topic.</li>
+                    <li>Ask AI Tutor about any concept that still feels unclear.</li>
                   </ol>
                 </div>
               </CardContent>
@@ -3181,64 +3253,97 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
             </div>
             <div>
               <div className="flex justify-between items-center mb-3 gap-2">
-                <h3 className="font-bold text-base sm:text-lg">Video &amp; resources</h3>
-                <span className="text-xs text-gray-500 shrink-0">From your weak topics</span>
+                <h3 className="font-bold text-base sm:text-lg">Chapters &amp; subtopics to focus on</h3>
+                <span className="text-xs text-gray-500 shrink-0">From this exam</span>
               </div>
-              {planVideoCards.length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                  {planVideoCards.map((v, i) => {
-                    const open = () => {
-                      if (v.url) {
-                        window.open(v.url, '_blank', 'noopener,noreferrer');
-                        return;
-                      }
-                      setLocation(
-                        `/asli-prep-content?topic=${encodeURIComponent(v.title)}`
-                      );
-                    };
-                    return (
-                      <button
-                        key={`${v.subj}-${v.title}-${i}`}
+              {(() => {
+                const cards =
+                  focusChapters.length > 0
+                    ? focusChapters.slice(0, 6).map((c) => ({
+                        subjectLabel: subjectDisplayName(c.subject).toUpperCase(),
+                        chapter: c.chapter,
+                        pct: c.pct,
+                        why:
+                          c.wrong > 0
+                            ? `${c.wrong} miss${c.wrong === 1 ? '' : 'es'} · ${Math.round(c.pct)}% accuracy`
+                            : `${Math.round(c.pct)}% on this paper`,
+                        subjectId: c.subjectId,
+                        bg: (() => {
+                          const k = normalizeSubjectKey(c.subject);
+                          if (k === 'physics') return 'bg-orange-50';
+                          if (k === 'maths') return 'bg-purple-50';
+                          if (k === 'chemistry') return 'bg-yellow-50';
+                          if (k === 'biology') return 'bg-emerald-50';
+                          return 'bg-slate-50';
+                        })(),
+                      }))
+                    : planVideoCards.map((v) => ({
+                        subjectLabel: v.subj,
+                        chapter: v.focusChapter || v.title,
+                        pct: v.mastery,
+                        why: v.why || 'Focus this chapter / subtopic',
+                        subjectId: v.subjectId,
+                        bg: v.bg,
+                      }));
+
+                if (cards.length === 0) {
+                  return (
+                    <div className="rounded-xl border bg-white p-4">
+                      <p className="text-sm text-gray-600">
+                        Chapter tags were thin on this paper. Review wrong answers, then open Learning Paths by subject.
+                      </p>
+                      <Button
                         type="button"
-                        onClick={open}
-                        className={`rounded-xl p-4 ${v.bg} border relative min-h-[140px] text-left hover:shadow-md transition-shadow`}
+                        variant="outline"
+                        size="sm"
+                        className="mt-3"
+                        onClick={() => setLocation('/learning-paths')}
                       >
-                        <p className="text-micro font-bold text-gray-500">
-                          {v.subj}
-                          {v.min ? ` · ~${v.min} MIN` : ''}
-                        </p>
-                        <Play className="w-6 h-6 sm:w-7 sm:h-7 text-[#7C3AED] mx-auto my-4" />
-                        <p className="text-xs sm:text-sm font-semibold text-center">{v.title}</p>
-                        <p className="text-xs text-center text-gray-600 mt-2">
-                          {v.url
-                            ? 'Tap to open video'
-                            : v.why || `Mastery on paper: ${Math.round(v.mastery)}% · open Asli Prep`}
-                        </p>
-                      </button>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="rounded-xl border bg-white p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <p className="text-sm text-gray-600">
-                    No linked videos for this attempt yet. Open Asli Prep to find lessons on your weak chapters.
-                  </p>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setLocation('/asli-prep-content')}
-                  >
-                    Open Asli Prep
-                  </Button>
-                </div>
-              )}
+                        Go to Learning Paths
+                      </Button>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                    {cards.map((card, i) => {
+                      const open = () => {
+                        const focusQ = card.chapter
+                          ? `?focus=${encodeURIComponent(card.chapter)}`
+                          : '';
+                        if (card.subjectId) {
+                          setLocation(`/subject/${card.subjectId}${focusQ}`);
+                        } else {
+                          setLocation(`/learning-paths${focusQ}`);
+                        }
+                      };
+                      return (
+                        <button
+                          key={`${card.subjectLabel}-${card.chapter}-${i}`}
+                          type="button"
+                          onClick={open}
+                          className={`rounded-xl p-4 ${card.bg} border relative min-h-[140px] text-left hover:shadow-md transition-shadow`}
+                        >
+                          <p className="text-micro font-bold text-gray-500">
+                            {card.subjectLabel}
+                            {card.pct != null ? ` · ${Math.round(Number(card.pct))}%` : ''}
+                          </p>
+                          <BookOpen className="w-6 h-6 sm:w-7 sm:h-7 text-[#7C3AED] mx-auto my-3" />
+                          <p className="text-xs sm:text-sm font-semibold text-center leading-snug">
+                            {card.chapter}
+                          </p>
+                          <p className="text-[11px] text-center text-[#7C3AED] font-medium mt-1">
+                            Focus chapter / subtopic
+                          </p>
+                          <p className="text-xs text-center text-gray-600 mt-2">{card.why}</p>
+                        </button>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
             </div>
-            {(weakSubjectContent || loadingWeakContent) && (
-              <WeakSubjectResourcesCard
-                weakSubjectContent={weakSubjectContent}
-                loadingContent={loadingWeakContent}
-              />
-            )}
           </div>
         )}
 

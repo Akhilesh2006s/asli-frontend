@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Play, FileText, File, Image, Video, Download, Search, Filter, BookOpen, ExternalLink } from 'lucide-react';
+import { Play, FileText, File, Image, Video, Search, Filter, BookOpen, ExternalLink } from 'lucide-react';
 import { API_BASE_URL } from '@/lib/api-config';
 import PdfPreviewPanel from '@/components/shared/PdfPreviewPanel';
 import { getAuthToken } from '@/lib/auth-utils';
@@ -333,12 +333,9 @@ export default function AsliPrepContent() {
                       <span>{formatFileSize(content.size)}</span>
                     </div>
                   )}
-                  {(content.views !== undefined || content.downloadCount !== undefined) && (
+                  {Number(content.views) > 0 && (
                     <div className="flex items-center justify-between text-xs sm:text-sm text-gray-500">
-                      <span>
-                        {content.views !== undefined && `${content.views} views`}
-                        {content.downloadCount !== undefined && ` • ${content.downloadCount} downloads`}
-                      </span>
+                      <span>{content.views} views</span>
                     </div>
                   )}
                 </div>
@@ -378,20 +375,6 @@ export default function AsliPrepContent() {
                       >
                         <ExternalLink className="h-3 w-3 mr-1" />
                         {content.type === 'TextBook' || content.type === 'Workbook' ? 'Open' : 'Preview'}
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-xs px-0 h-auto text-gray-700 hover:text-blue-600"
-                        onClick={() => {
-                          const link = document.createElement('a');
-                          link.href = content.fileUrl;
-                          link.download = content.title || 'download';
-                          link.click();
-                        }}
-                      >
-                        <Download className="h-3 w-3 mr-1" />
-                        Download
                       </Button>
                     </div>
                   )}
