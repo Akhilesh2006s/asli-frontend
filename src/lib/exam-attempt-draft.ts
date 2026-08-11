@@ -55,15 +55,33 @@ export function clearLocalExamDraft(examId: string, userId?: string | null) {
   }
 }
 
-/** Prefer server draft when present; otherwise local. */
+/** Prefer server draft when present; otherwise local. Never prefer empty over answers. */
 export function pickResumeDraft(
   server: ExamDraftLocal | null | undefined,
   local: ExamDraftLocal | null | undefined,
 ): ExamDraftLocal | null {
   if (server && local) {
+    const sCount = Object.keys(server.answers || {}).length;
+    const lCount = Object.keys(local.answers || {}).length;
+    if (sCount > 0 && lCount === 0) return server;
+    if (lCount > 0 && sCount === 0) return local;
     const s = new Date(server.lastSavedAt || 0).getTime();
     const l = new Date(local.lastSavedAt || 0).getTime();
     return l > s ? local : server;
   }
   return server || local || null;
+}
+
+/** Normalize answer map keys to strings (stable across resume). */
+export function normalizeDraftAnswers(
+  answers: Record<string, unknown> | null | undefined,
+): Record<string, unknown> {
+  if (!answers || typeof answers !== 'object') return {};
+  const out: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(answers)) {
+    const k = String(key || '').trim();
+    if (!k) continue;
+    out[k] = value;
+  }
+  return out;
 }

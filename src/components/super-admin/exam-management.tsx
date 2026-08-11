@@ -1358,6 +1358,8 @@ export default function ExamManagement() {
     });
   }, [examFigurePool, paperImageUsageCount, editingQuestionId, questionFormData.questionImage]);
   const questionFormRef = useRef<HTMLDivElement | null>(null);
+  const questionsPanelScrollRef = useRef<HTMLDivElement | null>(null);
+  const pendingScrollQuestionIdRef = useRef<string | null>(null);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -1410,8 +1412,20 @@ export default function ExamManagement() {
     fetchSchools();
   }, []);
 
-  const fetchQuestions = async (examId: string) => {
-    setIsLoadingQuestions(true);
+  const fetchQuestions = async (
+    examId: string,
+    opts?: { silent?: boolean; keepScrollToQuestionId?: string | null },
+  ) => {
+    const scrollEl = questionsPanelScrollRef.current;
+    const savedScrollTop = scrollEl?.scrollTop ?? null;
+    const focusQuestionId =
+      opts?.keepScrollToQuestionId != null
+        ? String(opts.keepScrollToQuestionId)
+        : pendingScrollQuestionIdRef.current;
+
+    if (!opts?.silent) {
+      setIsLoadingQuestions(true);
+    }
     try {
       const response = await fetch(`${API_BASE_URL}/api/super-admin/exams/${examId}/questions`, {
         credentials: 'include',
@@ -1454,6 +1468,21 @@ export default function ExamManagement() {
               .filter((img: { url: string }) => Boolean(img.url)),
           );
           setFigureAssignQuestionId(null);
+
+          // After edit/save, stay on the same question instead of jumping down the sheet.
+          requestAnimationFrame(() => {
+            if (focusQuestionId) {
+              const target = document.getElementById(`exam-question-${focusQuestionId}`);
+              if (target) {
+                target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                pendingScrollQuestionIdRef.current = null;
+                return;
+              }
+            }
+            if (scrollEl && savedScrollTop != null) {
+              scrollEl.scrollTop = savedScrollTop;
+            }
+          });
         }
       } else {
         // If endpoint doesn't exist, fetch exam and get questions from there
@@ -1474,7 +1503,9 @@ export default function ExamManagement() {
     } catch (error) {
       console.error('Failed to fetch questions:', error);
     } finally {
-      setIsLoadingQuestions(false);
+      if (!opts?.silent) {
+        setIsLoadingQuestions(false);
+      }
     }
   };
 
@@ -1549,7 +1580,7 @@ export default function ExamManagement() {
       if (Array.isArray(data.questions) && data.questions.length > 0) {
         setQuestions(data.questions);
       } else {
-        await fetchQuestions(selectedExam._id);
+        await fetchQuestions(selectedExam._id, { silent: true });
       }
       toast({
         title: 'Correct answer updated',
@@ -1596,11 +1627,22 @@ export default function ExamManagement() {
       }
       if (Array.isArray(data.questions) && data.questions.length > 0) {
         setQuestions(data.questions);
+        requestAnimationFrame(() => {
+          document
+            .getElementById(`exam-question-${questionId}`)
+            ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        });
       } else if (data.data) {
         patchLocalQuestion(questionId, data.data);
-        await fetchQuestions(selectedExam._id);
+        await fetchQuestions(selectedExam._id, {
+          silent: true,
+          keepScrollToQuestionId: questionId,
+        });
       } else {
-        await fetchQuestions(selectedExam._id);
+        await fetchQuestions(selectedExam._id, {
+          silent: true,
+          keepScrollToQuestionId: questionId,
+        });
       }
       toast({
         title: 'Saved',
@@ -1647,7 +1689,7 @@ export default function ExamManagement() {
         description: error.message || 'Failed to reorder',
         variant: 'destructive',
       });
-      if (selectedExam?._id) await fetchQuestions(selectedExam._id);
+      if (selectedExam?._id) await fetchQuestions(selectedExam._id, { silent: true });
     } finally {
       setIsReorderingQuestions(false);
     }
@@ -2769,9 +2811,14 @@ export default function ExamManagement() {
       };
     };
 
-    const handleQuestionSaved = () => {
+    const handleQuestionSaved = (savedQuestionId?: string | null) => {
+      const focusId = savedQuestionId ? String(savedQuestionId) : editingQuestionId;
       resetQuestionForm();
-      fetchQuestions(selectedExam._id);
+      if (focusId) pendingScrollQuestionIdRef.current = focusId;
+      fetchQuestions(selectedExam._id, {
+        silent: Boolean(focusId) || questions.length > 0,
+        keepScrollToQuestionId: focusId,
+      });
       fetchExams(); // Refresh exam list to update question count
     };
 
@@ -2783,6 +2830,7 @@ export default function ExamManagement() {
         'Content-Type': 'application/json'
       };
       const isEditing = Boolean(editingQuestionId);
+      const editingIdSnapshot = editingQuestionId ? String(editingQuestionId) : null;
       const endpoint = isEditing
         ? `${API_BASE_URL}/api/super-admin/exams/${selectedExam._id}/questions/${editingQuestionId}`
         : `${API_BASE_URL}/api/super-admin/exams/${selectedExam._id}/questions`;
@@ -2801,11 +2849,15 @@ export default function ExamManagement() {
           description: isEditing ? 'Question updated successfully' : 'Question added successfully'
         });
         if (isEditing) {
-          resetQuestionForm();
-          await fetchQuestions(selectedExam._id);
-          fetchExams();
+          handleQuestionSaved(editingIdSnapshot);
         } else {
-          handleQuestionSaved();
+          const createdId =
+            data?.data?._id ||
+            data?.question?._id ||
+            (Array.isArray(data?.questions)
+              ? data.questions[data.questions.length - 1]?._id
+              : null);
+          handleQuestionSaved(createdId ? String(createdId) : null);
         }
       } else if (
         !isEditing &&
@@ -2835,7 +2887,11 @@ export default function ExamManagement() {
             title: 'Success',
             description: 'Duplicate question replaced successfully'
           });
-          handleQuestionSaved();
+          const replacedId =
+            replaceData?.data?._id ||
+            replaceData?.question?._id ||
+            null;
+          handleQuestionSaved(replacedId ? String(replacedId) : null);
         } else {
           toast({
             title: 'Error',
@@ -4555,7 +4611,10 @@ export default function ExamManagement() {
             </div>
           ) : null}
 
-          <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain pr-1 [-webkit-overflow-scrolling:touch]">
+          <div
+            ref={questionsPanelScrollRef}
+            className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain pr-1 [-webkit-overflow-scrolling:touch]"
+          >
             {/* CSV Upload Section */}
             <div className="border-t pt-6 space-y-4">
               <div className="flex items-center justify-between">
@@ -5200,7 +5259,11 @@ export default function ExamManagement() {
                     const orderValue = Number(q.displayOrder) > 0 ? Number(q.displayOrder) : idx + 1;
                     const isEditingThis = editingQuestionId === String(q._id);
                     return (
-                      <div key={q._id || idx} className="space-y-2">
+                      <div
+                        key={q._id || idx}
+                        id={q._id ? `exam-question-${q._id}` : undefined}
+                        className="space-y-2 scroll-mt-4"
+                      >
                         {showSection && (
                           <div className="rounded-md bg-slate-900 px-4 py-2 text-sm font-semibold text-white">
                             {heading}
@@ -6181,7 +6244,10 @@ export default function ExamManagement() {
               }
               patchLocalQuestion(id, { questionImage: '' });
               toast({ title: 'Figure removed' });
-              await fetchQuestions(selectedExam._id);
+              await fetchQuestions(selectedExam._id, {
+                silent: true,
+                keepScrollToQuestionId: id,
+              });
             } catch {
               toast({
                 title: 'Error',

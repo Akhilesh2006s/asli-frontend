@@ -113,7 +113,12 @@ interface Exam {
   subjects?: Array<'maths' | 'physics' | 'chemistry' | 'biology'>;
   maxAttempts?: number;
   hasInProgressDraft?: boolean;
+  canResumeExam?: boolean;
+  forceSubmitDraft?: boolean;
   draftRemainingSeconds?: number;
+  resumeCount?: number;
+  maxResumes?: number;
+  resumesRemaining?: number;
 }
 
 interface ExamResult {
@@ -549,11 +554,13 @@ export default function StudentExams() {
         if (used >= getMaxAttemptsForExam(exam)) return false;
         const hydratedQuestionCount = Array.isArray(exam.questions) ? exam.questions.length : 0;
         if (hydratedQuestionCount <= 0) return false;
+        if (exam.isActive === false) return false;
+        // Keep ended exams visible only when there is saved progress to resume/submit.
+        if (exam.hasInProgressDraft || exam.forceSubmitDraft) return true;
         const now = new Date();
         const startDate = new Date(exam.startDate);
         const endDate = new Date(exam.endDate);
-        const isActiveByDate = now >= startDate && now <= endDate;
-        return exam.isActive !== false && isActiveByDate;
+        return now >= startDate && now <= endDate;
       }),
     [subjectFilteredExams, attemptCountByExamId]
   );
@@ -625,10 +632,21 @@ export default function StudentExams() {
 
   const canResumeExam = useCallback(
     (exam: Exam) => {
+      if (exam?.forceSubmitDraft) return false;
+      if (exam?.canResumeExam === false) return false;
       if (exam?.hasInProgressDraft) return true;
       return Boolean(readLocalExamDraft(String(exam._id), effectiveStudentId));
     },
     [effectiveStudentId],
+  );
+
+  const needsForceSubmitDraft = useCallback(
+    (exam: Exam) =>
+      Boolean(
+        exam?.forceSubmitDraft ||
+          (exam?.hasInProgressDraft && exam?.canResumeExam === false),
+      ),
+    [],
   );
 
   const handleStartExam = async (exam: Exam) => {
@@ -1180,11 +1198,16 @@ export default function StudentExams() {
                       <Button 
                         onClick={() => handleStartExam(exam)}
                         className="mt-auto h-12 w-full !bg-primary text-base font-bold !text-primary-foreground shadow-sm transition-colors hover:!bg-indigo-blue-700 disabled:!bg-muted disabled:!text-muted-foreground"
-                        disabled={status.status === 'ended' || startingExamId === exam._id}
+                        disabled={
+                          (status.status === 'ended' && !needsForceSubmitDraft(exam) && !canResumeExam(exam)) ||
+                          startingExamId === exam._id
+                        }
                       >
                         <Play className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                         {startingExamId === exam._id
                           ? 'Checking...'
+                          : needsForceSubmitDraft(exam)
+                          ? 'Submit saved exam'
                           : canResumeExam(exam)
                           ? 'Resume Exam'
                           : status.status === 'upcoming'

@@ -31,6 +31,7 @@ import {
   pickResumeDraft,
   readLocalExamDraft,
   writeLocalExamDraft,
+  normalizeDraftAnswers,
   type ExamDraftLocal,
 } from '@/lib/exam-attempt-draft';
 
@@ -154,10 +155,12 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
   const [timerInitialized, setTimerInitialized] = useState(false);
   const [questionTimings, setQuestionTimings] = useState<Record<string, number>>({});
   const [resumeNotice, setResumeNotice] = useState<string | null>(null);
+  const [pendingForceSubmit, setPendingForceSubmit] = useState(false);
   const MAX_EXIT_ATTEMPTS = 5;
   const submissionInProgressRef = useRef(false);
   const autoSubmitTriggeredRef = useRef(false);
   const autoSubmitTimeoutRef = useRef<number | null>(null);
+  const handleSubmitRef = useRef<() => Promise<void>>(async () => {});
   const questionScrollAnchorRef = useRef<HTMLDivElement | null>(null);
   const questionEnterTimestampRef = useRef<number>(Date.now());
   const lastTrackedQuestionIdRef = useRef<string | null>(null);
@@ -182,7 +185,14 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
     return String(u?._id || u?.id || getUserIdFromAuthToken() || '');
   };
 
-  const persistDraftNow = async (opts?: { keepalive?: boolean; remainingSeconds?: number }) => {
+  const persistDraftNow = async (opts?: {
+    keepalive?: boolean;
+    remainingSeconds?: number;
+    answers?: Record<string, unknown>;
+    flaggedQuestions?: number[];
+    questionTimings?: Record<string, number>;
+    currentQuestionIndex?: number;
+  }) => {
     if (!exam || isSubmittedRef.current || submissionInProgressRef.current) return;
     const durationSeconds = Math.max(
       60,
@@ -195,10 +205,21 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
         : timeLeftRef.current || 0,
     );
     const payload = {
-      answers: answersRef.current || {},
-      flaggedQuestions: Array.from(flaggedRef.current || []),
-      questionTimings: questionTimingsRef.current || {},
-      currentQuestionIndex: currentIndexRef.current || 0,
+      answers: normalizeDraftAnswers(
+        (opts?.answers as Record<string, unknown> | undefined) ??
+          (answersRef.current as Record<string, unknown>) ??
+          {},
+      ),
+      flaggedQuestions: Array.isArray(opts?.flaggedQuestions)
+        ? opts.flaggedQuestions
+        : Array.from(flaggedRef.current || []),
+      questionTimings:
+        opts?.questionTimings && typeof opts.questionTimings === 'object'
+          ? opts.questionTimings
+          : questionTimingsRef.current || {},
+      currentQuestionIndex: Number.isFinite(Number(opts?.currentQuestionIndex))
+        ? Math.max(0, Number(opts?.currentQuestionIndex))
+        : currentIndexRef.current || 0,
       remainingSeconds,
       durationSeconds,
     };
@@ -328,6 +349,14 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
 
     (async () => {
       let serverDraft: ExamDraftLocal | null = null;
+      let draftMeta: {
+        forceSubmit?: boolean;
+        resumeLimitReached?: boolean;
+        examEnded?: boolean;
+        message?: string;
+        resumeCount?: number;
+        maxResumes?: number;
+      } = {};
       try {
         const res = await fetch(`${API_BASE_URL}/api/student/exams/${examId}/attempt-draft`, {
           headers: {
@@ -338,6 +367,14 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
         });
         if (res.ok) {
           const json = await res.json();
+          draftMeta = {
+            forceSubmit: Boolean(json?.forceSubmit || (exam as any)?.forceSubmitExam),
+            resumeLimitReached: Boolean(json?.resumeLimitReached),
+            examEnded: Boolean(json?.examEnded || (exam as any)?.forceSubmitExam),
+            message: json?.message || (exam as any)?.examWindowMessage || undefined,
+            resumeCount: Number(json?.data?.resumeCount) || 0,
+            maxResumes: Number(json?.data?.maxResumes) || Number(json?.maxResumes) || 5,
+          };
           if (json?.data) {
             serverDraft = {
               examId: String(json.data.examId || examId),
@@ -361,33 +398,79 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
 
       const localDraft = readLocalExamDraft(examId, resolveDraftUserId());
       const draft = pickResumeDraft(serverDraft, localDraft);
+      const mustForceSubmit = Boolean(draftMeta.forceSubmit && draft);
 
       if (draft) {
-        setAnswers(draft.answers || {});
-        setFlaggedQuestions(new Set(draft.flaggedQuestions || []));
-        setQuestionTimings(draft.questionTimings || {});
+        const restoredAnswers = normalizeDraftAnswers(draft.answers as Record<string, unknown>);
+        const restoredFlags = Array.isArray(draft.flaggedQuestions) ? draft.flaggedQuestions : [];
+        const restoredTimings =
+          draft.questionTimings && typeof draft.questionTimings === 'object'
+            ? draft.questionTimings
+            : {};
         const maxIdx = Math.max(0, (exam.questions?.length || 1) - 1);
-        setCurrentQuestionIndex(Math.min(maxIdx, Math.max(0, draft.currentQuestionIndex || 0)));
+        const restoredIndex = Math.min(maxIdx, Math.max(0, draft.currentQuestionIndex || 0));
         const resumeSeconds = Math.min(fullSeconds, Math.max(0, Number(draft.remainingSeconds) || 0));
+
+        answersRef.current = restoredAnswers;
+        flaggedRef.current = new Set(restoredFlags);
+        questionTimingsRef.current = restoredTimings;
+        currentIndexRef.current = restoredIndex;
         timeLeftRef.current = resumeSeconds;
+
+        setAnswers(restoredAnswers);
+        setFlaggedQuestions(new Set(restoredFlags));
+        setQuestionTimings(restoredTimings);
+        setCurrentQuestionIndex(restoredIndex);
         setTimeLeft(resumeSeconds);
-        const answered = Object.keys(draft.answers || {}).length;
+
+        const answered = Object.keys(restoredAnswers).length;
         const mm = Math.floor(resumeSeconds / 60);
         const ss = resumeSeconds % 60;
-        setResumeNotice(
-          answered > 0 || resumeSeconds < fullSeconds - 5
-            ? `Resumed from autosave — ${answered} answer(s) restored · ${mm}:${String(ss).padStart(2, '0')} left (timer was paused while offline)`
-            : `Resuming your in-progress exam — ${mm}:${String(ss).padStart(2, '0')} left`,
-        );
-        if (!cancelled) {
-          void persistDraftNow({ remainingSeconds: resumeSeconds });
+        const resumeUsed = Math.max(0, Number(draftMeta.resumeCount) || 0);
+        const resumeMax = Math.max(1, Number(draftMeta.maxResumes) || 5);
+
+        if (mustForceSubmit) {
+          setResumeNotice(
+            draftMeta.message ||
+              (draftMeta.examEnded
+                ? 'Exam window has ended — submitting your saved answers.'
+                : `Resume limit (${resumeMax}) reached — submitting your saved answers.`),
+          );
+          setPendingForceSubmit(true);
+        } else {
+          setResumeNotice(
+            answered > 0 || resumeSeconds < fullSeconds - 5
+              ? `Resumed (${resumeUsed}/${resumeMax}) — ${answered} answer(s) restored · ${mm}:${String(ss).padStart(2, '0')} left`
+              : `Resuming (${resumeUsed}/${resumeMax}) — ${mm}:${String(ss).padStart(2, '0')} left`,
+          );
+          if (!cancelled) {
+            void persistDraftNow({
+              remainingSeconds: resumeSeconds,
+              answers: restoredAnswers,
+              flaggedQuestions: restoredFlags,
+              questionTimings: restoredTimings,
+              currentQuestionIndex: restoredIndex,
+            });
+          }
         }
+      } else if ((exam as any)?.forceSubmitExam) {
+        setResumeNotice(
+          (exam as any)?.examWindowMessage ||
+            'Exam window has ended. No saved progress to submit.',
+        );
+        timeLeftRef.current = 0;
+        setTimeLeft(0);
       } else {
         timeLeftRef.current = fullSeconds;
         setTimeLeft(fullSeconds);
-        // Seed draft immediately so closing and returning shows "Resume Exam".
         if (!cancelled) {
-          void persistDraftNow({ remainingSeconds: fullSeconds });
+          void persistDraftNow({
+            remainingSeconds: fullSeconds,
+            answers: {},
+            flaggedQuestions: [],
+            questionTimings: {},
+            currentQuestionIndex: 0,
+          });
         }
       }
 
@@ -403,7 +486,7 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
 
   // Periodic autosave + save on tab hide / page close (freezes remaining time on server)
   useEffect(() => {
-    if (!exam || !timerInitialized || isSubmitted) return;
+    if (!exam || !timerInitialized || isSubmitted || pendingForceSubmit) return;
 
     const interval = window.setInterval(() => {
       void persistDraftNow();
@@ -428,16 +511,16 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
       window.removeEventListener('pagehide', onUnload);
       window.removeEventListener('beforeunload', onUnload);
     };
-  }, [exam, examId, timerInitialized, isSubmitted]);
+  }, [exam, examId, timerInitialized, isSubmitted, pendingForceSubmit]);
 
   // Debounced autosave when answers change
   useEffect(() => {
-    if (!exam || !timerInitialized || isSubmitted || !draftHydratedRef.current) return;
+    if (!exam || !timerInitialized || isSubmitted || pendingForceSubmit || !draftHydratedRef.current) return;
     const t = window.setTimeout(() => {
       void persistDraftNow();
     }, 1200);
     return () => window.clearTimeout(t);
-  }, [answers, flaggedQuestions, currentQuestionIndex, exam, timerInitialized, isSubmitted]);
+  }, [answers, flaggedQuestions, currentQuestionIndex, exam, timerInitialized, isSubmitted, pendingForceSubmit]);
 
   // Function to enter/re-enter fullscreen
   const enterFullscreen = async () => {
@@ -613,10 +696,14 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
   const handleAnswerChange = (questionId: string, value: any) => {
     const k = answerKey(questionId);
     if (!k) return;
-    setAnswers(prev => ({
-      ...prev,
-      [k]: value
-    }));
+    setAnswers(prev => {
+      const next = {
+        ...prev,
+        [k]: value
+      };
+      answersRef.current = next;
+      return next;
+    });
     
     // Add interactive feedback
     setSelectedAnswer(value);
@@ -637,6 +724,7 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
       } else {
         newSet.add(questionIndex);
       }
+      flaggedRef.current = newSet;
       return newSet;
     });
   };
@@ -649,6 +737,7 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
     setAnswers((prev) => {
       const next = { ...prev };
       delete next[k];
+      answersRef.current = next;
       return next;
     });
     setSelectedAnswer(null);
@@ -928,6 +1017,17 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
       );
     }
   };
+
+  handleSubmitRef.current = handleSubmit;
+
+  useEffect(() => {
+    if (!pendingForceSubmit || !timerInitialized || isSubmitted) return;
+    setPendingForceSubmit(false);
+    const t = window.setTimeout(() => {
+      void handleSubmitRef.current();
+    }, 500);
+    return () => window.clearTimeout(t);
+  }, [pendingForceSubmit, timerInitialized, isSubmitted]);
 
   const checkAnswer = (question: Question, userAnswer: any): boolean => {
     const extractAnswerText = (value: any): string => {
@@ -1632,6 +1732,7 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
                                   setAnswers((prev) => {
                                     const next = { ...prev };
                                     delete next[currentQid];
+                                    answersRef.current = next;
                                     return next;
                                   });
                                 } else {
