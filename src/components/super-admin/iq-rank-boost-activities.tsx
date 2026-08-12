@@ -243,7 +243,7 @@ export default function IQRankBoostActivities() {
       isActive: formData.isActive,
       scheduleType: formData.scheduleType,
       audienceType: formData.audienceType,
-      audienceRoles: formData.audienceRoles,
+      audienceRoles: ['student'],
       targetSchools: formData.audienceType === 'schools' ? formData.targetSchools : [],
       targetUserIds: formData.audienceType === 'specific_members' ? targetUserIds : [],
       trialOnly: formData.audienceType === 'trial',
@@ -634,7 +634,7 @@ export default function IQRankBoostActivities() {
           <DialogHeader>
             <DialogTitle>Create quiz</DialogTitle>
             <DialogDescription>
-              Daily or weekly quizzes for schools, all members, trial users, or specific people — students and/or teachers
+              Daily or weekly quizzes for school students, all members, or trial users — Gemini can generate questions. Teachers do not take these quizzes.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
@@ -811,35 +811,10 @@ export default function IQRankBoostActivities() {
               </div>
             </div>
             <div className="space-y-2 rounded-lg border border-sky-200 bg-sky-50/60 p-3">
-              <p className="text-sm font-medium text-slate-800">Available to</p>
-              <div className="flex flex-wrap gap-4">
-                <label className="flex items-center gap-2 text-sm">
-                  <Checkbox
-                    checked={formData.audienceRoles.includes('student')}
-                    onCheckedChange={(v) => {
-                      const next = new Set(formData.audienceRoles);
-                      if (v === true) next.add('student');
-                      else next.delete('student');
-                      if (next.size === 0) next.add('student');
-                      setFormData({ ...formData, audienceRoles: Array.from(next) as Array<'student' | 'teacher'> });
-                    }}
-                  />
-                  Students
-                </label>
-                <label className="flex items-center gap-2 text-sm">
-                  <Checkbox
-                    checked={formData.audienceRoles.includes('teacher')}
-                    onCheckedChange={(v) => {
-                      const next = new Set(formData.audienceRoles);
-                      if (v === true) next.add('teacher');
-                      else next.delete('teacher');
-                      if (next.size === 0) next.add('student');
-                      setFormData({ ...formData, audienceRoles: Array.from(next) as Array<'student' | 'teacher'> });
-                    }}
-                  />
-                  Teachers
-                </label>
-              </div>
+              <p className="text-sm font-medium text-slate-800">Who can take this quiz</p>
+              <p className="text-sm text-slate-600">
+                Students and trial members only (matched by class). Teachers will not see Quiz in their portal.
+              </p>
             </div>
             {formData.audienceType === 'schools' ? (
               <div className="max-h-40 space-y-2 overflow-y-auto rounded-lg border border-slate-200 p-3">

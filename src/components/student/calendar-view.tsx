@@ -192,6 +192,10 @@ export default function CalendarView({
         return;
       }
 
+      const submissionLink = String(uploadData.url).startsWith('http')
+        ? String(uploadData.url)
+        : `${API_BASE_URL}${String(uploadData.url).startsWith('/') ? '' : '/'}${uploadData.url}`;
+
       const response = await fetch(`${API_BASE_URL}/api/student/homework-submission`, {
         method: 'POST',
         headers: {
@@ -200,7 +204,7 @@ export default function CalendarView({
         },
         body: JSON.stringify({
           homeworkId: selectedHomework._id,
-          submissionLink: uploadData.url,
+          submissionLink,
           description: submissionDescription.trim()
         })
       });

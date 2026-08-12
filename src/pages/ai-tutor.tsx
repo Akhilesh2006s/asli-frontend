@@ -33,9 +33,6 @@ import { isVidyaEnabledForUser } from "@/lib/vidya-access";
 import { vidyaPastelTone } from "@/lib/vidya-pastel-tones";
 import { cn } from "@/lib/utils";
 
-// Mock user ID - in a real app, this would come from authentication
-const MOCK_USER_ID = "user-1";
-
 export default function AITutor() {
   const [user, setUser] = useState<any>(null);
   const [isLoadingUser, setIsLoadingUser] = useState(true);
@@ -150,18 +147,12 @@ export default function AITutor() {
           console.log('User data fetched:', userData.user);
           setUser(userData.user);
         } else {
-          console.log('Auth check failed, using mock data');
-          setUser({ 
-            fullName: "Student", 
-            email: "student@example.com"
-          });
+          console.log('Auth check failed');
+          setUser(null);
         }
       } catch (error) {
         console.error('Failed to fetch user:', error);
-        setUser({ 
-          fullName: "Student", 
-          email: "student@example.com"
-        });
+        setUser(null);
       } finally {
         setIsLoadingUser(false);
       }
@@ -256,7 +247,7 @@ export default function AITutor() {
     }
   }, [user]);
 
-  const userId = user?._id || user?.id || MOCK_USER_ID;
+  const userId = user?._id || user?.id || '';
 
   const vidyaSubjectNames = useMemo(
     () =>
@@ -382,6 +373,22 @@ export default function AITutor() {
           </div>
         </div>
       </StudentShell>    );
+  }
+
+  if (!user || !userId) {
+    return (
+      <StudentShell>
+        <div className="mx-auto flex min-h-[50vh] max-w-lg flex-col items-center justify-center px-4 text-center">
+          <h2 className="mb-2 text-xl font-bold text-ink">Sign in required</h2>
+          <p className="mb-4 text-sm text-slate-600">
+            Please log in again to use Vidya AI. Your session could not be loaded.
+          </p>
+          <Button type="button" onClick={() => setLocation('/login')}>
+            Go to login
+          </Button>
+        </div>
+      </StudentShell>
+    );
   }
 
   // Handle tool click

@@ -1497,7 +1497,9 @@ export default function Dashboard() {
         setHomeworkSubmitError(uploadData?.message || 'Failed to upload file.');
         return;
       }
-      const submissionLinkToSave = uploadData.url;
+      const submissionLinkToSave = String(uploadData.url).startsWith('http')
+        ? String(uploadData.url)
+        : `${API_BASE_URL}${String(uploadData.url).startsWith('/') ? '' : '/'}${uploadData.url}`;
 
       const response = await fetch(`${API_BASE_URL}/api/student/homework-submission`, {
         method: 'POST',

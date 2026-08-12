@@ -38,7 +38,6 @@ export const teacherNav: NavItem[] = [
   { id: "students", label: "Students", icon: Users2, href: "/teacher/dashboard?tab=students" },
   { id: "edu-ott", label: "EduOTT", icon: MonitorPlay, href: "/edu-ott" },
   { id: "learning-paths", label: "Learning Paths", icon: BookOpen, href: "/learning-paths" },
-  { id: "quiz", label: "Quiz", icon: Trophy, href: "/teacher/quiz" },
   { id: "vidya-ai", label: "Vidya AI", icon: Sparkles, href: "/teacher/dashboard?tab=vidya-ai" },
   // NOTE: /teacher/timetable is currently a redirect back to the dashboard,
   // so Calendar points at a tab until a real calendar page exists.

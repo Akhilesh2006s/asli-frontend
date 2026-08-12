@@ -42,6 +42,10 @@ export function learningPathDisplayName(name: string): string {
     english: 'English',
     sci: 'Science',
     science: 'Science',
+    sst: 'Social Science',
+    social: 'Social Science',
+    'social science': 'Social Science',
+    'social studies': 'Social Science',
   };
   if (aliases[lower]) return aliases[lower];
   return plain.charAt(0).toUpperCase() + plain.slice(1);

@@ -191,8 +191,19 @@ export default function LearningPaths() {
     return ids;
   }, [subjects]);
 
+  const allowedLibrarySubjectKeys = useMemo(() => {
+    const keys = new Set<string>();
+    for (const subject of subjects) {
+      const key = normalizeSubjectDisplayKey(subject?.name || '');
+      if (key) keys.add(key);
+    }
+    return keys;
+  }, [subjects]);
+
   const scopedLibraryContent = useMemo(() => {
-    if (allowedLibrarySubjectIds.size === 0) return [];
+    if (allowedLibrarySubjectIds.size === 0 && allowedLibrarySubjectKeys.size === 0) {
+      return [];
+    }
     return allLibraryContent.filter((content: any) => {
       const subj = content?.subject;
       const sid =
@@ -201,9 +212,17 @@ export default function LearningPaths() {
           : typeof subj === 'string'
             ? subj.trim()
             : String(content?.subjectId || '');
-      return sid && allowedLibrarySubjectIds.has(sid);
+      if (sid && allowedLibrarySubjectIds.has(sid)) return true;
+      const name =
+        typeof subj === 'object'
+          ? String(subj?.name || '')
+          : typeof subj === 'string'
+            ? ''
+            : String(content?.subjectName || '');
+      const key = normalizeSubjectDisplayKey(name);
+      return Boolean(key && allowedLibrarySubjectKeys.has(key));
     });
-  }, [allLibraryContent, allowedLibrarySubjectIds]);
+  }, [allLibraryContent, allowedLibrarySubjectIds, allowedLibrarySubjectKeys]);
   const [previewContent, setPreviewContent] = useState<any | null>(() => readStoredPreview());
   const [isPreviewOpen, setIsPreviewOpen] = useState(() => Boolean(readStoredPreview()));
   const [isNavigatingToSubject, setIsNavigatingToSubject] = useState(false);
@@ -733,11 +752,21 @@ export default function LearningPaths() {
 
                 const Icon = theme.Icon;
 
-                // Match library rows by alias (BIO ↔ Biology) and strip class suffixes.
+                // Match library rows by alias (Social studies ↔ Social Science) and merged IDs.
                 const key = normalizeSubjectDisplayKey(subject.name);
-                const mine = scopedLibraryContent.filter(
-                  (c: any) => normalizeSubjectDisplayKey(c?.subject?.name) === key,
+                const subjectIds = new Set(
+                  [subject._id, subject.id, ...(subject.mergedSubjectIds || [])]
+                    .map((id: unknown) => String(id || '').trim())
+                    .filter(Boolean),
                 );
+                const mine = scopedLibraryContent.filter((c: any) => {
+                  const sid =
+                    typeof c?.subject === 'object'
+                      ? String(c.subject?._id || c.subject?.id || '')
+                      : String(c?.subject || c?.subjectId || '');
+                  if (sid && subjectIds.has(sid)) return true;
+                  return normalizeSubjectDisplayKey(c?.subject?.name) === key;
+                });
                 const countOf = (t: string) =>
                   mine.filter((c: any) => c?.type === t && !isIitTrackContent(c)).length;
                 const iitCount = mine.filter((c: any) => isIitTrackContent(c)).length;

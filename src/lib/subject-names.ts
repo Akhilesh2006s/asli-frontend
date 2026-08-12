@@ -84,6 +84,7 @@ export function normalizeSubjectDisplayKey(name: string): string {
     plain === 'sst' ||
     plain === 'social' ||
     plain === 'social science' ||
+    plain === 'social studies' ||
     plain === 'history' ||
     plain === 'geography' ||
     plain === 'civics' ||
