@@ -28,45 +28,49 @@ export function SuperAdminChatUI({ model, className }: SuperAdminChatUIProps) {
     <div
       className={`${className ?? ""} flex h-full min-h-0 flex-col rounded-2xl border border-orange-100 bg-gradient-to-b from-orange-50/70 to-slate-50`}
     >
-      <div className="border-b border-orange-100 bg-gradient-to-r from-orange-500 to-orange-600 px-5 py-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/20">
+      <div className="border-b border-orange-100 bg-gradient-to-r from-orange-500 to-orange-600 px-3 sm:px-5 py-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-3 min-w-0">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/20">
               <Sparkles className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
             </div>
-            <div>
-              <h3 className="text-base sm:text-lg font-semibold text-white">AI System Control Panel</h3>
-              <p className="text-xs text-orange-100">
+            <div className="min-w-0">
+              <h3 className="text-base sm:text-lg font-semibold text-white break-words">AI System Control Panel</h3>
+              <p className="text-xs text-orange-100 leading-relaxed break-words">
                 Super-admin app assistant — live MongoDB for schools, OMR, exams, trials, videos, risk &amp; more.
               </p>
             </div>
           </div>
-          <Badge className="border border-white/30 bg-white/20 text-white hover:bg-white/20">Control Mode: Active</Badge>
+          <Badge className="self-start border border-white/30 bg-white/20 text-white hover:bg-white/20 whitespace-nowrap">
+            Control Mode: Active
+          </Badge>
         </div>
       </div>
 
       <div className="min-h-0 flex-1 px-5 py-4">
         <div className="grid h-full min-h-0 grid-cols-1 gap-4">
           <div className="flex min-h-0 flex-col rounded-xl border border-slate-200 bg-white shadow-sm">
-            <div className="border-b border-slate-200 px-4 py-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h4 className="text-xs sm:text-sm font-semibold text-slate-900">Control Console</h4>
-                  <p className="text-xs text-slate-600">
+            <div className="border-b border-slate-200 px-3 sm:px-4 py-3">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div className="min-w-0 flex-1 space-y-1">
+                  <h4 className="text-sm font-semibold text-slate-900">Control Console</h4>
+                  <p className="text-xs text-slate-600 leading-relaxed break-words">
                     Ask platform metrics; every number is computed server-side (not invented by the model).
                   </p>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2 shrink-0">
                   <Button
                     variant="outline"
                     size="sm"
-                    className="h-7 px-2 text-xs"
+                    className="h-8 px-3 text-xs"
                     onClick={model.clearChat}
                     disabled={model.isPending || model.isClearingChat || model.displayMessages.length === 0}
                   >
                     {model.isClearingChat ? "Clearing..." : "Clear Chat"}
                   </Button>
-                  <Badge className="bg-orange-100 text-orange-700 hover:bg-orange-100">Audit Channel</Badge>
+                  <Badge className="bg-orange-100 text-orange-700 hover:bg-orange-100 whitespace-nowrap">
+                    Audit Channel
+                  </Badge>
                 </div>
               </div>
             </div>

@@ -582,26 +582,42 @@ export default function BookKnowledgeBase() {
               {visibleImportable.map((row) => (
                 <div
                   key={row.contentId}
-                  className="flex flex-wrap items-center gap-3 justify-between rounded-xl border border-slate-200 bg-white p-3 shadow-sm"
+                  className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm min-w-0 sm:flex-row sm:items-start sm:justify-between"
                 >
                   <div className="flex items-start gap-3 min-w-0 flex-1">
                     {!row.imported && (
                       <Checkbox
                         checked={selectedContentIds.has(row.contentId)}
                         onCheckedChange={(v) => toggleContentSelection(row.contentId, v === true)}
-                        className="mt-1"
+                        className="mt-1 shrink-0"
                       />
                     )}
-                    <div className="min-w-0">
-                      <p className="font-medium text-slate-900 truncate">{row.title}</p>
-                      <p className="text-xs text-slate-500 mt-0.5">
-                        {row.type} · {row.board} · Class {row.classNumber || "—"} · {row.subjectName}
-                        {normalizeIitCategory(row.productCategory)
-                          ? ` · ${formatIitCategoryLabel(row.productCategory, iitLabelMap)}`
-                          : ""}
-                        {row.topic ? ` · ${row.topic}` : ""}
-                      </p>
-                      <div className="flex flex-wrap gap-2 mt-2">
+                    <div className="min-w-0 flex-1 space-y-1.5">
+                      <p className="font-medium text-slate-900 break-words leading-snug">{row.title}</p>
+                      <div className="flex flex-wrap gap-x-2 gap-y-1 text-xs text-slate-500">
+                        <span className="break-words">{row.type}</span>
+                        <span className="text-slate-300">·</span>
+                        <span className="break-words">{row.board}</span>
+                        <span className="text-slate-300">·</span>
+                        <span>Class {row.classNumber || "—"}</span>
+                        <span className="text-slate-300">·</span>
+                        <span className="break-words">{row.subjectName}</span>
+                        {normalizeIitCategory(row.productCategory) ? (
+                          <>
+                            <span className="text-slate-300">·</span>
+                            <span className="break-words">
+                              {formatIitCategoryLabel(row.productCategory, iitLabelMap)}
+                            </span>
+                          </>
+                        ) : null}
+                        {row.topic ? (
+                          <>
+                            <span className="text-slate-300">·</span>
+                            <span className="break-words">{row.topic}</span>
+                          </>
+                        ) : null}
+                      </div>
+                      <div className="flex flex-wrap gap-2">
                         {normalizeIitCategory(row.productCategory) ? (
                           <Badge variant="outline" className="border-violet-300 text-violet-800">
                             {formatIitCategoryLabel(row.productCategory, iitLabelMap)}
@@ -619,15 +635,15 @@ export default function BookKnowledgeBase() {
                       </div>
                     </div>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex w-full sm:w-auto shrink-0">
                     {row.imported ? (
-                      <Button size="sm" variant="outline" disabled>
+                      <Button size="sm" variant="outline" disabled className="w-full sm:w-auto">
                         Linked
                       </Button>
                     ) : (
                       <Button
                         size="sm"
-                        className="bg-emerald-600 hover:bg-emerald-700"
+                        className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700"
                         onClick={() => void handleImportFromContent(row.contentId)}
                         disabled={importingIds.has(row.contentId)}
                       >

@@ -55,15 +55,15 @@ export function SubtopicRecordsSection({
   };
 
   return (
-    <div className="rounded-2xl border border-slate-200/90 bg-gradient-to-br from-white via-slate-50/30 to-orange-50/20 shadow-sm overflow-hidden">
-      <div className="border-b border-slate-100/80 bg-white/80 px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+    <div className="rounded-2xl border border-slate-200/90 bg-gradient-to-br from-white via-slate-50/30 to-orange-50/20 shadow-sm overflow-hidden min-w-0">
+      <div className="border-b border-slate-100/80 bg-white/80 px-3 py-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:px-4">
         <div className="flex items-start gap-3 min-w-0">
           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-orange-500 text-white shadow-sm">
-            <FileStack className="h-3 w-3 sm:h-4 sm:w-4" />
+            <FileStack className="h-4 w-4" />
           </span>
-          <div className="min-w-0">
-            <p className="text-xs sm:text-sm font-semibold text-slate-900">Records</p>
-            <p className="text-xs text-slate-500 mt-0.5 truncate">
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold text-slate-900">Records</p>
+            <p className="text-xs text-slate-500 mt-0.5 break-words leading-relaxed">
               {total} generation{total !== 1 ? "s" : ""}
               <span className="text-slate-300 mx-1.5">·</span>
               <span className="font-medium text-slate-700">{labelEmpty(parents.subtopic || "")}</span>
@@ -72,15 +72,15 @@ export function SubtopicRecordsSection({
         </div>
         <Button
           size="sm"
-          className="rounded-xl bg-orange-600 hover:bg-orange-700 text-white shadow-sm shrink-0"
+          className="w-full sm:w-auto rounded-xl bg-orange-600 hover:bg-orange-700 text-white shadow-sm shrink-0"
           onClick={pdfThisSubtopic}
         >
-          <FileDown className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
-          PDF
+          <FileDown className="w-4 h-4 mr-2" />
+          Download PDF
         </Button>
       </div>
 
-      <div className="p-4 space-y-3">
+      <div className="p-2 sm:p-4 space-y-3 min-w-0 overflow-x-hidden">
         <GenerationRecordsList
           items={items}
           defaultToolName={parents.toolName}

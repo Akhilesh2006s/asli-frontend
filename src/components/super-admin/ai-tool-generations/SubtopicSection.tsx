@@ -25,6 +25,10 @@ function SubtopicLeafRow({
   s: BranchItem;
 }) {
   const [open, setOpen] = useState(false);
+  const subLabel =
+    s.value === "" || /^whole\s*chapter$/i.test(String(s.value))
+      ? "Whole chapter"
+      : s.value;
 
   return (
     <Collapsible
@@ -32,17 +36,17 @@ function SubtopicLeafRow({
       onOpenChange={setOpen}
       className="rounded-lg border border-dashed border-slate-200/90 bg-slate-50/50 overflow-hidden"
     >
-      <CollapsibleTrigger className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-xs sm:text-sm text-slate-700 hover:bg-white/80 transition-colors">
-        <span className="flex items-center gap-2 min-w-0">
-          <ListTree className="h-3.5 w-3.5 shrink-0 text-amber-600" />
-          <span className="text-slate-500 text-xs font-medium uppercase tracking-wide">Subtopic</span>
-          <span className="font-medium text-slate-900 truncate">
-            {s.value === "" || /^whole\s*chapter$/i.test(String(s.value))
-              ? "Whole chapter"
-              : s.value}
+      <CollapsibleTrigger className="flex w-full min-w-0 items-start gap-2 px-3 py-2 text-left text-sm text-slate-700 hover:bg-white/80 transition-colors">
+        <ListTree className="h-3.5 w-3.5 shrink-0 text-amber-600 mt-0.5" />
+        <span className="min-w-0 flex-1 space-y-1">
+          <span className="text-slate-500 text-[10px] font-medium uppercase tracking-wide">
+            Subtopic
+          </span>
+          <span className="block font-medium text-slate-900 text-sm leading-snug break-words">
+            {subLabel}
           </span>
         </span>
-        <span className="flex items-center gap-2 shrink-0">
+        <span className="flex items-center gap-2 shrink-0 mt-0.5">
           <Badge variant="secondary" className="rounded-full text-micro tabular-nums">
             {s.count}
           </Badge>
@@ -53,7 +57,7 @@ function SubtopicLeafRow({
       </CollapsibleTrigger>
       <CollapsibleContent>
         {open ? (
-          <div className="border-t border-slate-100 bg-white px-2 pb-2 pt-2">
+          <div className="border-t border-slate-100 bg-white px-1.5 pb-2 pt-2 overflow-x-hidden sm:px-2">
             <SubtopicRecordsSection
               parents={{
                 ...(board ? { board } : {}),
@@ -116,20 +120,22 @@ export function SubtopicSection({
   return (
     <div className="rounded-xl border border-slate-200/90 bg-white shadow-sm overflow-hidden">
       <Collapsible open={open} onOpenChange={setOpen}>
-        <CollapsibleTrigger className="flex w-full items-center justify-between gap-2 px-3 py-2.5 text-left hover:bg-slate-50/80 transition-colors rounded-t-xl">
-          <span className="flex items-center gap-2 min-w-0">
-            <BookMarked className="h-3 w-3 sm:h-4 sm:w-4 shrink-0 text-teal-600" />
-            <span className="font-medium text-slate-800 truncate">{topicLabel}</span>
-            <Badge variant="outline" className="text-micro font-normal text-slate-500 border-slate-200">
+        <CollapsibleTrigger className="flex w-full min-w-0 items-start gap-2 px-3 py-2.5 text-left hover:bg-slate-50/80 transition-colors rounded-t-xl">
+          <BookMarked className="h-4 w-4 shrink-0 text-teal-600 mt-0.5" />
+          <span className="min-w-0 flex-1 space-y-1">
+            <Badge variant="outline" className="shrink-0 text-micro font-normal text-slate-500 border-slate-200">
               Topic
             </Badge>
+            <span className="block font-medium text-slate-800 text-sm leading-snug break-words">
+              {topicLabel}
+            </span>
           </span>
           <ChevronDown
-            className={`h-3 w-3 sm:h-4 sm:w-4 shrink-0 text-slate-400 transition-transform ${open ? "rotate-180" : ""}`}
+            className={`h-4 w-4 shrink-0 text-slate-400 mt-0.5 transition-transform ${open ? "rotate-180" : ""}`}
           />
         </CollapsibleTrigger>
         <CollapsibleContent>
-          <div className="border-t border-slate-100 px-2 pb-2 pt-2 space-y-2 bg-slate-50/30">
+          <div className="border-t border-slate-100 px-1.5 pb-2 pt-2 space-y-2 bg-slate-50/30 overflow-x-hidden sm:px-2">
             {loading && (
               <div className="flex items-center gap-2 text-xs text-slate-500 py-2 justify-center">
                 <Loader2 className="w-3 h-3 animate-spin text-orange-500" /> Loading subtopics…

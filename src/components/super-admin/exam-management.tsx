@@ -3689,35 +3689,41 @@ export default function ExamManagement() {
               </Button>
             </DialogTrigger>
             <DialogContent
-              className="max-w-2xl"
+              className="max-w-2xl w-[calc(100vw-1.5rem)] p-4 sm:p-8"
               onOpenAutoFocus={(e) => e.preventDefault()}
             >
-              <DialogHeader>
-                <DialogTitle>Bulk Upload Exams via CSV</DialogTitle>
-                <DialogDescription>
+              <DialogHeader className="pr-12 text-left">
+                <DialogTitle className="text-base sm:text-lg leading-snug break-words">
+                  Bulk Upload Exams via CSV
+                </DialogTitle>
+                <DialogDescription className="text-left text-xs sm:text-sm leading-relaxed break-words">
                   Upload a CSV file to create multiple exams at once. Download the template to see the required format.
                 </DialogDescription>
               </DialogHeader>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 bg-blue-50 rounded-lg">
-                  <div>
-                    <p className="font-semibold text-xs sm:text-sm">Need a template?</p>
-                    <p className="text-xs text-gray-600">Download the CSV template with example data</p>
+              <div className="space-y-4 min-w-0">
+                <div className="flex flex-col gap-3 p-3 sm:p-4 bg-blue-50 rounded-lg sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0">
+                    <p className="font-semibold text-sm">Need a template?</p>
+                    <p className="text-xs text-gray-600 leading-relaxed break-words">
+                      Download the CSV template with example data
+                    </p>
                   </div>
                   <Button
                     type="button"
                     variant="outline"
                     size="sm"
                     onClick={handleDownloadTemplate}
-                    className="border-blue-500 text-blue-600 hover:bg-blue-100"
+                    className="w-full sm:w-auto shrink-0 border-blue-500 text-blue-600 hover:bg-blue-100"
                   >
-                    <Download className="mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+                    <Download className="mr-2 h-4 w-4 shrink-0" />
                     Download Template
                   </Button>
                 </div>
                 
-                <div>
-                  <Label htmlFor="csvFile">Select Excel (.xlsx) or CSV File *</Label>
+                <div className="min-w-0">
+                  <Label htmlFor="csvFile" className="break-words">
+                    Select Excel (.xlsx) or CSV File *
+                  </Label>
                   <Input
                     id="csvFile"
                     type="file"
@@ -3729,15 +3735,15 @@ export default function ExamManagement() {
                         setCsvUploadResults(null);
                       }
                     }}
-                    className="mt-1 cursor-pointer file:mr-3 file:rounded-md file:border-0 file:bg-blue-100 file:px-3 file:py-2 file:text-xs sm:text-sm file:font-medium file:text-blue-700 hover:file:bg-blue-200"
+                    className="mt-1 max-w-full cursor-pointer file:mr-3 file:rounded-md file:border-0 file:bg-blue-100 file:px-3 file:py-2 file:text-xs sm:file:text-sm file:font-medium file:text-blue-700 hover:file:bg-blue-200"
                   />
-                  <p className={`text-xs mt-1 ${csvFile ? 'text-blue-700 font-medium' : 'text-gray-500'}`}>
+                  <p className={`text-xs mt-1 break-all ${csvFile ? 'text-blue-700 font-medium' : 'text-gray-500'}`}>
                     {csvFile ? `Selected file: ${csvFile.name}` : 'No file selected yet'}
                   </p>
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="text-xs text-gray-500 mt-1 break-words leading-relaxed">
                     File should contain: title, description, examType, classNumber, subject, maxAttempts, board, duration, totalQuestions, totalMarks, instructions, startDate, endDate, filterType (all-schools | all-boards | specific-schools), targetSchools
                   </p>
-                  <p className="text-xs text-blue-700 mt-1">
+                  <p className="text-xs text-blue-700 mt-1 break-words leading-relaxed">
                     Tip: upload the original .xlsx file to keep characters like °, ², ³, θ, π, √, Δ, ≤, ≥. Plain CSV exports from Excel drop these.
                   </p>
                 </div>

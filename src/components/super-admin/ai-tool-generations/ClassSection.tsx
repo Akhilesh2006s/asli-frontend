@@ -38,12 +38,12 @@ export function ClassSection({ toolName, board }: { toolName: string; board?: st
 
   return (
     <Collapsible open={open} onOpenChange={setOpen} className="pt-2">
-      <CollapsibleTrigger className="flex w-full items-center justify-between gap-3 rounded-xl border border-slate-200/90 bg-white px-3 py-2.5 text-left text-xs sm:text-sm font-medium text-slate-800 shadow-sm hover:bg-orange-50/40 hover:border-orange-200/60 transition-colors">
+      <CollapsibleTrigger className="flex w-full min-w-0 items-center justify-between gap-3 rounded-xl border border-slate-200/90 bg-white px-3 py-2.5 text-left text-xs sm:text-sm font-medium text-slate-800 shadow-sm hover:bg-orange-50/40 hover:border-orange-200/60 transition-colors">
         <span className="flex items-center gap-2 min-w-0">
           <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-600">
             <GraduationCap className="h-3.5 w-3.5" />
           </span>
-          <span className="truncate">Classes in this tool</span>
+          <span className="break-words leading-snug">Classes in this tool</span>
         </span>
         <ChevronDown
           className={`h-3 w-3 sm:h-4 sm:w-4 shrink-0 text-slate-400 transition-transform ${open ? "rotate-180" : ""}`}

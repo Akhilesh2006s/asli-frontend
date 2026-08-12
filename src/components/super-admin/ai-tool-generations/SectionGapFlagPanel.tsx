@@ -41,6 +41,40 @@ export function formatRecordPath(row: SectionGapPathRow) {
   ];
 }
 
+function MissingSectionChips({
+  missing,
+  optional,
+  prefixMissing = false,
+}: {
+  missing: string[];
+  optional: string[];
+  prefixMissing?: boolean;
+}) {
+  if (missing.length === 0 && optional.length === 0) return null;
+  return (
+    <div className="flex flex-col gap-1.5 w-full min-w-0">
+      {missing.map((section) => (
+        <Badge
+          key={section}
+          variant="destructive"
+          className="font-normal text-[11px] sm:text-micro h-auto min-h-6 w-full max-w-full whitespace-normal break-words text-left justify-start py-1.5 px-2.5 leading-snug"
+        >
+          {prefixMissing ? `Missing: ${section}` : section}
+        </Badge>
+      ))}
+      {optional.map((section) => (
+        <Badge
+          key={`opt-${section}`}
+          variant="secondary"
+          className="font-normal text-[11px] sm:text-micro h-auto min-h-6 w-full max-w-full whitespace-normal break-words text-left justify-start py-1.5 px-2.5 leading-snug"
+        >
+          Optional: {section}
+        </Badge>
+      ))}
+    </div>
+  );
+}
+
 export function SectionGapFlagPanel({
   row,
   defaultToolName = "",
@@ -59,29 +93,15 @@ export function SectionGapFlagPanel({
 
   return (
     <div
-      className={`rounded-lg border border-red-200/80 bg-red-50/50 px-3 py-2.5 space-y-1.5 ${className}`}
+      className={`rounded-lg border border-red-200/80 bg-red-50/50 px-3 py-2.5 space-y-2 min-w-0 overflow-hidden ${className}`}
     >
-      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-        <div className="flex items-center gap-1.5 text-xs font-semibold text-red-800">
-          <Flag className="h-3.5 w-3.5 shrink-0" aria-hidden />
-          Missing required sections
-        </div>
-        {compact && (missing.length > 0 || optional.length > 0) ? (
-          <div className="flex flex-wrap gap-1">
-            {missing.map((section) => (
-              <Badge key={section} variant="destructive" className="font-normal text-micro">
-                {section}
-              </Badge>
-            ))}
-            {optional.map((section) => (
-              <Badge key={`opt-${section}`} variant="secondary" className="font-normal text-micro">
-                Optional: {section}
-              </Badge>
-            ))}
-          </div>
-        ) : null}
+      <div className="flex items-start gap-1.5 text-xs font-semibold text-red-800">
+        <Flag className="h-3.5 w-3.5 shrink-0 mt-0.5" aria-hidden />
+        <span className="break-words leading-snug">Missing required sections</span>
       </div>
-      {!compact ? (
+      {compact ? (
+        <MissingSectionChips missing={missing} optional={optional} />
+      ) : (
         <>
           <p className="text-xs text-slate-700 leading-relaxed break-words">
             <span className="font-medium text-slate-500">Tool: </span>
@@ -93,26 +113,9 @@ export function SectionGapFlagPanel({
               {value}
             </p>
           ))}
-          {(missing.length > 0 || optional.length > 0) && (
-            <div className="flex flex-wrap gap-1 pt-0.5">
-              {missing.map((section) => (
-                <Badge key={section} variant="destructive" className="font-normal text-micro">
-                  Missing: {section}
-                </Badge>
-              ))}
-              {optional.map((section) => (
-                <Badge
-                  key={`opt-${section}`}
-                  variant="secondary"
-                  className="font-normal text-micro"
-                >
-                  Optional: {section}
-                </Badge>
-              ))}
-            </div>
-          )}
+          <MissingSectionChips missing={missing} optional={optional} prefixMissing />
         </>
-      ) : null}
+      )}
     </div>
   );
 }

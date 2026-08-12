@@ -691,9 +691,9 @@ export default function AiToolTopicsManagement() {
                 onChange={(e) => setSearch(e.target.value)}
               />
             </div>
-            <div className="flex flex-wrap items-center justify-end gap-2">
-              <Button type="button" onClick={openCreate}>
-                <Plus className="mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+            <div className="flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
+              <Button type="button" onClick={openCreate} className="w-full sm:w-auto">
+                <Plus className="mr-2 h-4 w-4 shrink-0" />
                 Add Topic
               </Button>
               <Button
@@ -701,14 +701,15 @@ export default function AiToolTopicsManagement() {
                 variant="secondary"
                 disabled={!selectedTopic}
                 onClick={openAddSubTopic}
+                className="w-full sm:w-auto"
               >
-                <Plus className="mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+                <Plus className="mr-2 h-4 w-4 shrink-0" />
                 Add Sub Topic
               </Button>
             </div>
           </div>
 
-          <div className="rounded-xl border bg-white p-4 shadow-sm">
+          <div className="rounded-xl border bg-white p-3 sm:p-4 shadow-sm overflow-hidden min-w-0">
             <div className="mb-4 flex flex-wrap gap-2">
               {boardTabs.map((board) => {
                 const isActive = selectedBoard === board;
@@ -717,7 +718,7 @@ export default function AiToolTopicsManagement() {
                     key={board}
                     type="button"
                     variant="outline"
-                    className={`rounded-full border px-5 py-2 text-xs sm:text-sm font-medium transition-all ${
+                    className={`rounded-full border px-3 sm:px-5 py-2 text-xs sm:text-sm font-medium transition-all max-w-full whitespace-normal h-auto ${
                       isActive
                         ? 'border-blue-500 bg-blue-50 text-blue-700 shadow-sm'
                         : 'border-slate-200 bg-white text-slate-700 hover:border-blue-300 hover:bg-blue-50/40'
@@ -805,7 +806,7 @@ export default function AiToolTopicsManagement() {
                           <button
                             key={item}
                             type="button"
-                            className={`w-full rounded-lg border px-3 py-2 text-left text-xs sm:text-sm transition ${
+                            className={`w-full rounded-lg border px-3 py-2 text-left text-xs sm:text-sm transition break-words whitespace-normal ${
                               isActive
                                 ? 'border-blue-500 bg-blue-50 text-blue-700'
                                 : 'border-slate-200 bg-white text-slate-700 hover:border-blue-300 hover:bg-blue-50/40'
@@ -837,49 +838,49 @@ export default function AiToolTopicsManagement() {
                 </div>
               ))}
             </div>
-            <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t pt-4">
-              <p className="text-xs text-slate-500">
+            <div className="mt-4 flex flex-col gap-3 border-t pt-4">
+              <p className="text-xs text-slate-500 break-words leading-relaxed">
                 {selectedTopic
                   ? `Selected topic: ${selectedTopic} — use “Add Sub Topic” to add more sub-topics.`
                   : 'Select a topic to add sub-topics or view records below.'}
               </p>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
               <Button
                 type="button"
                 variant="outline"
-                className="border-violet-300 text-violet-700 hover:bg-violet-50"
+                className="w-full sm:w-auto justify-center border-violet-300 text-violet-700 hover:bg-violet-50 whitespace-normal h-auto min-h-9 py-2"
                 disabled={!selectedTopic}
                 onClick={openAddSubTopic}
               >
-                <Plus className="mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+                <Plus className="mr-2 h-4 w-4 shrink-0" />
                 Add Sub Topic to Selected
               </Button>
               <Button
                 type="button"
                 variant="outline"
-                className="border-amber-300 text-amber-700 hover:bg-amber-50"
+                className="w-full sm:w-auto justify-center border-amber-300 text-amber-700 hover:bg-amber-50 whitespace-normal h-auto min-h-9 py-2"
                 disabled={!selectedBoard || !selectedClass || bulkDeleting !== null}
                 onClick={() => bulkDelete('class')}
               >
-                <Trash2 className="mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+                <Trash2 className="mr-2 h-4 w-4 shrink-0" />
                 {bulkDeleting === 'class' ? 'Deleting Class...' : 'Delete Selected Class'}
               </Button>
               <Button
                 type="button"
                 variant="outline"
-                className="border-red-300 text-red-700 hover:bg-red-50"
+                className="w-full sm:w-auto justify-center border-red-300 text-red-700 hover:bg-red-50 whitespace-normal h-auto min-h-9 py-2"
                 disabled={!selectedBoard || !selectedClass || !selectedSubject || bulkDeleting !== null}
                 onClick={() => bulkDelete('subject')}
               >
-                <Trash2 className="mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+                <Trash2 className="mr-2 h-4 w-4 shrink-0" />
                 {bulkDeleting === 'subject' ? 'Deleting Subject...' : 'Delete Selected Subject'}
               </Button>
               </div>
             </div>
           </div>
 
-          <div className="rounded-md border">
-            <Table>
+          <div className="rounded-md border overflow-x-auto">
+            <Table className="min-w-[720px]">
               <TableHeader>
                 <TableRow>
                   <TableHead>Board</TableHead>

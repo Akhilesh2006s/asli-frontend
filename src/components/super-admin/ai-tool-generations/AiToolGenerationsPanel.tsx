@@ -193,7 +193,7 @@ export default function AiToolGenerationsPanel() {
 
   return (
     <div className="w-full min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-50/80 flex flex-col">
-      <div className="w-full flex-1 px-4 sm:px-6 lg:px-8 py-4 sm:py-5 pb-10 space-y-4 sm:space-y-5">
+      <div className="w-full flex-1 px-3 sm:px-6 lg:px-8 py-4 sm:py-5 pb-24 sm:pb-10 space-y-4 sm:space-y-5 min-w-0 overflow-x-hidden">
         <header className="relative w-full overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-sm">
           <div
             className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-orange-500 via-amber-500 to-orange-400"
@@ -276,18 +276,18 @@ export default function AiToolGenerationsPanel() {
 
         <section className="space-y-3">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="inline-flex rounded-lg border border-slate-200 bg-slate-50 p-0.5">
+            <div className="inline-flex max-w-full flex-wrap rounded-lg border border-slate-200 bg-slate-50 p-0.5 gap-0.5">
               <Button
                 type="button"
                 size="sm"
                 variant="ghost"
                 className={cn(
-                  "h-8 rounded-md px-3 text-xs font-semibold",
+                  "h-8 rounded-md px-2.5 sm:px-3 text-xs font-semibold",
                   audienceTab === "teacher" && "bg-white text-slate-900 shadow-sm",
                 )}
                 onClick={() => setAudienceTab("teacher")}
               >
-                <GraduationCap className="mr-1.5 h-3.5 w-3.5" />
+                <GraduationCap className="mr-1.5 h-3.5 w-3.5 shrink-0" />
                 Teacher ({grouped.teacher.length})
               </Button>
               <Button
@@ -295,12 +295,12 @@ export default function AiToolGenerationsPanel() {
                 size="sm"
                 variant="ghost"
                 className={cn(
-                  "h-8 rounded-md px-3 text-xs font-semibold",
+                  "h-8 rounded-md px-2.5 sm:px-3 text-xs font-semibold",
                   audienceTab === "student" && "bg-white text-slate-900 shadow-sm",
                 )}
                 onClick={() => setAudienceTab("student")}
               >
-                <Users className="mr-1.5 h-3.5 w-3.5" />
+                <Users className="mr-1.5 h-3.5 w-3.5 shrink-0" />
                 Student ({grouped.student.length})
               </Button>
               {grouped.other.length > 0 ? (
@@ -309,12 +309,12 @@ export default function AiToolGenerationsPanel() {
                   size="sm"
                   variant="ghost"
                   className={cn(
-                    "h-8 rounded-md px-3 text-xs font-semibold",
+                    "h-8 rounded-md px-2.5 sm:px-3 text-xs font-semibold",
                     audienceTab === "other" && "bg-white text-slate-900 shadow-sm",
                   )}
                   onClick={() => setAudienceTab("other")}
                 >
-                  <Wrench className="mr-1.5 h-3.5 w-3.5" />
+                  <Wrench className="mr-1.5 h-3.5 w-3.5 shrink-0" />
                   Other ({grouped.other.length})
                 </Button>
               ) : null}

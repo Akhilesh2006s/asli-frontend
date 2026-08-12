@@ -304,27 +304,27 @@ export function GenerationRecordsList({
           return (
             <li
               key={row._id}
-              className={`group rounded-xl border bg-white p-4 shadow-sm transition-all hover:shadow-md ${
+              className={`group rounded-xl border bg-white p-3 sm:p-4 shadow-sm transition-all hover:shadow-md min-w-0 overflow-hidden ${
                 hasGap
                   ? "border-red-200/90 ring-1 ring-red-100/60 hover:border-red-300/80"
                   : "border-slate-200/90 hover:border-orange-200/80"
               }`}
             >
-              <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="inline-flex items-center gap-1.5 text-xs text-slate-500">
-                    <Calendar className="h-3.5 w-3.5 text-slate-400" />
+              <div className="flex flex-col gap-2 mb-2 min-w-0">
+                <div className="flex flex-wrap items-center gap-2 min-w-0">
+                  <span className="inline-flex items-center gap-1.5 text-xs text-slate-500 break-words">
+                    <Calendar className="h-3.5 w-3.5 shrink-0 text-slate-400" />
                     {row.createdAt ? new Date(row.createdAt).toLocaleString() : "—"}
                   </span>
                   {row.board ? (
-                    <Badge variant="outline" className="text-micro h-5">
+                    <Badge variant="outline" className="text-micro h-5 shrink-0">
                       {row.board}
                     </Badge>
                   ) : null}
                   {isBookGroundedRow(row) ? (
                     <Badge
                       variant="outline"
-                      className="text-micro h-5 border-violet-200 text-violet-800 bg-violet-50"
+                      className="text-micro h-auto min-h-5 max-w-full whitespace-normal break-words border-violet-200 text-violet-800 bg-violet-50"
                     >
                       Book-based
                       {typeof row.metadata?.bookTitle === "string" && row.metadata.bookTitle
@@ -335,21 +335,21 @@ export function GenerationRecordsList({
                   {generationVariant ? (
                     <Badge
                       variant="outline"
-                      className="text-micro h-5 border-orange-200 text-orange-800 bg-orange-50"
+                      className="text-micro h-5 shrink-0 border-orange-200 text-orange-800 bg-orange-50"
                     >
                       Variant {generationVariant}
                     </Badge>
                   ) : null}
                   {variantAngle ? (
                     <span
-                      className="text-micro text-slate-500 max-w-[220px] truncate"
+                      className="text-micro text-slate-500 w-full sm:w-auto sm:max-w-[220px] break-words sm:truncate"
                       title={variantAngle}
                     >
                       {variantAngle}
                     </span>
                   ) : null}
                 </div>
-                <div className="flex items-center gap-1">
+                <div className="flex flex-wrap items-center gap-1 -ml-1">
                   <Button
                     size="sm"
                     variant="ghost"

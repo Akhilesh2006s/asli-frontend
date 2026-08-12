@@ -50,20 +50,24 @@ function SubjectRow({
 
   return (
     <Collapsible open={open} onOpenChange={setOpen} className="rounded-xl border border-slate-200/80 bg-white shadow-sm overflow-hidden">
-      <CollapsibleTrigger className="flex w-full items-center justify-between gap-2 px-3 py-2.5 text-left hover:bg-slate-50/90 transition-colors">
-        <span className="flex items-center gap-2 min-w-0">
-          <BookOpen className="h-3 w-3 sm:h-4 sm:w-4 shrink-0 text-indigo-500" />
-          <span className="font-medium text-slate-800 truncate">{label}</span>
-          <Badge variant="outline" className="text-micro font-normal text-slate-500 border-slate-200">
-            Subject
-          </Badge>
+      <CollapsibleTrigger className="flex w-full min-w-0 items-start gap-2 px-3 py-2.5 text-left hover:bg-slate-50/90 transition-colors">
+        <BookOpen className="h-4 w-4 shrink-0 text-indigo-500 mt-0.5" />
+        <span className="min-w-0 flex-1 space-y-1">
+          <span className="flex flex-wrap items-center gap-1.5">
+            <Badge variant="outline" className="shrink-0 text-micro font-normal text-slate-500 border-slate-200">
+              Subject
+            </Badge>
+          </span>
+          <span className="block font-medium text-slate-800 text-sm leading-snug break-words">
+            {label}
+          </span>
         </span>
         <ChevronDown
-          className={`h-3 w-3 sm:h-4 sm:w-4 shrink-0 text-slate-400 transition-transform ${open ? "rotate-180" : ""}`}
+          className={`h-4 w-4 shrink-0 text-slate-400 mt-0.5 transition-transform ${open ? "rotate-180" : ""}`}
         />
       </CollapsibleTrigger>
       <CollapsibleContent>
-        <div className="border-t border-slate-100 bg-slate-50/40 px-2 py-2 space-y-2">
+        <div className="border-t border-slate-100 bg-slate-50/40 px-1.5 py-2 space-y-2 overflow-x-hidden sm:px-2">
           {loading && (
             <div className="flex items-center gap-2 text-xs text-slate-500 py-3 justify-center">
               <Loader2 className="w-3 h-3 animate-spin text-orange-500" /> Loading topics…
@@ -125,19 +129,21 @@ export function SubjectSection({
       onOpenChange={setOpen}
       className="rounded-2xl border border-orange-200/60 bg-gradient-to-br from-white to-orange-50/20 shadow-sm overflow-hidden"
     >
-      <CollapsibleTrigger className="flex w-full items-center justify-between gap-2 px-4 py-3 text-left hover:bg-orange-50/50 transition-colors">
-        <span className="flex flex-wrap items-center gap-2 min-w-0">
-          <Badge className="rounded-md bg-slate-800 hover:bg-slate-800 text-micro font-semibold uppercase tracking-wide">
+      <CollapsibleTrigger className="flex w-full min-w-0 items-start gap-2 px-3 sm:px-4 py-3 text-left hover:bg-orange-50/50 transition-colors">
+        <span className="min-w-0 flex-1 space-y-1">
+          <Badge className="rounded-md bg-slate-800 hover:bg-slate-800 text-micro font-semibold uppercase tracking-wide shrink-0">
             Class
           </Badge>
-          <span className="font-semibold text-slate-900 truncate">{classTitle}</span>
+          <span className="block font-semibold text-slate-900 text-sm sm:text-base leading-snug break-words">
+            {classTitle}
+          </span>
         </span>
         <ChevronDown
-          className={`h-3 w-3 sm:h-4 sm:w-4 shrink-0 text-slate-400 transition-transform ${open ? "rotate-180" : ""}`}
+          className={`h-4 w-4 shrink-0 text-slate-400 mt-0.5 transition-transform ${open ? "rotate-180" : ""}`}
         />
       </CollapsibleTrigger>
       <CollapsibleContent>
-        <div className="border-t border-orange-100/80 px-3 pb-3 pt-1 space-y-2 bg-white/50">
+        <div className="border-t border-orange-100/80 px-1.5 sm:px-3 pb-3 pt-1 space-y-2 bg-white/50 overflow-x-hidden">
           {loading && (
             <div className="flex items-center gap-2 text-xs text-slate-500 py-3 justify-center rounded-lg bg-slate-50 border border-dashed border-slate-200">
               <Loader2 className="w-3 h-3 animate-spin text-orange-500" /> Loading subjects…
