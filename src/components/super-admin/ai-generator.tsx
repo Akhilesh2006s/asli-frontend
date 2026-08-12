@@ -1153,9 +1153,9 @@ export default function SuperAdminAiGenerator() {
         <CardHeader>
           <CardTitle>Generate Content</CardTitle>
         </CardHeader>
-        <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-          <div className="lg:col-span-3">
-            <Label>Selected Tool</Label>
+        <CardContent className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-2.5">
+          <div className="col-span-2 md:col-span-3 lg:col-span-4 xl:col-span-6">
+            <Label className="text-xs">Selected Tool</Label>
             <div className="mt-1">{currentTool ? <Badge>{currentTool.name}</Badge> : <Badge variant="secondary">No tool selected</Badge>}</div>
             {isStoryLanguageTool(selectedTool) ? (
               <p className="mt-2 text-xs text-blue-800 bg-blue-50 border border-blue-200 rounded-md px-2 py-1.5">
@@ -1168,8 +1168,8 @@ export default function SuperAdminAiGenerator() {
               </p>
             ) : null}
           </div>
-          <div>
-            <Label>Board</Label>
+          <div className="space-y-1">
+            <Label className="text-xs">Board</Label>
             <Select value={board} onValueChange={handleBoardChange}>
               <SelectTrigger><SelectValue placeholder="Select board" /></SelectTrigger>
               <SelectContent>
@@ -1177,15 +1177,15 @@ export default function SuperAdminAiGenerator() {
               </SelectContent>
             </Select>
           </div>
-          <div>
-            <Label>Product category (IIT track)</Label>
+          <div className="space-y-1">
+            <Label className="text-xs">IIT track</Label>
             <Select
               value={productCategory || "__general__"}
               onValueChange={handleCategoryChange}
               disabled={!board}
             >
               <SelectTrigger>
-                <SelectValue placeholder={!board ? "Select board first" : "General"} />
+                <SelectValue placeholder={!board ? "Board first" : "General"} />
               </SelectTrigger>
               <SelectContent>
                 {categoryOptions.map((c) => (
@@ -1196,11 +1196,11 @@ export default function SuperAdminAiGenerator() {
               </SelectContent>
             </Select>
             <p className="mt-1 text-[11px] text-muted-foreground">
-              Alpha / Beta / Gamma / Delta — must match the track assigned to schools so teachers &amp; students can open this content.
+              Alpha–Delta must match school track.
             </p>
           </div>
-          <div>
-            <Label>Class</Label>
+          <div className="space-y-1">
+            <Label className="text-xs">Class</Label>
             <Select value={classNumber} onValueChange={handleClassChange} disabled={!board || loadingClasses}>
               <SelectTrigger><SelectValue placeholder={!board ? "Select board first" : (loadingClasses ? "Loading classes..." : "Select class")} /></SelectTrigger>
               <SelectContent>{classOptions.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>

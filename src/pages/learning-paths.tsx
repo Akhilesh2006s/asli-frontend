@@ -45,6 +45,9 @@ import {
 import {
   formatIitLearningPathContentLabel,
   isIitTrackContent,
+  libraryContentMatchesSubject,
+  getLibraryContentSubjectKey,
+  getLibraryContentSubjectId,
 } from "@/lib/library-content-labels";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useState, useEffect, useMemo } from "react";
@@ -144,14 +147,6 @@ export default function LearningPaths() {
   const [isLoadingQuizzes, setIsLoadingQuizzes] = useState(true);
   const isAsliPrepExclusive = resolveIsAsliPrepExclusive(user);
   const allowedBrowseTypes = getAllowedContentTypes(isAsliPrepExclusive);
-  const [contentTypeCounts, setContentTypeCounts] = useState({
-    TextBook: 0,
-    Workbook: 0,
-    Material: 0,
-    Audio: 0,
-    Homework: 0,
-    Video: 0,
-  });
   const [isLoadingContentCounts, setIsLoadingContentCounts] = useState(true);
   const [selectedContentType, setSelectedContentType] = useState<ContentTypeName | null>(() => {
     try {
@@ -200,29 +195,37 @@ export default function LearningPaths() {
     return keys;
   }, [subjects]);
 
+  /** Content visible on Learning Paths — match by subject ID or name alias (sibling subjects). */
   const scopedLibraryContent = useMemo(() => {
     if (allowedLibrarySubjectIds.size === 0 && allowedLibrarySubjectKeys.size === 0) {
       return [];
     }
     return allLibraryContent.filter((content: any) => {
-      const subj = content?.subject;
-      const sid =
-        typeof subj === 'object' && subj?._id != null
-          ? String(subj._id)
-          : typeof subj === 'string'
-            ? subj.trim()
-            : String(content?.subjectId || '');
+      const sid = getLibraryContentSubjectId(content);
       if (sid && allowedLibrarySubjectIds.has(sid)) return true;
-      const name =
-        typeof subj === 'object'
-          ? String(subj?.name || '')
-          : typeof subj === 'string'
-            ? ''
-            : String(content?.subjectName || '');
-      const key = normalizeSubjectDisplayKey(name);
+      const key = getLibraryContentSubjectKey(content);
       return Boolean(key && allowedLibrarySubjectKeys.has(key));
     });
   }, [allLibraryContent, allowedLibrarySubjectIds, allowedLibrarySubjectKeys]);
+
+  const contentTypeCounts = useMemo(() => {
+    const counts = {
+      TextBook: 0,
+      Workbook: 0,
+      Material: 0,
+      Audio: 0,
+      Homework: 0,
+      Video: 0,
+    };
+    for (const content of scopedLibraryContent) {
+      const contentType = content?.type as keyof typeof counts | undefined;
+      if (contentType && Object.prototype.hasOwnProperty.call(counts, contentType)) {
+        counts[contentType]++;
+      }
+    }
+    return counts;
+  }, [scopedLibraryContent]);
+
   const [previewContent, setPreviewContent] = useState<any | null>(() => readStoredPreview());
   const [isPreviewOpen, setIsPreviewOpen] = useState(() => Boolean(readStoredPreview()));
   const [isNavigatingToSubject, setIsNavigatingToSubject] = useState(false);
@@ -594,25 +597,6 @@ export default function LearningPaths() {
             ),
           );
           setAllLibraryContent(allContent);
-          
-          // Count by type
-          const counts = {
-            TextBook: 0,
-            Workbook: 0,
-            Material: 0,
-            Audio: 0,
-            Homework: 0,
-            Video: 0,
-          };
-          
-          allContent.forEach((content: any) => {
-            const contentType = content.type;
-            if (counts.hasOwnProperty(contentType)) {
-              counts[contentType as keyof typeof counts]++;
-            }
-          });
-          
-          setContentTypeCounts(counts);
         } else {
           setAllLibraryContent([]);
         }
@@ -752,21 +736,11 @@ export default function LearningPaths() {
 
                 const Icon = theme.Icon;
 
-                // Match library rows by alias (Social studies ↔ Social Science) and merged IDs.
-                const key = normalizeSubjectDisplayKey(subject.name);
-                const subjectIds = new Set(
-                  [subject._id, subject.id, ...(subject.mergedSubjectIds || [])]
-                    .map((id: unknown) => String(id || '').trim())
-                    .filter(Boolean),
+                // Count from full library using ID + Social studies↔Social Science aliases
+                // (same sibling expansion the subject page uses on the API).
+                const mine = allLibraryContent.filter((c: any) =>
+                  libraryContentMatchesSubject(c, subject),
                 );
-                const mine = scopedLibraryContent.filter((c: any) => {
-                  const sid =
-                    typeof c?.subject === 'object'
-                      ? String(c.subject?._id || c.subject?.id || '')
-                      : String(c?.subject || c?.subjectId || '');
-                  if (sid && subjectIds.has(sid)) return true;
-                  return normalizeSubjectDisplayKey(c?.subject?.name) === key;
-                });
                 const countOf = (t: string) =>
                   mine.filter((c: any) => c?.type === t && !isIitTrackContent(c)).length;
                 const iitCount = mine.filter((c: any) => isIitTrackContent(c)).length;

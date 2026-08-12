@@ -1067,141 +1067,133 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
           </div>
         </div>
 
-        <div className={cn("space-y-4 border-t border-slate-200 pt-6", !selectedTool && "opacity-60 pointer-events-none")}>
+        <div className={cn("space-y-3 border-t border-slate-200 pt-4", !selectedTool && "opacity-60 pointer-events-none")}>
           <p className="text-sm font-semibold text-slate-900">2. Curriculum inputs</p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          <div className="space-y-2">
-            <Label>Board</Label>
-            <Select value={board} onValueChange={handleBoardChange}>
-              <SelectTrigger><SelectValue placeholder={boardOptionsForSelect.length ? "Select board" : "Loading boards…"} /></SelectTrigger>
-              <SelectContent>
-                {boardOptionsForSelect.map((b) => <SelectItem key={b} value={b}>{b}</SelectItem>)}
-              </SelectContent>
-            </Select>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-2.5">
+            <div className="space-y-1">
+              <Label className="text-xs">Board</Label>
+              <Select value={board} onValueChange={handleBoardChange}>
+                <SelectTrigger><SelectValue placeholder={boardOptionsForSelect.length ? "Select board" : "Loading…"} /></SelectTrigger>
+                <SelectContent>
+                  {boardOptionsForSelect.map((b) => <SelectItem key={b} value={b}>{b}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Class</Label>
+              <Select value={classNumber} onValueChange={handleClassChange} disabled={!board || loadingClasses}>
+                <SelectTrigger><SelectValue placeholder={!board ? "Board first" : loadingClasses ? "Loading…" : "Class"} /></SelectTrigger>
+                <SelectContent>
+                  {classOptionsForSelectWithBook.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">IIT track</Label>
+              <Select
+                value={productCategory || "__general__"}
+                onValueChange={handleCategoryChange}
+                disabled={!board}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={!board ? "Board first" : "General"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {categorySelectOptions.map((c) => (
+                    <SelectItem key={c.code || "__general__"} value={c.code || "__general__"}>
+                      {c.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Subject</Label>
+              <Select value={subject} onValueChange={handleSubjectChange} disabled={!classNumber || loadingSubjects}>
+                <SelectTrigger>
+                  <SelectValue
+                    placeholder={
+                      !classNumber
+                        ? "Class first"
+                        : loadingSubjects
+                          ? "Loading…"
+                          : isStoryLanguageTool(selectedTool) && subjectsForTool.length === 0
+                            ? "Language subjects only"
+                            : isLanguageExcludedTool(selectedTool) && subjectsForTool.length === 0
+                              ? "Not for language subjects"
+                              : "Subject"
+                    }
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  {subjectOptionsForSelect.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Topic</Label>
+              <Select value={topic} onValueChange={handleTopicChange} disabled={!subject || loadingTopics}>
+                <SelectTrigger><SelectValue placeholder={!subject ? "Subject first" : loadingTopics ? "Loading…" : "Topic"} /></SelectTrigger>
+                <SelectContent>
+                  {topicOptionsForSelect.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Sub topic</Label>
+              <Select
+                value={subTopic || WHOLE_CHAPTER_VALUE}
+                onValueChange={(value) => {
+                  setSubTopic(value);
+                  setExtraSubTopics([]);
+                }}
+                disabled={!topic || loadingSubtopics}
+              >
+                <SelectTrigger>
+                  <SelectValue
+                    placeholder={
+                      !topic
+                        ? "Topic first"
+                        : loadingSubtopics
+                          ? "Loading…"
+                          : "Whole chapter / sub-topic"
+                    }
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={WHOLE_CHAPTER_VALUE}>Whole chapter</SelectItem>
+                  {subtopics.map((st) => (
+                    <SelectItem key={st} value={st}>
+                      {st}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
-          <div className="space-y-2">
-            <Label>Class</Label>
-            <Select value={classNumber} onValueChange={handleClassChange} disabled={!board || loadingClasses}>
-              <SelectTrigger><SelectValue placeholder={!board ? "Select board first" : loadingClasses ? "Loading classes…" : "Select class"} /></SelectTrigger>
-              <SelectContent>
-                {classOptionsForSelectWithBook.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label>Product category (IIT track)</Label>
-            <Select
-              value={productCategory || "__general__"}
-              onValueChange={handleCategoryChange}
-              disabled={!board}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder={!board ? "Select board first" : "General"} />
-              </SelectTrigger>
-              <SelectContent>
-                {categorySelectOptions.map((c) => (
-                  <SelectItem key={c.code || "__general__"} value={c.code || "__general__"}>
-                    {c.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {isIitBoardSelected ? (
-              <p className="text-[11px] text-slate-500">
-                Pick Alpha / Beta / Gamma / Delta so teachers &amp; students on that track receive this content.
-              </p>
-            ) : (
-              <p className="text-[11px] text-slate-500">
-                Use General for board curriculum. For IIT tracks, choose Board IIT then Alpha–Delta.
-              </p>
-            )}
-          </div>
-          <div className="space-y-2">
-            <Label>Subject</Label>
-            <Select value={subject} onValueChange={handleSubjectChange} disabled={!classNumber || loadingSubjects}>
-              <SelectTrigger>
-                <SelectValue
-                  placeholder={
-                    !classNumber
-                      ? "Select class first"
-                      : loadingSubjects
-                        ? "Loading subjects…"
-                        : isStoryLanguageTool(selectedTool) && subjectsForTool.length === 0
-                          ? "English, Hindi, or Telugu only"
-                          : isLanguageExcludedTool(selectedTool) && subjectsForTool.length === 0
-                            ? "Not available for English, Hindi, or Telugu"
-                            : "Select subject"
-                  }
-                />
-              </SelectTrigger>
-              <SelectContent>
-                {subjectOptionsForSelect.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label>Topic</Label>
-            <Select value={topic} onValueChange={handleTopicChange} disabled={!subject || loadingTopics}>
-              <SelectTrigger><SelectValue placeholder={!subject ? "Select subject first" : loadingTopics ? "Loading topics…" : "Select topic"} /></SelectTrigger>
-              <SelectContent>
-                {topicOptionsForSelect.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label>Sub Topic</Label>
-            <Select
-              value={subTopic || WHOLE_CHAPTER_VALUE}
-              onValueChange={(value) => {
-                setSubTopic(value);
-                setExtraSubTopics([]);
-              }}
-              disabled={!topic || loadingSubtopics}
-            >
-              <SelectTrigger>
-                <SelectValue
-                  placeholder={
-                    !topic
-                      ? "Select topic first"
-                      : loadingSubtopics
-                        ? "Loading sub topics…"
-                        : "Whole chapter or a sub-topic"
-                  }
-                />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={WHOLE_CHAPTER_VALUE}>Whole chapter</SelectItem>
-                {subtopics.map((st) => (
-                  <SelectItem key={st} value={st}>
-                    {st}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <p className="text-xs text-slate-500">
-              {isWholeChapter
-                ? "Questions will cover the full chapter/topic (all major ideas)."
-                : isCombinedPaper
-                  ? `Combined paper covering ${selectedSubTopicsForPayload.length} subtopics.`
-                  : "Questions will focus on this sub-topic — or add more below for a combined paper."}
-            </p>
-            {isWholeChapter && subtopics.length > 0 ? (
-              <label className="mt-2 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50/80 px-3 py-2 text-xs text-amber-950 cursor-pointer">
-                <input
-                  type="checkbox"
-                  className="mt-0.5"
-                  checked={expandEachSubtopic}
-                  onChange={(e) => setExpandEachSubtopic(e.target.checked)}
-                />
-                <span>
-                  Also generate <strong>separately for each of the {subtopics.length} subtopic(s)</strong>,
-                  plus Whole chapter. Keeps content under the correct SUBTOPIC cards (not all under Whole chapter).
-                </span>
-              </label>
-            ) : null}
-          </div>
+          <p className="text-xs text-slate-500">
+            {isWholeChapter
+              ? "Questions will cover the full chapter/topic (all major ideas)."
+              : isCombinedPaper
+                ? `Combined paper covering ${selectedSubTopicsForPayload.length} subtopics.`
+                : "Questions will focus on this sub-topic — or add more below for a combined paper."}
+          </p>
+          {isWholeChapter && subtopics.length > 0 ? (
+            <label className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50/80 px-3 py-2 text-xs text-amber-950 cursor-pointer">
+              <input
+                type="checkbox"
+                className="mt-0.5"
+                checked={expandEachSubtopic}
+                onChange={(e) => setExpandEachSubtopic(e.target.checked)}
+              />
+              <span>
+                Also generate <strong>separately for each of the {subtopics.length} subtopic(s)</strong>,
+                plus Whole chapter. Keeps content under the correct SUBTOPIC cards (not all under Whole chapter).
+              </span>
+            </label>
+          ) : null}
           {supportsMultiSubtopic && subtopics.length > 1 ? (
-            <div className="sm:col-span-2 lg:col-span-3 space-y-1.5">
+            <div className="space-y-1.5">
               <Label className="text-xs text-slate-500">
                 Combined paper — add more subtopics ({extraSubTopics.length + 1} selected)
               </Label>
@@ -1239,7 +1231,7 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
               ) : null}
             </div>
           ) : null}
-          <div className="sm:col-span-2 lg:col-span-3 rounded-xl border border-violet-200 bg-violet-50/60 p-4 space-y-4">
+          <div className="rounded-xl border border-violet-200 bg-violet-50/60 p-4 space-y-4">
             {selectedTool && QUESTION_COUNT_TOOLS.has(selectedTool) ? (
               <div className="max-w-xs space-y-1.5">
                 <Label htmlFor="book-question-count">Number of questions</Label>
@@ -1392,7 +1384,6 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
               <p className="text-mini text-slate-500">{lastBatchSummary.cost.pricingNote}</p>
             </div>
           ) : null}
-        </div>
         </CardContent>
       </Card>
 
