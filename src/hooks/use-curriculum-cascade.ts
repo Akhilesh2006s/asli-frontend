@@ -8,7 +8,7 @@ import {
   setCurriculumResponseCache,
 } from '@/lib/curriculum-response-cache';
 import { compareClassLabels, sortClassLabelsAscending } from '@/lib/super-admin-curriculum-classes';
-import { mergePreservingPrimaryOrder, sortChapterWiseLabels } from '@/lib/curriculum-chapter-sort';
+import { mergePreservingPrimaryOrder, sortChapterWiseLabels, dedupeChapterWiseLabels } from '@/lib/curriculum-chapter-sort';
 import {
   CURRICULUM_TAXONOMY_CHANGED_EVENT,
   getCurriculumTaxonomyRevision,
@@ -246,7 +246,7 @@ export function useCurriculumCascade(
           classId: gradeForApi,
           subjectId: subject,
           syllabus: 'ncert6eng6hin6math6sst6-7-8-eng7-hin7-math7-sst7-eng8-hin8-math8-sst8-eng10-math10-sst10-hin10-sci10-v1',
-          v: '5',
+          v: '6',
         });
         if (board) qs.set('board', board);
         if (productCategory !== undefined) qs.set('productCategory', productCategory);
@@ -264,7 +264,9 @@ export function useCurriculumCascade(
         const curriculumTopics = rowsToNames((data as { data?: CurriculumRow[] }).data);
         const managedTopics = (managed as { data?: { topics?: string[] } })?.data?.topics || [];
         setTopics(
-          sortChapterWiseLabels(mergePreservingPrimaryOrder(managedTopics, curriculumTopics)),
+          dedupeChapterWiseLabels(
+            sortChapterWiseLabels(mergePreservingPrimaryOrder(managedTopics, curriculumTopics)),
+          ),
         );
       } catch {
         if (!cancelled) setTopics([]);

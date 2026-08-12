@@ -1,9 +1,3 @@
-import {
-  isLanguageExcludedTool,
-  isStoryPassageLanguageSubject,
-  LANGUAGE_EXCLUDED_TOOL_ERROR,
-} from '@/lib/ai-tool-subject-rules';
-
 /** HTML date inputs require YYYY-MM-DD; anything else is rejected. */
 const AI_TOOL_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -66,15 +60,8 @@ export function validateAiToolForm({
     return 'Please select a board.';
   }
 
-  const subject = String(formParams.subject || formParams.subjects || '');
-
-  if (isReadingPractice && !isStoryPassageLanguageSubject(subject)) {
-    return 'Story & Passage Creator works only with English, Hindi, or Telugu subjects.';
-  }
-
-  if (isLanguageExcludedTool(toolType) && isStoryPassageLanguageSubject(subject)) {
-    return LANGUAGE_EXCLUDED_TOOL_ERROR;
-  }
+  // Subject/tool pairing and language gates are not client delivery blockers —
+  // the API returns whatever saved content exists for the selection.
 
   const dateField = config.fields.find((f) => f.name === 'date' || f.type === 'date');
   if (dateField) {
@@ -98,23 +85,33 @@ export function resolveAiToolApiInlineMessage(
   data: { message?: string; code?: string },
   toolName?: string,
 ): string {
-  const message = data.message || '';
+  const message = sanitizeAiToolUserFacingError(data.message || '');
   if (message) return message;
 
   if (data.code === 'AI_TOOL_WRONG_TYPE') {
-    return 'Saved content belongs to a different AI tool. Super Admin must generate using this tool name only.';
+    return `No saved ${toolName || 'content'} matched this selection yet. Try Generate again shortly.`;
   }
   if (data.code === 'AI_TOOL_CONTENT_INCOMPLETE') {
-    return 'Saved content is incomplete or not in the correct tool format. Ask Super Admin to complete all sections.';
+    return `No saved ${toolName || 'content'} matched this selection yet. Try Generate again shortly.`;
   }
   if (data.code === 'AI_TOOL_DATA_NOT_FOUND') {
-    return `No ${toolName || 'tool'} content found for this selection. Ask Super Admin to add it in AI Tool Generations.`;
+    return `No ${toolName || 'tool'} content found for this selection yet. Try Generate again shortly.`;
   }
   if (data.code === 'AI_UNAVAILABLE_NO_FALLBACK') {
-    return 'AI service is unavailable and no previously generated content was found for this selection.';
+    return 'No stored content matched this selection yet. Try again shortly.';
   }
 
-  return 'No complete content is available for this class, subject, topic, and sub-topic.';
+  return 'No saved content matched this selection yet.';
+}
+
+/** Never show Mongo multiplanner / internal DB errors in the dashboard UI. */
+export function sanitizeAiToolUserFacingError(message: string): string {
+  const raw = String(message || '').trim();
+  if (!raw) return '';
+  if (/exceeded time limit|multiplanner|timed?\s*out|fallback lookup failed/i.test(raw)) {
+    return 'Saved content is taking too long to load. Please try Generate again.';
+  }
+  return raw;
 }
 
 /** Backend copy aimed at admins ("ask Super Admin", "AI Tool Generations"). */
@@ -138,35 +135,12 @@ export function resolveAiToolStudentEmptyMessage(
 
   if (!isContentGap) return { message: raw, isContentGap: false };
 
-  const ready = Array.isArray(data.availableTopics)
-    ? data.availableTopics.map((t) => String(t || '').trim()).filter(Boolean)
-    : [];
-
-  if (data.code === 'AI_TOOL_CONTENT_INCOMPLETE') {
-    return {
-      message: `This ${toolName || 'content'} is still incomplete for the selected chapter. Try another chapter for now.`,
-      isContentGap: true,
-    };
-  }
-
-  if (data.code === 'AI_TOOL_WRONG_TYPE') {
-    return {
-      message: `Saved content for this chapter is not a ${toolName || 'valid tool'} yet. Try another chapter.`,
-      isContentGap: true,
-    };
-  }
-
-  if (ready.length > 0) {
-    const shown = ready.slice(0, 6).join('; ');
-    const more = ready.length > 6 ? ` (+${ready.length - 6} more)` : '';
-    return {
-      message: `No ${toolName || 'content'} is ready for this chapter yet. Try one of these ready chapters: ${shown}${more}.`,
-      isContentGap: true,
-    };
-  }
-
+  // Do not gate the UI on "ready chapters" lists — keep a short neutral gap note.
   return {
-    message: `No ${toolName || 'content'} is ready for this class and subject yet. Try another chapter — more is being added.`,
+    message:
+      raw && !ADMIN_FACING_COPY.test(raw)
+        ? raw
+        : `No saved ${toolName || 'content'} matched this selection yet. Generate again, or ask your school to add this chapter.`,
     isContentGap: true,
   };
 }
