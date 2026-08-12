@@ -1359,19 +1359,19 @@ Jane Smith,jane.smith@school.edu,TeacherPass2,1234567891,Science,MSc in Chemistr
                   </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between p-4 bg-gradient-to-r from-orange-50 to-orange-100 rounded-xl border border-orange-200">
-                    <div className="flex items-center gap-3">
-                      <FileSpreadsheet className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-orange-600" />
-                      <div>
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between p-4 bg-gradient-to-r from-orange-50 to-orange-100 rounded-xl border border-orange-200">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <FileSpreadsheet className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-orange-600 shrink-0" />
+                      <div className="min-w-0">
                         <p className="font-medium text-gray-900">CSV Template</p>
-                        <p className="text-xs sm:text-sm text-gray-600">Download the template file</p>
+                        <p className="text-xs sm:text-sm text-gray-600 break-words">Download the template file</p>
                       </div>
                     </div>
                     <Button
                       type="button"
                       variant="outline"
                       onClick={downloadTemplate}
-                      className="border-orange-200 text-orange-700 hover:bg-orange-50"
+                      className="w-full sm:w-auto shrink-0 border-orange-200 text-orange-700 hover:bg-orange-50"
                     >
                       <Download className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                       Download

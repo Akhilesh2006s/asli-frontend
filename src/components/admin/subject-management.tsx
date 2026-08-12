@@ -570,6 +570,7 @@ const SubjectManagement = () => {
 
         {/* Subjects Table */}
         <div className="bg-white/70 backdrop-blur-xl rounded-2xl shadow-lg border border-sky-200 overflow-hidden">
+          <div className="overflow-x-auto">
           <Table className="min-w-[640px]">
             <TableHeader className="sticky top-0 z-10 bg-sky-50">
               <TableRow className="bg-sky-50/50">
@@ -674,6 +675,7 @@ const SubjectManagement = () => {
               ))}
             </TableBody>
           </Table>
+          </div>
         </div>
 
         {filteredSubjects.length === 0 && (

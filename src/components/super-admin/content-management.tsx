@@ -1128,39 +1128,39 @@ export default function ContentManagement() {
                         return (
                           <div
                             key={content._id}
-                            className="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 hover:shadow-md transition-all duration-200 cursor-pointer group"
+                            className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between p-4 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 hover:shadow-md transition-all duration-200 cursor-pointer group min-w-0"
                             onClick={() => setViewingContent(content)}
                           >
-                            <div className="flex items-center space-x-4 flex-1 min-w-0">
-                              <div className="p-3 bg-gradient-to-br from-sky-100 to-teal-100 rounded-lg group-hover:from-sky-200 group-hover:to-teal-200 transition-colors">
+                            <div className="flex items-start space-x-3 sm:space-x-4 flex-1 min-w-0">
+                              <div className="p-3 bg-gradient-to-br from-sky-100 to-teal-100 rounded-lg group-hover:from-sky-200 group-hover:to-teal-200 transition-colors shrink-0">
                                 <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-sky-600" />
                               </div>
                               <div className="flex-1 min-w-0">
-                                <div className="flex items-center space-x-2 mb-1">
+                                <div className="flex flex-wrap items-center gap-2 mb-1">
                                   <Badge className={`text-xs ${getTypeColor(content.type)}`}>
                                     {contentTypeLabel}
                                   </Badge>
                                   {content.topic && (
-                                    <Badge variant="outline" className="text-xs">
+                                    <Badge variant="outline" className="text-xs max-w-full whitespace-normal break-words">
                                       {content.topic}
                                     </Badge>
                                   )}
                                 </div>
-                                <h4 className="font-semibold text-gray-900 text-sm sm:text-base mb-1 truncate">{content.title}</h4>
-                                <div className="flex items-center gap-3 text-xs sm:text-sm text-gray-600">
-                                  <span className="flex items-center gap-1">
-                                    <BookOpen className="w-3 h-3" />
+                                <h4 className="font-semibold text-gray-900 text-sm sm:text-base mb-1 break-words">{content.title}</h4>
+                                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs sm:text-sm text-gray-600">
+                                  <span className="flex items-center gap-1 break-words">
+                                    <BookOpen className="w-3 h-3 shrink-0" />
                                     {extractSubjectName(subjectName)}
                                   </span>
                                   {classNumber && (
                                     <span className="flex items-center gap-1">
-                                      <GraduationCap className="w-3 h-3" />
+                                      <GraduationCap className="w-3 h-3 shrink-0" />
                                       Class {classNumber}
                                     </span>
                                   )}
                                   {content.date && (
                                     <span className="flex items-center gap-1">
-                                      <Calendar className="w-3 h-3" />
+                                      <Calendar className="w-3 h-3 shrink-0" />
                                       {new Date(content.date).toLocaleDateString()}
                                     </span>
                                   )}
@@ -1171,11 +1171,11 @@ export default function ContentManagement() {
                                   )}
                                 </div>
                                 {content.description && (
-                                  <p className="text-xs text-gray-500 mt-1 line-clamp-1">{content.description}</p>
+                                  <p className="text-xs text-gray-500 mt-1 line-clamp-2 break-words">{content.description}</p>
                                 )}
                               </div>
                             </div>
-                            <div className="flex items-center gap-2 ml-4">
+                            <div className="flex items-center gap-2 sm:ml-4 w-full sm:w-auto shrink-0">
                               <Button
                                 variant="outline"
                                 size="sm"
@@ -1183,7 +1183,7 @@ export default function ContentManagement() {
                                   e.stopPropagation();
                                   setViewingContent(content);
                                 }}
-                                className="bg-sky-50 hover:bg-sky-100 border-sky-200 text-sky-700"
+                                className="flex-1 sm:flex-none bg-sky-50 hover:bg-sky-100 border-sky-200 text-sky-700"
                               >
                                 <Eye className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
                                 View
@@ -1604,7 +1604,7 @@ export default function ContentManagement() {
           <DialogHeader className="px-3 sm:px-4 lg:px-6 pt-5 pb-3 flex-shrink-0 border-b bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white">
             <div className="flex items-center justify-between gap-4">
               <div>
-                <DialogTitle className="text-lg sm:text-xl font-semibold truncate max-w-[60vw]">
+                <DialogTitle className="text-lg sm:text-xl font-semibold break-words pr-2">
                   {viewingContent?.title || 'Content'}
                 </DialogTitle>
                 <DialogDescription className="text-slate-200/80">

@@ -865,7 +865,7 @@ export default function BookKnowledgeBase() {
                 className="flex flex-wrap items-center gap-3 justify-between rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
               >
                 <div className="min-w-0 flex-1">
-                  <p className="font-semibold text-slate-900 truncate">{book.title}</p>
+                  <p className="font-semibold text-slate-900 break-words">{book.title}</p>
                   <p className="text-xs text-slate-500 mt-0.5">
                     {book.board} · {book.class} · {book.subject}
                     {normalizeIitCategory(book.productCategory)

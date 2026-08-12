@@ -618,7 +618,7 @@ export function GeneratorRecordsPanel({
                                                           gradientVia,
                                                         )}
                                                       >
-                                                        <div className="border-b border-slate-100/80 bg-white/80 px-4 py-3 flex items-center justify-between gap-2">
+                                                        <div className="border-b border-slate-100/80 bg-white/80 px-3 sm:px-4 py-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                                                           <div>
                                                             <p className="text-xs text-slate-500">RECORDS</p>
                                                             <p className="text-sm font-semibold text-slate-900">
@@ -686,7 +686,7 @@ export function GeneratorRecordsPanel({
                                                                   ) : null}
                                                                   {(row.variantAngle || recordVariantAngle(row)) ? (
                                                                     <span
-                                                                      className="text-micro text-slate-500 max-w-[220px] truncate"
+                                                                      className="text-micro text-slate-500 w-full sm:w-auto sm:max-w-[220px] break-words sm:truncate"
                                                                       title={row.variantAngle || recordVariantAngle(row)}
                                                                     >
                                                                       {row.variantAngle || recordVariantAngle(row)}

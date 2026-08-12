@@ -178,26 +178,26 @@ const ClassManagement = () => {
 
       {/* Action Bar */}
       <div className="bg-white rounded-xl p-3 sm:p-4 lg:p-6 shadow-sm border border-gray-200">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <div className="relative">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:space-x-4 w-full sm:w-auto min-w-0">
+            <div className="relative w-full sm:w-80">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-3 h-3 sm:w-4 sm:h-4" />
               <Input
                 placeholder="Search classes..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="px-0 pl-10 sm:pl-11 w-80"
+                className="px-0 pl-10 sm:pl-11 w-full"
               />
             </div>
-            <Button variant="outline" size="sm" className="border-gray-300 text-gray-700 hover:bg-gray-50">
+            <Button variant="outline" size="sm" className="w-full sm:w-auto border-gray-300 text-gray-700 hover:bg-gray-50">
               <Filter className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
               Filter
             </Button>
           </div>
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center gap-3 w-full sm:w-auto">
             <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
               <DialogTrigger asChild>
-                <Button className="bg-blue-600 hover:bg-blue-700 text-white">
+                <Button className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white">
                   <Plus className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                   Add Class
                 </Button>

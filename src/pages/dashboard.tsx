@@ -1981,14 +1981,14 @@ export default function Dashboard() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             <Card className="lg:col-span-2 bg-white rounded-xl shadow-md">
               <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <div>
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="min-w-0">
                     <CardTitle className="text-lg sm:text-xl font-bold text-gray-900">Study Calendar</CardTitle>
-                    <p className="text-xs sm:text-sm text-gray-600 mt-1">
+                    <p className="text-xs sm:text-sm text-gray-600 mt-1 break-words">
                       Quizzes by due date; exams on their scheduled dates
                     </p>
                   </div>
-                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 shrink-0">
                     <div className="flex items-center gap-2">
                       <Button
                         variant="outline"
@@ -2168,14 +2168,16 @@ export default function Dashboard() {
           {/* Today's Tasks */}
           <Card className="bg-white rounded-xl shadow-md">
             <CardHeader className="pb-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <div className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 bg-gray-100 rounded-full flex items-center justify-center">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-center space-x-3 min-w-0">
+                  <div className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 bg-gray-100 rounded-full flex items-center justify-center shrink-0">
                     <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-gray-500" />
                   </div>
                   <CardTitle className="text-lg sm:text-xl font-semibold tracking-wide text-gray-700">TODAY'S TASKS</CardTitle>
                 </div>
-                <p className="text-xs sm:text-sm text-gray-600">{new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}</p>
+                <p className="text-xs sm:text-sm text-gray-600 shrink-0">
+                  {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
+                </p>
               </div>
             </CardHeader>
             <CardContent>

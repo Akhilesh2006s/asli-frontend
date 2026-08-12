@@ -1303,11 +1303,11 @@ const ClassDashboard = () => {
                         <GraduationCap className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-sky-600" />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <h3 className="font-bold text-sky-900 text-base sm:text-lg truncate">
+                        <h3 className="font-bold text-sky-900 text-base sm:text-lg break-words">
                           {classItem.name || `Class ${classItem.classNumber}${classItem.section || ''}`}
                         </h3>
                         {classItem.description && (
-                          <p className="text-sky-700 text-xs sm:text-sm mt-1 truncate">{classItem.description}</p>
+                          <p className="text-sky-700 text-xs sm:text-sm mt-1 line-clamp-2 break-words">{classItem.description}</p>
                         )}
                       </div>
                     </div>

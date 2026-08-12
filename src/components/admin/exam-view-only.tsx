@@ -716,11 +716,12 @@ export default function ExamViewOnly() {
         {/* All Results */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              <span>Attempt details</span>
+            <CardTitle className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <span className="break-words">Attempt details</span>
               <Button 
                 variant="outline" 
                 size="sm"
+                className="w-full sm:w-auto shrink-0"
                 disabled={isExporting || examResults.length === 0}
                 onClick={() => void exportToExcel()}
               >

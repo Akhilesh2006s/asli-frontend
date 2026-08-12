@@ -281,15 +281,15 @@ export default function SubjectManagement() {
     <div className="space-y-3 sm:space-y-4 lg:space-y-6">
       {ConfirmDialog}
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">Subject Management</h2>
-          <p className="text-gray-600 mt-1">Create and manage subjects for each board</p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
+          <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 break-words">Subject Management</h2>
+          <p className="text-gray-600 mt-1 break-words">Create and manage subjects for each board</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 w-full sm:w-auto">
           <Button
             onClick={() => setIsAddModalOpen(true)}
-            className="bg-gradient-to-r from-sky-300 to-teal-400 hover:from-sky-400 hover:to-teal-500 text-white"
+            className="w-full sm:w-auto bg-gradient-to-r from-sky-300 to-teal-400 hover:from-sky-400 hover:to-teal-500 text-white"
           >
             <Plus className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
             Add Subject

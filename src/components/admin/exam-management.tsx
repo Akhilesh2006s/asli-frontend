@@ -521,12 +521,12 @@ const ExamManagement = () => {
   return (
     <div className="space-y-3 sm:space-y-4 lg:space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Weekend Exam Management</h2>
-          <p className="text-gray-600">Create and manage weekend exams and questions</p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 break-words">Weekend Exam Management</h2>
+          <p className="text-gray-600 text-sm sm:text-base break-words">Create and manage weekend exams and questions</p>
         </div>
-        <Button onClick={() => openExamDialog()} className="bg-blue-600 hover:bg-blue-700">
+        <Button onClick={() => openExamDialog()} className="w-full sm:w-auto shrink-0 bg-blue-600 hover:bg-blue-700">
           <Plus className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
           Create Exam
         </Button>
@@ -612,7 +612,8 @@ const ExamManagement = () => {
               <CardTitle>All Exams</CardTitle>
             </CardHeader>
             <CardContent>
-              <Table>
+              <div className="overflow-x-auto -mx-1 px-1">
+              <Table className="min-w-[640px]">
                 <TableHeader>
                   <TableRow>
                     <TableHead>Title</TableHead>
@@ -627,7 +628,7 @@ const ExamManagement = () => {
                 <TableBody>
                   {Array.isArray(exams) ? exams.map((exam) => (
                     <TableRow key={exam._id}>
-                      <TableCell className="font-medium">{exam.title}</TableCell>
+                      <TableCell className="font-medium break-words max-w-[220px]">{exam.title}</TableCell>
                       <TableCell>
                         <Badge variant={exam.examType === 'weekend' ? 'default' : 'secondary'}>
                           {exam.examType}
@@ -687,6 +688,7 @@ const ExamManagement = () => {
                   )}
                 </TableBody>
               </Table>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -694,8 +696,8 @@ const ExamManagement = () => {
         <TabsContent value="questions">
           <Card>
             <CardHeader>
-              <div className="flex justify-between items-center">
-                <CardTitle className="text-xl sm:text-2xl font-bold">
+              <div className="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-center">
+                <CardTitle className="text-xl sm:text-2xl font-bold break-words min-w-0">
                   Questions {selectedExam && `- ${selectedExam.title}`}
                 </CardTitle>
                 {selectedExam && (
@@ -784,7 +786,8 @@ const ExamManagement = () => {
             </CardHeader>
             <CardContent>
               {selectedExam ? (
-                <Table>
+                <div className="overflow-x-auto -mx-1 px-1">
+                <Table className="min-w-[640px]">
                   <TableHeader>
                     <TableRow>
                       <TableHead>Question</TableHead>
@@ -797,7 +800,7 @@ const ExamManagement = () => {
                   <TableBody>
                     {questions && questions.length > 0 ? questions.map((question) => (
                       <TableRow key={question._id || question.id || Math.random()}>
-                        <TableCell className="max-w-xs truncate">
+                        <TableCell className="max-w-xs break-words whitespace-normal">
                           {question.questionText || 'No question text'}
                         </TableCell>
                         <TableCell>
@@ -840,6 +843,7 @@ const ExamManagement = () => {
                     )}
                   </TableBody>
                 </Table>
+                </div>
               ) : (
                 <div className="text-center py-16">
                   <div className="bg-gradient-to-r from-yellow-50 to-orange-50 rounded-2xl p-4 sm:p-6 lg:p-8 border-2 border-yellow-200">

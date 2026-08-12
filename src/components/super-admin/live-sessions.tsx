@@ -530,9 +530,9 @@ export default function LiveSessions() {
             </div>
 
             <div className="space-y-2">
-              <div className="flex items-center justify-between gap-2">
-                <Label>Schools * ({formData.schoolAdminIds.length} selected)</Label>
-                <div className="flex gap-2">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <Label className="break-words">Schools * ({formData.schoolAdminIds.length} selected)</Label>
+                <div className="flex flex-wrap gap-2">
                   <Button type="button" variant="ghost" size="sm" className="h-7 text-xs" onClick={selectAllSchools}>
                     Select all
                   </Button>

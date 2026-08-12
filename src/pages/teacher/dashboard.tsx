@@ -3544,19 +3544,19 @@ const TeacherDashboard = () => {
                     <div className="space-y-4 sm:space-y-6 lg:space-y-8">
                       {/* Header */}
                       <div className="bg-white/60 backdrop-blur-xl rounded-3xl p-3 sm:p-4 lg:p-6 shadow-xl border border-white/20">
-                        <div className="flex items-center justify-between mb-6">
-                          <div className="flex items-center gap-3">
-                            <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-blue-600 rounded-lg flex items-center justify-center">
+                        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-6">
+                          <div className="flex items-start gap-3 min-w-0">
+                            <div className="w-12 h-12 shrink-0 bg-gradient-to-br from-purple-500 to-blue-600 rounded-lg flex items-center justify-center">
                               <FileText className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-white" />
                             </div>
-                            <div>
-                              <h2 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">H.W Submissions</h2>
-                              <p className="text-gray-600">View and manage student homework submissions</p>
+                            <div className="min-w-0">
+                              <h2 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent break-words">H.W Submissions</h2>
+                              <p className="text-gray-600 text-sm break-words">View and manage student homework submissions</p>
                             </div>
                           </div>
                           <Button
                             onClick={() => setIsHomeworkModalOpen(true)}
-                            className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white shadow-lg"
+                            className="w-full sm:w-auto shrink-0 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white shadow-lg"
                           >
                             <Plus className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                             Create Homework
@@ -3613,15 +3613,15 @@ const TeacherDashboard = () => {
                                             setExpandedHomework(newExpanded);
                                           }}
                                         >
-                                          <div className="flex items-center justify-between">
-                                            <div className="flex-1">
-                                              <div className="flex items-center gap-3 mb-2">
-                                                <h4 className="font-semibold text-gray-900">{homework.title || 'Untitled Homework'}</h4>
+                                          <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                                            <div className="flex-1 min-w-0">
+                                              <div className="flex flex-wrap items-center gap-2 mb-2">
+                                                <h4 className="font-semibold text-gray-900 break-words">{homework.title || 'Untitled Homework'}</h4>
                                                 {isOverdue && (
-                                                  <Badge className="bg-red-100 text-red-800">Overdue</Badge>
+                                                  <Badge className="bg-red-100 text-red-800 shrink-0">Overdue</Badge>
                                                 )}
                                                 {deadline && deadline >= new Date() && (
-                                                  <Badge className="bg-yellow-100 text-yellow-800">Active</Badge>
+                                                  <Badge className="bg-yellow-100 text-yellow-800 shrink-0">Active</Badge>
                                                 )}
                                               </div>
                                               <div className="flex flex-wrap items-center gap-4 text-xs sm:text-sm text-gray-600">

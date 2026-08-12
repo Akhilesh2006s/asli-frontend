@@ -796,7 +796,7 @@ const UserManagement = () => {
           </div>
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-1.5">
-              <h4 className="font-semibold text-sky-900 text-xs sm:text-sm leading-tight truncate">
+              <h4 className="font-semibold text-sky-900 text-xs sm:text-sm leading-tight break-words">
                 {student.name || 'Unknown Student'}
               </h4>
               {seats.licensedStudents > 0 && (

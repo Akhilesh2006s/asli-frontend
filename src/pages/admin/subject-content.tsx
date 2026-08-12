@@ -176,11 +176,11 @@ export default function AdminSubjectContent() {
             <ArrowLeft className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
             Back to Learning Paths
           </Button>
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">{subject?.name || 'Subject'}</h1>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div className="min-w-0">
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 break-words">{subject?.name || 'Subject'}</h1>
               {subject?.description && (
-                <p className="text-gray-600 mt-2">{subject.description}</p>
+                <p className="text-gray-600 mt-2 break-words">{subject.description}</p>
               )}
             </div>
             <Button
@@ -200,7 +200,7 @@ export default function AdminSubjectContent() {
                 void fetchSubjectContent(params.id, mergeIds);
               }}
               disabled={loadingContents}
-              className="shrink-0"
+              className="w-full sm:w-auto shrink-0"
             >
               <RefreshCw className={`mr-2 h-4 w-4 ${loadingContents ? 'animate-spin' : ''}`} />
               Refresh
@@ -211,15 +211,15 @@ export default function AdminSubjectContent() {
         {/* Calendar View */}
         <Card className="bg-white/80 backdrop-blur-xl shadow-xl border border-white/20">
           <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-xl sm:text-2xl font-bold">Content Calendar</CardTitle>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <CardTitle className="text-xl sm:text-2xl font-bold break-words">Content Calendar</CardTitle>
               {getContentTypeOptions().length > 0 && (
-                <div className="flex items-center space-x-2">
-                  <Filter className="w-3 h-3 sm:w-4 sm:h-4 text-gray-500" />
+                <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+                  <Filter className="w-3 h-3 sm:w-4 sm:h-4 text-gray-500 shrink-0" />
                   <select
                     value={selectedContentType || ''}
                     onChange={(e) => setSelectedContentType(e.target.value || null)}
-                    className="px-3 py-1 border border-gray-300 rounded-lg text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="flex-1 sm:flex-none min-w-0 px-3 py-1 border border-gray-300 rounded-lg text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="">All Content Types</option>
                     {getContentTypeOptions().map(type => (
