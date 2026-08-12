@@ -5,10 +5,6 @@ import { Button } from '@/components/ui/button';
 import { 
   Menu, 
   X, 
-  Sparkles,
-  BookOpen,
-  Users,
-  Brain
 } from 'lucide-react';
 
 const HomepageNav = () => {
@@ -25,10 +21,12 @@ const HomepageNav = () => {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link href="/" className="flex items-center space-x-2">
-            <div className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
-              <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
-            </div>
-            <span className="text-lg sm:text-xl font-bold text-gray-900">AsliLearn</span>
+            <img
+              src="/logo-transparent.png"
+              alt="AsliLearn.ai"
+              className="h-9 w-9 rounded-lg bg-white object-contain ring-1 ring-gray-200 sm:h-10 sm:w-10"
+            />
+            <span className="text-lg font-bold text-gray-900 sm:text-xl">AsliLearn</span>
           </Link>
 
           {/* Desktop Navigation */}

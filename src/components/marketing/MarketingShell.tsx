@@ -65,7 +65,7 @@ export function MarketingNav({ scrolled = false }: { scrolled?: boolean }) {
     >
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
         <Link href="/" className="flex shrink-0 items-center gap-2.5" onClick={() => setMobileOpen(false)}>
-          <img src="/logo.jpg" alt="AsliLearn.ai" className="h-9 w-9 rounded-lg object-contain" />
+          <img src="/logo-transparent.png" alt="AsliLearn.ai" className="h-10 w-10 rounded-lg bg-white object-contain p-0.5" />
           <span
             className={cn(
               "font-display text-lg font-extrabold tracking-tight",
@@ -165,7 +165,7 @@ export function MarketingFooter() {
       <div className="mx-auto grid max-w-7xl gap-8 px-4 pb-10 sm:gap-10 sm:px-6 sm:pb-12 md:grid-cols-2 lg:grid-cols-4 lg:px-8">
         <div>
           <Link href="/" className="flex items-center gap-2.5">
-            <img src="/logo.jpg" alt="AsliLearn AI" className="h-9 w-9 rounded-lg object-contain" />
+            <img src="/logo-transparent.png" alt="AsliLearn AI" className="h-10 w-10 rounded-lg bg-white object-contain p-0.5" />
             <span className="font-display text-lg font-extrabold tracking-tight">
               ASLILEARN<span className="text-sky-300">.AI</span>
             </span>

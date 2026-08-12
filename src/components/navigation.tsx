@@ -219,9 +219,9 @@ export default function Navigation() {
               <Link href="/dashboard">
                 <div className="group flex min-w-0 cursor-pointer items-center gap-3">
                   <img 
-                    src="/logo.jpg" 
+                    src="/logo-transparent.png" 
                     alt="ASLILEARN Logo" 
-                    className="h-12 w-12 shrink-0 rounded-xl object-contain transition-transform duration-300 group-hover:scale-105 sm:h-14 sm:w-14"
+                    className="h-14 w-14 shrink-0 rounded-xl bg-white object-contain p-0.5 shadow-sm transition-transform duration-300 group-hover:scale-105 sm:h-16 sm:w-16"
                   />
                   <div className="flex min-w-0 flex-col">
                     <span className="truncate font-display text-xl font-bold tracking-tight text-ink sm:text-2xl">
@@ -282,9 +282,9 @@ export default function Navigation() {
                           <div className="w-12 h-12 rounded-xl flex items-center justify-center shadow-xl bg-gradient-to-br from-blue-600 to-cyan-500 p-1">
                             <div className="w-full h-full rounded-lg bg-white flex items-center justify-center overflow-hidden">
                               <img 
-                                src="/logo.jpg" 
+                                src="/logo-transparent.png" 
                                 alt="ASLILEARN Logo" 
-                                className="w-full h-full object-contain p-1"
+                                className="h-full w-full object-contain p-1"
                               />
                             </div>
                           </div>

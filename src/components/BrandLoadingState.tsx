@@ -20,19 +20,19 @@ export function BrandLoadingState({
       aria-busy="true"
     >
       <div className="asli-card-premium flex w-full max-w-xl flex-col items-center p-8 text-center sm:p-10">
-        <div className="mb-6 flex h-28 w-28 items-center justify-center rounded-3xl bg-white p-2.5 shadow-md ring-1 ring-slate-200/90 sm:h-32 sm:w-32">
+        <div className="mb-6 flex h-36 w-36 items-center justify-center rounded-3xl bg-white p-2.5 shadow-md ring-1 ring-slate-200/90 sm:h-40 sm:w-40">
           <img
-            src="/logo.png"
+            src="/logo-transparent.png"
             alt="AsliLearn.ai"
-            width={128}
-            height={128}
+            width={160}
+            height={160}
             className="h-full w-full object-contain"
             decoding="async"
             onError={(e) => {
               const el = e.currentTarget;
               if (el.getAttribute('data-fallback') === '1') return;
               el.setAttribute('data-fallback', '1');
-              el.src = '/logo.jpg';
+              el.src = '/logo.png';
             }}
           />
         </div>

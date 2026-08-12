@@ -100,9 +100,9 @@ function SidebarBody({
         title="Home"
       >
         <img
-          src="/logo.jpg"
+          src="/logo-transparent.png"
           alt=""
-          className="h-8 w-8 shrink-0 rounded-lg object-cover ring-1 ring-sidebar-border"
+          className="h-10 w-10 shrink-0 rounded-lg bg-white object-contain p-0.5 ring-1 ring-sidebar-border"
         />
         <div className="min-w-0">
           <p className="font-display text-base font-extrabold leading-tight text-sidebar-heading">

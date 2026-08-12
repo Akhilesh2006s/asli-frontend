@@ -330,9 +330,9 @@ const Login = () => {
                   transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
                 >
                   <img 
-                    src="/logo.jpg" 
+                    src="/logo-transparent.png" 
                     alt="ASLILEARN Logo" 
-                    className="w-32 h-32 mx-auto mb-4 object-cover rounded-full shadow-2xl ring-4 ring-white/20"
+                    className="mx-auto mb-4 h-40 w-auto max-w-[280px] object-contain drop-shadow-2xl sm:h-48"
                   />
                 </motion.div>
                 <motion.h1 
@@ -384,9 +384,9 @@ const Login = () => {
                     className="inline-flex items-center gap-3 rounded-2xl border border-white/15 bg-black/20 px-3 py-2 backdrop-blur-md"
                   >
                     <img
-                      src="/logo.jpg"
+                      src="/logo-transparent.png"
                       alt="AsliLearn AI"
-                      className="h-14 w-14 rounded-2xl bg-white object-contain p-1 shadow-glow"
+                      className="h-14 w-auto max-w-[180px] rounded-xl bg-white object-contain p-1 shadow-glow"
                     />
                     <span
                       className="font-display text-2xl font-extrabold tracking-tight drop-shadow-md"
@@ -447,13 +447,13 @@ const Login = () => {
                   initial={{ scale: 0.8, opacity: 0, rotate: -180 }}
                   animate={{ scale: 1, opacity: 1, rotate: 0 }}
                   transition={{ duration: 0.8, delay: 0.2, type: "spring" }}
-                  className="relative h-16 w-16 lg:hidden"
+                  className="relative h-20 w-20 lg:hidden"
                 >
-                  <div className="absolute inset-0 bg-gradient-to-br from-sky-300 to-blue-400 rounded-full blur-lg opacity-30"></div>
+                  <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-sky-300 to-blue-400 opacity-30 blur-lg"></div>
                   <img 
-                    src="/logo.jpg" 
+                    src="/logo-transparent.png" 
                     alt="ASLILEARN Logo" 
-                    className="w-full h-full object-cover rounded-full shadow-xl relative z-10 ring-2 ring-sky-200"
+                    className="relative z-10 h-full w-full rounded-2xl bg-white object-contain p-1 shadow-xl ring-2 ring-sky-200"
                   />
                 </motion.div>
                 <motion.div
