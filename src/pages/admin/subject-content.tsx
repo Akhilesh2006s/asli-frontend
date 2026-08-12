@@ -254,6 +254,7 @@ export default function AdminSubjectContent() {
                   : contents}
                 onMarkAsDone={undefined}
                 completedItems={[]}
+                subjectName={subject?.name || ''}
               />
             )}
           </CardContent>

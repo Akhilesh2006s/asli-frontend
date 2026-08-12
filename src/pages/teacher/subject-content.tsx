@@ -375,6 +375,7 @@ export default function TeacherSubjectContent() {
               isLoading={loadingContents}
               onMarkAsDone={undefined}
               completedItems={[]}
+              subjectName={subject?.name || ''}
             />
           )}
         </div>

@@ -29,9 +29,11 @@ export function AiToolFormField({
         className="flex min-h-10 items-end gap-2 text-sm font-medium leading-snug text-slate-700"
       >
         <span className="line-clamp-2">{label}</span>
-        {loading ? (
-          <Loader2 className="mb-0.5 h-3.5 w-3.5 shrink-0 animate-spin text-blue-600" aria-hidden />
-        ) : null}
+        <span className="mb-0.5 inline-flex h-3.5 w-3.5 shrink-0 items-center justify-center" aria-hidden>
+          {loading ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin text-blue-600" />
+          ) : null}
+        </span>
       </Label>
       {children}
     </div>

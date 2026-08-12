@@ -42,8 +42,12 @@ import {
   resolveIsAsliPrepExclusive,
   type ContentTypeName,
 } from "@/lib/school-program";
+import {
+  formatIitLearningPathContentLabel,
+  isIitTrackContent,
+} from "@/lib/library-content-labels";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { API_BASE_URL } from "@/lib/api-config";
 import { getUser, getAuthToken } from '@/lib/auth-utils';
 import PdfPreviewPanel from "@/components/shared/PdfPreviewPanel";
@@ -174,6 +178,32 @@ export default function LearningPaths() {
   const [filteredContent, setFilteredContent] = useState<any[]>([]);
   const [isLoadingFilteredContent, setIsLoadingFilteredContent] = useState(false);
   const [allLibraryContent, setAllLibraryContent] = useState<any[]>([]);
+  const allowedLibrarySubjectIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const subject of subjects) {
+      const primary = String(subject._id || subject.id || '');
+      if (primary) ids.add(primary);
+      for (const mid of subject.mergedSubjectIds || []) {
+        const s = String(mid || '');
+        if (s) ids.add(s);
+      }
+    }
+    return ids;
+  }, [subjects]);
+
+  const scopedLibraryContent = useMemo(() => {
+    if (allowedLibrarySubjectIds.size === 0) return [];
+    return allLibraryContent.filter((content: any) => {
+      const subj = content?.subject;
+      const sid =
+        typeof subj === 'object' && subj?._id != null
+          ? String(subj._id)
+          : typeof subj === 'string'
+            ? subj.trim()
+            : String(content?.subjectId || '');
+      return sid && allowedLibrarySubjectIds.has(sid);
+    });
+  }, [allLibraryContent, allowedLibrarySubjectIds]);
   const [previewContent, setPreviewContent] = useState<any | null>(() => readStoredPreview());
   const [isPreviewOpen, setIsPreviewOpen] = useState(() => Boolean(readStoredPreview()));
   const [isNavigatingToSubject, setIsNavigatingToSubject] = useState(false);
@@ -203,9 +233,20 @@ export default function LearningPaths() {
     void import("@/pages/subject-content");
   };
 
-  const handleSubjectClick = (subjectId: string) => {
+  const handleSubjectClick = (subject: any) => {
+    const primaryId = String(subject._id || subject.id || '');
+    if (!primaryId) return;
+    const mergedIds: string[] = Array.isArray(subject.mergedSubjectIds)
+      ? subject.mergedSubjectIds.map(String).filter(Boolean)
+      : [primaryId];
+    const otherIds = mergedIds.filter((id) => id !== primaryId);
+    const base = isTeacher ? `/teacher/subject/${primaryId}` : `/subject/${primaryId}`;
+    const href =
+      otherIds.length > 0
+        ? `${base}?merge=${encodeURIComponent(otherIds.join(','))}`
+        : base;
     setIsNavigatingToSubject(true);
-    setLocation(isTeacher ? `/teacher/subject/${subjectId}` : `/subject/${subjectId}`);
+    setLocation(href);
   };
 
   const isYouTubeUrl = (url?: string) => {
@@ -456,141 +497,15 @@ export default function LearningPaths() {
             setSubjects(uniqueSubjects);
           } else {
             console.warn('⚠️ Subjects response is not JSON');
-            console.warn('Response status:', subjectsResponse.status);
-            console.warn('Response headers:', Object.fromEntries(subjectsResponse.headers.entries()));
-            // Fallback subjects data
-            setSubjects([
-              {
-                _id: '1',
-                name: 'Mathematics',
-                description: 'Advanced mathematics concepts',
-                category: 'STEM',
-                difficulty: 'Intermediate',
-                duration: '3 hours',
-                subjects: ['Algebra', 'Calculus'],
-                color: 'bg-blue-100 text-blue-600',
-                icon: '📐',
-                videos: [],
-                quizzes: [],
-                assessments: [],
-                students: 150,
-                rating: 4.5,
-                progress: 0,
-                totalContent: 0
-              },
-              {
-                _id: '2',
-                name: 'Physics',
-                description: 'Physics fundamentals',
-                category: 'STEM',
-                difficulty: 'Advanced',
-                duration: '4 hours',
-                subjects: ['Mechanics', 'Thermodynamics'],
-                color: 'bg-blue-100 text-blue-600',
-                icon: '⚛️',
-                videos: [],
-                quizzes: [],
-                assessments: [],
-                students: 120,
-                rating: 4.3,
-                progress: 0,
-                totalContent: 0
-              }
-            ]);
+            setSubjects([]);
           }
         } else {
-          console.warn('Subjects API failed, using fallback data');
-          // Fallback subjects data
-          setSubjects([
-            {
-              _id: '1',
-              name: 'Mathematics',
-              description: 'Advanced mathematics concepts',
-              category: 'STEM',
-              difficulty: 'Intermediate',
-              duration: '3 hours',
-              subjects: ['Algebra', 'Calculus'],
-              color: 'bg-blue-100 text-blue-600',
-              icon: '📐',
-              videos: [],
-              quizzes: [],
-              assessments: [],
-              students: 150,
-              rating: 4.5,
-              progress: 0,
-              totalContent: 0
-            },
-            {
-              _id: '2',
-              name: 'Physics',
-              description: 'Physics fundamentals',
-              category: 'STEM',
-              difficulty: 'Advanced',
-              duration: '4 hours',
-              subjects: ['Mechanics', 'Thermodynamics'],
-              color: 'bg-blue-100 text-blue-600',
-              icon: '⚛️',
-              videos: [],
-              quizzes: [],
-              assessments: [],
-              students: 120,
-              rating: 4.3,
-              progress: 0,
-              totalContent: 0
-            }
-          ]);
+          console.warn('Subjects API failed');
+          setSubjects([]);
         }
       } catch (error) {
-        const err = error as Error;
         console.error('❌ ERROR fetching subjects:', error);
-        console.error('Error details:', {
-          message: err?.message || 'Unknown error',
-          stack: err?.stack,
-          name: err?.name || 'UnknownError'
-        });
-        
-        // Try to show subjects even if there's an error - maybe API is down but cache works?
-        console.log('Attempting fallback...');
-        
-        // Fallback subjects data
-        setSubjects([
-          {
-            _id: '1',
-            name: 'Mathematics',
-            description: 'Advanced mathematics concepts',
-            category: 'STEM',
-            difficulty: 'Intermediate',
-            duration: '3 hours',
-            subjects: ['Algebra', 'Calculus'],
-            color: 'bg-blue-100 text-blue-600',
-            icon: '📐',
-            videos: [],
-            quizzes: [],
-            assessments: [],
-            students: 150,
-            rating: 4.5,
-            progress: 0,
-            totalContent: 0
-          },
-          {
-            _id: '2',
-            name: 'Physics',
-            description: 'Physics fundamentals',
-            category: 'STEM',
-            difficulty: 'Advanced',
-            duration: '4 hours',
-            subjects: ['Mechanics', 'Thermodynamics'],
-            color: 'bg-blue-100 text-blue-600',
-            icon: '⚛️',
-            videos: [],
-            quizzes: [],
-            assessments: [],
-            students: 120,
-            rating: 4.3,
-            progress: 0,
-            totalContent: 0
-          }
-        ]);
+        setSubjects([]);
       } finally {
         setIsLoadingSubjects(false);
       }
@@ -707,10 +622,10 @@ export default function LearningPaths() {
     }
 
     setIsLoadingFilteredContent(true);
-    const filtered = allLibraryContent.filter((content: any) => content.type === selectedContentType);
+    const filtered = scopedLibraryContent.filter((content: any) => content.type === selectedContentType);
     setFilteredContent(filtered);
     setIsLoadingFilteredContent(false);
-  }, [selectedContentType, allLibraryContent, isLoadingContentCounts]);
+  }, [selectedContentType, scopedLibraryContent, isLoadingContentCounts]);
 
   return (
     <Shell>
@@ -820,14 +735,18 @@ export default function LearningPaths() {
 
                 // Match library rows by alias (BIO ↔ Biology) and strip class suffixes.
                 const key = normalizeSubjectDisplayKey(subject.name);
-                const mine = allLibraryContent.filter(
+                const mine = scopedLibraryContent.filter(
                   (c: any) => normalizeSubjectDisplayKey(c?.subject?.name) === key,
                 );
-                const countOf = (t: string) => mine.filter((c: any) => c?.type === t).length;
+                const countOf = (t: string) =>
+                  mine.filter((c: any) => c?.type === t && !isIitTrackContent(c)).length;
+                const iitCount = mine.filter((c: any) => isIitTrackContent(c)).length;
                 const tiles = [
                   { label: 'Textbooks', value: countOf('TextBook') },
                   { label: 'Materials', value: countOf('Material') },
-                  { label: 'Videos', value: countOf('Video') },
+                  ...(iitCount > 0 || subject.hasIitTrack
+                    ? [{ label: 'IIT', value: iitCount }]
+                    : [{ label: 'Videos', value: countOf('Video') }]),
                 ];
                 const recent = mine.slice(0, 2);
 
@@ -843,7 +762,11 @@ export default function LearningPaths() {
                       </span>
                       <div className="min-w-0 flex-1">
                         <h3 className="truncate font-display text-lg font-bold text-ink">{displayName}</h3>
-                        <p className="truncate text-sm text-muted-foreground">Content for {displayName}</p>
+                        <p className="truncate text-sm text-muted-foreground">
+                          {iitCount > 0
+                            ? `${displayName} · includes IIT materials`
+                            : `Content for ${displayName}`}
+                        </p>
                       </div>
                       <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${theme.soft}`}>
                         {mine.length} {mine.length === 1 ? 'Item' : 'Items'}
@@ -852,9 +775,28 @@ export default function LearningPaths() {
 
                     <div className="mt-4 grid grid-cols-3 gap-2">
                       {tiles.map((t) => (
-                        <div key={t.label} className="rounded-xl border border-border bg-background px-2 py-2.5 text-center">
-                          <p className="font-display text-lg font-bold leading-none text-ink">{t.value}</p>
-                          <p className="mt-1 text-micro font-medium text-muted-foreground">{t.label}</p>
+                        <div
+                          key={t.label}
+                          className={`rounded-xl border px-2 py-2.5 text-center ${
+                            t.label === 'IIT'
+                              ? 'border-slate-800 bg-slate-900 text-amber-200'
+                              : 'border-border bg-background'
+                          }`}
+                        >
+                          <p
+                            className={`font-display text-lg font-bold leading-none ${
+                              t.label === 'IIT' ? 'text-amber-200' : 'text-ink'
+                            }`}
+                          >
+                            {t.value}
+                          </p>
+                          <p
+                            className={`mt-1 text-micro font-medium ${
+                              t.label === 'IIT' ? 'text-amber-200/80' : 'text-muted-foreground'
+                            }`}
+                          >
+                            {t.label}
+                          </p>
                         </div>
                       ))}
                     </div>
@@ -870,7 +812,11 @@ export default function LearningPaths() {
                               key={c?._id || c?.id || i}
                               className="flex items-center justify-between gap-2 rounded-lg bg-background px-3 py-2"
                             >
-                              <span className="truncate text-sm text-ink-soft">{c?.title || c?.name || 'Untitled'}</span>
+                              <span className="truncate text-sm text-ink-soft">
+                                {isIitTrackContent(c)
+                                  ? formatIitLearningPathContentLabel(c, displayName)
+                                  : c?.title || c?.name || 'Untitled'}
+                              </span>
                               <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
                             </li>
                           ))}
@@ -880,7 +826,7 @@ export default function LearningPaths() {
 
                     <button
                       type="button"
-                      onClick={() => handleSubjectClick(subject._id || subject.id)}
+                      onClick={() => handleSubjectClick(subject)}
                       className={`mt-auto flex w-full items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${theme.btn} ${recent.length ? 'mt-4' : 'mt-4'}`}
                     >
                       View Content
@@ -1095,7 +1041,16 @@ export default function LearningPaths() {
                           <div className="flex items-center space-x-2">
                             <BookOpen className="w-3 h-3 sm:w-4 sm:h-4 text-gray-500" />
                             <span className="text-xs sm:text-sm text-gray-600">
-                              {typeof content.subject === 'object' ? content.subject.name : 'Subject'}
+                              {isIitTrackContent(content)
+                                ? formatIitLearningPathContentLabel(
+                                    content,
+                                    typeof content.subject === 'object'
+                                      ? content.subject.name
+                                      : '',
+                                  )
+                                : typeof content.subject === 'object'
+                                  ? content.subject.name
+                                  : 'Subject'}
                             </span>
                           </div>
                         )}

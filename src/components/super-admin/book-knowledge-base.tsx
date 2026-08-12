@@ -70,7 +70,7 @@ type ImportableContentRow = {
 
 export default function BookKnowledgeBase() {
   const { toast } = useToast();
-  const { confirm, ConfirmDialog } = useConfirm();
+  const { confirm: askConfirm, ConfirmDialog } = useConfirm();
   const { codes: iitCategoryCodes, labelMap: iitLabelMap } = useProductCategories();
   const [books, setBooks] = useState<BookRow[]>([]);
   const [loading, setLoading] = useState(false);
@@ -98,6 +98,22 @@ export default function BookKnowledgeBase() {
   const [source, setSource] = useState("textbook");
   const [productCategory, setProductCategory] = useState("");
   const [file, setFile] = useState<File | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<{
+    title?: string;
+    board?: string;
+    classLabel?: string;
+    subject?: string;
+    file?: string;
+  }>({});
+
+  const clearFieldError = (key: keyof typeof fieldErrors) => {
+    setFieldErrors((prev) => {
+      if (!prev[key]) return prev;
+      const next = { ...prev };
+      delete next[key];
+      return next;
+    });
+  };
 
   const {
     classOptions,
@@ -211,21 +227,35 @@ export default function BookKnowledgeBase() {
 
   const handleBoardChange = (value: string) => {
     setBoard(value);
+    clearFieldError("board");
     setClassLabel("");
     setSubject("");
     setTopic("");
     setSubTopic("");
+    setFieldErrors((prev) => {
+      const next = { ...prev };
+      delete next.classLabel;
+      delete next.subject;
+      return next;
+    });
   };
 
   const handleClassChange = (value: string) => {
     setClassLabel(value);
+    clearFieldError("classLabel");
     setSubject("");
     setTopic("");
     setSubTopic("");
+    setFieldErrors((prev) => {
+      const next = { ...prev };
+      delete next.subject;
+      return next;
+    });
   };
 
   const handleSubjectChange = (value: string) => {
     setSubject(value);
+    clearFieldError("subject");
     setTopic("");
     setSubTopic("");
   };
@@ -324,14 +354,19 @@ export default function BookKnowledgeBase() {
   );
 
   const handleUpload = async () => {
-    if (!file || !title.trim() || !board || !classLabel || !subject) {
-      toast({ title: "Missing fields", description: "Title, board, class, subject, and file are required.", variant: "destructive" });
-      return;
-    }
+    const nextErrors: typeof fieldErrors = {};
+    if (!title.trim()) nextErrors.title = "Title is required.";
+    if (!board) nextErrors.board = "Board is required.";
+    if (!classLabel) nextErrors.classLabel = "Class is required.";
+    if (!subject) nextErrors.subject = "Subject is required.";
+    if (!file) nextErrors.file = "Please choose a PDF, DOCX, or TXT file.";
+    setFieldErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) return;
+
     setUploading(true);
     try {
       const fd = new FormData();
-      fd.append("file", file);
+      fd.append("file", file!);
       fd.append("title", title.trim());
       fd.append("board", board);
       fd.append("class", classLabel);
@@ -349,8 +384,16 @@ export default function BookKnowledgeBase() {
       const json = await res.json();
       if (!res.ok || !json.success) throw new Error(json.message || "Upload failed");
       toast({ title: "Book uploaded", description: json.message || "Indexing started." });
-      setFile(null);
       setTitle("");
+      setFile(null);
+      setClassLabel("");
+      setSubject("");
+      setTopic("");
+      setSubTopic("");
+      setProductCategory("");
+      setSource("textbook");
+      setBoard(boardOptions[0] || "");
+      setFieldErrors({});
       await loadBooks();
     } catch (e: any) {
       toast({ title: "Upload failed", description: e.message, variant: "destructive" });
@@ -380,10 +423,11 @@ export default function BookKnowledgeBase() {
   const handleDelete = async (id: string) => {
     const book = books.find((b) => b._id === id);
     const label = book?.title || "this book";
-    const ok = await confirm({
+    const ok = await askConfirm({
       title: "Remove this book?",
       description: `Remove "${label}" from the Book Knowledge Base?\n\nThis unlinks/deletes the indexed book so Book-Based Generator can no longer use it. Learning-path source files (if any) are not deleted from Subjects & Content.`,
       confirmLabel: "Delete",
+      cancelLabel: "Cancel",
       destructive: true,
     });
     if (!ok) return;
@@ -616,41 +660,66 @@ export default function BookKnowledgeBase() {
         </CardHeader>
         <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <div className="space-y-2 md:col-span-2 lg:col-span-3">
-            <Label>Title</Label>
-            <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="HC Verma Vol 1" />
+            <Label htmlFor="book-kb-title">Title</Label>
+            <Input
+              id="book-kb-title"
+              value={title}
+              onChange={(e) => {
+                setTitle(e.target.value);
+                if (e.target.value.trim()) clearFieldError("title");
+              }}
+              placeholder="HC Verma Vol 1"
+              aria-invalid={Boolean(fieldErrors.title)}
+              className={cn(fieldErrors.title && "border-red-500 focus-visible:ring-red-500")}
+            />
+            {fieldErrors.title ? <p className="text-xs text-red-600">{fieldErrors.title}</p> : null}
           </div>
           <div className="space-y-2">
             <Label>Board</Label>
             <Select value={board} onValueChange={handleBoardChange}>
-              <SelectTrigger><SelectValue placeholder={boardOptions.length ? "Select board" : "Loading boards…"} /></SelectTrigger>
+              <SelectTrigger
+                aria-invalid={Boolean(fieldErrors.board)}
+                className={cn(fieldErrors.board && "border-red-500 focus:ring-red-500")}
+              >
+                <SelectValue placeholder={boardOptions.length ? "Select board" : "Loading boards…"} />
+              </SelectTrigger>
               <SelectContent>
                 {boardOptions.map((b) => (
                   <SelectItem key={b} value={b}>{b}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
+            {fieldErrors.board ? <p className="text-xs text-red-600">{fieldErrors.board}</p> : null}
           </div>
           <div className="space-y-2">
             <Label>Class</Label>
             <Select value={classLabel} onValueChange={handleClassChange} disabled={!board || loadingClasses}>
-              <SelectTrigger>
+              <SelectTrigger
+                aria-invalid={Boolean(fieldErrors.classLabel)}
+                className={cn(fieldErrors.classLabel && "border-red-500 focus:ring-red-500")}
+              >
                 <SelectValue placeholder={!board ? "Select board first" : loadingClasses ? "Loading classes…" : "Select class"} />
               </SelectTrigger>
               <SelectContent>
                 {classOptions.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
               </SelectContent>
             </Select>
+            {fieldErrors.classLabel ? <p className="text-xs text-red-600">{fieldErrors.classLabel}</p> : null}
           </div>
           <div className="space-y-2">
             <Label>Subject</Label>
             <Select value={subject} onValueChange={handleSubjectChange} disabled={!classLabel || loadingSubjects}>
-              <SelectTrigger>
+              <SelectTrigger
+                aria-invalid={Boolean(fieldErrors.subject)}
+                className={cn(fieldErrors.subject && "border-red-500 focus:ring-red-500")}
+              >
                 <SelectValue placeholder={!classLabel ? "Select class first" : loadingSubjects ? "Loading subjects…" : "Select subject"} />
               </SelectTrigger>
               <SelectContent>
                 {subjects.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
               </SelectContent>
             </Select>
+            {fieldErrors.subject ? <p className="text-xs text-red-600">{fieldErrors.subject}</p> : null}
           </div>
           <div className="space-y-2">
             <Label>Topic <span className="text-slate-400 font-normal">(optional)</span></Label>
@@ -714,8 +783,9 @@ export default function BookKnowledgeBase() {
             <Label>File (PDF, DOCX, TXT) — click or drag &amp; drop</Label>
             <div
               className={cn(
-                "rounded-xl border-2 border-dashed border-violet-200 bg-violet-50/40 p-4 transition-colors",
+                "rounded-xl border-2 border-dashed bg-violet-50/40 p-4 transition-colors",
                 "hover:border-violet-400 hover:bg-violet-50",
+                fieldErrors.file ? "border-red-400 bg-red-50/40" : "border-violet-200",
               )}
               onDragOver={(e) => {
                 e.preventDefault();
@@ -725,14 +795,22 @@ export default function BookKnowledgeBase() {
                 e.preventDefault();
                 e.stopPropagation();
                 const dropped = e.dataTransfer.files?.[0];
-                if (dropped) setFile(dropped);
+                if (dropped) {
+                  setFile(dropped);
+                  clearFieldError("file");
+                }
               }}
             >
               <Input
                 type="file"
                 accept=".pdf,.docx,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"
-                onChange={(e) => setFile(e.target.files?.[0] || null)}
-                className="bg-white"
+                onChange={(e) => {
+                  const next = e.target.files?.[0] || null;
+                  setFile(next);
+                  if (next) clearFieldError("file");
+                }}
+                className={cn("bg-white", fieldErrors.file && "border-red-500")}
+                aria-invalid={Boolean(fieldErrors.file)}
               />
               {file ? (
                 <p className="mt-2 text-xs text-violet-800 truncate">Selected: {file.name}</p>
@@ -740,6 +818,7 @@ export default function BookKnowledgeBase() {
                 <p className="mt-2 text-xs text-slate-500">Drop a file here, or use the picker above.</p>
               )}
             </div>
+            {fieldErrors.file ? <p className="text-xs text-red-600">{fieldErrors.file}</p> : null}
           </div>
           <div className="flex items-end">
             <Button

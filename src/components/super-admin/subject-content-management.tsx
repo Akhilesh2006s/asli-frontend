@@ -47,6 +47,7 @@ import {
 import {
   extractClassNumberFromSubjectName,
   extractPlainSubjectName,
+  formatSubjectWithIitCategory,
   isActiveCatalogSubject,
   isSoftDeletedSubjectName,
   normalizeSubjectDisplayKey,
@@ -2579,7 +2580,11 @@ export default function SubjectContentManagement() {
                         </div>
                         <div>
                           <div className="font-medium text-gray-900">
-                            {extractPlainSubjectName(subj.name)}
+                            {formatSubjectWithIitCategory(
+                              extractPlainSubjectName(subj.name),
+                              subj.productCategory,
+                              iitLabelMap,
+                            )}
                           </div>
                           <div className="mt-1 flex flex-wrap gap-1">
                             {syllabusLabel(subj.board) ? (
@@ -2592,14 +2597,6 @@ export default function SubjectContentManagement() {
                                 {subj.stateName}
                               </Badge>
                             )}
-                            {normalizeIitCategory(subj.productCategory) ? (
-                              <Badge
-                                variant="outline"
-                                className="border-sky-200 bg-sky-50 text-micro font-normal text-sky-900"
-                              >
-                                IIT {formatIitCategoryLabel(subj.productCategory, iitLabelMap)}
-                              </Badge>
-                            ) : null}
                           </div>
                           {subj.description && (
                             <div className="text-xs text-gray-500 line-clamp-1">

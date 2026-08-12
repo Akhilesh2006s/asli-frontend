@@ -9,7 +9,7 @@ type Props = {
   pageWidth: number;
   pageHeight: number;
   onZoomChange: (zoomed: boolean) => void;
-  children: (size: { width: number; height: number }) => ReactNode;
+  children: ReactNode;
 };
 
 function touchDistance(touches: TouchList): number {
@@ -19,7 +19,7 @@ function touchDistance(touches: TouchList): number {
   );
 }
 
-/** Fixed-size viewport; pinch zooms content inside the page box only. */
+/** Fixed-size viewport; pinch zooms content with CSS transform (never stretches the canvas). */
 export default function PdfPagePinchFrame({
   pageWidth,
   pageHeight,
@@ -33,8 +33,8 @@ export default function PdfPagePinchFrame({
   const lastTapRef = useRef(0);
 
   const zoomed = scale > ZOOM_EPSILON;
-  const contentWidth = Math.max(1, Math.round(pageWidth * scale));
-  const contentHeight = Math.max(1, Math.round(pageHeight * scale));
+  const scaledWidth = Math.max(1, Math.round(pageWidth * scale));
+  const scaledHeight = Math.max(1, Math.round(pageHeight * scale));
 
   const applyScale = useCallback((next: number) => {
     const clamped = Math.min(MAX_SCALE, Math.max(MIN_SCALE, next));
@@ -51,6 +51,10 @@ export default function PdfPagePinchFrame({
       frame.scrollTop = 0;
     }
   }, [applyScale]);
+
+  useEffect(() => {
+    applyScale(MIN_SCALE);
+  }, [applyScale, pageWidth, pageHeight]);
 
   useEffect(() => {
     const frame = frameRef.current;
@@ -132,13 +136,22 @@ export default function PdfPagePinchFrame({
       <div
         className="pdf-page-pinch-content"
         style={{
-          width: `${contentWidth}px`,
-          height: `${contentHeight}px`,
-          minWidth: `${contentWidth}px`,
-          minHeight: `${contentHeight}px`,
+          width: `${scaledWidth}px`,
+          height: `${scaledHeight}px`,
+          minWidth: `${scaledWidth}px`,
+          minHeight: `${scaledHeight}px`,
         }}
       >
-        {children({ width: contentWidth, height: contentHeight })}
+        <div
+          style={{
+            width: `${pageWidth}px`,
+            height: `${pageHeight}px`,
+            transform: scale > ZOOM_EPSILON ? `scale(${scale})` : undefined,
+            transformOrigin: 'top left',
+          }}
+        >
+          {children}
+        </div>
       </div>
     </div>
   );

@@ -21,6 +21,7 @@ import {
   CreditCardIcon,
   Radio,
   Timer,
+  Zap,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -40,35 +41,69 @@ interface SuperAdminSidebarProps {
 
 const ANALYTICS_VIEWS = new Set(["analytics", "ai-analytics", "audit-logs", "impact-reports"]);
 
+type SidebarMenuItem = {
+  id: SuperAdminView;
+  label: string;
+  icon: typeof BarChart3Icon;
+};
+
+type SidebarNavSection = {
+  title: string;
+  items: SidebarMenuItem[];
+};
+
+/** Grouped nav — matches mobile Super Admin drawer sections. */
+const NAV_SECTIONS: SidebarNavSection[] = [
+  {
+    title: "Platform",
+    items: [
+      { id: "dashboard", label: "Dashboard", icon: BarChart3Icon },
+      { id: "board", label: "Board Management", icon: Users2 },
+      { id: "admins", label: "School Management", icon: Shield },
+      { id: "products", label: "Products", icon: Layers },
+      { id: "trial-members", label: "Trial Members", icon: Timer },
+    ],
+  },
+  {
+    title: "Content & Exams",
+    items: [
+      { id: "subjects-and-content", label: "Subject & Content", icon: LayoutList },
+      { id: "edu-ott-live", label: "Edu OTT Live", icon: Radio },
+      { id: "exams", label: "Exam Management", icon: FileTextIcon },
+      { id: "iq-rank-boost", label: "Quiz", icon: TrophyIcon },
+      { id: "calendar", label: "School Calendar", icon: Calendar },
+    ],
+  },
+  {
+    title: "AI Engine",
+    items: [
+      { id: "vidya-ai", label: "Vidya AI", icon: Sparkles },
+      { id: "ai-tool-generations", label: "AI Tool Data", icon: FolderTree },
+      { id: "ai-tool-duplicates", label: "Duplicates", icon: Copy },
+      { id: "ai-tool-topics", label: "AI Tool Topics", icon: CircleDot },
+      { id: "ai-generator", label: "AI Generator", icon: Zap },
+      { id: "book-knowledge-base", label: "Book Knowledge Base", icon: BookOpen },
+      { id: "book-based-generator", label: "Book-Based Generator", icon: BookOpen },
+    ],
+  },
+  {
+    title: "Insights & Billing",
+    items: [
+      { id: "analytics", label: "Analytics", icon: BarChartIcon },
+      { id: "subscriptions", label: "Subscriptions", icon: CreditCardIcon },
+      { id: "settings", label: "Settings", icon: SettingsIcon },
+    ],
+  },
+];
+
 export function SuperAdminSidebar({ currentView, onViewChange, user, onLogout }: SuperAdminSidebarProps) {
   const useDrawerNav = useSuperAdminDrawerNav();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const menuItems = [
-    { id: "dashboard", label: "Dashboard", icon: BarChart3Icon },
-    { id: "board", label: "Board Management", icon: Users2 },
-    { id: "admins", label: "School Management", icon: Shield },
-    { id: "products", label: "Products", icon: Layers },
-    { id: "trial-members", label: "Trial Members", icon: Timer },
-    { id: "subjects-and-content", label: "Subject & Content", icon: LayoutList },
-    { id: "edu-ott-live", label: "Edu OTT Live", icon: Radio },
-    { id: "exams", label: "Exam Management", icon: FileTextIcon },
-    { id: "iq-rank-boost", label: "Quiz", icon: TrophyIcon },
-    { id: "calendar", label: "School Calendar", icon: Calendar },
-    { id: "vidya-ai", label: "Vidya AI", icon: Sparkles },
-    { id: "ai-tool-generations", label: "AI Tool Data", icon: FolderTree },
-    { id: "ai-tool-duplicates", label: "Duplicates", icon: Copy },
-    { id: "ai-tool-topics", label: "AI Tool Topics", icon: CircleDot },
-    { id: "ai-generator", label: "AI Generator", icon: Sparkles },
-    { id: "book-knowledge-base", label: "Book Knowledge Base", icon: BookOpen },
-    { id: "book-based-generator", label: "Book-Based Generator", icon: BookOpen },
-    { id: "analytics", label: "Analytics", icon: BarChartIcon },
-    { id: "subscriptions", label: "Subscriptions", icon: CreditCardIcon },
-    { id: "settings", label: "Settings", icon: SettingsIcon },
-  ];
+  const menuItems = NAV_SECTIONS.flatMap((section) => section.items);
 
   const mobileNavItems = menuItems.slice(0, 5);
 
-  const renderNavButton = (item: (typeof menuItems)[0], compact = false) => {
+  const renderNavButton = (item: SidebarMenuItem, compact = false) => {
     const Icon = item.icon;
     const isActive =
       currentView === item.id ||
@@ -136,8 +171,22 @@ export function SuperAdminSidebar({ currentView, onViewChange, user, onLogout }:
         </button>
       </div>
 
-      <nav className="super-admin-sidebar-nav min-h-0 flex-1 space-y-1 overflow-y-auto overflow-x-hidden px-0 pb-2">
-        {menuItems.map((item) => renderNavButton(item, !useDrawerNav))}
+      <nav className="super-admin-sidebar-nav min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-0 pb-2">
+        {NAV_SECTIONS.map((section) => (
+          <div key={section.title} className="pt-0.5 first:pt-0">
+            <p
+              className={cn(
+                "px-4 pb-1 pt-3 text-[10px] font-extrabold uppercase tracking-[0.12em] text-white/85",
+                !useDrawerNav && "hidden lg:block",
+              )}
+            >
+              {section.title}
+            </p>
+            <div className="space-y-1">
+              {section.items.map((item) => renderNavButton(item, !useDrawerNav))}
+            </div>
+          </div>
+        ))}
       </nav>
 
       <div className="shrink-0 mt-auto p-3 sm:p-4 lg:p-6 border-t border-orange-300/50 space-y-3 bg-orange-500/40">

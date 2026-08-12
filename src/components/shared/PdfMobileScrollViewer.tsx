@@ -2,7 +2,6 @@ import {
   useCallback,
   useEffect,
   useImperativeHandle,
-  useLayoutEffect,
   useRef,
   useState,
   forwardRef,
@@ -63,6 +62,19 @@ function getFitWidthScale(containerWidth: number, pageWidth: number): number {
   return availW / pageWidth;
 }
 
+/** Fit page inside width and optional max height (book / fullscreen — no clipping). */
+function getPageCssScale(
+  containerWidth: number,
+  pageWidth: number,
+  pageHeight: number,
+  maxHeight?: number,
+): number {
+  const widthScale = getFitWidthScale(containerWidth, pageWidth);
+  if (!maxHeight || maxHeight < 80 || pageHeight <= 0) return widthScale;
+  const heightScale = maxHeight / pageHeight;
+  return Math.min(widthScale, heightScale);
+}
+
 export function pdfPageStorageKey(fileUrl: string): string {
   return `asli:pdf-page:${String(fileUrl || '').trim()}`;
 }
@@ -88,16 +100,36 @@ export function writeStoredPdfPage(fileUrl: string, page: number): void {
   }
 }
 
+function getPageViewport(page: pdfjs.PDFPageProxy, scale: number) {
+  // Explicit dontFlip avoids mirrored/upside-down pages when scale !== 1 (pdf.js quirk).
+  return page.getViewport({ scale, dontFlip: false });
+}
+
+async function measurePdfPageCssSize(
+  pdf: pdfjs.PDFDocumentProxy,
+  pageNum: number,
+  containerWidth: number,
+  maxHeight?: number,
+): Promise<{ cssWidth: number; cssHeight: number } | null> {
+  const page = await pdf.getPage(pageNum);
+  const base = getPageViewport(page, 1);
+  const cssScale = getPageCssScale(containerWidth, base.width, base.height, maxHeight);
+  const cssWidth = Math.floor(base.width * cssScale);
+  const cssHeight = Math.floor(base.height * cssScale);
+  if (cssWidth < 1 || cssHeight < 1) return null;
+  return { cssWidth, cssHeight };
+}
+
 async function renderPdfPageCanvas(
   pdf: pdfjs.PDFDocumentProxy,
   pageNum: number,
   containerWidth: number,
   canvas: HTMLCanvasElement,
+  maxHeight?: number,
 ): Promise<{ cssWidth: number; cssHeight: number } | null> {
   const page = await pdf.getPage(pageNum);
-  // Use the page's own rotation once (do not pass rotation again — that double-flips).
-  const base = page.getViewport({ scale: 1 });
-  const cssScale = getFitWidthScale(containerWidth, base.width);
+  const base = getPageViewport(page, 1);
+  const cssScale = getPageCssScale(containerWidth, base.width, base.height, maxHeight);
   const cssWidth = Math.floor(base.width * cssScale);
   const cssHeight = Math.floor(base.height * cssScale);
   if (cssWidth < 1 || cssHeight < 1) return null;
@@ -108,15 +140,15 @@ async function renderPdfPageCanvas(
     : [baseOutputScale, baseOutputScale * 0.8, cssScale];
 
   for (const outputScale of scaleAttempts) {
-    const viewport = page.getViewport({ scale: outputScale });
+    const viewport = getPageViewport(page, outputScale);
     canvas.width = Math.max(1, Math.floor(viewport.width));
     canvas.height = Math.max(1, Math.floor(viewport.height));
-    // Match CSS box to the true page aspect immediately — avoids a squashed/“flipped”
-    // first paint while waiting for React state to catch up.
     canvas.style.width = `${cssWidth}px`;
     canvas.style.height = `${cssHeight}px`;
     const ctx = canvas.getContext('2d', { alpha: false });
     if (!ctx) continue;
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
     try {
       await page.render({ canvasContext: ctx, viewport, canvas }).promise;
       return { cssWidth, cssHeight };
@@ -129,21 +161,10 @@ async function renderPdfPageCanvas(
 
 function PdfPageCanvas({
   canvasRef,
-  width,
-  height,
 }: {
   canvasRef: RefObject<HTMLCanvasElement | null>;
-  width: number;
-  height: number;
 }) {
-  useLayoutEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas || width < 1 || height < 1) return;
-    canvas.style.width = `${width}px`;
-    canvas.style.height = `${height}px`;
-  }, [canvasRef, width, height]);
-
-  return <canvas ref={canvasRef} className="block" style={{ display: 'block' }} />;
+  return <canvas ref={canvasRef} className="block max-w-none" style={{ display: 'block' }} />;
 }
 
 type PdfMobilePageProps = {
@@ -152,6 +173,8 @@ type PdfMobilePageProps = {
   containerWidth: number;
   defaultMinHeight: number;
   scrollRoot: RefObject<HTMLDivElement | null>;
+  viewportHeight?: number;
+  fillViewport?: boolean;
   forceRender?: boolean;
   onZoomChange: (pageNum: number, zoomed: boolean) => void;
 };
@@ -162,6 +185,8 @@ function PdfMobilePage({
   containerWidth,
   defaultMinHeight,
   scrollRoot,
+  viewportHeight = 0,
+  fillViewport = false,
   forceRender = false,
   onZoomChange,
 }: PdfMobilePageProps) {
@@ -169,12 +194,16 @@ function PdfMobilePage({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const renderedRef = useRef(false);
   const [shouldRender, setShouldRender] = useState(pageNum === 1 || forceRender);
+  const [layoutReady, setLayoutReady] = useState(false);
   const [dims, setDims] = useState({ w: 0, h: 0 });
 
   const pageHeight = dims.h > 0 ? dims.h : defaultMinHeight;
   const pageWidth = dims.w > 0 ? dims.w : Math.max(containerWidth - 8, 280);
   const baseWidth = dims.w > 0 ? dims.w : pageWidth;
   const baseHeight = dims.h > 0 ? dims.h : pageHeight;
+  const maxPageHeight =
+    fillViewport && viewportHeight > 0 ? Math.max(120, viewportHeight - 32) : undefined;
+  const layoutKey = `${containerWidth}|${maxPageHeight ?? 0}`;
 
   const handlePageZoom = useCallback(
     (zoomed: boolean) => onZoomChange(pageNum, zoomed),
@@ -208,13 +237,40 @@ function PdfMobilePage({
   }, [onZoomChange, pageNum]);
 
   useEffect(() => {
-    if (!shouldRender || renderedRef.current) return;
+    if (!shouldRender) return;
+    let cancelled = false;
+    renderedRef.current = false;
+    setLayoutReady(false);
+    void (async () => {
+      const measured = await measurePdfPageCssSize(
+        pdf,
+        pageNum,
+        containerWidth,
+        maxPageHeight,
+      );
+      if (cancelled || !measured) return;
+      setDims({ w: measured.cssWidth, h: measured.cssHeight });
+      setLayoutReady(true);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [shouldRender, pdf, pageNum, layoutKey, maxPageHeight]);
+
+  useEffect(() => {
+    if (!layoutReady || renderedRef.current) return;
     const canvas = canvasRef.current;
     if (!canvas) return;
 
     let cancelled = false;
     void (async () => {
-      const result = await renderPdfPageCanvas(pdf, pageNum, containerWidth, canvas);
+      const result = await renderPdfPageCanvas(
+        pdf,
+        pageNum,
+        containerWidth,
+        canvas,
+        maxPageHeight,
+      );
       if (cancelled || !result) return;
       renderedRef.current = true;
       setDims({ w: result.cssWidth, h: result.cssHeight });
@@ -223,24 +279,37 @@ function PdfMobilePage({
     return () => {
       cancelled = true;
     };
-  }, [shouldRender, pdf, pageNum, containerWidth]);
+  }, [layoutReady, pdf, pageNum, layoutKey, maxPageHeight]);
+
+  const slotStyle =
+    fillViewport && viewportHeight > 0
+      ? { height: `${viewportHeight}px`, minHeight: `${viewportHeight}px` }
+      : { minHeight: `${pageHeight + 24}px` };
 
   return (
     <div
       ref={slotRef}
       data-page={pageNum}
-      className="pdf-page-slot flex w-full shrink-0 justify-center px-3 py-3 sm:px-4 sm:py-4"
-      style={{ minHeight: `${pageHeight + 24}px` }}
+      className={`pdf-page-slot flex w-full shrink-0 snap-start snap-always justify-center px-3 py-3 sm:px-4 sm:py-4${
+        fillViewport ? ' items-center' : ''
+      }`}
+      style={slotStyle}
     >
-      <PdfPagePinchFrame
-        pageWidth={baseWidth}
-        pageHeight={baseHeight}
-        onZoomChange={handlePageZoom}
-      >
-        {({ width, height }) => (
-          <PdfPageCanvas canvasRef={canvasRef} width={width} height={height} />
-        )}
-      </PdfPagePinchFrame>
+      {layoutReady ? (
+        <PdfPagePinchFrame
+          pageWidth={baseWidth}
+          pageHeight={baseHeight}
+          onZoomChange={handlePageZoom}
+        >
+          {() => <PdfPageCanvas canvasRef={canvasRef} />}
+        </PdfPagePinchFrame>
+      ) : (
+        <div
+          className="rounded-sm bg-white shadow-md animate-pulse"
+          style={{ width: `${baseWidth}px`, height: `${baseHeight}px` }}
+          aria-hidden
+        />
+      )}
     </div>
   );
 }
@@ -270,6 +339,8 @@ type PdfMobileScrollViewerProps = {
   showPageHud?: boolean;
   /** Fires when the visible page changes (for external page controls). */
   onPageChange?: (page: number, totalPages: number) => void;
+  /** Book mode: each page slot fills the reader height so the next page does not peek in. */
+  fillViewport?: boolean;
 };
 
 const PdfMobileScrollViewer = forwardRef<PdfMobileScrollViewerHandle, PdfMobileScrollViewerProps>(
@@ -283,6 +354,7 @@ const PdfMobileScrollViewer = forwardRef<PdfMobileScrollViewerHandle, PdfMobileS
       storageKey = '',
       showPageHud = false,
       onPageChange,
+      fillViewport = false,
     },
     ref,
   ) {
@@ -290,9 +362,20 @@ const PdfMobileScrollViewer = forwardRef<PdfMobileScrollViewerHandle, PdfMobileS
   const zoomedPagesRef = useRef(new Set<number>());
   const restoredRef = useRef(false);
   const [scrollLocked, setScrollLocked] = useState(false);
+  const [viewportHeight, setViewportHeight] = useState(0);
   const [currentPage, setCurrentPage] = useState(() =>
     storageKey ? readStoredPdfPage(storageKey) : 1,
   );
+
+  useEffect(() => {
+    const host = scrollRef.current;
+    if (!host) return;
+    const update = () => setViewportHeight(host.clientHeight);
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(host);
+    return () => ro.disconnect();
+  }, [totalPages, pdf]);
 
   const handleZoomChange = useCallback((pageNum: number, zoomed: boolean) => {
     if (zoomed) zoomedPagesRef.current.add(pageNum);
@@ -431,7 +514,7 @@ const PdfMobileScrollViewer = forwardRef<PdfMobileScrollViewerHandle, PdfMobileS
     <div className={`relative h-full w-full ${className}`}>
       <div
         ref={scrollRef}
-        className={`h-full w-full touch-manipulation overscroll-y-contain ${
+        className={`h-full w-full touch-manipulation overscroll-y-contain snap-y snap-mandatory ${
           scrollLocked
             ? 'overflow-y-hidden overflow-x-hidden'
             : 'overflow-y-auto overflow-x-auto'
@@ -452,6 +535,8 @@ const PdfMobileScrollViewer = forwardRef<PdfMobileScrollViewerHandle, PdfMobileS
               containerWidth={containerWidth}
               defaultMinHeight={defaultPageHeight}
               scrollRoot={scrollRef}
+              viewportHeight={viewportHeight}
+              fillViewport={fillViewport}
               forceRender={forceRender}
               onZoomChange={handleZoomChange}
             />

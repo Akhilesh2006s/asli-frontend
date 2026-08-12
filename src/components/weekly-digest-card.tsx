@@ -73,6 +73,9 @@ type DigestMetrics = {
   iqAttempts?: number;
   homeworkSubmissions?: number;
   topSubjects?: string[];
+  topSubjectsDetailed?: Array<{ subject?: string; sessions?: number; pct?: number }>;
+  mostUsedSubject?: { subject?: string; sessions?: number; pct?: number } | null;
+  toolsUsed?: Array<{ name?: string; count?: number; subjects?: string[] }>;
   videosWatched?: number;
   chaptersCompleted?: number;
   streak?: number;
@@ -327,6 +330,63 @@ export function WeeklyDigestCard({ apiBase }: { apiBase: "/api/teacher" | "/api/
               />
             </div>
 
+            <SectionTitle icon={Sparkles} title="Tools you used" />
+            {(Array.isArray(m.toolsUsed) ? m.toolsUsed : []).length > 0 ? (
+              <ul className="space-y-1.5 rounded-xl border border-slate-100 bg-white px-3 py-2">
+                {(m.toolsUsed || []).slice(0, 8).map((tool, idx) => (
+                  <li
+                    key={`${tool.name}-${idx}`}
+                    className="flex items-start justify-between gap-2 text-sm"
+                  >
+                    <span className="min-w-0 flex-1 text-slate-700">
+                      <span className="font-medium line-clamp-1">{tool.name || "Tool"}</span>
+                      {Array.isArray(tool.subjects) && tool.subjects.length > 0 ? (
+                        <span className="block text-[11px] text-slate-500 line-clamp-1">
+                          {tool.subjects.slice(0, 3).join(" · ")}
+                        </span>
+                      ) : null}
+                    </span>
+                    <span className="shrink-0 font-semibold tabular-nums text-slate-900">
+                      {n(tool.count)}×
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-xs text-slate-500">No AI tools used this week yet.</p>
+            )}
+
+            <SectionTitle icon={BookOpen} title="Subjects you used most" />
+            {(Array.isArray(m.topSubjectsDetailed) ? m.topSubjectsDetailed : []).length > 0 ? (
+              <ul className="space-y-1.5 rounded-xl border border-slate-100 bg-white px-3 py-2">
+                {(m.topSubjectsDetailed || []).slice(0, 5).map((row, idx) => (
+                  <li
+                    key={`${row.subject}-${idx}`}
+                    className="flex items-start justify-between gap-2 text-sm"
+                  >
+                    <span className="min-w-0 flex-1 text-slate-700 line-clamp-2">
+                      {idx === 0 ? (
+                        <span className="mr-1.5 rounded bg-sky-100 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-sky-700">
+                          Most
+                        </span>
+                      ) : null}
+                      {row.subject || "Subject"}
+                    </span>
+                    <span className="shrink-0 text-right font-semibold tabular-nums text-slate-900">
+                      {n(row.sessions)}
+                      {n(row.pct) > 0 ? (
+                        <span className="block text-[10px] font-medium text-slate-500">{n(row.pct)}%</span>
+                      ) : null}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            ) : m.topSubjects?.length ? (
+              <p className="text-sm text-slate-700">{m.topSubjects.slice(0, 5).join(", ")}</p>
+            ) : (
+              <p className="text-xs text-slate-500">No subject activity this week yet.</p>
+            )}
+
             <SectionTitle icon={ClipboardList} title="Exams" />
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               <MetricTile label="Exams written" value={n(m.examAttempts)} />
@@ -398,8 +458,16 @@ export function WeeklyDigestCard({ apiBase }: { apiBase: "/api/teacher" | "/api/
             <SectionTitle icon={Target} title="Content & progress" />
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               <MetricTile
-                label="Top subjects"
-                value={m.topSubjects?.length ? m.topSubjects.slice(0, 2).join(", ") : "—"}
+                label="Most used subject"
+                value={
+                  m.mostUsedSubject?.subject ||
+                  (m.topSubjects?.length ? m.topSubjects[0] : "—")
+                }
+                hint={
+                  m.mostUsedSubject?.sessions
+                    ? `${n(m.mostUsedSubject.sessions)} activities`
+                    : undefined
+                }
               />
               <MetricTile label="Videos watched" value={n(m.videosWatched)} />
               <MetricTile label="Chapters updated" value={n(m.chaptersCompleted)} />

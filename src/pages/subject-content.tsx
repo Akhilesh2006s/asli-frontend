@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useRoute } from 'wouter';
+import { useRoute, useSearch } from 'wouter';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -88,6 +88,7 @@ interface ContentItem {
 
 export default function SubjectContent() {
   const [, params] = useRoute('/subject/:id');
+  const search = useSearch();
   const isMobile = useIsMobile();
   const [subject, setSubject] = useState<Subject | null>(null);
   const [loading, setLoading] = useState(true);
@@ -109,14 +110,24 @@ export default function SubjectContent() {
     }
   }, [params?.id]);
 
+  const mergeSubjectIds = useMemo(() => {
+    const q = search.startsWith('?') ? search.slice(1) : search;
+    const mergeParam = new URLSearchParams(q).get('merge');
+    if (!mergeParam) return [] as string[];
+    return mergeParam
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
+  }, [search]);
+
   useEffect(() => {
     if (params?.id) {
-      fetchSubjectContent(params.id);
+      fetchSubjectContent(params.id, mergeSubjectIds);
       // Load completed content from database and localStorage
       loadCompletedContentFromDB(params.id);
       loadCompletedContent(params.id);
     }
-  }, [params?.id]);
+  }, [params?.id, mergeSubjectIds.join(',')]);
 
   // Load completed content from database
   const loadCompletedContentFromDB = async (subjectId: string) => {
@@ -224,9 +235,10 @@ export default function SubjectContent() {
     setSubject(prev => prev ? { ...prev, progress } : prev);
   };
 
-  const fetchSubjectContent = async (subjectId: string) => {
+  const fetchSubjectContent = async (subjectId: string, mergeIds: string[] = []) => {
     try {
-      const [subjectResponse, videosResponse, contentsResponse] = await Promise.all([
+      const subjectIds = Array.from(new Set([subjectId, ...mergeIds]));
+      const [subjectResponse, videosResponse, ...contentResponses] = await Promise.all([
         fetch(`${API_BASE_URL}/api/subjects/${subjectId}`, {
           headers: {
             'Authorization': `Bearer ${getAuthToken()}`,
@@ -239,12 +251,17 @@ export default function SubjectContent() {
             'Content-Type': 'application/json',
           }
         }),
-        fetch(`${API_BASE_URL}/api/student/asli-prep-content?subject=${encodeURIComponent(subjectId)}&surface=learning-path`, {
-          headers: {
-            'Authorization': `Bearer ${getAuthToken()}`,
-            'Content-Type': 'application/json',
-          }
-        })
+        ...subjectIds.map((id) =>
+          fetch(
+            `${API_BASE_URL}/api/student/asli-prep-content?subject=${encodeURIComponent(id)}&surface=learning-path`,
+            {
+              headers: {
+                Authorization: `Bearer ${getAuthToken()}`,
+                'Content-Type': 'application/json',
+              },
+            },
+          ),
+        ),
       ]);
       
       let subjectName = '';
@@ -254,49 +271,14 @@ export default function SubjectContent() {
         if (contentType && contentType.includes('application/json')) {
           const subjectData = await subjectResponse.json();
           setSubject(subjectData.subject);
-          subjectName = subjectData.subject.name;
-          console.log('Subject name:', subjectName);
+          subjectName = subjectData.subject?.name || '';
         } else {
-          console.warn('Subject response is not JSON, using fallback data');
-          // Fallback data
-          setSubject({
-            _id: subjectId,
-            name: 'Sample Subject',
-            description: 'This is a sample subject for demonstration',
-            category: 'Education',
-            difficulty: 'Intermediate',
-            duration: '2 hours',
-            subjects: ['Math', 'Science'],
-            color: 'bg-blue-100 text-blue-600',
-            icon: '📚',
-            videos: [],
-            quizzes: [],
-            students: 0,
-            rating: 4.5,
-            progress: 0
-          });
-          subjectName = 'Sample Subject';
+          console.warn('Subject response is not JSON');
+          setSubject({ _id: subjectId, name: 'Subject', description: '', category: '', difficulty: '', duration: '', subjects: [], color: '', icon: '', videos: [], quizzes: [], students: 0, rating: 0, progress: 0 });
         }
       } else {
-        console.warn('Subject API failed, using fallback data');
-        // Fallback data
-        setSubject({
-          _id: subjectId,
-          name: 'Sample Subject',
-          description: 'This is a sample subject for demonstration',
-          category: 'Education',
-          difficulty: 'Intermediate',
-          duration: '2 hours',
-          subjects: ['Math', 'Science'],
-          color: 'bg-blue-100 text-blue-600',
-          icon: '📚',
-          videos: [],
-          quizzes: [],
-          students: 0,
-          rating: 4.5,
-          progress: 0
-        });
-        subjectName = 'Sample Subject';
+        console.warn('Subject API failed');
+        setSubject({ _id: subjectId, name: 'Subject', description: '', category: '', difficulty: '', duration: '', subjects: [], color: '', icon: '', videos: [], quizzes: [], students: 0, rating: 0, progress: 0 });
       }
       
       // Attach subject-specific videos
@@ -320,60 +302,37 @@ export default function SubjectContent() {
         setSubject(prev => prev ? { ...prev, videos: [] } as any : prev);
       }
 
-      // Fetch content for calendar view
+      // Fetch content for calendar view (board + merged IIT subject siblings)
       setLoadingContents(true);
-      if (contentsResponse.ok) {
+      const seen = new Set<string>();
+      const mergedContents: ContentItem[] = [];
+      for (const contentsResponse of contentResponses) {
+        if (!contentsResponse.ok) continue;
         const contentType = contentsResponse.headers.get('content-type');
-        if (contentType && contentType.includes('application/json')) {
-          const contentsData = await contentsResponse.json();
-          const contentsList = contentsData.data || contentsData || [];
-          console.log('📚 Contents fetched:', contentsList.length);
-          console.log('📚 Sample content item:', contentsList[0] ? {
-            title: contentsList[0].title,
-            date: contentsList[0].date,
-            createdAt: contentsList[0].createdAt,
-            dateType: typeof contentsList[0].date
-          } : 'No content');
-          const lpContents = filterVideosForLearningPath(
-            Array.isArray(contentsList) ? contentsList : [],
-          );
-          setContents(lpContents);
-          
-          // Update progress after loading contents
-          // Load completed items and calculate progress
-          if (params?.id) {
-            const stored = localStorage.getItem(`completed_content_${params.id}`);
-            const completedIds = stored ? JSON.parse(stored) : [];
-            const progress = calculateProgress(contentsList.length, completedIds.length);
-            setSubject(prev => prev ? { ...prev, progress } : prev);
-            setCompletedContentIds(new Set(completedIds));
-          }
+        if (!contentType?.includes('application/json')) continue;
+        const contentsData = await contentsResponse.json();
+        const contentsList = contentsData.data || contentsData || [];
+        if (!Array.isArray(contentsList)) continue;
+        for (const item of contentsList) {
+          const id = item?._id ? String(item._id) : '';
+          if (!id || seen.has(id)) continue;
+          seen.add(id);
+          mergedContents.push(item);
         }
-      } else {
-        console.warn('⚠️ Contents API failed:', contentsResponse.status);
-        setContents([]);
+      }
+      const lpContents = filterVideosForLearningPath(mergedContents);
+      setContents(lpContents);
+      if (params?.id) {
+        const stored = localStorage.getItem(`completed_content_${params.id}`);
+        const completedIds = stored ? JSON.parse(stored) : [];
+        const progress = calculateProgress(lpContents.length, completedIds.length);
+        setSubject((prev) => (prev ? { ...prev, progress } : prev));
+        setCompletedContentIds(new Set(completedIds));
       }
       setLoadingContents(false);
-
     } catch (error) {
       console.error('Failed to fetch subject content:', error);
-      // Set fallback data on error
-      setSubject({
-        _id: subjectId,
-        name: 'Sample Subject',
-        description: 'This is a sample subject for demonstration',
-        category: 'Education',
-        difficulty: 'Intermediate',
-        duration: '2 hours',
-        subjects: ['Math', 'Science'],
-        color: 'bg-blue-100 text-blue-600',
-        icon: '📚',
-        videos: [],
-        quizzes: [],
-        students: 0,
-        rating: 4.5,
-        progress: 0
-      });
+      setLoadingContents(false);
     } finally {
       setLoading(false);
     }
@@ -577,6 +536,7 @@ export default function SubjectContent() {
                   : contents}
                 onMarkAsDone={handleMarkAsDone}
                 completedItems={Array.from(completedContentIds)}
+                subjectName={subject?.name || ''}
               />
             )}
           </div>

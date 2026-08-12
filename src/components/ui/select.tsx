@@ -19,7 +19,7 @@ const SelectTrigger = React.forwardRef<
   <SelectPrimitive.Trigger
     ref={ref}
     className={cn(
-      "flex h-14 w-full items-center justify-between rounded-xl border border-slate-300 bg-white px-4 py-3 text-lg font-medium text-slate-800 shadow-sm ring-offset-background data-[placeholder]:font-normal data-[placeholder]:text-slate-400 focus:border-indigo-blue-400 focus:outline-none focus:ring-4 focus:ring-indigo-blue-500/15 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:opacity-60 [&>span]:line-clamp-1",
+      "flex h-14 w-full items-center justify-between rounded-xl border border-slate-300 bg-white px-4 py-3 text-lg font-medium text-slate-800 shadow-sm ring-offset-background transition-[color,background-color,box-shadow] data-[placeholder]:font-normal data-[placeholder]:text-slate-400 focus-visible:border-indigo-blue-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-blue-500/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:opacity-60 [&>span]:line-clamp-1",
       className
     )}
     {...props}
@@ -75,12 +75,13 @@ const SelectContent = React.forwardRef<
     <SelectPrimitive.Content
       ref={ref}
       className={cn(
-        "relative z-50 max-h-[min(70dvh,24rem)] min-w-[10rem] overflow-y-auto overflow-x-hidden rounded-xl border border-slate-200 bg-popover text-popover-foreground shadow-xl data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 origin-[--radix-select-content-transform-origin]",
+        "relative z-50 max-h-[min(70dvh,24rem)] min-w-[10rem] overflow-y-auto overflow-x-hidden rounded-xl border border-slate-200 bg-popover text-popover-foreground shadow-xl data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[side=bottom]:slide-in-from-top-1 data-[side=left]:slide-in-from-right-1 data-[side=right]:slide-in-from-left-1 data-[side=top]:slide-in-from-bottom-1",
         position === "popper" &&
-          "data-[side=bottom]:translate-y-1 data-[side=left]:-translate-x-1 data-[side=right]:translate-x-1 data-[side=top]:-translate-y-1 w-[var(--radix-select-trigger-width)]",
+          "w-[var(--radix-select-trigger-width)]",
         className
       )}
       position={position}
+      sideOffset={4}
       {...props}
     >
       <SelectScrollUpButton />

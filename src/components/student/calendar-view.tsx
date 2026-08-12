@@ -29,6 +29,10 @@ import {
   getVideoDisplayTitle,
   sortContentsChapterWise,
 } from '@/lib/video-chapter-schedule';
+import {
+  formatIitLearningPathContentLabel,
+  isIitTrackContent,
+} from '@/lib/library-content-labels';
 
 interface ContentItem {
   _id: string;
@@ -42,6 +46,13 @@ interface ContentItem {
   chapter?: string;
   module?: string;
   topic?: string;
+  productCategory?: string | null;
+  board?: string | null;
+  subject?: {
+    name?: string;
+    productCategory?: string | null;
+    board?: string | null;
+  } | string;
 }
 
 /** School/admin calendar label: lesson title + chapter/module when present. */
@@ -61,6 +72,8 @@ interface CalendarViewProps {
   isLoading?: boolean;
   onMarkAsDone?: (contentId: string) => void;
   completedItems?: string[];
+  /** Plain subject name for IIT section labels (e.g. Biology → Biology IIT Alpha). */
+  subjectName?: string;
 }
 
 export default function CalendarView({
@@ -68,6 +81,7 @@ export default function CalendarView({
   isLoading = false,
   onMarkAsDone,
   completedItems = [],
+  subjectName = '',
 }: CalendarViewProps) {
   const { toast } = useToast();
   const [markedDone, setMarkedDone] = useState<Set<string>>(new Set(completedItems));
@@ -418,7 +432,10 @@ export default function CalendarView({
     'Homework',
   ];
 
-  const groupedByType = sortedContents.reduce<Record<string, ContentItem[]>>((acc, content) => {
+  const boardContents = sortedContents.filter((c) => !isIitTrackContent(c));
+  const iitContents = sortedContents.filter((c) => isIitTrackContent(c));
+
+  const groupedByType = boardContents.reduce<Record<string, ContentItem[]>>((acc, content) => {
     const type = content.type || 'Content';
     if (!acc[type]) acc[type] = [];
     acc[type].push(content);
@@ -432,9 +449,23 @@ export default function CalendarView({
     ),
   ];
 
-  const renderContentCard = (content: ContentItem) => {
+  const renderContentCard = (content: ContentItem, opts?: { iit?: boolean }) => {
     const Icon = getContentIcon(content.type);
     const isDone = markedDone.has(content._id);
+    const title = opts?.iit
+      ? formatIitLearningPathContentLabel(content, subjectName)
+      : getLibraryContentDisplayTitle(content);
+    const subtitleBits = opts?.iit
+      ? [
+          content.title && content.title !== title ? content.title : null,
+          content.chapter ? `Chapter ${content.chapter}` : null,
+          content.type || null,
+        ].filter(Boolean)
+      : [
+          content.chapter ? `Chapter ${content.chapter}` : null,
+          content.module ? `Module ${content.module}` : null,
+          content.topic && content.topic !== content.title ? content.topic : null,
+        ].filter(Boolean);
 
     return (
       <div
@@ -443,24 +474,16 @@ export default function CalendarView({
         onClick={() => handleContentClick(content)}
       >
         <div className="flex items-center space-x-3 flex-1">
-          <div className="p-2 bg-blue-100 rounded-lg">
-            <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
+          <div className={`p-2 rounded-lg ${opts?.iit ? 'bg-slate-900' : 'bg-blue-100'}`}>
+            <Icon className={`w-4 h-4 sm:w-5 sm:h-5 ${opts?.iit ? 'text-amber-300' : 'text-blue-600'}`} />
           </div>
           <div className="flex-1 min-w-0">
             <h4 className="font-medium text-gray-900 text-xs sm:text-sm truncate">
-              {getLibraryContentDisplayTitle(content)}
+              {title}
             </h4>
-            {(content.chapter || content.module || content.topic) && (
+            {subtitleBits.length > 0 && (
               <p className="text-xs text-gray-500 mt-0.5 truncate">
-                {[
-                  content.chapter ? `Chapter ${content.chapter}` : null,
-                  content.module ? `Module ${content.module}` : null,
-                  content.topic && content.topic !== content.title
-                    ? content.topic
-                    : null,
-                ]
-                  .filter(Boolean)
-                  .join(' · ')}
+                {subtitleBits.join(' · ')}
               </p>
             )}
             {content.description && (
@@ -531,6 +554,14 @@ export default function CalendarView({
               </div>
             </section>
           ))}
+          {iitContents.length > 0 ? (
+            <section className="space-y-2">
+              <h3 className="text-sm sm:text-base font-semibold text-gray-900">IIT</h3>
+              <div className="space-y-2">
+                {iitContents.map((content) => renderContentCard(content, { iit: true }))}
+              </div>
+            </section>
+          ) : null}
         </div>
       )}
 

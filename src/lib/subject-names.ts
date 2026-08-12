@@ -39,6 +39,38 @@ export function formatSubjectDisplayLabel(name: string): string {
   return plain;
 }
 
+/**
+ * Subject label with IIT track when set — e.g. Physics → "Physics IIT Alpha".
+ * Does not append anything for General / empty productCategory.
+ */
+export function formatSubjectWithIitCategory(
+  name: string,
+  productCategory?: string | null,
+  labelMap?: Record<string, string>,
+): string {
+  const base = formatSubjectDisplayLabel(name) || displaySubjectName(name) || String(name || '').trim();
+  if (!base) return '';
+
+  const rawCat = String(productCategory || '')
+    .toUpperCase()
+    .trim()
+    .replace(/^IIT_/, '');
+  if (!rawCat || rawCat === 'GENERAL' || rawCat === 'NONE' || rawCat === 'ALL') {
+    return base;
+  }
+
+  const trackLabel = labelMap?.[rawCat]
+    ? String(labelMap[rawCat])
+    : rawCat
+        .split('_')
+        .map((p) => p.charAt(0) + p.slice(1).toLowerCase())
+        .join(' ');
+
+  const already = new RegExp(`\\biit\\s+${trackLabel.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i').test(base);
+  if (already) return base;
+  return `${base} IIT ${trackLabel}`;
+}
+
 export function normalizeSubjectDisplayKey(name: string): string {
   const plain = extractPlainSubjectName(name || '').trim().toLowerCase();
   if (plain === 'bio' || plain === 'biology') return 'biology';

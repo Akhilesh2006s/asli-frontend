@@ -151,22 +151,14 @@
     overflow-x: clip;
     font-size: 100%;
     -webkit-text-size-adjust: 100%;
-    /* Reserve the scrollbar track permanently. Radix locks body scroll when a
-       dropdown/dialog opens, which removes the scrollbar and shifts the whole
-       page sideways — the "giggle" on every dropdown. Reserving the gutter
-       means there is nothing to reclaim, so nothing moves. */
+    /* Reserve scrollbar space so opening Radix Select/Dialog does not shift layout. */
     scrollbar-gutter: stable;
+    overflow-y: auto;
   }
 
-  /* Radix locks body scroll behind the scenes and pads the body to make up for
-     the scrollbar it just removed. The gutter above already holds that space,
-     so the padding would push content sideways instead — cancel it. */
-  body[data-scroll-locked] {
-    padding-right: 0 !important;
-    margin-right: 0 !important;
-  }
-
+  /* Match html — some browsers only reserve gutter when both are set. */
   body {
+    scrollbar-gutter: stable;
     background-color: var(--background);
     color: var(--foreground);
     font-family: var(--font-outfit);
@@ -178,6 +170,28 @@
     text-rendering: optimizeLegibility;
     overflow-x: clip;
     min-height: 100vh;
+  }
+
+  /* Radix Select uses react-remove-scroll-bar, which pads body when the scrollbar
+     hides. With scrollbar-gutter above the pad is redundant and causes the
+     sideways "giggle" on every dropdown open/close — zero it all out. */
+  body[data-scroll-locked] {
+    padding-left: 0 !important;
+    padding-top: 0 !important;
+    padding-right: 0 !important;
+    margin-left: 0 !important;
+    margin-top: 0 !important;
+    margin-right: 0 !important;
+  }
+
+  body[data-scroll-locked] .width-before-scroll-bar,
+  .width-before-scroll-bar {
+    margin-right: 0 !important;
+  }
+
+  body[data-scroll-locked] .right-scroll-bar-position,
+  .right-scroll-bar-position {
+    right: 0 !important;
   }
 
   /* Custom fonts break native date/time spinner glyphs on some Windows Chrome builds. */

@@ -229,10 +229,9 @@ const ClassDashboard = () => {
   const resolveSubjectIdsForClass = (classItem: Class | undefined): string[] => {
     if (!classItem || subjects.length === 0) return [];
 
-    const classId = String(classItem.id);
     const resolved = new Set<string>();
 
-    // From Class.assignedSubjects (direct class document links)
+    // Only Class.assignedSubjects — saved from this Assign Subjects tab (not teacher links).
     for (const subj of classItem.assignedSubjects || []) {
       const storedId = String(subj.id || subj._id || '');
       if (!storedId) continue;
@@ -244,13 +243,6 @@ const ClassDashboard = () => {
         );
         if (byName) resolved.add(String(byName.id || byName._id));
       }
-    }
-
-    // From Subject page data (classIds / classes array on each subject row)
-    for (const row of subjects) {
-      const linked = row.classes || [];
-      const linkedToThisClass = linked.some((c) => subjectIdsMatch(String(c.id), classId));
-      if (linkedToThisClass) resolved.add(String(row.id || row._id));
     }
 
     return [...resolved];
@@ -304,24 +296,31 @@ const ClassDashboard = () => {
         const data = await response.json();
         const subjectsArray = Array.isArray(data) ? data : (data.data || []);
         setSubjects(
-          subjectsArray.map((subject: any) => ({
-            _id: subject._id || subject.id,
-            id: subject._id || subject.id,
-            name: String(subject.name || '').split('__deleted__')[0].trim(),
-            code: subject.code,
-            description: subject.description,
-            board: subject.board,
-            variantIds: Array.isArray(subject.variantIds)
-              ? subject.variantIds.map(String)
-              : [String(subject._id || subject.id)],
-            classes: Array.isArray(subject.classes)
-              ? subject.classes.map((c: any) => ({
-                  id: String(c.id || c._id || ''),
-                  classNumber: c.classNumber,
-                  section: c.section,
-                }))
-              : [],
-          })),
+          subjectsArray
+            .map((subject: any) => ({
+              _id: subject._id || subject.id,
+              id: subject._id || subject.id,
+              name: String(subject.name || '').split('__deleted__')[0].trim(),
+              code: subject.code,
+              description: subject.description,
+              board: subject.board,
+              variantIds: Array.isArray(subject.variantIds)
+                ? subject.variantIds.map(String)
+                : [String(subject._id || subject.id)],
+              classes: Array.isArray(subject.classes)
+                ? subject.classes.map((c: any) => ({
+                    id: String(c.id || c._id || ''),
+                    classNumber: c.classNumber,
+                    section: c.section,
+                  }))
+                : [],
+            }))
+            .sort((a, b) =>
+              String(a.name || '').localeCompare(String(b.name || ''), undefined, {
+                sensitivity: 'base',
+                numeric: true,
+              }),
+            ),
         );
       }
     } catch (error) {
@@ -442,16 +441,6 @@ const ClassDashboard = () => {
         throw new Error('Invalid data format received from server');
       }
       
-      // Use the data directly from backend (already grouped by class)
-      console.log('Classes data received:', data);
-      console.log('Classes with classNumber and assignedSubjects:', data.map(c => ({ 
-        id: c.id,
-        name: c.name, 
-        classNumber: c.classNumber,
-        section: c.section,
-        studentCount: c.studentCount,
-        assignedSubjects: c.assignedSubjects ? c.assignedSubjects.map(s => ({ id: s.id, name: s.name })) : []
-      })));
       setClasses(data);
     } catch (error) {
       console.error('Failed to fetch classes:', error);
@@ -757,14 +746,6 @@ const ClassDashboard = () => {
 
     setIsPromoting(true);
     try {
-      console.log('Promoting classes - Class IDs:', classIds);
-      console.log('Promoting classes - Classes to promote:', classesToPromote.map(c => ({
-        id: c.id,
-        name: c.name,
-        classNumber: c.classNumber,
-        section: c.section
-      })));
-      
       const token = getAuthToken();
       const response = await fetch(`${API_BASE_URL}/api/admin/classes/promote`, {
         method: 'POST',
@@ -778,7 +759,6 @@ const ClassDashboard = () => {
       });
 
       const responseData = await response.json();
-      console.log('Promote classes response:', responseData);
 
       if (response.ok && responseData.success !== false) {
         fetchClasses();
@@ -947,37 +927,106 @@ const ClassDashboard = () => {
     return t;
   };
 
+  const plainSubjectLabel = (rawName: string) => {
+    const raw = String(rawName || '').trim().replace(/\s+/g, ' ');
+    if (!raw) return '';
+    return raw.replace(/_\d+$/, '').trim() || raw;
+  };
+
+  const isIitTrackSubjectLabel = (label: string) =>
+    /\sIIT$/i.test(String(label || '').trim()) || /\bIIT\b/i.test(String(label || ''));
+
+  /** Standard subjects first (A–Z), then IIT track subjects (A–Z). */
+  const compareSubjectFilterLabels = (a: string, b: string) => {
+    const aIit = isIitTrackSubjectLabel(a);
+    const bIit = isIitTrackSubjectLabel(b);
+    if (aIit !== bIit) return aIit ? 1 : -1;
+    return a.localeCompare(b, undefined, { sensitivity: 'base', numeric: true });
+  };
+
+  /** Individual subject labels for a class — never the full comma-joined display string. */
+  const collectClassSubjectLabels = (classItem: Class): string[] => {
+    const labels: string[] = [];
+    for (const subj of classItem.assignedSubjects || []) {
+      const label = plainSubjectLabel(subj.name || subj.code || '');
+      if (label) labels.push(label);
+    }
+    if (labels.length === 0) {
+      const raw = String(classItem.subject || '').trim();
+      if (raw && raw !== 'General') {
+        for (const part of raw.split(',')) {
+          const label = plainSubjectLabel(part);
+          if (label) labels.push(label);
+        }
+      }
+    }
+    return labels;
+  };
+
+  const classHasSubject = (classItem: Class, subjectLabel: string) => {
+    const targetKey = canonicalSubjectKey(subjectLabel);
+    return collectClassSubjectLabels(classItem).some(
+      (label) => canonicalSubjectKey(label) === targetKey,
+    );
+  };
+
   const filteredClasses = classes.filter(classItem => {
-    const matchesSearch = classItem.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         classItem.subject.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         classItem.teacher.toLowerCase().includes(searchTerm.toLowerCase());
-    // Match on the canonical key so picking "Maths" also returns "Mathematics" rows
+    const subjectLabels = collectClassSubjectLabels(classItem);
+    const subjectSearchBlob = [
+      ...subjectLabels,
+      String(classItem.subject || ''),
+    ]
+      .join(' ')
+      .toLowerCase();
+    const matchesSearch =
+      classItem.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      subjectSearchBlob.includes(searchTerm.toLowerCase()) ||
+      classItem.teacher.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesSubject =
-      selectedSubject === 'all' ||
-      canonicalSubjectKey(classItem.subject) === canonicalSubjectKey(selectedSubject);
+      selectedSubject === 'all' || classHasSubject(classItem, selectedSubject);
     return matchesSearch && matchesSubject;
   });
 
   /**
-   * Deduping on the raw string listed "Maths", "maths" and "Mathematics " as
-   * three separate filter options. Group by the canonical key and show one
-   * clean label per subject.
+   * Filter dropdown: school subject catalog order (core first, IIT tracks last).
+   * Only subjects that appear on at least one class.
    */
   const classSubjects = (() => {
-    const canonical = canonicalSubjectKey;
-    const byKey = new Map<string, string>();
-    for (const c of classes) {
-      const raw = String(c?.subject || '').trim().replace(/\s+/g, ' ');
-      if (!raw) continue;
-      const key = canonical(raw);
-      // Keep the first spelling seen, preferring one that is not all-lowercase
-      const existing = byKey.get(key);
-      if (!existing || (existing === existing.toLowerCase() && raw !== raw.toLowerCase())) {
-        byKey.set(key, raw);
+    const onClassKeys = new Set<string>();
+    for (const classItem of classes) {
+      for (const label of collectClassSubjectLabels(classItem)) {
+        onClassKeys.add(canonicalSubjectKey(label));
       }
     }
-    return [...byKey.values()].sort((a, b) => a.localeCompare(b));
+
+    const seen = new Set<string>();
+    const fromCatalog = subjects
+      .map((s) => plainSubjectLabel(s.name || s.code || ''))
+      .filter((label) => {
+        if (!label) return false;
+        const key = canonicalSubjectKey(label);
+        if (!onClassKeys.has(key) || seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      })
+      .sort(compareSubjectFilterLabels);
+
+    if (fromCatalog.length > 0) return fromCatalog;
+
+    const byKey = new Map<string, string>();
+    for (const classItem of classes) {
+      for (const label of collectClassSubjectLabels(classItem)) {
+        const key = canonicalSubjectKey(label);
+        const existing = byKey.get(key);
+        if (!existing || (existing === existing.toLowerCase() && label !== label.toLowerCase())) {
+          byKey.set(key, label);
+        }
+      }
+    }
+    return [...byKey.values()].sort(compareSubjectFilterLabels);
   })();
+
+  const schoolSubjectCount = subjects.length > 0 ? subjects.length : classSubjects.length;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50">
@@ -1086,7 +1135,7 @@ const ClassDashboard = () => {
                     </div>
                     <div className="text-right">
                       <p className="text-white/90 text-xs sm:text-sm font-medium">Subjects</p>
-                      <p className="text-2xl sm:text-3xl font-bold text-white">{classSubjects.length}</p>
+                      <p className="text-2xl sm:text-3xl font-bold text-white">{schoolSubjectCount}</p>
                     </div>
                   </div>
                   <div className="flex items-center text-white/80 text-xs sm:text-sm">
@@ -1141,13 +1190,15 @@ const ClassDashboard = () => {
                   </div>
                   
                   <Select value={selectedSubject} onValueChange={setSelectedSubject}>
-                    <SelectTrigger className="w-full sm:w-48 rounded-xl bg-white/70 border-gray-200 text-gray-900 backdrop-blur-sm">
+                    <SelectTrigger className="w-full sm:w-48 max-w-full rounded-xl bg-white/70 border-gray-200 text-gray-900 backdrop-blur-sm">
                       <SelectValue placeholder="Filter by subject" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="max-w-[min(100vw-2rem,22rem)]">
                       <SelectItem value="all">All Subjects</SelectItem>
-                      {classSubjects.map(subject => (
-                        <SelectItem key={subject} value={subject}>{subject}</SelectItem>
+                      {classSubjects.map((subject) => (
+                        <SelectItem key={subject} value={subject}>
+                          <span className="truncate">{subject}</span>
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -1524,7 +1575,9 @@ const ClassDashboard = () => {
                 <CardTitle className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-purple-600 via-pink-600 to-red-500 bg-clip-text text-transparent">
                   Assign Subjects to Class
                 </CardTitle>
-                <p className="text-gray-600 mt-2">Select a class, section, and subjects for that section only</p>
+                <p className="text-gray-600 mt-2">
+                  Assign subjects directly to a class section here. Teacher class assignments are managed separately under Teachers.
+                </p>
               </CardHeader>
               <CardContent className="space-y-3 sm:space-y-4 lg:space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

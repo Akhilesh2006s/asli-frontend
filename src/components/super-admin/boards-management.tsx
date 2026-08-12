@@ -15,6 +15,16 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -24,7 +34,7 @@ import {
 import { API_BASE_URL } from '@/lib/api-config';
 import { PRODUCT_IIT } from '@/lib/products';
 import { useToast } from '@/hooks/use-toast';
-import { GraduationCap, Loader2, Pencil, Plus } from 'lucide-react';
+import { GraduationCap, Loader2, Pencil, Plus, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export type BoardKind = 'curriculum' | 'state' | 'iit';
@@ -65,6 +75,7 @@ export default function BoardsManagement() {
   const [editOpen, setEditOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [editingCode, setEditingCode] = useState<string | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<BoardRow | null>(null);
   const [form, setForm] = useState({
     code: '',
     name: '',
@@ -189,7 +200,7 @@ export default function BoardsManagement() {
     }
   };
 
-  const toggleActive = async (row: BoardRow) => {
+  const activateBoard = async (row: BoardRow) => {
     setSaving(true);
     try {
       const res = await fetch(
@@ -197,18 +208,42 @@ export default function BoardsManagement() {
         {
           method: 'PUT',
           headers: authHeaders(),
-          body: JSON.stringify({ isActive: row.isActive === false }),
+          body: JSON.stringify({ isActive: true }),
         }
       );
       const json = await res.json();
       if (!res.ok || !json.success) throw new Error(json.message || 'Update failed');
-      toast({
-        title: row.isActive === false ? 'Board activated' : 'Board deactivated',
-      });
+      toast({ title: 'Board activated' });
       await reload();
     } catch (e) {
       toast({
-        title: 'Could not update board',
+        title: 'Could not activate board',
+        description: e instanceof Error ? e.message : 'Error',
+        variant: 'destructive',
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const deleteBoardPermanently = async (row: BoardRow) => {
+    setSaving(true);
+    try {
+      const res = await fetch(
+        `${API_BASE_URL}/api/super-admin/boards/${encodeURIComponent(row.code)}`,
+        { method: 'DELETE', headers: authHeaders() }
+      );
+      const json = await res.json();
+      if (!res.ok || !json.success) throw new Error(json.message || 'Delete failed');
+      toast({
+        title: 'Board deleted',
+        description: `${row.name} (${row.code}) was removed permanently.`,
+      });
+      setPendingDelete(null);
+      await reload();
+    } catch (e) {
+      toast({
+        title: 'Could not delete board',
         description: e instanceof Error ? e.message : 'Error',
         variant: 'destructive',
       });
@@ -260,7 +295,7 @@ export default function BoardsManagement() {
               <BoardTable
                 rows={active}
                 onEdit={openEdit}
-                onToggle={toggleActive}
+                onDelete={(row) => setPendingDelete(row)}
                 busy={saving}
               />
               {inactive.length > 0 ? (
@@ -271,7 +306,8 @@ export default function BoardsManagement() {
                   <BoardTable
                     rows={inactive}
                     onEdit={openEdit}
-                    onToggle={toggleActive}
+                    onDelete={(row) => setPendingDelete(row)}
+                    onActivate={activateBoard}
                     busy={saving}
                   />
                 </div>
@@ -302,6 +338,36 @@ export default function BoardsManagement() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!pendingDelete} onOpenChange={(open) => !open && setPendingDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete board permanently?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently remove{' '}
+              <strong>
+                {pendingDelete?.name} ({pendingDelete?.code})
+              </strong>
+              . This cannot be undone. The board must have no subjects, schools, content, or exams
+              assigned to it.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={saving}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={saving || !pendingDelete}
+              className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
+              onClick={(e) => {
+                e.preventDefault();
+                if (pendingDelete) void deleteBoardPermanently(pendingDelete);
+              }}
+            >
+              {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Delete permanently
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
         <DialogContent className="max-w-md">
@@ -429,12 +495,14 @@ function BoardFormFields({
 function BoardTable({
   rows,
   onEdit,
-  onToggle,
+  onDelete,
+  onActivate,
   busy,
 }: {
   rows: BoardRow[];
   onEdit: (row: BoardRow) => void;
-  onToggle: (row: BoardRow) => void;
+  onDelete: (row: BoardRow) => void;
+  onActivate?: (row: BoardRow) => void;
   busy: boolean;
 }) {
   return (
@@ -477,14 +545,26 @@ function BoardTable({
               <Pencil className="mr-1 h-3.5 w-3.5" />
               Edit
             </Button>
+            {row.isActive === false && onActivate ? (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                disabled={busy}
+                onClick={() => onActivate(row)}
+              >
+                Activate
+              </Button>
+            ) : null}
             <Button
               type="button"
               size="sm"
-              variant="ghost"
+              variant="destructive"
               disabled={busy}
-              onClick={() => onToggle(row)}
+              onClick={() => onDelete(row)}
             >
-              {row.isActive === false ? 'Activate' : 'Deactivate'}
+              <Trash2 className="mr-1 h-3.5 w-3.5" />
+              Delete permanently
             </Button>
           </div>
         </li>

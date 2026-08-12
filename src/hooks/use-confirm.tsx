@@ -48,7 +48,7 @@ export function useConfirm() {
         if (!next) settle(false);
       }}
     >
-      <AlertDialogContent className="bg-white">
+      <AlertDialogContent className="bg-white z-[200]">
         <AlertDialogHeader>
           <AlertDialogTitle>{options.title || "Are you sure?"}</AlertDialogTitle>
           {options.description ? (

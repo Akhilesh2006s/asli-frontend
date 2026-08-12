@@ -173,6 +173,10 @@ function buildPdfDocumentInit(source: PdfSource): PdfDocumentInit {
   return { ...base, data: source.bytes };
 }
 
+function getPageViewport(page: pdfjs.PDFPageProxy, scale: number) {
+  return page.getViewport({ scale, dontFlip: false });
+}
+
 /** Touch browsers: load bytes on the main thread when URL streaming is unreliable. */
 async function openPdfDocument(source: PdfSource): Promise<pdfjs.PDFDocumentProxy> {
   const init = buildPdfDocumentInit(source) as Parameters<typeof pdfjs.getDocument>[0];
@@ -637,6 +641,11 @@ export default function PdfPreviewPanel({
     };
   }, [useCanvasRendering, updateContainerSize]);
 
+  useLayoutEffect(() => {
+    if (!useCanvasRendering) return;
+    updateContainerSize();
+  }, [isFullscreen, useCanvasRendering, updateContainerSize]);
+
   useEffect(() => {
     setTotalPages(0);
     setUseIframeFallback(false);
@@ -788,7 +797,7 @@ export default function PdfPreviewPanel({
       try {
         const page = await pdf.getPage(pageNum);
         if (signal?.cancelled) return false;
-        const base = page.getViewport({ scale: 1 });
+        const base = getPageViewport(page, 1);
         const cssScale =
           layout === 'scroll'
             ? getFitWidthScale(size.width, base.width)
@@ -802,7 +811,7 @@ export default function PdfPreviewPanel({
 
         for (const outputScale of scaleAttempts) {
           if (signal?.cancelled) break;
-          const viewport = page.getViewport({ scale: outputScale });
+          const viewport = getPageViewport(page, outputScale);
           const canvas = document.createElement('canvas');
           canvas.className = 'block max-w-full rounded-sm bg-white shadow-md';
           canvas.width = Math.max(1, Math.floor(viewport.width));
@@ -811,6 +820,8 @@ export default function PdfPreviewPanel({
           canvas.style.height = `${cssHeight}px`;
           const ctx = canvas.getContext('2d', { alpha: false });
           if (!ctx) continue;
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
           try {
             await page.render({ canvasContext: ctx, viewport, canvas }).promise;
             if (!signal?.cancelled) {
@@ -959,14 +970,16 @@ export default function PdfPreviewPanel({
     ? 'rounded-lg border border-stone-300/80 bg-stone-100 shadow-inner'
     : 'rounded-lg border bg-slate-100';
 
-  /** Exact visible column width — never invent a wider page than the box (that clips text). */
-  const bookPageWidth = Math.max(
-    280,
-    Math.min(
-      A4_PAGE_MAX_WIDTH_PX,
-      Math.floor(containerSize.width > 40 ? containerSize.width : 320),
-    ),
-  );
+  /** Reading column width — in book mode also cap by viewport height so page 1 matches fullscreen vs modal. */
+  const bookPageWidth = (() => {
+    const rawW = Math.floor(containerSize.width > 40 ? containerSize.width : 320);
+    let w = Math.max(280, Math.min(A4_PAGE_MAX_WIDTH_PX, rawW));
+    if (isBookLayout && containerSize.height > 120) {
+      const maxWFromHeight = Math.floor((containerSize.height - 48) / 1.414);
+      if (maxWFromHeight >= 280) w = Math.min(w, maxWFromHeight);
+    }
+    return w;
+  })();
 
   /** Desktop mouse/trackpad — embedded PDF iframe (never on touch tablets / book mode). */
   if (!useCanvasRendering && inlineIframeSupported) {
@@ -1089,8 +1102,10 @@ export default function PdfPreviewPanel({
                 pdf={pdfDoc}
                 totalPages={totalPages}
                 containerWidth={bookPageWidth}
+                defaultPageHeight={Math.max(320, Math.floor(bookPageWidth * 1.414))}
                 storageKey={absoluteUrl}
                 showPageHud={false}
+                fillViewport={isBookLayout}
                 onPageChange={(page, count) => {
                   setReaderPage(page);
                   setReaderPageCount(count);

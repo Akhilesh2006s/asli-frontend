@@ -270,13 +270,6 @@ export default function TeacherToolPage() {
   const [assignedStudents, setAssignedStudents] = useState<Array<{id: string, name: string, classNumber?: string}>>([]);
   const [isLoadingStudents, setIsLoadingStudents] = useState(false);
   const [availableNCERTTopics, setAvailableNCERTTopics] = useState<string[]>([]);
-  /**
-   * Chapters that actually have generated content for this tool. The chapter
-   * list comes from the syllabus, but most chapters have never been generated —
-   * without this the teacher picks one and gets a dead-end error. Empty set
-   * means "unknown", in which case nothing is marked.
-   */
-  const [topicsWithContent, setTopicsWithContent] = useState<Set<string> | null>(null);
   const [assignedSubjectNames, setAssignedSubjectNames] = useState<string[]>([]);
   const [schoolBoardName, setSchoolBoardName] = useState('CBSE');
   const [isAsliPrepExclusive, setIsAsliPrepExclusive] = useState(false);
@@ -799,9 +792,6 @@ export default function TeacherToolPage() {
         'story-passage-creator',
       ]);
 
-      // Availability is now resolved for every class/subject in one request
-      // (see the topicsWithContent effect) instead of hiding chapters here via
-      // one request per chapter.
       void toolsNeedingFiltering;
     }
 
@@ -816,140 +806,6 @@ export default function TeacherToolPage() {
     cascade.topics,
     cascade.loadingTopics,
   ]);
-
-  // Which chapters have saved AI Tool Data for this tool — hint only.
-  // Never block selection: Super Admin may store slightly different topic titles,
-  // and generate-content already returns a clear message when nothing matches.
-  useEffect(() => {
-    const classValue = String(formParams.gradeLevel || '').trim();
-    const subjectValue = String(
-      formParams.subject || (Array.isArray(formParams.subjects) ? formParams.subjects[0] : '') || '',
-    ).trim();
-    if (!classValue || !subjectValue || !toolType) {
-      setTopicsWithContent(null);
-      return;
-    }
-
-    let cancelled = false;
-    const classNumber = classValue === 'IIT-6' ? 6 : parseInt(String(classValue).replace(/\D/g, ''), 10);
-    if (!Number.isFinite(classNumber)) {
-      setTopicsWithContent(null);
-      return;
-    }
-
-    const cacheKey = [
-      'twc',
-      classNumber,
-      subjectValue.toLowerCase(),
-      toolType,
-      String(selectedBoard || '').toLowerCase(),
-    ].join('|');
-
-    (async () => {
-      try {
-        try {
-          const cached = sessionStorage.getItem(cacheKey);
-          if (cached) {
-            const parsed = JSON.parse(cached) as { topics?: string[]; at?: number; degraded?: boolean };
-            if (
-              parsed?.at &&
-              Date.now() - parsed.at < 5 * 60 * 1000 &&
-              Array.isArray(parsed.topics) &&
-              !parsed.degraded
-            ) {
-              if (!cancelled) {
-                setTopicsWithContent(
-                  parsed.topics.length === 0
-                    ? null
-                    : new Set(parsed.topics.map((t) => String(t).trim().toLowerCase())),
-                );
-              }
-              // Still refresh in background below
-            }
-          }
-        } catch {
-          /* ignore cache */
-        }
-
-        const token = getAuthToken();
-        const boardQs = selectedBoard
-          ? `&board=${encodeURIComponent(selectedBoard)}`
-          : '';
-        const resp = await fetch(
-          `${API_BASE_URL}/api/teacher/ai/topics-with-content?classNumber=${classNumber}` +
-            `&subject=${encodeURIComponent(subjectValue)}&toolType=${encodeURIComponent(toolType)}${boardQs}`,
-          {
-            headers: {
-              ...(token ? { Authorization: `Bearer ${token}` } : {}),
-              'Content-Type': 'application/json',
-            },
-          },
-        );
-        if (!resp.ok) throw new Error(String(resp.status));
-        const body = await resp.json();
-        const list: string[] = body?.data?.topics || [];
-        if (cancelled) return;
-        const degraded = Boolean(body?.data?.degraded) || list.length === 0;
-        // Unknown availability must not label anything as unavailable
-        setTopicsWithContent(
-          degraded ? null : new Set(list.map((t) => String(t).trim().toLowerCase())),
-        );
-        try {
-          sessionStorage.setItem(
-            cacheKey,
-            JSON.stringify({ topics: list, at: Date.now(), degraded }),
-          );
-        } catch {
-          /* ignore */
-        }
-      } catch {
-        if (!cancelled) setTopicsWithContent(null);
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [formParams.gradeLevel, formParams.subject, formParams.subjects, toolType, selectedBoard]);
-
-  const topicHasSavedContent = useCallback(
-    (option: string): boolean | null => {
-      if (topicsWithContent === null) return null;
-      const opt = String(option || '').trim().toLowerCase();
-      if (!opt) return false;
-      if (topicsWithContent.has(opt)) return true;
-      // Keep letters from any script (Hindi/Telugu chapter titles must not become "").
-      const compactKey = (value: string) =>
-        String(value || '')
-          .normalize('NFC')
-          .toLowerCase()
-          .replace(/[^\p{L}\p{N}]+/gu, '');
-      const optCompact = compactKey(option);
-      for (const stored of topicsWithContent) {
-        if (!stored) continue;
-        if (opt.includes(stored) || stored.includes(opt)) return true;
-        const storedCompact = compactKey(stored);
-        if (
-          storedCompact.length >= 4 &&
-          optCompact.length >= 4 &&
-          (optCompact.includes(storedCompact) || storedCompact.includes(optCompact))
-        ) {
-          return true;
-        }
-        // Syllabus: "Unit 1 - … - A Bottle of Dew (Story)" vs stored "A Bottle of Dew"
-        const dashParts = opt
-          .split(/\s+-\s+/)
-          .map((p) => p.replace(/\([^)]*\)/g, '').trim())
-          .filter(Boolean);
-        for (const part of dashParts) {
-          if (part.length < 3) continue;
-          if (stored === part || stored.includes(part) || part.includes(stored)) return true;
-        }
-      }
-      return false;
-    },
-    [topicsWithContent],
-  );
 
   const handleInputChange = (fieldName: string, value: any) => {
     setFormParams(prev => {
@@ -1821,12 +1677,7 @@ export default function TeacherToolPage() {
                   fieldOptions = field.options || [];
                   isDisabled = false;
                 } else if (field.isNCERT && field.name === 'topic') {
-                  fieldOptions = [...availableNCERTTopics].sort((a, b) => {
-                    const aReady = topicHasSavedContent(a) === true ? 0 : 1;
-                    const bReady = topicHasSavedContent(b) === true ? 0 : 1;
-                    if (aReady !== bReady) return aReady - bReady;
-                    return 0;
-                  });
+                  fieldOptions = [...availableNCERTTopics];
                   loadingDropdown = cascade.loadingTopics;
                   isDisabled =
                     !formParams.gradeLevel ||
@@ -1935,10 +1786,6 @@ export default function TeacherToolPage() {
                         <SelectContent>
                           {fieldOptions.length > 0 ? (
                             fieldOptions.map((option) => {
-                              // Compact Ready / Not ready badges — long suffixes truncate on mobile.
-                              const isTopicField = Boolean(field.isNCERT && field.name === 'topic');
-                              const saved = isTopicField ? topicHasSavedContent(String(option)) : null;
-                              const noSavedHint = saved === false;
                               const label =
                                 option === WHOLE_CHAPTER_VALUE
                                   ? 'Whole chapter'
@@ -1949,25 +1796,8 @@ export default function TeacherToolPage() {
                                       : option;
                               return (
                                 <SelectItem key={option} value={option}>
-                                  <span
-                                    className={
-                                      noSavedHint
-                                        ? 'flex w-full min-w-0 flex-col gap-1 text-slate-600 sm:flex-row sm:items-center sm:gap-2'
-                                        : 'flex w-full min-w-0 flex-col gap-1 sm:flex-row sm:items-center sm:gap-2'
-                                    }
-                                  >
-                                    <span className="min-w-0 flex-1 whitespace-normal break-words text-left leading-snug">
-                                      {label}
-                                    </span>
-                                    {noSavedHint ? (
-                                      <span className="shrink-0 self-start rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-700 ring-1 ring-amber-200">
-                                        Not ready
-                                      </span>
-                                    ) : saved === true ? (
-                                      <span className="shrink-0 self-start rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-emerald-700 ring-1 ring-emerald-200">
-                                        Ready
-                                      </span>
-                                    ) : null}
+                                  <span className="min-w-0 whitespace-normal break-words text-left leading-snug">
+                                    {label}
                                   </span>
                                 </SelectItem>
                               );
@@ -1983,22 +1813,6 @@ export default function TeacherToolPage() {
                           )}
                         </SelectContent>
                       </Select>
-                      {field.isNCERT && field.name === 'topic' && topicsWithContent !== null ? (
-                        <p className="mt-1.5 text-[11px] text-slate-500 leading-snug">
-                          <span className="font-semibold text-emerald-700">Ready</span> = saved AI Tool
-                          Data (opens fast).{' '}
-                          <span className="font-semibold text-amber-700">Not ready</span> = Super Admin
-                          still needs to generate it (may take longer).
-                        </p>
-                      ) : null}
-                      {field.isNCERT &&
-                      field.name === 'topic' &&
-                      formParams.topic &&
-                      topicHasSavedContent(String(formParams.topic)) === false ? (
-                        <p className="mt-1 text-[11px] text-amber-700 leading-snug">
-                          This chapter has no saved content yet — Generate may take longer while we create it live.
-                        </p>
-                      ) : null}
                       </>
                       ) : field.type === 'textarea' ? (
                     <Textarea

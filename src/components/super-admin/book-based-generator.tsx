@@ -1080,6 +1080,15 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
             </Select>
           </div>
           <div className="space-y-2">
+            <Label>Class</Label>
+            <Select value={classNumber} onValueChange={handleClassChange} disabled={!board || loadingClasses}>
+              <SelectTrigger><SelectValue placeholder={!board ? "Select board first" : loadingClasses ? "Loading classes…" : "Select class"} /></SelectTrigger>
+              <SelectContent>
+                {classOptionsForSelectWithBook.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
             <Label>Product category (IIT track)</Label>
             <Select
               value={productCategory || "__general__"}
@@ -1106,15 +1115,6 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
                 Use General for board curriculum. For IIT tracks, choose Board IIT then Alpha–Delta.
               </p>
             )}
-          </div>
-          <div className="space-y-2">
-            <Label>Class</Label>
-            <Select value={classNumber} onValueChange={handleClassChange} disabled={!board || loadingClasses}>
-              <SelectTrigger><SelectValue placeholder={!board ? "Select board first" : loadingClasses ? "Loading classes…" : "Select class"} /></SelectTrigger>
-              <SelectContent>
-                {classOptionsForSelectWithBook.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-              </SelectContent>
-            </Select>
           </div>
           <div className="space-y-2">
             <Label>Subject</Label>

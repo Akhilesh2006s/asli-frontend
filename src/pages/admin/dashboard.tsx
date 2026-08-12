@@ -85,20 +85,15 @@ const AdminDashboard = () => {
         
         if (response.ok) {
           const data = await response.json();
-          console.log('Admin dashboard auth check - user data:', data);
           if (data.user && data.user.role === 'admin') {
-            console.log('Admin user authenticated successfully');
             setUserData(data.user);
             setAdminId(data.user._id || data.user.id);
             setIsAuthenticated(true);
           } else {
-            console.log('User is not admin, role:', data.user?.role);
             window.location.href = '/signin';
           }
         } else {
-          console.log('Admin dashboard auth check failed with status:', response.status);
           const errorText = await response.text();
-          console.log('Response text:', errorText);
           toast({
             title: 'Authentication failed',
             description: `Status: ${response.status}, Response: ${errorText}`,

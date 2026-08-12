@@ -12,6 +12,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { API_BASE_URL } from '@/lib/api-config';
 import { useToast } from '@/hooks/use-toast';
 import { getAuthToken } from '@/lib/auth-utils';
+import { formatSubjectWithIitCategory } from '@/lib/subject-names';
 import { 
   BookOpen, 
   Search, 
@@ -37,6 +38,7 @@ interface Subject {
   id: string;
   name: string;
   description?: string;
+  productCategory?: string;
   teacher?: {
     id: string;
     fullName: string;
@@ -172,6 +174,7 @@ const SubjectManagement = () => {
                 id: String(s.id || s._id || ''),
                 name: String(s.name || '').split('__deleted__')[0].trim(),
                 description: s.description || '',
+                productCategory: String(s.productCategory || '').trim().toUpperCase() || undefined,
                 teacher: primary?.id ? primary : undefined,
                 teachers: teachersList,
                 classes: Array.isArray(s.classes)
@@ -320,6 +323,9 @@ const SubjectManagement = () => {
       const query = searchTerm.toLowerCase();
       filtered = filtered.filter(subject =>
         subject.name?.toLowerCase().includes(query) ||
+        formatSubjectWithIitCategory(subject.name, subject.productCategory)
+          .toLowerCase()
+          .includes(query) ||
         subject.description?.toLowerCase().includes(query) ||
         subjectTeachersList(subject).some((t) => t.fullName?.toLowerCase().includes(query)) ||
         formatClassLabels(subject).toLowerCase().includes(query)
@@ -339,9 +345,9 @@ const SubjectManagement = () => {
       }
     }
 
-    // Status filter
+    // Subject filter — one subject (and IIT track) at a time
     if (filterBySubject !== 'all') {
-      filtered = filtered.filter((s) => String(s.name || '') === filterBySubject);
+      filtered = filtered.filter((s) => String(s.id || '') === filterBySubject);
     }
 
     if (filterByStatus !== 'all') {
@@ -524,19 +530,22 @@ const SubjectManagement = () => {
                   </SelectTrigger>
                   <SelectContent className="max-h-64">
                     <SelectItem value="all">All Subjects</SelectItem>
-                    {Array.from(
-                      new Set(
-                        (Array.isArray(subjects) ? subjects : [])
-                          .map((s: any) => String(s?.name || '').trim())
-                          .filter(Boolean),
-                      ),
-                    )
-                      .sort((a, b) => a.localeCompare(b))
-                      .map((name) => (
-                        <SelectItem key={name} value={name}>
-                          {name}
-                        </SelectItem>
-                      ))}
+                    {(Array.isArray(subjects) ? subjects : [])
+                      .slice()
+                      .sort((a, b) =>
+                        formatSubjectWithIitCategory(a.name, a.productCategory).localeCompare(
+                          formatSubjectWithIitCategory(b.name, b.productCategory),
+                        ),
+                      )
+                      .map((s) => {
+                        const id = String(s.id || '');
+                        if (!id) return null;
+                        return (
+                          <SelectItem key={id} value={id}>
+                            {formatSubjectWithIitCategory(s.name, s.productCategory)}
+                          </SelectItem>
+                        );
+                      })}
                   </SelectContent>
                 </Select>
               </div>
@@ -576,7 +585,9 @@ const SubjectManagement = () => {
                 <TableRow key={subject.id || `subject-${index}`} className="hover:bg-sky-50/30">
                   <TableCell>
                     <div>
-                      <div className="font-medium text-sky-900">{subject.name}</div>
+                      <div className="font-medium text-sky-900">
+                        {formatSubjectWithIitCategory(subject.name, subject.productCategory)}
+                      </div>
                       {subject.description && (
                         <div className="text-xs sm:text-sm text-sky-600 mt-1">{subject.description}</div>
                       )}
@@ -772,7 +783,10 @@ const SubjectManagement = () => {
           </DialogHeader>
           {viewingSubject && (
             <div className="space-y-2 text-xs sm:text-sm">
-              <p><span className="font-semibold">Name:</span> {viewingSubject.name || '-'}</p>
+              <p>
+                <span className="font-semibold">Name:</span>{' '}
+                {formatSubjectWithIitCategory(viewingSubject.name, viewingSubject.productCategory) || '-'}
+              </p>
               <p><span className="font-semibold">Classes:</span> {formatClassLabels(viewingSubject)}</p>
               <p>
                 <span className="font-semibold">Teachers:</span>{' '}

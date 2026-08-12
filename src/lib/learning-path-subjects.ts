@@ -8,7 +8,12 @@ import {
 export function isIitLearningPathSubject(subject: {
   board?: string;
   name?: string;
+  productCategory?: string | null;
 } | null | undefined): boolean {
+  const cat = String(subject?.productCategory || '')
+    .trim()
+    .toUpperCase();
+  if (cat && cat !== 'GENERAL' && cat !== 'NONE' && cat !== 'ALL') return true;
   const board = normalizeBoardKey(subject?.board || '');
   if (board === 'IIT' || board === 'IIT/NEET') return true;
   const name = String(subject?.name || '');
@@ -64,28 +69,42 @@ function preferSubject<T extends { name?: string; contentCount?: number; teacher
   return score(a) >= score(b) ? a : b;
 }
 
-/** Client-side safety net: drop IIT + merge BIO/Biology/Chemistry_8 for Learning Paths browse. */
+/**
+ * Merge BIO/Biology/Chemistry_8 and IIT-track siblings into one Learning Paths card
+ * (e.g. Biology + Biology IIT Alpha → Biology, with mergedSubjectIds for content fetch).
+ */
 export function prepareStudentLearningPathSubjects<T extends Record<string, any>>(
   subjects: T[],
 ): T[] {
   const list = Array.isArray(subjects) ? subjects.filter(Boolean) : [];
-  const withoutIit = list.filter((s) => !isIitLearningPathSubject(s));
-  const byKey = new Map<string, T & { mergedSubjectIds?: string[] }>();
+  const byKey = new Map<
+    string,
+    T & { mergedSubjectIds?: string[]; hasIitTrack?: boolean }
+  >();
 
-  for (const row of withoutIit) {
+  for (const row of list) {
     const key = normalizeSubjectDisplayKey(row.name || '');
     if (!key) continue;
+    const rowIsIit = isIitLearningPathSubject(row);
     const existing = byKey.get(key);
     if (!existing) {
       byKey.set(key, {
         ...row,
+        // Prefer plain subject name on the card; IIT lives as a section inside content.
         name: learningPathDisplayName(row.name),
         description: row.description || `Content for ${learningPathDisplayName(row.name)}`,
         mergedSubjectIds: [String(row._id || row.id || '')].filter(Boolean),
+        hasIitTrack: rowIsIit,
       });
       continue;
     }
-    const winner = preferSubject(existing, row);
+    // Prefer board (non-IIT) row as the card representative when both exist.
+    const winner =
+      isIitLearningPathSubject(existing) && !rowIsIit
+        ? row
+        : !isIitLearningPathSubject(existing) && rowIsIit
+          ? existing
+          : preferSubject(existing, row);
     const mergedIds = new Set(
       [
         ...(existing.mergedSubjectIds || [String(existing._id || existing.id || '')]),
@@ -104,10 +123,11 @@ export function prepareStudentLearningPathSubjects<T extends Record<string, any>
         Number(existing.totalContent || 0) + Number(row.totalContent || 0) ||
         existing.totalContent,
       mergedSubjectIds: Array.from(mergedIds),
+      hasIitTrack: Boolean(existing.hasIitTrack || rowIsIit),
       videos: [...(existing.videos || []), ...(row.videos || [])],
       quizzes: [...(existing.quizzes || []), ...(row.quizzes || [])],
       assessments: [...(existing.assessments || []), ...(row.assessments || [])],
-    } as T & { mergedSubjectIds?: string[] });
+    } as T & { mergedSubjectIds?: string[]; hasIitTrack?: boolean });
   }
 
   return Array.from(byKey.values()).sort((a, b) =>

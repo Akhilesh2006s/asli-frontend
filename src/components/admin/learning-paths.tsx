@@ -23,17 +23,15 @@ import {
 } from 'lucide-react';
 import { useLocation } from 'wouter';
 import { API_BASE_URL } from '@/lib/api-config';
-import {
-  filterContentsBySchoolProgram,
-  filterVideosForLearningPath,
-  resolveIsAsliPrepExclusive,
-} from '@/lib/school-program';
-import { normalizeBoardKey } from '@/lib/board-label';
+import { filterContentsBySchoolProgram, filterVideosForLearningPath, resolveIsAsliPrepExclusive } from '@/lib/school-program';
 import {
   extractPlainSubjectName,
-  getLearningPathBoardLabel,
   isSoftDeletedSubjectName,
 } from '@/lib/subject-names';
+import {
+  formatIitLearningPathContentLabel,
+  isIitTrackContent,
+} from '@/lib/library-content-labels';
 import {
   buildClassFilterOptions,
   consolidateLearningPathSubjects,
@@ -42,15 +40,6 @@ import {
   groupLearningPathsByClass,
   subjectMatchesClassFilter,
 } from '@/lib/learning-path-admin';
-
-/** IIT-board subjects belong in EduOTT, not Learning Paths. */
-function isIitBoardLearningPathRow(row: {
-  board?: string;
-  asliPrepContent?: Array<{ board?: string; subject?: { board?: string } | string }>;
-}): boolean {
-  const board = getLearningPathBoardLabel(row) || normalizeBoardKey(row.board);
-  return board === 'IIT/NEET' || board === 'IIT';
-}
 
 function isActiveCatalogSubject(subject: {
   name?: string;
@@ -232,7 +221,6 @@ export default function AdminLearningPaths() {
         bySubjectId.get(sid)!.push(item);
       }
 
-      const consumedIds = new Set<string>();
       const merged: any[] = [];
 
       for (const subject of subjects) {
@@ -250,57 +238,22 @@ export default function AdminLearningPaths() {
             const tb = b?.createdAt ? new Date(b.createdAt).getTime() : 0;
             return ta - tb;
           });
-        consumedIds.add(subjectId);
         merged.push({
           _id: subject._id || subject.id,
           id: subject._id || subject.id,
           name: subject.name || 'Unknown Subject',
           description: subject.description || '',
           board: subject.board || '',
+          productCategory: subject.productCategory || '',
           classNumber: subject.classNumber,
           asliPrepContent,
           totalContent: asliPrepContent.length,
         });
       }
 
-      // Subjects that only appear on content (e.g. catalog row missing from /subjects response)
-      bySubjectId.forEach((items, subjectId) => {
-        if (consumedIds.has(subjectId)) return;
-        const activeItems = items.filter((item) => isActiveCatalogContent(item));
-        if (activeItems.length === 0) return;
-        const sorted = activeItems.slice().sort((a: any, b: any) => {
-          const titleA = String(a?.title || a?.name || '').trim();
-          const titleB = String(b?.title || b?.name || '').trim();
-          if (titleA && titleB) {
-            return titleA.localeCompare(titleB, undefined, { numeric: true, sensitivity: 'base' });
-          }
-          const ta = a?.createdAt ? new Date(a.createdAt).getTime() : 0;
-          const tb = b?.createdAt ? new Date(b.createdAt).getTime() : 0;
-          return ta - tb;
-        });
-        const first = sorted[0];
-        const populated = first?.subject;
-        const nameFromPopulate =
-          typeof populated === 'object' && populated?.name
-            ? populated.name
-            : 'Subject';
-        if (isSoftDeletedSubjectName(nameFromPopulate)) return;
-        merged.push({
-          _id: subjectId,
-          id: subjectId,
-          name: nameFromPopulate,
-          description: `Content for ${nameFromPopulate}`,
-          board: first?.board || '',
-          classNumber: first?.classNumber,
-          asliPrepContent: sorted,
-          totalContent: sorted.length,
-        });
-      });
-
       const consolidated = consolidateLearningPathSubjects(merged).filter(
         (row) =>
           isActiveCatalogSubject(row) &&
-          !isIitBoardLearningPathRow(row) &&
           (row.asliPrepContent?.length ?? 0) > 0
       );
       setSubjectsWithContent(consolidated);
@@ -484,6 +437,10 @@ export default function AdminLearningPaths() {
                         otherIds.length > 0
                           ? `/admin/subject/${primaryId}?merge=${encodeURIComponent(otherIds.join(','))}`
                           : `/admin/subject/${primaryId}`;
+                      const iitItems = (subject.asliPrepContent || []).filter((c: any) =>
+                        isIitTrackContent(c),
+                      );
+                      const hasIit = iitItems.length > 0;
 
                       return (
                         <Card
@@ -496,7 +453,14 @@ export default function AdminLearningPaths() {
                                 <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-sky-400 to-teal-500 flex items-center justify-center shrink-0">
                                   <Icon className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
                                 </div>
-                                <h3 className="font-semibold text-gray-900 truncate">{displayName}</h3>
+                                <div className="min-w-0">
+                                  <h3 className="font-semibold text-gray-900 truncate">{displayName}</h3>
+                                  {hasIit ? (
+                                    <p className="text-micro font-semibold uppercase tracking-wider text-amber-700">
+                                      IIT · {formatIitLearningPathContentLabel(iitItems[0], displayName)}
+                                    </p>
+                                  ) : null}
+                                </div>
                               </div>
                               <Badge variant="secondary" className="text-xs shrink-0">
                                 {subject.totalContent || 0}
@@ -508,6 +472,30 @@ export default function AdminLearningPaths() {
                                 `Structured content for ${displayName} in ${classTitle}.`}
                             </p>
 
+                            <div className="flex flex-wrap gap-1.5">
+                              <span className="rounded-md border border-sky-100 bg-sky-50 px-2 py-0.5 text-micro font-medium text-sky-800">
+                                Textbooks{' '}
+                                {
+                                  (subject.asliPrepContent || []).filter(
+                                    (c: any) => c?.type === 'TextBook' && !isIitTrackContent(c),
+                                  ).length
+                                }
+                              </span>
+                              <span className="rounded-md border border-amber-100 bg-amber-50 px-2 py-0.5 text-micro font-medium text-amber-800">
+                                Materials{' '}
+                                {
+                                  (subject.asliPrepContent || []).filter(
+                                    (c: any) => c?.type === 'Material' && !isIitTrackContent(c),
+                                  ).length
+                                }
+                              </span>
+                              {hasIit ? (
+                                <span className="rounded-md border border-slate-200 bg-slate-900 px-2 py-0.5 text-micro font-medium text-amber-200">
+                                  IIT {iitItems.length}
+                                </span>
+                              ) : null}
+                            </div>
+
                             <div className="space-y-1.5 min-h-[52px]">
                               {subject.asliPrepContent?.slice(0, 2).map((content: any, idx: number) => (
                                 <div
@@ -515,10 +503,14 @@ export default function AdminLearningPaths() {
                                   className="rounded-md bg-gray-50 border border-gray-100 px-2 py-1"
                                 >
                                   <p className="text-xs text-gray-800 font-medium truncate">
-                                    {content.title || 'Untitled'}
+                                    {isIitTrackContent(content)
+                                      ? formatIitLearningPathContentLabel(content, displayName)
+                                      : content.title || 'Untitled'}
                                   </p>
                                   <p className="text-mini text-gray-500 truncate">
-                                    {content.type || 'Content'}
+                                    {isIitTrackContent(content)
+                                      ? `IIT · ${content.type || 'Content'}`
+                                      : content.type || 'Content'}
                                   </p>
                                 </div>
                               ))}

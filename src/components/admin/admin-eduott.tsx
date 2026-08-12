@@ -35,7 +35,7 @@ import { resolveContentDurationSeconds } from '@/lib/eduott-video-utils';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Label } from '@/components/ui/label';
 import {
-  extractPlainSubjectName,
+  formatSubjectWithIitCategory,
   getSubjectClassLabel,
 } from '@/lib/subject-names';
 
@@ -52,6 +52,7 @@ interface Video {
   createdAt: string;
   subjectId?: string;
   subjectName?: string;
+  productCategory?: string;
   classNumber?: string;
 }
 
@@ -75,6 +76,7 @@ interface LiveSession {
   subject?: {
     _id: string;
     name: string;
+    productCategory?: string;
   };
   board?: string;
   classNumber?: string;
@@ -178,6 +180,10 @@ export default function AdminEduOTT() {
               createdAt: content.createdAt || content.date || new Date().toISOString(),
               subjectId: subjectId,
               subjectName: subjectName,
+              productCategory:
+                content.productCategory ||
+                content.subject?.productCategory ||
+                '',
               classNumber: classNum
             };
           });
@@ -249,7 +255,8 @@ export default function AdminEduOTT() {
         classNumber: v.classNumber,
       });
       if (videoClassFilter !== 'all' && l !== videoClassFilter) return;
-      names.add(extractPlainSubjectName(v.subjectName || '').trim());
+      const label = formatSubjectWithIitCategory(v.subjectName || '', v.productCategory).trim();
+      if (label) names.add(label);
     });
     return Array.from(names).filter(Boolean).sort((a, b) => a.localeCompare(b));
   }, [videos, videoClassFilter]);
@@ -265,10 +272,13 @@ export default function AdminEduOTT() {
       });
       const matchesClass =
         videoClassFilter === 'all' || classL === videoClassFilter;
-      const plain = extractPlainSubjectName(video.subjectName || '').toLowerCase();
+      const subjectLabel = formatSubjectWithIitCategory(
+        video.subjectName || '',
+        video.productCategory,
+      );
       const matchesSubject =
         videoSubjectFilter === 'all' ||
-        plain === videoSubjectFilter.toLowerCase();
+        subjectLabel.toLowerCase() === videoSubjectFilter.toLowerCase();
       return matchesSearch && matchesClass && matchesSubject;
     });
   }, [videos, searchTerm, videoClassFilter, videoSubjectFilter]);
@@ -293,7 +303,11 @@ export default function AdminEduOTT() {
         classNumber: session.classNumber,
       });
       if (sessionClassFilter !== 'all' && l !== sessionClassFilter) return;
-      names.add(extractPlainSubjectName(session.subject?.name || '').trim());
+      const label = formatSubjectWithIitCategory(
+        session.subject?.name || '',
+        session.subject?.productCategory,
+      ).trim();
+      if (label) names.add(label);
     });
     return Array.from(names).filter(Boolean).sort((a, b) => a.localeCompare(b));
   }, [liveSessions, sessionClassFilter]);
@@ -310,10 +324,13 @@ export default function AdminEduOTT() {
       });
       const matchesClass =
         sessionClassFilter === 'all' || classL === sessionClassFilter;
-      const plain = extractPlainSubjectName(session.subject?.name || '').toLowerCase();
+      const subjectLabel = formatSubjectWithIitCategory(
+        session.subject?.name || '',
+        session.subject?.productCategory,
+      );
       const matchesSubject =
         sessionSubjectFilter === 'all' ||
-        plain === sessionSubjectFilter.toLowerCase();
+        subjectLabel.toLowerCase() === sessionSubjectFilter.toLowerCase();
       return matchesSearch && matchesStatus && matchesClass && matchesSubject;
     });
   }, [
@@ -452,7 +469,10 @@ export default function AdminEduOTT() {
                     subjectBadges={
                       video.subjectName ? (
                         <EduOTTSubjectBadges
-                          subjectLabel={extractPlainSubjectName(video.subjectName)}
+                          subjectLabel={formatSubjectWithIitCategory(
+                            video.subjectName || '',
+                            video.productCategory,
+                          )}
                           classLabel={
                             getSubjectClassLabel({
                               name: video.subjectName,
@@ -570,7 +590,12 @@ export default function AdminEduOTT() {
                             {session.subject?.name && (
                               <div className="flex items-center gap-1">
                                 <BookOpen className="w-3 h-3 sm:w-4 sm:h-4" />
-                                <span>{extractPlainSubjectName(session.subject.name)}</span>
+                                <span>
+                                  {formatSubjectWithIitCategory(
+                                    session.subject.name,
+                                    session.subject.productCategory,
+                                  )}
+                                </span>
                               </div>
                             )}
                             {getSubjectClassLabel({

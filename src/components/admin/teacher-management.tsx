@@ -18,6 +18,7 @@ import {
 } from '@/lib/contact-validation';
 import {
   formatSubjectDisplayLabel,
+  formatSubjectWithIitCategory,
   normalizeSubjectDisplayKey,
 } from '@/lib/subject-names';
 import { 
@@ -46,6 +47,11 @@ import { formatSeatUsage, seatUsageHint, useAccountSeats } from '@/hooks/use-acc
 import { useToast } from '@/hooks/use-toast';
 import { useConfirm } from '@/hooks/use-confirm';
 
+interface TeacherClassAssignment {
+  classId: string;
+  subjectId: string;
+}
+
 interface AssignedClassSummary {
   id: string;
   name: string;
@@ -54,7 +60,13 @@ interface AssignedClassSummary {
   schedule?: string;
   room?: string;
   studentCount?: number;
-  assignedSubjects?: Array<{ id?: string; _id?: string; name?: string; code?: string }>;
+  assignedSubjects?: Array<{
+    id?: string;
+    _id?: string;
+    name?: string;
+    code?: string;
+    productCategory?: string;
+  }>;
 }
 
 interface Teacher {
@@ -66,6 +78,7 @@ interface Teacher {
   qualifications?: string;
   subjects: Subject[];
   assignedClassIds?: string[];
+  assignments?: TeacherClassAssignment[];
   assignedClasses?: AssignedClassSummary[];
   isActive: boolean;
   createdAt: string;
@@ -79,7 +92,13 @@ interface Class {
   section?: string;
   description?: string;
   subject: string;
-  assignedSubjects?: Array<{ id?: string; _id?: string; name?: string; code?: string }>;
+  assignedSubjects?: Array<{
+    id?: string;
+    _id?: string;
+    name?: string;
+    code?: string;
+    productCategory?: string;
+  }>;
   grade: string;
   teacher: string;
   schedule: string;
@@ -95,8 +114,9 @@ const dedupeSubjectsForDisplay = (subjects: Subject[] | undefined) => {
     if (!subject) continue;
     const raw = subject.name || subject.code || '';
     if (!raw) continue;
-    const key = normalizeSubjectDisplayKey(raw);
-    const label = formatSubjectDisplayLabel(raw);
+    const track = String(subject.productCategory || '').toUpperCase().trim() || 'GENERAL';
+    const key = `${normalizeSubjectDisplayKey(raw)}::${track}`;
+    const label = formatSubjectWithIitCategory(raw, subject.productCategory);
     const existing = byKey.get(key);
     const id = getSubjectRecordId(subject) || key;
     if (!existing || label.length > existing.label.length) {
@@ -106,36 +126,26 @@ const dedupeSubjectsForDisplay = (subjects: Subject[] | undefined) => {
   return Array.from(byKey.values());
 };
 
-const getClassSubjectLineFromSummary = (
-  classItem: AssignedClassSummary | Class | undefined,
-  teacherSubjects: Subject[] = []
+const getClassSubjectLineForTeacher = (
+  classId: string,
+  teacherSubjects: Subject[] = [],
+  assignments: TeacherClassAssignment[] = [],
 ) => {
-  if (!classItem) return '';
-  const teacherIdSet = new Set(
-    teacherSubjects.filter(Boolean).map((s) => String(s?.id ?? ''))
-  );
-  const fromClass = (classItem.assignedSubjects ?? []).filter((sub) => {
-    if (!sub) return false;
-    const sid = String(sub.id || sub._id || '');
-    return teacherIdSet.size === 0 || !sid || teacherIdSet.has(sid);
-  });
+  const rows = assignments.filter((row) => String(row.classId) === String(classId));
+  if (rows.length === 0) return '';
 
-  const labels = (
-    fromClass.length > 0
-      ? fromClass.map((s) => formatSubjectDisplayLabel(s.name || s.code || ''))
-      : dedupeSubjectsForDisplay(teacherSubjects).map((s) => s.label)
-  ).filter(Boolean);
+  const labels = rows
+    .map((row) => {
+      const subject = teacherSubjects.find(
+        (s) => getSubjectRecordId(s) === String(row.subjectId),
+      );
+      return subject
+        ? formatSubjectWithIitCategory(subject.name || subject.code || '', subject.productCategory)
+        : '';
+    })
+    .filter(Boolean);
 
-  const unique = Array.from(new Set(labels));
-  if (unique.length > 0) return unique.join(', ');
-  const subjectField = 'subject' in classItem ? classItem.subject : undefined;
-  if (subjectField && subjectField !== 'General') {
-    return String(subjectField)
-      .split(',')
-      .map((part) => formatSubjectDisplayLabel(part.trim()))
-      .join(', ');
-  }
-  return '';
+  return Array.from(new Set(labels)).join(', ');
 };
 
 const resolveTeacherAssignedClasses = (
@@ -187,6 +197,7 @@ interface Subject {
   name: string;
   code?: string;
   description?: string;
+  productCategory?: string;
   isActive?: boolean;
 }
 
@@ -232,6 +243,7 @@ function mapSubjectFromApi(subject: unknown): Subject | null {
     name?: string;
     code?: string;
     description?: string;
+    productCategory?: string;
     isActive?: boolean;
   };
   const id = getSubjectRecordId(s);
@@ -243,6 +255,7 @@ function mapSubjectFromApi(subject: unknown): Subject | null {
     name: s.name,
     code: s.code || '',
     description: s.description,
+    productCategory: String(s.productCategory || '').trim().toUpperCase() || undefined,
     isActive: true,
   };
 }
@@ -260,11 +273,16 @@ function mapTeacherFromApi(
     .map(mapSubjectFromApi)
     .filter((s): s is Subject => s != null);
 
-  const fromAssignments = Array.isArray((t as Teacher & { assignments?: { classId?: string }[] }).assignments)
-    ? (t as Teacher & { assignments?: { classId?: string }[] }).assignments!.map((a) =>
-        String(a.classId || '')
-      ).filter(Boolean)
+  const assignments = Array.isArray(
+    (t as Teacher & { assignments?: TeacherClassAssignment[] }).assignments,
+  )
+    ? (t as Teacher & { assignments?: TeacherClassAssignment[] }).assignments!.map((row) => ({
+        classId: String(row.classId || ''),
+        subjectId: String(row.subjectId || ''),
+      })).filter((row) => row.classId && row.subjectId)
     : [];
+
+  const fromAssignments = assignments.map((a) => a.classId);
 
   const fromSummaries = Array.isArray(
     (t as Teacher & { assignedClassSummaries?: { id: string }[] }).assignedClassSummaries
@@ -292,6 +310,7 @@ function mapTeacherFromApi(
     qualifications: t.qualifications,
     subjects,
     assignedClassIds,
+    assignments,
     assignedClasses: Array.isArray(
       (t as Teacher & { assignedClasses?: AssignedClassSummary[] }).assignedClasses
     )
@@ -369,7 +388,9 @@ const TeacherManagement = () => {
   const [assigningClassTeacher, setAssigningClassTeacher] = useState<Teacher | null>(null);
   const [dailyDialogTeacher, setDailyDialogTeacher] = useState<Teacher | null>(null);
   const [selectedSubjects, setSelectedSubjects] = useState<string[]>([]);
-  const [selectedClasses, setSelectedClasses] = useState<string[]>([]);
+  const [classSubjectAssignments, setClassSubjectAssignments] = useState<
+    TeacherClassAssignment[]
+  >([{ classId: '', subjectId: '' }]);
   const [newTeacher, setNewTeacher] = useState({
     fullName: '',
     email: '',
@@ -503,11 +524,7 @@ const TeacherManagement = () => {
       setSubjects(mappedSubjects);
     } catch (error) {
       console.error('Failed to fetch subjects:', error);
-      setSubjects([
-        { id: '1', name: 'Calculus', code: 'MATH101', description: 'Advanced Calculus' },
-        { id: '2', name: 'Algebra', code: 'MATH102', description: 'Linear Algebra' },
-        { id: '3', name: 'Mechanics', code: 'PHYS101', description: 'Classical Mechanics' }
-      ]);
+      setSubjects([]);
     }
   };
 
@@ -863,13 +880,17 @@ Jane Smith,jane.smith@school.edu,TeacherPass2,1234567891,Science,MSc in Chemistr
     document.body.removeChild(link);
   };
 
-  const handleAssignClasses = async (teacherId: string, classIds: string[]) => {
+  const handleAssignClasses = async (
+    teacherId: string,
+    assignments: TeacherClassAssignment[],
+  ) => {
     if (!teacherId) {
       notify('Invalid teacher ID');
       return;
     }
 
-    console.log('Assigning classes:', { teacherId, classIds });
+    const validAssignments = assignments.filter((row) => row.classId && row.subjectId);
+    console.log('Assigning class+subject rows:', { teacherId, validAssignments });
 
     try {
       const token = getAuthToken();
@@ -880,45 +901,23 @@ Jane Smith,jane.smith@school.edu,TeacherPass2,1234567891,Science,MSc in Chemistr
 
       const response = await fetch(`${API_BASE_URL}/api/admin/teachers/${teacherId}/assign-classes`, {
         method: 'POST',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ classIds })
+        body: JSON.stringify({ assignments: validAssignments }),
       });
 
       const responseData = await response.json();
       console.log('Class assignment response:', responseData);
-      console.log('Response status:', response.status);
-      console.log('Response ok:', response.ok);
 
       if (response.ok) {
-        console.log('Classes assigned successfully, refreshing teacher data...');
-        console.log('Response data:', responseData.data);
-        console.log('Response data assignedClassIds:', responseData.data?.assignedClassIds);
-        
-        // Update UI immediately with optimistic update
-        if (assigningClassTeacher) {
-          const updatedTeacher = { ...assigningClassTeacher, assignedClassIds: classIds };
-          
-          // Save to localStorage for persistence across reloads
-          const savedAssignments = readSavedClassAssignments();
-          savedAssignments[assigningClassTeacher.id] = classIds;
-          localStorage.setItem('teacherClassAssignments', JSON.stringify(savedAssignments));
-          
-          setTeachers(prev => prev.map(teacher => 
-            teacher.id === assigningClassTeacher.id 
-              ? updatedTeacher
-              : teacher
-          ));
-        }
-        
         await fetchTeachers();
-        
+
         setIsAssignClassDialogOpen(false);
         setAssigningClassTeacher(null);
-        setSelectedClasses([]);
-        notify('Classes assigned successfully!');
+        setClassSubjectAssignments([{ classId: '', subjectId: '' }]);
+        notify('Class assignments saved successfully!');
       } else {
         notify(`Failed to assign classes: ${responseData.message || 'Unknown error'}`);
       }
@@ -1069,9 +1068,20 @@ Jane Smith,jane.smith@school.edu,TeacherPass2,1234567891,Science,MSc in Chemistr
   const openAssignClassDialog = (teacher: Teacher) => {
     console.log('Opening assign class dialog for teacher:', teacher);
     setAssigningClassTeacher(teacher);
-    setSelectedClasses(teacher.assignedClassIds || []);
+    const existing = (teacher.assignments ?? []).map((row) => ({
+      classId: String(row.classId),
+      subjectId: String(row.subjectId),
+    }));
+    setClassSubjectAssignments(
+      existing.length > 0 ? existing : [{ classId: '', subjectId: '' }],
+    );
     setIsAssignClassDialogOpen(true);
   };
+
+  const teacherSubjectsForClassAssign = useMemo(() => {
+    if (!assigningClassTeacher) return [];
+    return assigningClassTeacher.subjects ?? [];
+  }, [assigningClassTeacher]);
 
   const handleAssignClassDialogSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1081,7 +1091,7 @@ Jane Smith,jane.smith@school.edu,TeacherPass2,1234567891,Science,MSc in Chemistr
     }
 
     console.log('Dialog submit - assigningClassTeacher:', assigningClassTeacher);
-    console.log('Selected classes:', selectedClasses);
+    console.log('Class+subject rows:', classSubjectAssignments);
 
     try {
       const teacherId = assigningClassTeacher.id || (assigningClassTeacher as any)._id;
@@ -1092,7 +1102,20 @@ Jane Smith,jane.smith@school.edu,TeacherPass2,1234567891,Science,MSc in Chemistr
         return;
       }
 
-      await handleAssignClasses(teacherId, selectedClasses);
+      const incomplete = classSubjectAssignments.some(
+        (row) => (row.classId && !row.subjectId) || (!row.classId && row.subjectId),
+      );
+      if (incomplete) {
+        notify('Each row needs both a class and a subject.');
+        return;
+      }
+
+      if ((assigningClassTeacher.subjects ?? []).length === 0) {
+        notify('Assign subjects to this teacher first, then pick class + subject rows.');
+        return;
+      }
+
+      await handleAssignClasses(teacherId, classSubjectAssignments);
     } catch (error) {
       console.error('Failed to assign classes:', error);
       notify('Failed to assign classes. Please try again.');
@@ -1764,7 +1787,11 @@ Jane Smith,jane.smith@school.edu,TeacherPass2,1234567891,Science,MSc in Chemistr
                     <div className="space-y-2 flex-1 overflow-y-auto max-h-48 pr-0.5">
                       {assignedClasses.length > 0 ? (
                         assignedClasses.map((classItem) => {
-                          const subjectLine = getClassSubjectLineFromSummary(classItem, teacherSubjects);
+                          const subjectLine = getClassSubjectLineForTeacher(
+                            classItem.id,
+                            teacherSubjects,
+                            teacher.assignments ?? [],
+                          );
                           return (
                             <div key={classItem.id} className="bg-gray-50 rounded-lg p-3 border border-gray-200 min-h-[4.5rem]">
                               <div className="text-sm leading-snug">
@@ -1860,7 +1887,10 @@ Jane Smith,jane.smith@school.edu,TeacherPass2,1234567891,Science,MSc in Chemistr
                 <div className="mt-3 space-y-3 max-h-60 overflow-y-auto">
                   {subjects.map(subject => {
                     const subjectId = getSubjectRecordId(subject);
-                    const subjectLabel = formatSubjectDisplayLabel(subject.name || subject.code || '').trim();
+                    const subjectLabel = formatSubjectWithIitCategory(
+                      subject.name || subject.code || '',
+                      subject.productCategory,
+                    ).trim();
                     if (!subjectId || !subjectLabel) return null;
                     const subtitle = [subject.code, subject.description].filter(Boolean).join(' - ');
                     return (
@@ -1901,61 +1931,143 @@ Jane Smith,jane.smith@school.edu,TeacherPass2,1234567891,Science,MSc in Chemistr
           </DialogContent>
         </Dialog>
 
-        {/* Assign Class Dialog */}
+        {/* Assign Class Dialog — class + subject per row */}
         <Dialog open={isAssignClassDialogOpen} onOpenChange={setIsAssignClassDialogOpen}>
-          <DialogContent className="sm:max-w-md">
+          <DialogContent className="sm:max-w-lg">
             <DialogHeader>
               <DialogTitle className="text-lg sm:text-xl font-semibold text-gray-800">
-                Assign Classes to {assigningClassTeacher?.fullName}
+                Assign to Class — {assigningClassTeacher?.fullName}
               </DialogTitle>
               <DialogDescription>
-                Select classes to assign to this teacher from the existing classes.
+                Pick a class and the subject this teacher will teach there. Only subjects already
+                assigned to the teacher are available.
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleAssignClassDialogSubmit} className="space-y-4">
-              <div className="space-y-4">
-                <div>
-                  <Label className="text-gray-700 font-medium">Assign Classes</Label>
-                  <div className="mt-2 space-y-2 max-h-60 overflow-y-auto border border-gray-200 rounded-lg p-3">
-                    {classes.map((classItem) => (
-                      <label key={classItem.id} className="flex items-center space-x-3 p-2 hover:bg-gray-50 rounded-lg cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={selectedClasses.includes(classItem.id)}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setSelectedClasses([...selectedClasses, classItem.id]);
-                            } else {
-                              setSelectedClasses(selectedClasses.filter(id => id !== classItem.id));
-                            }
-                          }}
-                          className="rounded border-gray-300 text-orange-600 focus:ring-purple-500"
-                        />
-                        <div className="flex-1">
-                          <div className="font-medium text-gray-900">{classItem.name}</div>
-                          <div className="text-xs sm:text-sm text-gray-500">
-                            {classItem.subject} • {classItem.schedule} • {classItem.room}
-                          </div>
-                          <div className="text-xs text-gray-400">
-                            {classItem.studentCount} students
-                          </div>
+              {(assigningClassTeacher?.subjects ?? []).length === 0 ? (
+                <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                  Assign subjects to this teacher first (book icon), then return here to link class
+                  and subject.
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <Label className="text-gray-700 font-medium">Class + subject assignments</Label>
+                  <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
+                    {classSubjectAssignments.map((row, index) => (
+                      <div
+                        key={`assign-row-${index}`}
+                        className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] gap-2 items-end p-3 rounded-lg border border-gray-200 bg-gray-50"
+                      >
+                        <div className="space-y-1">
+                          <Label className="text-xs text-gray-600">Class</Label>
+                          <Select
+                            value={row.classId || undefined}
+                            onValueChange={(value) => {
+                              setClassSubjectAssignments((prev) =>
+                                prev.map((entry, i) =>
+                                  i === index ? { ...entry, classId: value } : entry,
+                                ),
+                              );
+                            }}
+                          >
+                            <SelectTrigger className="bg-white">
+                              <SelectValue placeholder="Select class" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {classes.map((classItem) => (
+                                <SelectItem key={classItem.id} value={classItem.id}>
+                                  {classItem.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         </div>
-                      </label>
+                        <div className="space-y-1">
+                          <Label className="text-xs text-gray-600">Subject</Label>
+                          <Select
+                            value={row.subjectId || undefined}
+                            onValueChange={(value) => {
+                              setClassSubjectAssignments((prev) =>
+                                prev.map((entry, i) =>
+                                  i === index ? { ...entry, subjectId: value } : entry,
+                                ),
+                              );
+                            }}
+                          >
+                            <SelectTrigger className="bg-white">
+                              <SelectValue placeholder="Select subject" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {teacherSubjectsForClassAssign.map((subject) => {
+                                const subjectId = getSubjectRecordId(subject);
+                                const label = formatSubjectWithIitCategory(
+                                  subject.name,
+                                  subject.productCategory,
+                                );
+                                return (
+                                  <SelectItem key={subjectId} value={subjectId}>
+                                    {label}
+                                  </SelectItem>
+                                );
+                              })}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
+                          className="shrink-0 border-red-200 text-red-600 hover:bg-red-50"
+                          onClick={() => {
+                            setClassSubjectAssignments((prev) => {
+                              const next = prev.filter((_, i) => i !== index);
+                              return next.length > 0 ? next : [{ classId: '', subjectId: '' }];
+                            });
+                          }}
+                          title="Remove row"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
                     ))}
                     {classes.length === 0 && (
-                      <div className="text-center text-gray-500 py-4">
-                        No classes available. Create some classes first.
+                      <div className="text-center text-gray-500 py-4 text-sm">
+                        No classes available. Create classes first.
                       </div>
                     )}
                   </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full border-dashed border-orange-300 text-orange-700 hover:bg-orange-50"
+                    onClick={() => {
+                      setClassSubjectAssignments((prev) => [
+                        ...prev,
+                        { classId: '', subjectId: '' },
+                      ]);
+                    }}
+                    disabled={classes.length === 0}
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add class + subject
+                  </Button>
                 </div>
-              </div>
+              )}
               <div className="flex justify-end space-x-3">
-                <Button type="button" variant="outline" onClick={() => setIsAssignClassDialogOpen(false)} className="rounded-xl">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsAssignClassDialogOpen(false)}
+                  className="rounded-xl"
+                >
                   Cancel
                 </Button>
-                <Button type="submit" className="bg-gradient-to-r from-orange-600 to-orange-400 hover:from-orange-700 hover:to-orange-600 rounded-xl">
-                  Assign Classes
+                <Button
+                  type="submit"
+                  className="bg-gradient-to-r from-orange-600 to-orange-400 hover:from-orange-700 hover:to-orange-600 rounded-xl"
+                  disabled={(assigningClassTeacher?.subjects ?? []).length === 0}
+                >
+                  Save assignments
                 </Button>
               </div>
             </form>

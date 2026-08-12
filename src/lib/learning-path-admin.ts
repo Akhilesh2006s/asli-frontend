@@ -41,13 +41,22 @@ function normalizeSubjectNameForMerge(name: string): string {
   return plain;
 }
 
+function isIitBoardSubjectRow(row: { board?: string; productCategory?: string | null }): boolean {
+  const cat = String(row.productCategory || '')
+    .trim()
+    .toUpperCase();
+  if (cat && cat !== 'GENERAL' && cat !== 'NONE' && cat !== 'ALL') return true;
+  const board = normalizeBoardKey(String(row.board || ''));
+  return board === 'IIT' || board === 'IIT/NEET';
+}
+
 function groupKeyForSubjectRow(row: SubjectWithPathContent): string {
   const classLabel =
     getLearningPathClassLabel(row) ||
     String(row.classNumber || '').trim() ||
     'none';
-  const board = getLearningPathBoardLabel(row) || 'none';
-  return `${board}::${classLabel}::${normalizeSubjectNameForMerge(row.name || '')}`;
+  // Merge CBSE Biology + IIT Biology (same class) so materials show under one Biology card.
+  return `${classLabel}::${normalizeSubjectNameForMerge(row.name || '')}`;
 }
 
 /** Teacher paths: one card per canonical subject name (board/class ignored). */
@@ -119,6 +128,14 @@ function consolidateLearningPathSubjectsWithKey(
     }
 
     const agg = byKey.get(key)!;
+    // Prefer non-IIT catalog row as the card representative (IIT stays a content section).
+    if (isIitBoardSubjectRow(agg) && !isIitBoardSubjectRow(row)) {
+      Object.assign(agg, {
+        ...row,
+        mergedSubjectIds: agg.mergedSubjectIds,
+        asliPrepContent: agg.asliPrepContent,
+      });
+    }
     const idSet = new Set<string>(agg.mergedSubjectIds || [String(agg._id || agg.id)]);
     idSet.add(rowId);
     agg.mergedSubjectIds = Array.from(idSet);
