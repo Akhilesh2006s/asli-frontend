@@ -20,6 +20,7 @@ import {
   isAiToolClientValidationError,
   isAiToolInlineOnlyError,
   resolveAiToolStudentEmptyMessage,
+  sanitizeAiToolUserFacingError,
   validateAiToolForm,
 } from '@/lib/ai-tool-generate';
 import {
@@ -891,20 +892,7 @@ export default function StudentToolPage() {
   }, [formParams.gradeLevel, formParams.subject, cascade.topics, cascade.loadingTopics]);
 
   useEffect(() => {
-    const sub = formParams.subject;
-    if (!sub) return;
-    const subStr = String(sub);
-    const shouldClear =
-      (isReadingPractice && !isStoryPassageLanguageSubject(subStr)) ||
-      (isLanguageExcludedTool(apiToolType) && isStoryPassageLanguageSubject(subStr));
-    if (!shouldClear) return;
-    setFormParams((prev) => {
-      const next = { ...prev };
-      delete next.subject;
-      delete next.topic;
-      delete next.subTopic;
-      return next;
-    });
+    // Do not clear subject based on language/tool pairing — delivery is not gated.
   }, [toolType, apiToolType, formParams.subject, isReadingPractice]);
 
   useEffect(() => {
@@ -1217,7 +1205,13 @@ export default function StudentToolPage() {
       }
     } catch (error: unknown) {
       console.error('Generate error:', error);
-      const errMsg = String((error as Error)?.message || 'Network error. Please try again.');
+      const errMsg = sanitizeAiToolUserFacingError(
+        String((error as Error)?.message || 'Network error. Please try again.'),
+      );
+      if (/taking too long to load/i.test(errMsg)) {
+        showInlineOutputMessage(errMsg);
+        return;
+      }
       if (isAiToolClientValidationError(errMsg) || /AI_TOOL_DATA_NOT_FOUND/i.test(errMsg)) {
         showInlineOutputMessage(errMsg);
         return;
@@ -1253,7 +1247,12 @@ export default function StudentToolPage() {
               },
             },
           );
-          if (!fallbackRes.ok) throw new Error('Fallback lookup failed');
+          if (!fallbackRes.ok) {
+            showInlineOutputMessage(
+              'Could not load saved content for this selection. Please try again.',
+            );
+            return;
+          }
           const fallbackJson = await fallbackRes.json();
           const fallbackContent =
             fallbackJson?.data?.generatedContent ?? fallbackJson?.data?.content ?? '';
@@ -1262,8 +1261,10 @@ export default function StudentToolPage() {
             (fallbackJson?.success && !fallbackJson?.data)
           ) {
             showInlineOutputMessage(
-              fallbackJson?.message ||
-                'Saved content is incomplete or not in the correct tool format for this tool.',
+              sanitizeAiToolUserFacingError(
+                fallbackJson?.message ||
+                  'No saved content matched this selection yet. Try Generate again shortly.',
+              ),
             );
           } else if (fallbackJson?.success && String(fallbackContent).trim().length > 0) {
             const { displayContent, rawContent } = buildAiToolViewerContent(
@@ -1279,15 +1280,18 @@ export default function StudentToolPage() {
             });
             setFallbackEmptyMessage('');
           } else {
-            const savedPart =
-              fallbackJson?.message ||
-              'No saved copy matched this class, subject, topic, sub-topic, and tool.';
-            showInlineOutputMessage(`${errMsg} ${savedPart}`.trim());
+            showInlineOutputMessage(
+              sanitizeAiToolUserFacingError(
+                fallbackJson?.message ||
+                  'No saved content matched this selection yet. Try Generate again shortly.',
+              ),
+            );
           }
         } catch (fallbackError: unknown) {
           console.error('Fallback error:', fallbackError);
-          const fe = String((fallbackError as Error)?.message || 'Fallback lookup failed');
-          showInlineOutputMessage(`${errMsg} ${fe}`.trim());
+          showInlineOutputMessage(
+            'Could not load saved content for this selection. Please try again.',
+          );
         }
     } finally {
       setIsGenerating(false);
@@ -1890,22 +1894,7 @@ export default function StudentToolPage() {
             }
             onGenerate={handleGenerate}
             isGenerating={isGenerating}
-            notices={
-              <>
-                {isReadingPractice ? (
-                  <p className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-900">
-                    Story &amp; Passage Creator is available for <strong>English</strong> and{' '}
-                    <strong>Hindi</strong> subjects only.
-                  </p>
-                ) : null}
-                {isLanguageExcludedTool(apiToolType) ? (
-                  <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
-                    This tool is not available for <strong>English</strong>, <strong>Hindi</strong>, or{' '}
-                    <strong>Telugu</strong> subjects.
-                  </p>
-                ) : null}
-              </>
-            }
+            notices={null}
           >
                 <AiToolFormField label="Board *" htmlFor="board">
                   <Select

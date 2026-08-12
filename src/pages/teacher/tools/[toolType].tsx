@@ -14,6 +14,7 @@ import {
   isAiToolInlineOnlyError,
   resolveAiToolStudentEmptyMessage,
   sanitizeAiToolDateValue,
+  sanitizeAiToolUserFacingError,
   todayAiToolDate,
   validateAiToolForm,
 } from '@/lib/ai-tool-generate';
@@ -544,24 +545,8 @@ export default function TeacherToolPage() {
     }));
   }, [toolType]);
 
-  // Keep subject aligned with tool-specific language rules
-  useEffect(() => {
-    const sub = formParams.subject || formParams.subjects;
-    if (!sub) return;
-    const subStr = String(sub);
-    const shouldClear =
-      (isStoryLanguageTool(toolType) && !isStoryPassageLanguageSubject(subStr)) ||
-      (isLanguageExcludedTool(toolType) && isStoryPassageLanguageSubject(subStr));
-    if (!shouldClear) return;
-    setFormParams((prev) => {
-      const next = { ...prev };
-      delete next.subject;
-      delete next.subjects;
-      delete next.topic;
-      delete next.subTopic;
-      return next;
-    });
-  }, [toolType, formParams.subject, formParams.subjects]);
+  // Keep subject free for delivery — language/tool pairing is not a UI gate.
+  useEffect(() => {}, [toolType, formParams.subject, formParams.subjects]);
 
   useEffect(() => {
     if (!formParams.gradeLevel || subjectsForTool.length === 0) return;
@@ -951,13 +936,15 @@ export default function TeacherToolPage() {
 
       const requestBody = {
         toolType,
+        ...formParams,
         classNumber: parseAiToolClassNumber(selectedClass),
         subject: selectedSubject,
         topic: selectedTopic,
         section: selectedSection,
-        questionCount: formParams.questionCount ? parseInt(formParams.questionCount) : undefined,
-        duration: formParams.duration ? parseInt(formParams.duration) : undefined,
-        ...formParams,
+        questionCount: formParams.questionCount
+          ? parseInt(String(formParams.questionCount), 10)
+          : undefined,
+        duration: formParams.duration ? parseInt(String(formParams.duration), 10) : undefined,
         subTopic: selectedSubTopic,
         productCategory: productCategory || '',
         questionComposition,
@@ -1013,23 +1000,34 @@ export default function TeacherToolPage() {
         throw new Error(errorMessage || 'AI generation failed');
       }
 
-      if (data.success && data?.data?.content && String(data.data.content).trim().length > 0) {
+      if (data.success && data?.data) {
+        const rawPick = pickAiToolRawData(data.data);
+        const hasContent = String(data.data.content || '').trim().length > 0;
+        const hasRaw = rawPick != null;
+        if (!hasContent && !hasRaw) {
+          throw new Error(data.message || 'AI returned empty response');
+        }
         setResponseMeta(data.data.metadata || null);
         setIsFallbackContent(!!data.data.metadata?.aiUnavailable);
 
         const { displayContent, rawContent } = buildAiToolViewerContent(
-          data.data.content,
-          pickAiToolRawData(data.data),
+          data.data.content || (rawPick ? JSON.stringify(rawPick) : ''),
+          rawPick,
         );
         setRawGeneratedContent(rawContent);
-        // Always keep structured sections (cards, questions, steps) when present.
-        setGeneratedContent(displayContent || String(data.data.content));
+        setGeneratedContent(displayContent || String(data.data.content || '') || (rawPick ? JSON.stringify(rawPick) : ''));
       } else {
         throw new Error(data.message || 'AI returned empty response');
       }
     } catch (error: any) {
       console.error('Generate error:', error);
-      const errMsg = String(error?.message || 'Network error. Please try again.');
+      const errMsg = sanitizeAiToolUserFacingError(
+        String(error?.message || 'Network error. Please try again.'),
+      );
+      if (/taking too long to load/i.test(errMsg)) {
+        showInlineOutputMessage(errMsg);
+        return;
+      }
       if (isAiToolClientValidationError(errMsg) || /AI_TOOL_DATA_NOT_FOUND/i.test(errMsg)) {
         showInlineOutputMessage(errMsg);
         return;
@@ -1057,7 +1055,12 @@ export default function TeacherToolPage() {
             'Content-Type': 'application/json',
           },
         });
-        if (!fallbackRes.ok) throw new Error('Fallback lookup failed');
+        if (!fallbackRes.ok) {
+          showInlineOutputMessage(
+            'Could not load saved content for this selection. Please try again.',
+          );
+          return;
+        }
         const fallbackJson = await fallbackRes.json();
         const fallbackContent =
           fallbackJson?.data?.generatedContent ??
@@ -1068,8 +1071,10 @@ export default function TeacherToolPage() {
           (fallbackJson?.success && !fallbackJson?.data)
         ) {
           showInlineOutputMessage(
-            fallbackJson?.message ||
-              'Saved content is incomplete or not in the correct tool format for this tool.',
+            sanitizeAiToolUserFacingError(
+              fallbackJson?.message ||
+                'No saved content matched this selection yet. Try Generate again shortly.',
+            ),
           );
           return;
         }
@@ -1089,15 +1094,18 @@ export default function TeacherToolPage() {
           setIsFallbackContent(true);
           setFallbackEmptyMessage('');
         } else {
-          const savedPart =
-            fallbackJson?.message ||
-            'No saved copy matched this class, subject, topic, sub-topic, and tool.';
-          showInlineOutputMessage(`${errMsg} ${savedPart}`.trim());
+          showInlineOutputMessage(
+            sanitizeAiToolUserFacingError(
+              fallbackJson?.message ||
+                'No saved content matched this selection yet. Try Generate again shortly.',
+            ),
+          );
         }
       } catch (fallbackError: any) {
         console.error('Fallback error:', fallbackError);
-        const fe = String(fallbackError?.message || 'Fallback lookup failed');
-        showInlineOutputMessage(`${errMsg} ${fe}`.trim());
+        showInlineOutputMessage(
+          'Could not load saved content for this selection. Please try again.',
+        );
       }
     } finally {
       setIsGenerating(false);
@@ -1621,22 +1629,7 @@ export default function TeacherToolPage() {
           <AiToolGenerateFormCard
             onGenerate={handleGenerate}
             isGenerating={isGenerating}
-            notices={
-              <>
-              {toolType === STORY_PASSAGE_TOOL_ID ? (
-                <p className="rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-base leading-relaxed text-sky-900 sm:col-span-2 lg:col-span-3">
-                  Story &amp; Passage Creator is available for <strong>English</strong> and{' '}
-                  <strong>Hindi</strong> subjects only.
-                </p>
-              ) : null}
-              {isLanguageExcludedTool(toolType) ? (
-                <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-base leading-relaxed text-amber-900 sm:col-span-2 lg:col-span-3">
-                  This tool is not available for <strong>English</strong>, <strong>Hindi</strong>, or{' '}
-                  <strong>Telugu</strong> subjects.
-                </p>
-              ) : null}
-              </>
-            }
+            notices={null}
           >
               <AiToolFormField label="Board *" htmlFor="board">
                 <Select

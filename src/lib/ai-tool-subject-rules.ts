@@ -46,14 +46,9 @@ export function isStoryPassageLanguageSubject(subject: string | undefined | null
   return false;
 }
 
-export function filterSubjectsForAiTool(toolType: string, subjects: string[]): string[] {
-  if (isStoryLanguageTool(toolType)) {
-    return subjects.filter(isStoryPassageLanguageSubject);
-  }
-  if (isLanguageExcludedTool(toolType)) {
-    return subjects.filter((s) => !isStoryPassageLanguageSubject(s));
-  }
-  return subjects;
+export function filterSubjectsForAiTool(_toolType: string, subjects: string[]): string[] {
+  // Dashboard delivery: do not hide subjects by tool language rules.
+  return Array.isArray(subjects) ? subjects.filter(Boolean) : [];
 }
 
 /** IIT / NEET / JEE boards in AI Tools — STEM only (matches AI Tool Topics + IIT-6 catalog). */
