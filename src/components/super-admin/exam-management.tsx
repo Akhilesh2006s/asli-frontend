@@ -1368,7 +1368,7 @@ export default function ExamManagement() {
     examType: 'mains' as 'mains' | 'advanced' | 'weekend' | 'practice',
     classNumber: '',
     assignedClasses: [] as string[],
-    subjects: ['maths'] as ExamSubjectValue[],
+    subjects: [] as ExamSubjectValue[],
     maxAttempts: '1',
     board: 'ASLI_EXCLUSIVE_SCHOOLS',
     filterType: 'all-schools' as FilterType,
@@ -3257,7 +3257,7 @@ export default function ExamManagement() {
           examType: 'mains',
           classNumber: '',
           assignedClasses: [],
-          subjects: ['maths'],
+          subjects: [],
           maxAttempts: '1',
           board: 'ASLI_EXCLUSIVE_SCHOOLS',
           filterType: 'all-schools',
@@ -3621,7 +3621,7 @@ export default function ExamManagement() {
       examType: 'mains',
       classNumber: '',
       assignedClasses: [],
-      subjects: ['maths'],
+      subjects: [],
       maxAttempts: '1',
       board: 'ASLI_EXCLUSIVE_SCHOOLS',
       filterType: 'all-schools',
@@ -3648,9 +3648,7 @@ export default function ExamManagement() {
       examType: exam.examType || 'mains',
       classNumber: assigned[0] || '',
       assignedClasses: assigned,
-      subjects: getExamSubjects(exam).length > 0
-        ? getExamSubjects(exam)
-        : ['maths'],
+      subjects: getExamSubjects(exam),
       maxAttempts: String(exam.maxAttempts || 1),
       board: exam.board || 'ASLI_EXCLUSIVE_SCHOOLS',
       filterType: exam.isSchoolSpecific
@@ -4072,13 +4070,6 @@ export default function ExamManagement() {
                     ))}
                   </div>
                   <p className="text-xs text-gray-500 mt-1">Multiple subjects are saved under a single exam.</p>
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {formData.subjects.map((s) => (
-                      <Badge key={s} variant="outline" className="text-micro bg-gray-50">
-                        {EXAM_SUBJECTS.find((x) => x.value === s)?.label || normalizeDisplayText(s)}
-                      </Badge>
-                    ))}
-                  </div>
                 </div>
                 <div>
                   <Label htmlFor="maxAttempts">No. of Attempts *</Label>
