@@ -26,6 +26,10 @@ import {
   ChevronDown
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
+import {
+  resolveAnswerListForQuestion,
+  resolveAnswerTokenForQuestion,
+} from '@/lib/exam-answer-resolve';
 import { normalizeAndFormatExamDisplayText, resolveAssertionReasonDisplay } from '@/lib/exam-text-normalize';
 import {
   clearLocalExamDraft,
@@ -1043,77 +1047,6 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
   }, [pendingForceSubmit, timerInitialized, isSubmitted]);
 
   const checkAnswer = (question: Question, userAnswer: any): boolean => {
-    const extractAnswerText = (value: any): string => {
-      if (value === null || value === undefined) return '';
-      if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
-        return String(value);
-      }
-      if (typeof value === 'object') {
-        return String(value.text ?? value.label ?? value.value ?? value._id ?? '');
-      }
-      return String(value);
-    };
-
-    const options = Array.isArray(question.options) ? question.options : [];
-    const optionMeta = options.map((opt, index) => {
-      const text = extractAnswerText(opt).trim();
-      return {
-        index,
-        letter: String.fromCharCode(65 + index),
-        text,
-        textNorm: text.toLowerCase(),
-        id: String((typeof opt === 'object' && opt !== null ? (opt as any)._id : '') || '').trim(),
-      };
-    });
-
-    const resolveAnswerToken = (value: any): string => {
-      const raw = extractAnswerText(value).trim();
-      if (!raw) return '';
-      const rawNorm = raw.toLowerCase();
-
-      if (question.questionType === 'integer' || optionMeta.length === 0) {
-        return rawNorm;
-      }
-
-      if (/^-?\d+$/.test(rawNorm)) {
-        const n = parseInt(rawNorm, 10);
-        if (n >= 0 && n < optionMeta.length) return optionMeta[n].textNorm;
-        if (n >= 1 && n <= optionMeta.length) return optionMeta[n - 1].textNorm;
-      }
-
-      if (/^[a-z]$/i.test(rawNorm)) {
-        const byLetter = optionMeta.find((o) => o.letter.toLowerCase() === rawNorm);
-        if (byLetter) return byLetter.textNorm;
-      }
-
-      const optionMatch = rawNorm.match(/^option\s*([a-z0-9])$/);
-      if (optionMatch) {
-        const token = optionMatch[1];
-        if (/^\d$/.test(token)) {
-          const n = parseInt(token, 10);
-          if (n >= 1 && n <= optionMeta.length) return optionMeta[n - 1].textNorm;
-          if (n >= 0 && n < optionMeta.length) return optionMeta[n].textNorm;
-        }
-        if (/^[a-z]$/.test(token)) {
-          const byLetter = optionMeta.find((o) => o.letter.toLowerCase() === token);
-          if (byLetter) return byLetter.textNorm;
-        }
-      }
-
-      const byId = optionMeta.find((o) => o.id && o.id === raw);
-      if (byId) return byId.textNorm;
-
-      const byText = optionMeta.find((o) => o.textNorm && o.textNorm === rawNorm);
-      if (byText) return byText.textNorm;
-
-      return rawNorm;
-    };
-
-    const resolveAnswerList = (value: any): string[] => {
-      const list = Array.isArray(value) ? value : [value];
-      return list.map((v) => resolveAnswerToken(v)).filter(Boolean);
-    };
-
     if (userAnswer === undefined || userAnswer === null || userAnswer === '') {
       return false;
     }
@@ -1122,8 +1055,8 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
       if (question.correctAnswer === undefined || question.correctAnswer === null) {
         return false;
       }
-      const userResolved = resolveAnswerToken(userAnswer);
-      const correctResolved = resolveAnswerToken(question.correctAnswer);
+      const userResolved = resolveAnswerTokenForQuestion(question, userAnswer);
+      const correctResolved = resolveAnswerTokenForQuestion(question, question.correctAnswer);
       const userNum = Number(userResolved);
       const correctNum = Number(correctResolved);
       if (Number.isFinite(userNum) && Number.isFinite(correctNum)) {
@@ -1138,19 +1071,19 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
       question.questionType === 'match_following'
     ) {
       const correctAnswer = Array.isArray(question.correctAnswer)
-        ? resolveAnswerToken(question.correctAnswer[0])
-        : resolveAnswerToken(question.correctAnswer);
-      return resolveAnswerToken(userAnswer) === correctAnswer;
+        ? resolveAnswerTokenForQuestion(question, question.correctAnswer[0])
+        : resolveAnswerTokenForQuestion(question, question.correctAnswer);
+      return resolveAnswerTokenForQuestion(question, userAnswer) === correctAnswer;
     }
 
     if (question.questionType === 'multiple') {
-      const correctAnswerStrings = resolveAnswerList(question.correctAnswer);
-      const userAnswerStrings = resolveAnswerList(userAnswer);
-      
+      const correctAnswerStrings = resolveAnswerListForQuestion(question, question.correctAnswer);
+      const userAnswerStrings = resolveAnswerListForQuestion(question, userAnswer);
+
       if (userAnswerStrings.length !== correctAnswerStrings.length) {
         return false;
       }
-      
+
       return correctAnswerStrings.every((answer) => userAnswerStrings.includes(answer));
     }
 

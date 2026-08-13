@@ -24,6 +24,7 @@ import { Progress } from '@/components/ui/progress';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { AuthenticatedUploadImage } from '@/components/AuthenticatedUploadImage';
 import { MatchColumnsTable } from '@/components/exam/MatchColumnsTable';
+import { resolveAnswerAgainstOptions } from '@/lib/exam-answer-resolve';
 import {
   normalizeAndFormatExamDisplayText,
   resolveAssertionReasonDisplay,
@@ -139,22 +140,9 @@ function normalizeCorrectTexts(q: AdminPreviewQuestion): string[] {
   const toText = (v: unknown): string => {
     if (v == null) return '';
     if (typeof v === 'object' && v && 'text' in (v as object)) {
-      return String((v as { text?: string }).text || '').trim();
+      return resolveAnswerAgainstOptions((v as { text?: string }).text, opts);
     }
-    const s = String(v).trim();
-    if (!s) return '';
-    const byText = opts.find((o) => o.trim().toLowerCase() === s.toLowerCase());
-    if (byText) return byText.trim();
-    if (/^[a-d]$/i.test(s) && opts.length) {
-      const idx = s.toLowerCase().charCodeAt(0) - 97;
-      return opts[idx] || s;
-    }
-    if (/^\d+$/.test(s) && opts.length) {
-      const n = parseInt(s, 10);
-      if (n >= 1 && n <= opts.length) return opts[n - 1];
-      if (n >= 0 && n < opts.length) return opts[n];
-    }
-    return s;
+    return resolveAnswerAgainstOptions(v, opts);
   };
   if (Array.isArray(raw)) return raw.map(toText).filter(Boolean);
   const one = toText(raw);

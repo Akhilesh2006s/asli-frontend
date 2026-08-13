@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { API_BASE_URL } from '@/lib/api-config';
+import { resolveAnswerAgainstOptions } from '@/lib/exam-answer-resolve';
 import { normalizeAndFormatExamDisplayText } from '@/lib/exam-text-normalize';
 import AdvancedPerformanceDashboard from '@/components/analytics/AdvancedPerformanceDashboard';
 import AiReportTab from '@/components/exam-analysis/AiReportTab';
@@ -936,27 +937,17 @@ export default function DetailedAnalysis({ result, examTitle, onBack }: Detailed
       return normalizedRaw;
     }
 
-    // Numeric index (supports 0-based and 1-based legacy data).
-    if (/^-?\d+$/.test(rawText)) {
-      const idx = Number(rawText);
-      if (idx >= 0 && idx < options.length) return options[idx].text;
-      if (idx >= 1 && idx <= options.length) return options[idx - 1].text;
+    const optionTexts = options.map((o) => o.rawText || o.text).filter(Boolean);
+    const resolved = resolveAnswerAgainstOptions(rawText, optionTexts);
+    if (resolved) {
+      const match = options.find(
+        (o) =>
+          o.rawText === resolved ||
+          o.text === resolved ||
+          o.rawText.toLowerCase() === resolved.toLowerCase(),
+      );
+      return match?.text || normalizedRaw;
     }
-
-    // Letter option (A/B/C/D style).
-    if (/^[a-z]$/i.test(rawText)) {
-      const letter = rawText.toUpperCase();
-      const byLetter = options.find((o) => o.letter === letter);
-      if (byLetter) return byLetter.text;
-    }
-
-    // ObjectId/text matching fallback.
-    const byId = options.find((o) => o.id && o.id === rawText);
-    if (byId) return byId.text;
-    const byRaw = options.find((o) => o.rawText && o.rawText === rawText);
-    if (byRaw) return byRaw.text;
-    const byNormalized = options.find((o) => o.text === normalizedRaw);
-    if (byNormalized) return byNormalized.text;
 
     return normalizedRaw;
   };
