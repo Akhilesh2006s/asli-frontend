@@ -723,6 +723,37 @@ export default function BookKnowledgeBase() {
             {fieldErrors.classLabel ? <p className="text-xs text-red-600">{fieldErrors.classLabel}</p> : null}
           </div>
           <div className="space-y-2">
+            <Label>IIT product category (optional)</Label>
+            <Select
+              value={productCategory || "NONE"}
+              onValueChange={(v) => {
+                const next = v === "NONE" ? "" : v;
+                setProductCategory(next);
+                setSubject("");
+                setTopic("");
+                setSubTopic("");
+                setFieldErrors((prev) => {
+                  const nextErrors = { ...prev };
+                  delete nextErrors.subject;
+                  return nextErrors;
+                });
+              }}
+              disabled={!board}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder={!board ? "Select board first" : "General"} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="NONE">General (no IIT track)</SelectItem>
+                {iitCategoryCodes.map((c) => (
+                  <SelectItem key={c} value={c}>
+                    IIT {formatIitCategoryLabel(c, iitLabelMap)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
             <Label>Subject</Label>
             <Select value={subject} onValueChange={handleSubjectChange} disabled={!classLabel || loadingSubjects}>
               <SelectTrigger
@@ -760,25 +791,6 @@ export default function BookKnowledgeBase() {
             </Select>
           </div>
           <div className="space-y-2">
-            <Label>IIT product category (optional)</Label>
-            <Select
-              value={productCategory || "NONE"}
-              onValueChange={(v) => setProductCategory(v === "NONE" ? "" : v)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="General" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="NONE">General (no IIT track)</SelectItem>
-                {iitCategoryCodes.map((c) => (
-                  <SelectItem key={c} value={c}>
-                    IIT {formatIitCategoryLabel(c, iitLabelMap)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
             <Label>Source type</Label>
             <Select value={source} onValueChange={setSource}>
               <SelectTrigger><SelectValue /></SelectTrigger>
@@ -795,7 +807,7 @@ export default function BookKnowledgeBase() {
               </SelectContent>
             </Select>
           </div>
-          <div className="space-y-2 md:col-span-2 lg:col-span-1">
+          <div className="space-y-2 md:col-span-2 lg:col-span-2">
             <Label>File (PDF, DOCX, TXT) — click or drag &amp; drop</Label>
             <div
               className={cn(
@@ -817,22 +829,28 @@ export default function BookKnowledgeBase() {
                 }
               }}
             >
-              <Input
-                type="file"
-                accept=".pdf,.docx,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"
-                onChange={(e) => {
-                  const next = e.target.files?.[0] || null;
-                  setFile(next);
-                  if (next) clearFieldError("file");
-                }}
-                className={cn("bg-white", fieldErrors.file && "border-red-500")}
-                aria-invalid={Boolean(fieldErrors.file)}
-              />
-              {file ? (
-                <p className="mt-2 text-xs text-violet-800 truncate">Selected: {file.name}</p>
-              ) : (
-                <p className="mt-2 text-xs text-slate-500">Drop a file here, or use the picker above.</p>
-              )}
+              <label className="flex cursor-pointer flex-col gap-2 sm:flex-row sm:items-center">
+                <span className="inline-flex shrink-0 items-center justify-center rounded-md border border-violet-300 bg-white px-3 py-2 text-sm font-medium text-violet-800 shadow-sm hover:bg-violet-50">
+                  Choose file
+                </span>
+                <span className="min-w-0 text-xs text-slate-600 break-all">
+                  {file ? file.name : "No file selected"}
+                </span>
+                <Input
+                  type="file"
+                  accept=".pdf,.docx,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"
+                  onChange={(e) => {
+                    const next = e.target.files?.[0] || null;
+                    setFile(next);
+                    if (next) clearFieldError("file");
+                  }}
+                  className="sr-only"
+                  aria-invalid={Boolean(fieldErrors.file)}
+                />
+              </label>
+              <p className="mt-2 text-xs text-slate-500">
+                Drop a file here, or use Choose file above.
+              </p>
             </div>
             {fieldErrors.file ? <p className="text-xs text-red-600">{fieldErrors.file}</p> : null}
           </div>
