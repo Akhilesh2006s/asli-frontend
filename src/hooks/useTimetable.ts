@@ -301,3 +301,57 @@ export function useDeleteTimetablePhoto() {
     },
   });
 }
+
+export type TeacherTimetablePhoto = {
+  _id: string;
+  teacherId?: string;
+  label: string;
+  imageUrl: string;
+  originalFileName?: string;
+  updatedAt?: string | null;
+};
+
+export function useMyTimetablePhoto(options?: { enabled?: boolean }) {
+  return useQuery({
+    queryKey: ['timetable-my-photo'],
+    enabled: options?.enabled !== false,
+    queryFn: async () => {
+      const res = await apiFetch('/api/timetable/my-photo');
+      const data = await parseJson<{ data: TeacherTimetablePhoto | null }>(res);
+      return data.data || null;
+    },
+  });
+}
+
+export function useUploadMyTimetablePhoto() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (file: File) => {
+      const token = getAuthToken();
+      const form = new FormData();
+      form.append('image', file);
+      const res = await fetch(`${API_BASE_URL}/api/timetable/my-photo`, {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: form,
+      });
+      return parseJson<{ success: boolean; message?: string; data: TeacherTimetablePhoto }>(res);
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['timetable-my-photo'] });
+    },
+  });
+}
+
+export function useDeleteMyTimetablePhoto() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      const res = await apiFetch('/api/timetable/my-photo', { method: 'DELETE' });
+      return parseJson(res);
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['timetable-my-photo'] });
+    },
+  });
+}

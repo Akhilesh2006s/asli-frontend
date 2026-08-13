@@ -132,17 +132,21 @@ const getClassSubjectLineForTeacher = (
   assignments: TeacherClassAssignment[] = [],
 ) => {
   const rows = assignments.filter((row) => String(row.classId) === String(classId));
-  if (rows.length === 0) return '';
+  const sourceSubjects =
+    rows.length > 0
+      ? rows
+          .map((row) =>
+            teacherSubjects.find((s) => getSubjectRecordId(s) === String(row.subjectId)),
+          )
+          .filter(Boolean)
+      : teacherSubjects;
 
-  const labels = rows
-    .map((row) => {
-      const subject = teacherSubjects.find(
-        (s) => getSubjectRecordId(s) === String(row.subjectId),
-      );
-      return subject
+  const labels = sourceSubjects
+    .map((subject) =>
+      subject
         ? formatSubjectWithIitCategory(subject.name || subject.code || '', subject.productCategory)
-        : '';
-    })
+        : '',
+    )
     .filter(Boolean);
 
   return Array.from(new Set(labels)).join(', ');
@@ -388,9 +392,7 @@ const TeacherManagement = () => {
   const [assigningClassTeacher, setAssigningClassTeacher] = useState<Teacher | null>(null);
   const [dailyDialogTeacher, setDailyDialogTeacher] = useState<Teacher | null>(null);
   const [selectedSubjects, setSelectedSubjects] = useState<string[]>([]);
-  const [classSubjectAssignments, setClassSubjectAssignments] = useState<
-    TeacherClassAssignment[]
-  >([{ classId: '', subjectId: '' }]);
+  const [selectedClassIds, setSelectedClassIds] = useState<string[]>([]);
   const [newTeacher, setNewTeacher] = useState({
     fullName: '',
     email: '',
@@ -916,7 +918,7 @@ Jane Smith,jane.smith@school.edu,TeacherPass2,1234567891,Science,MSc in Chemistr
 
         setIsAssignClassDialogOpen(false);
         setAssigningClassTeacher(null);
-        setClassSubjectAssignments([{ classId: '', subjectId: '' }]);
+        setSelectedClassIds([]);
         notify('Class assignments saved successfully!');
       } else {
         notify(`Failed to assign classes: ${responseData.message || 'Unknown error'}`);
@@ -1068,13 +1070,11 @@ Jane Smith,jane.smith@school.edu,TeacherPass2,1234567891,Science,MSc in Chemistr
   const openAssignClassDialog = (teacher: Teacher) => {
     console.log('Opening assign class dialog for teacher:', teacher);
     setAssigningClassTeacher(teacher);
-    const existing = (teacher.assignments ?? []).map((row) => ({
-      classId: String(row.classId),
-      subjectId: String(row.subjectId),
-    }));
-    setClassSubjectAssignments(
-      existing.length > 0 ? existing : [{ classId: '', subjectId: '' }],
-    );
+    const fromAssignments = (teacher.assignments ?? [])
+      .map((row) => String(row.classId || '').trim())
+      .filter(Boolean);
+    const fromIds = (teacher.assignedClassIds ?? []).map((id) => String(id).trim()).filter(Boolean);
+    setSelectedClassIds(Array.from(new Set([...fromAssignments, ...fromIds])));
     setIsAssignClassDialogOpen(true);
   };
 
@@ -1090,32 +1090,31 @@ Jane Smith,jane.smith@school.edu,TeacherPass2,1234567891,Science,MSc in Chemistr
       return;
     }
 
-    console.log('Dialog submit - assigningClassTeacher:', assigningClassTeacher);
-    console.log('Class+subject rows:', classSubjectAssignments);
-
     try {
       const teacherId = assigningClassTeacher.id || (assigningClassTeacher as any)._id;
-      console.log('Teacher ID for assignment:', teacherId);
-
       if (!teacherId) {
         notify('Invalid teacher ID');
         return;
       }
 
-      const incomplete = classSubjectAssignments.some(
-        (row) => (row.classId && !row.subjectId) || (!row.classId && row.subjectId),
-      );
-      if (incomplete) {
-        notify('Each row needs both a class and a subject.');
+      const teacherSubjectIds = (assigningClassTeacher.subjects ?? [])
+        .map((s) => getSubjectRecordId(s))
+        .filter(Boolean);
+
+      if (teacherSubjectIds.length === 0) {
+        notify('Assign subjects to this teacher first (book icon), then pick classes.');
         return;
       }
 
-      if ((assigningClassTeacher.subjects ?? []).length === 0) {
-        notify('Assign subjects to this teacher first, then pick class + subject rows.');
-        return;
+      // Each selected class gets all of the teacher's subjects automatically.
+      const assignments: TeacherClassAssignment[] = [];
+      for (const classId of selectedClassIds) {
+        for (const subjectId of teacherSubjectIds) {
+          assignments.push({ classId, subjectId });
+        }
       }
 
-      await handleAssignClasses(teacherId, classSubjectAssignments);
+      await handleAssignClasses(teacherId, assignments);
     } catch (error) {
       console.error('Failed to assign classes:', error);
       notify('Failed to assign classes. Please try again.');
@@ -1793,18 +1792,12 @@ Jane Smith,jane.smith@school.edu,TeacherPass2,1234567891,Science,MSc in Chemistr
                             teacher.assignments ?? [],
                           );
                           return (
-                            <div key={classItem.id} className="bg-gray-50 rounded-lg p-3 border border-gray-200 min-h-[4.5rem]">
+                            <div key={classItem.id} className="bg-gray-50 rounded-lg p-3 border border-gray-200">
                               <div className="text-sm leading-snug">
                                 <span className="font-medium text-gray-900">{classItem.name}</span>
                                 {subjectLine ? (
                                   <span className="text-gray-600 block sm:inline sm:ml-2">- {subjectLine}</span>
                                 ) : null}
-                              </div>
-                              <div className="text-xs text-gray-500 mt-1">
-                                📅 {classItem.schedule ?? 'Not scheduled'}
-                              </div>
-                              <div className="text-xs text-gray-500">
-                                🏫 {classItem.room ?? '—'} • 👥 {classItem.studentCount ?? 0} students
                               </div>
                             </div>
                           );
@@ -1931,7 +1924,7 @@ Jane Smith,jane.smith@school.edu,TeacherPass2,1234567891,Science,MSc in Chemistr
           </DialogContent>
         </Dialog>
 
-        {/* Assign Class Dialog — class + subject per row */}
+        {/* Assign Class Dialog — checkbox classes; subjects come from teacher profile */}
         <Dialog open={isAssignClassDialogOpen} onOpenChange={setIsAssignClassDialogOpen}>
           <DialogContent className="sm:max-w-lg">
             <DialogHeader>
@@ -1939,118 +1932,88 @@ Jane Smith,jane.smith@school.edu,TeacherPass2,1234567891,Science,MSc in Chemistr
                 Assign to Class — {assigningClassTeacher?.fullName}
               </DialogTitle>
               <DialogDescription>
-                Pick a class and the subject this teacher will teach there. Only subjects already
-                assigned to the teacher are available.
+                Tick the classes this teacher teaches. Their assigned subjects are applied
+                automatically to each selected class.
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleAssignClassDialogSubmit} className="space-y-4">
               {(assigningClassTeacher?.subjects ?? []).length === 0 ? (
                 <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-                  Assign subjects to this teacher first (book icon), then return here to link class
-                  and subject.
+                  Assign subjects to this teacher first (book icon), then return here to pick
+                  classes.
                 </div>
               ) : (
                 <div className="space-y-3">
-                  <Label className="text-gray-700 font-medium">Class + subject assignments</Label>
-                  <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
-                    {classSubjectAssignments.map((row, index) => (
-                      <div
-                        key={`assign-row-${index}`}
-                        className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] gap-2 items-end p-3 rounded-lg border border-gray-200 bg-gray-50"
-                      >
-                        <div className="space-y-1">
-                          <Label className="text-xs text-gray-600">Class</Label>
-                          <Select
-                            value={row.classId || undefined}
-                            onValueChange={(value) => {
-                              setClassSubjectAssignments((prev) =>
-                                prev.map((entry, i) =>
-                                  i === index ? { ...entry, classId: value } : entry,
-                                ),
-                              );
-                            }}
+                  <div className="rounded-lg border border-orange-100 bg-orange-50/70 px-3 py-2">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-orange-800 mb-1.5">
+                      Subjects (from teacher profile)
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {teacherSubjectsForClassAssign.map((subject) => {
+                        const sid = getSubjectRecordId(subject);
+                        const label = formatSubjectWithIitCategory(
+                          subject.name || subject.code || '',
+                          subject.productCategory,
+                        );
+                        return (
+                          <Badge
+                            key={sid}
+                            variant="secondary"
+                            className="rounded-md bg-white text-orange-800 border border-orange-200"
                           >
-                            <SelectTrigger className="bg-white">
-                              <SelectValue placeholder="Select class" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {classes.map((classItem) => (
-                                <SelectItem key={classItem.id} value={classItem.id}>
-                                  {classItem.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div className="space-y-1">
-                          <Label className="text-xs text-gray-600">Subject</Label>
-                          <Select
-                            value={row.subjectId || undefined}
-                            onValueChange={(value) => {
-                              setClassSubjectAssignments((prev) =>
-                                prev.map((entry, i) =>
-                                  i === index ? { ...entry, subjectId: value } : entry,
-                                ),
-                              );
-                            }}
-                          >
-                            <SelectTrigger className="bg-white">
-                              <SelectValue placeholder="Select subject" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {teacherSubjectsForClassAssign.map((subject) => {
-                                const subjectId = getSubjectRecordId(subject);
-                                const label = formatSubjectWithIitCategory(
-                                  subject.name,
-                                  subject.productCategory,
-                                );
-                                return (
-                                  <SelectItem key={subjectId} value={subjectId}>
-                                    {label}
-                                  </SelectItem>
-                                );
-                              })}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="icon"
-                          className="shrink-0 border-red-200 text-red-600 hover:bg-red-50"
-                          onClick={() => {
-                            setClassSubjectAssignments((prev) => {
-                              const next = prev.filter((_, i) => i !== index);
-                              return next.length > 0 ? next : [{ classId: '', subjectId: '' }];
-                            });
-                          }}
-                          title="Remove row"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    ))}
-                    {classes.length === 0 && (
+                            {label}
+                          </Badge>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <Label className="text-gray-700 font-medium">Classes</Label>
+                  <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+                    {classes.length === 0 ? (
                       <div className="text-center text-gray-500 py-4 text-sm">
                         No classes available. Create classes first.
                       </div>
+                    ) : (
+                      classes.map((classItem) => {
+                        const checked = selectedClassIds.includes(classItem.id);
+                        return (
+                          <label
+                            key={classItem.id}
+                            htmlFor={`teacher-class-${classItem.id}`}
+                            className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 bg-gray-50 hover:border-orange-200 hover:bg-orange-50/40 cursor-pointer"
+                          >
+                            <Checkbox
+                              id={`teacher-class-${classItem.id}`}
+                              checked={checked}
+                              onCheckedChange={(value) => {
+                                const on = value === true;
+                                setSelectedClassIds((prev) => {
+                                  if (on) {
+                                    return prev.includes(classItem.id)
+                                      ? prev
+                                      : [...prev, classItem.id];
+                                  }
+                                  return prev.filter((id) => id !== classItem.id);
+                                });
+                              }}
+                            />
+                            <span className="font-medium text-gray-900 text-sm">
+                              {classItem.name}
+                            </span>
+                          </label>
+                        );
+                      })
                     )}
                   </div>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="w-full border-dashed border-orange-300 text-orange-700 hover:bg-orange-50"
-                    onClick={() => {
-                      setClassSubjectAssignments((prev) => [
-                        ...prev,
-                        { classId: '', subjectId: '' },
-                      ]);
-                    }}
-                    disabled={classes.length === 0}
-                  >
-                    <Plus className="w-4 h-4 mr-2" />
-                    Add class + subject
-                  </Button>
+                  {selectedClassIds.length > 0 ? (
+                    <p className="text-xs text-gray-500">
+                      {selectedClassIds.length} class
+                      {selectedClassIds.length === 1 ? '' : 'es'} selected ·{' '}
+                      {teacherSubjectsForClassAssign.length} subject
+                      {teacherSubjectsForClassAssign.length === 1 ? '' : 's'} each
+                    </p>
+                  ) : null}
                 </div>
               )}
               <div className="flex justify-end space-x-3">

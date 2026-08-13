@@ -32,6 +32,153 @@ const SCHOOL_DIALOG_CONTENT_CLASS =
 
 const SCHOOL_FORM_GRID_CLASS = "grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3";
 
+const DEFAULT_SCHOOL_VIDYA_USAGE = {
+  vidyaUsageMode: 'unlimited' as 'unlimited' | 'limited',
+  vidyaLimitChatbot: false,
+  vidyaLimitTools: false,
+  vidyaChatPerDay: 10,
+  vidyaGenerationsPerDay: 10,
+};
+
+type SchoolVidyaUsageFields = typeof DEFAULT_SCHOOL_VIDYA_USAGE;
+
+function SchoolVidyaUsageControls({
+  idPrefix,
+  value,
+  onChange,
+}: {
+  idPrefix: string;
+  value: SchoolVidyaUsageFields;
+  onChange: (next: SchoolVidyaUsageFields) => void;
+}) {
+  const limited = value.vidyaUsageMode === 'limited';
+  return (
+    <div className="space-y-3 rounded-lg border border-sky-100 bg-sky-50/50 p-4">
+      <div>
+        <h4 className="text-sm font-semibold text-slate-900">Vidya usage limits</h4>
+        <p className="mt-1 text-xs text-slate-600">
+          Unlimited = no daily caps. Limited = choose chatbot, AI tools, or both, and set how many
+          each student/teacher may use per 24 hours (rolling reset).
+        </p>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        <Button
+          type="button"
+          size="sm"
+          variant={value.vidyaUsageMode === 'unlimited' ? 'default' : 'outline'}
+          className={cn(
+            value.vidyaUsageMode === 'unlimited' && 'bg-emerald-600 hover:bg-emerald-700',
+          )}
+          onClick={() =>
+            onChange({
+              ...value,
+              vidyaUsageMode: 'unlimited',
+              vidyaLimitChatbot: false,
+              vidyaLimitTools: false,
+            })
+          }
+        >
+          Vidya unlimited
+        </Button>
+        <Button
+          type="button"
+          size="sm"
+          variant={limited ? 'default' : 'outline'}
+          className={cn(limited && 'bg-amber-600 hover:bg-amber-700')}
+          onClick={() =>
+            onChange({
+              ...value,
+              vidyaUsageMode: 'limited',
+              vidyaLimitChatbot: value.vidyaLimitChatbot || !value.vidyaLimitTools,
+              vidyaLimitTools: value.vidyaLimitTools,
+            })
+          }
+        >
+          Vidya limited
+        </Button>
+      </div>
+
+      {limited ? (
+        <div className="space-y-3 rounded-md border border-amber-200/80 bg-white/80 p-3">
+          <p className="text-xs font-medium text-slate-700">Apply limits to</p>
+          <div className="flex flex-col gap-2 sm:flex-row sm:gap-6">
+            <label className="flex items-center gap-2 text-sm text-slate-800">
+              <Checkbox
+                id={`${idPrefix}-limit-chat`}
+                checked={value.vidyaLimitChatbot}
+                onCheckedChange={(c) =>
+                  onChange({ ...value, vidyaLimitChatbot: c === true })
+                }
+              />
+              Vidya AI chatbot
+            </label>
+            <label className="flex items-center gap-2 text-sm text-slate-800">
+              <Checkbox
+                id={`${idPrefix}-limit-tools`}
+                checked={value.vidyaLimitTools}
+                onCheckedChange={(c) =>
+                  onChange({ ...value, vidyaLimitTools: c === true })
+                }
+              />
+              AI tools (generations)
+            </label>
+          </div>
+          {!value.vidyaLimitChatbot && !value.vidyaLimitTools ? (
+            <p className="text-xs text-amber-700">
+              Select at least one: chatbot and/or AI tools.
+            </p>
+          ) : null}
+          <div className="grid gap-3 sm:grid-cols-2">
+            {value.vidyaLimitChatbot ? (
+              <div className="space-y-1.5">
+                <Label htmlFor={`${idPrefix}-chat-per-day`}>Chats per day (24h)</Label>
+                <Input
+                  id={`${idPrefix}-chat-per-day`}
+                  type="number"
+                  min={1}
+                  max={10000}
+                  className={SCHOOL_FORM_FIELD_CLASS}
+                  value={value.vidyaChatPerDay}
+                  onChange={(e) =>
+                    onChange({
+                      ...value,
+                      vidyaChatPerDay: Math.max(1, Math.floor(Number(e.target.value) || 1)),
+                    })
+                  }
+                />
+              </div>
+            ) : null}
+            {value.vidyaLimitTools ? (
+              <div className="space-y-1.5">
+                <Label htmlFor={`${idPrefix}-gen-per-day`}>Generations per day (24h)</Label>
+                <Input
+                  id={`${idPrefix}-gen-per-day`}
+                  type="number"
+                  min={1}
+                  max={10000}
+                  className={SCHOOL_FORM_FIELD_CLASS}
+                  value={value.vidyaGenerationsPerDay}
+                  onChange={(e) =>
+                    onChange({
+                      ...value,
+                      vidyaGenerationsPerDay: Math.max(
+                        1,
+                        Math.floor(Number(e.target.value) || 1),
+                      ),
+                    })
+                  }
+                />
+              </div>
+            ) : null}
+          </div>
+        </div>
+      ) : (
+        <p className="text-xs text-emerald-800">No daily Vidya chat or generation caps for this school.</p>
+      )}
+    </div>
+  );
+}
+
 function syncIitTracksForClassRange<T extends {
   iitCategories: string[];
   iitCategoriesByClass: Record<string, string[]>;
@@ -477,6 +624,7 @@ export default function AdminManagement() {
     limitedFeatures: [...SCHOOL_PORTAL_FEATURE_IDS] as string[],
     vidyaEnabledForTeachers: true,
     vidyaEnabledForStudents: true,
+    ...DEFAULT_SCHOOL_VIDYA_USAGE,
   });
   const [showNewAdminPassword, setShowNewAdminPassword] = useState(false);
   const [showEditPasswordChange, setShowEditPasswordChange] = useState(false);
@@ -514,6 +662,7 @@ export default function AdminManagement() {
     limitedFeatures: [...SCHOOL_PORTAL_FEATURE_IDS] as string[],
     vidyaEnabledForTeachers: true,
     vidyaEnabledForStudents: true,
+    ...DEFAULT_SCHOOL_VIDYA_USAGE,
   });
   const [isUploadingAddLogo, setIsUploadingAddLogo] = useState(false);
   const [isUploadingEditLogo, setIsUploadingEditLogo] = useState(false);
@@ -768,6 +917,19 @@ export default function AdminManagement() {
       return;
     }
 
+    if (
+      newAdmin.vidyaUsageMode === 'limited' &&
+      !newAdmin.vidyaLimitChatbot &&
+      !newAdmin.vidyaLimitTools
+    ) {
+      toast({
+        title: "Vidya usage limits",
+        description: "Select chatbot and/or AI tools, or choose Vidya unlimited.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (!isValidOptionalPhone(newAdmin.phone) || !isValidOptionalPhone(newAdmin.secondaryContactPhone)) {
       toast({
         title: "Invalid phone number",
@@ -824,6 +986,11 @@ export default function AdminManagement() {
         permissions: resolvePortalPermissions(newAdmin.accessMode, newAdmin.limitedFeatures),
         vidyaEnabledForTeachers: newAdmin.vidyaEnabledForTeachers,
         vidyaEnabledForStudents: newAdmin.vidyaEnabledForStudents,
+        vidyaUsageMode: newAdmin.vidyaUsageMode,
+        vidyaLimitChatbot: newAdmin.vidyaLimitChatbot,
+        vidyaLimitTools: newAdmin.vidyaLimitTools,
+        vidyaChatPerDay: newAdmin.vidyaChatPerDay,
+        vidyaGenerationsPerDay: newAdmin.vidyaGenerationsPerDay,
         schoolDetails: {
           ...sd,
           state: newAdmin.state
@@ -878,6 +1045,7 @@ export default function AdminManagement() {
           limitedFeatures: [...SCHOOL_PORTAL_FEATURE_IDS],
           vidyaEnabledForTeachers: true,
           vidyaEnabledForStudents: true,
+          ...DEFAULT_SCHOOL_VIDYA_USAGE,
         });
         setShowNewAdminPassword(false);
         setIsAddDialogOpen(false);
@@ -1011,6 +1179,17 @@ export default function AdminManagement() {
         : SCHOOL_PORTAL_FEATURE_IDS.filter((f) => perms.includes(f)),
       vidyaEnabledForTeachers: admin.vidyaEnabledForTeachers !== false,
       vidyaEnabledForStudents: admin.vidyaEnabledForStudents !== false,
+      vidyaUsageMode:
+        String(admin.vidyaUsageMode || 'unlimited').toLowerCase() === 'limited'
+          ? 'limited'
+          : 'unlimited',
+      vidyaLimitChatbot: Boolean(admin.vidyaLimitChatbot),
+      vidyaLimitTools: Boolean(admin.vidyaLimitTools),
+      vidyaChatPerDay: Math.max(1, Math.floor(Number(admin.vidyaChatPerDay) || 10)),
+      vidyaGenerationsPerDay: Math.max(
+        1,
+        Math.floor(Number(admin.vidyaGenerationsPerDay) || 10),
+      ),
     });
     setIsEditDialogOpen(true);
   };
@@ -1052,6 +1231,19 @@ export default function AdminManagement() {
       toast({
         title: "Portal access",
         description: "Select at least one module for limited access, or choose unlimited access.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (
+      editAdmin.vidyaUsageMode === 'limited' &&
+      !editAdmin.vidyaLimitChatbot &&
+      !editAdmin.vidyaLimitTools
+    ) {
+      toast({
+        title: "Vidya usage limits",
+        description: "Select chatbot and/or AI tools, or choose Vidya unlimited.",
         variant: "destructive",
       });
       return;
@@ -1122,6 +1314,11 @@ export default function AdminManagement() {
           permissions: resolvePortalPermissions(editAdmin.accessMode, editAdmin.limitedFeatures),
           vidyaEnabledForTeachers: editAdmin.vidyaEnabledForTeachers,
           vidyaEnabledForStudents: editAdmin.vidyaEnabledForStudents,
+          vidyaUsageMode: editAdmin.vidyaUsageMode,
+          vidyaLimitChatbot: editAdmin.vidyaLimitChatbot,
+          vidyaLimitTools: editAdmin.vidyaLimitTools,
+          vidyaChatPerDay: editAdmin.vidyaChatPerDay,
+          vidyaGenerationsPerDay: editAdmin.vidyaGenerationsPerDay,
         }),
       });
 
@@ -1155,6 +1352,8 @@ export default function AdminManagement() {
           email: '',
           board: DEFAULT_CURRICULUM_BOARD,
           isAsliPrepExclusive: false,
+          iitCategories: [],
+          iitCategoriesByClass: {},
           state: '',
           schoolName: '',
           schoolLogo: '',
@@ -1169,6 +1368,7 @@ export default function AdminManagement() {
           limitedFeatures: [...SCHOOL_PORTAL_FEATURE_IDS],
           vidyaEnabledForTeachers: true,
           vidyaEnabledForStudents: true,
+          ...DEFAULT_SCHOOL_VIDYA_USAGE,
         });
         toast({
           title: "Success",
@@ -2004,6 +2204,18 @@ export default function AdminManagement() {
                   />
                 </div>
               </div>
+
+              <SchoolVidyaUsageControls
+                idPrefix="new-vidya-usage"
+                value={{
+                  vidyaUsageMode: newAdmin.vidyaUsageMode,
+                  vidyaLimitChatbot: newAdmin.vidyaLimitChatbot,
+                  vidyaLimitTools: newAdmin.vidyaLimitTools,
+                  vidyaChatPerDay: newAdmin.vidyaChatPerDay,
+                  vidyaGenerationsPerDay: newAdmin.vidyaGenerationsPerDay,
+                }}
+                onChange={(next) => setNewAdmin({ ...newAdmin, ...next })}
+              />
             </div>
             <div className="flex shrink-0 justify-end gap-3 border-t bg-background px-4 sm:px-6 lg:px-8 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
               <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
@@ -2761,6 +2973,18 @@ export default function AdminManagement() {
                   />
                 </div>
               </div>
+
+              <SchoolVidyaUsageControls
+                idPrefix="edit-vidya-usage"
+                value={{
+                  vidyaUsageMode: editAdmin.vidyaUsageMode,
+                  vidyaLimitChatbot: editAdmin.vidyaLimitChatbot,
+                  vidyaLimitTools: editAdmin.vidyaLimitTools,
+                  vidyaChatPerDay: editAdmin.vidyaChatPerDay,
+                  vidyaGenerationsPerDay: editAdmin.vidyaGenerationsPerDay,
+                }}
+                onChange={(next) => setEditAdmin({ ...editAdmin, ...next })}
+              />
             </div>
             <div className="flex shrink-0 justify-end gap-3 border-t bg-background px-4 sm:px-6 lg:px-8 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
               <Button

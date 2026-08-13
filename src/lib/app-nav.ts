@@ -1,4 +1,5 @@
 import {
+  BarChart3,
   BookOpen,
   CalendarDays,
   ClipboardList,
@@ -44,6 +45,8 @@ export const teacherNav: NavItem[] = [
   { id: "calendar", label: "Calendar", icon: CalendarDays, href: "/teacher/dashboard?tab=calendar" },
   { id: "results", label: "Offline Results", icon: ScanLine, href: "/teacher/results" },
   { id: "settings", label: "Settings", icon: Settings, href: "/teacher/dashboard?tab=settings" },
+  // Last item — mirrors student Profile: dedicated reports / student analysis
+  { id: "reports", label: "Reports", icon: BarChart3, href: "/teacher/dashboard?tab=reports" },
 ];
 
 /**
@@ -98,6 +101,7 @@ const TAB_ALIASES: Record<string, string> = {
   calendar: "calendar",
   timetable: "timetable",
   settings: "settings",
+  reports: "reports",
   teachers: "teachers",
   subjects: "subjects",
   exams: "exams",

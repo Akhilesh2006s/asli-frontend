@@ -35,6 +35,13 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { useIsMobile } from '@/hooks/use-mobile';
 import {
   extractPlainSubjectName,
@@ -42,7 +49,7 @@ import {
   formatSubjectWithIitCategory,
 } from '@/lib/subject-names';
 import { normalizeVideoLike, normalizeSessionLike } from '@/lib/eduott-normalize';
-import { resolveContentDurationSeconds } from '@/lib/eduott-video-utils';
+import { extractYouTubeId, resolveContentDurationSeconds } from '@/lib/eduott-video-utils';
 import { getVideoDisplayTitle } from '@/lib/video-chapter-schedule';
 import { useEduOTTFilters } from '@/contexts/edu-ott-filter-context';
 import { EduOTTGlobalFilterBar } from '@/components/eduott/EduOTTGlobalFilterBar';
@@ -50,6 +57,7 @@ import { EduOTTTabsList, eduOttTabTriggerClass } from '@/components/eduott/EduOT
 import { EduOTTStage } from '@/components/eduott/EduOTTStage';
 import VidyaAIFloatingAssistant from '@/components/student/VidyaAIFloatingAssistant';
 import { isIitTrackContent } from '@/lib/library-content-labels';
+import PdfPreviewPanel from '@/components/shared/PdfPreviewPanel';
 import { cn } from '@/lib/utils';
 
 interface Video {
@@ -269,6 +277,11 @@ export default function EduOTT() {
   const [sessionSearchTerm, setSessionSearchTerm] = useState('');
   const [selectedVideo, setSelectedVideo] = useState<EduOTTVideoCardItem | null>(null);
   const [selectedLiveSession, setSelectedLiveSession] = useState<LiveSession | null>(null);
+  const [previewMaterial, setPreviewMaterial] = useState<{
+    title: string;
+    type: string;
+    fileUrl: string;
+  } | null>(null);
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [subjectFocus, setSubjectFocus] = useState<SubjectGroup | null>(null);
   const [subjectLibrary, setSubjectLibrary] = useState<LibraryRow[]>([]);
@@ -1021,16 +1034,21 @@ export default function EduOTT() {
                               <p className="text-xs text-slate-500">{type}</p>
                             </div>
                             {href ? (
-                              <a
-                                href={href}
-                                target="_blank"
-                                rel="noreferrer"
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setPreviewMaterial({
+                                    title,
+                                    type,
+                                    fileUrl: href,
+                                  })
+                                }
                                 className={cn(
                                   'shrink-0 rounded-lg border border-orange-200 bg-orange-50 px-2.5 py-1 text-xs font-semibold text-orange-800 hover:bg-orange-100',
                                 )}
                               >
                                 Open
-                              </a>
+                              </button>
                             ) : (
                               <span className="shrink-0 text-xs text-slate-400">No file</span>
                             )}
@@ -1060,5 +1078,150 @@ export default function EduOTT() {
           if (!open) setSelectedLiveSession(null);
         }}
       />
+
+      <Dialog
+        open={Boolean(previewMaterial)}
+        onOpenChange={(open) => {
+          if (!open) setPreviewMaterial(null);
+        }}
+      >
+        <DialogContent
+          className={cn(
+            'flex max-h-[94vh] w-[min(96vw,960px)] max-w-[960px] flex-col overflow-hidden',
+            (() => {
+              const u = String(previewMaterial?.fileUrl || '').toLowerCase();
+              const t = String(previewMaterial?.type || '').toLowerCase();
+              const isPdf =
+                u.includes('.pdf') ||
+                t === 'pdf' ||
+                t.includes('textbook') ||
+                t.includes('workbook') ||
+                t.includes('notes') ||
+                t.includes('material');
+              return isPdf ? 'h-[min(94dvh,1100px)] p-0 sm:rounded-2xl' : 'p-4 sm:p-6';
+            })(),
+          )}
+        >
+          {previewMaterial ? (
+            (() => {
+              const url = previewMaterial.fileUrl;
+              const lower = url.toLowerCase();
+              const type = previewMaterial.type.toLowerCase();
+              const ytId = extractYouTubeId(url);
+              const isImage = /\.(jpg|jpeg|png|gif|webp|svg|bmp)(\?|$)/i.test(lower);
+              const isVideoFile = /\.(mp4|webm|ogg|mov|m3u8)(\?|$)/i.test(lower) || type === 'video';
+              const isPdf =
+                lower.includes('.pdf') ||
+                type === 'pdf' ||
+                type.includes('textbook') ||
+                type.includes('workbook') ||
+                type.includes('notes') ||
+                (type.includes('material') && !isImage && !isVideoFile && !ytId);
+
+              if (ytId) {
+                return (
+                  <>
+                    <DialogHeader className="shrink-0">
+                      <DialogTitle className="pr-8 text-base sm:text-lg">{previewMaterial.title}</DialogTitle>
+                      <DialogDescription className="text-xs sm:text-sm">
+                        Playing in AsliLearn — stays on this page
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="relative aspect-video w-full overflow-hidden rounded-lg bg-black">
+                      <iframe
+                        title={previewMaterial.title}
+                        src={`https://www.youtube.com/embed/${ytId}?rel=0&modestbranding=1`}
+                        className="absolute inset-0 h-full w-full border-0"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                        allowFullScreen
+                      />
+                    </div>
+                  </>
+                );
+              }
+
+              if (isPdf) {
+                return (
+                  <>
+                    <DialogHeader className="shrink-0 border-b px-4 py-3 sm:px-6">
+                      <DialogTitle className="pr-8 text-base sm:text-lg">{previewMaterial.title}</DialogTitle>
+                      <DialogDescription className="text-xs sm:text-sm">
+                        Read in app — scroll to turn pages
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-stone-100">
+                      <PdfPreviewPanel
+                        fileUrl={url}
+                        title={previewMaterial.title}
+                        className="h-full min-h-0 w-full flex-1"
+                        variant="book"
+                      />
+                    </div>
+                  </>
+                );
+              }
+
+              if (isImage) {
+                return (
+                  <>
+                    <DialogHeader className="shrink-0">
+                      <DialogTitle className="pr-8 text-base sm:text-lg">{previewMaterial.title}</DialogTitle>
+                      <DialogDescription className="sr-only">Image preview</DialogDescription>
+                    </DialogHeader>
+                    <div className="overflow-hidden rounded-lg bg-slate-100 p-2">
+                      <img
+                        src={url}
+                        alt={previewMaterial.title}
+                        className="mx-auto max-h-[70vh] w-full object-contain"
+                        draggable={false}
+                      />
+                    </div>
+                  </>
+                );
+              }
+
+              if (isVideoFile) {
+                return (
+                  <>
+                    <DialogHeader className="shrink-0">
+                      <DialogTitle className="pr-8 text-base sm:text-lg">{previewMaterial.title}</DialogTitle>
+                      <DialogDescription className="text-xs sm:text-sm">
+                        Playing in AsliLearn — stays on this page
+                      </DialogDescription>
+                    </DialogHeader>
+                    <video
+                      key={url}
+                      src={url}
+                      controls
+                      autoPlay
+                      playsInline
+                      className="mx-auto w-full rounded-lg bg-black"
+                      style={{ aspectRatio: '16 / 9', maxHeight: '70vh' }}
+                    >
+                      <track kind="captions" />
+                    </video>
+                  </>
+                );
+              }
+
+              return (
+                <>
+                  <DialogHeader className="shrink-0">
+                    <DialogTitle className="pr-8 text-base sm:text-lg">{previewMaterial.title}</DialogTitle>
+                    <DialogDescription className="text-xs sm:text-sm">
+                      Preview in AsliLearn
+                    </DialogDescription>
+                  </DialogHeader>
+                  <iframe
+                    title={previewMaterial.title}
+                    src={url}
+                    className="h-[min(70vh,720px)] w-full rounded-lg border-0 bg-white"
+                  />
+                </>
+              );
+            })()
+          ) : null}
+        </DialogContent>
+      </Dialog>
     </Shell>  );
 }

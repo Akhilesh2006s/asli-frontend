@@ -34,7 +34,7 @@ import {
 import { API_BASE_URL } from '@/lib/api-config';
 import { PRODUCT_IIT } from '@/lib/products';
 import { useToast } from '@/hooks/use-toast';
-import { GraduationCap, Loader2, Pencil, Plus, Trash2 } from 'lucide-react';
+import { Ban, GraduationCap, Loader2, Pencil, Plus, Power, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export type BoardKind = 'curriculum' | 'state' | 'iit';
@@ -226,6 +226,43 @@ export default function BoardsManagement() {
     }
   };
 
+  const deactivateBoard = async (row: BoardRow) => {
+    if (row.code === 'ASLI_EXCLUSIVE_SCHOOLS') {
+      toast({
+        title: 'Cannot deactivate hub board',
+        description: 'The platform hub board must stay active.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    setSaving(true);
+    try {
+      const res = await fetch(
+        `${API_BASE_URL}/api/super-admin/boards/${encodeURIComponent(row.code)}`,
+        {
+          method: 'PUT',
+          headers: authHeaders(),
+          body: JSON.stringify({ isActive: false }),
+        }
+      );
+      const json = await res.json();
+      if (!res.ok || !json.success) throw new Error(json.message || 'Update failed');
+      toast({
+        title: 'Board deactivated',
+        description: `${row.name} is hidden from school assign and new content. You can activate it again anytime.`,
+      });
+      await reload();
+    } catch (e) {
+      toast({
+        title: 'Could not deactivate board',
+        description: e instanceof Error ? e.message : 'Error',
+        variant: 'destructive',
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const deleteBoardPermanently = async (row: BoardRow) => {
     setSaving(true);
     try {
@@ -295,6 +332,7 @@ export default function BoardsManagement() {
               <BoardTable
                 rows={active}
                 onEdit={openEdit}
+                onDeactivate={deactivateBoard}
                 onDelete={(row) => setPendingDelete(row)}
                 busy={saving}
               />
@@ -497,12 +535,14 @@ function BoardTable({
   onEdit,
   onDelete,
   onActivate,
+  onDeactivate,
   busy,
 }: {
   rows: BoardRow[];
   onEdit: (row: BoardRow) => void;
   onDelete: (row: BoardRow) => void;
   onActivate?: (row: BoardRow) => void;
+  onDeactivate?: (row: BoardRow) => void;
   busy: boolean;
 }) {
   return (
@@ -529,38 +569,60 @@ function BoardTable({
                   Product: {row.product}
                 </Badge>
               ) : null}
+              {row.isActive === false ? (
+                <Badge variant="outline" className="border-amber-300 bg-amber-50 text-[10px] text-amber-800">
+                  Inactive
+                </Badge>
+              ) : null}
             </div>
             {row.description ? (
               <p className="mt-0.5 text-xs text-slate-500 line-clamp-2">{row.description}</p>
             ) : null}
           </div>
-          <div className="flex shrink-0 gap-2">
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              disabled={busy}
-              onClick={() => onEdit(row)}
-            >
-              <Pencil className="mr-1 h-3.5 w-3.5" />
-              Edit
-            </Button>
-            {row.isActive === false && onActivate ? (
+          <div className="flex shrink-0 flex-col items-stretch gap-2 sm:items-end">
+            <div className="flex flex-wrap gap-2 sm:justify-end">
               <Button
                 type="button"
                 size="sm"
                 variant="outline"
                 disabled={busy}
-                onClick={() => onActivate(row)}
+                onClick={() => onEdit(row)}
               >
-                Activate
+                <Pencil className="mr-1 h-3.5 w-3.5" />
+                Edit
               </Button>
-            ) : null}
+              {row.isActive === false && onActivate ? (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="border-emerald-300 text-emerald-800 hover:bg-emerald-50"
+                  disabled={busy}
+                  onClick={() => onActivate(row)}
+                >
+                  <Power className="mr-1 h-3.5 w-3.5" />
+                  Activate
+                </Button>
+              ) : null}
+              {row.isActive !== false && onDeactivate && row.code !== 'ASLI_EXCLUSIVE_SCHOOLS' ? (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="border-amber-300 text-amber-900 hover:bg-amber-50"
+                  disabled={busy}
+                  onClick={() => onDeactivate(row)}
+                >
+                  <Ban className="mr-1 h-3.5 w-3.5" />
+                  Deactivate
+                </Button>
+              ) : null}
+            </div>
             <Button
               type="button"
               size="sm"
               variant="destructive"
-              disabled={busy}
+              disabled={busy || row.code === 'ASLI_EXCLUSIVE_SCHOOLS'}
               onClick={() => onDelete(row)}
             >
               <Trash2 className="mr-1 h-3.5 w-3.5" />

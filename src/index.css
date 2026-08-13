@@ -834,6 +834,162 @@ body.dashboard-no-scrollbar::-webkit-scrollbar {
   }
 }
 
+/* ── AppShell crazy sidebar animations ── */
+@keyframes sidebar-aurora-shift {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+    opacity: 0.85;
+  }
+  33% {
+    transform: translate(6%, -4%) scale(1.08);
+    opacity: 1;
+  }
+  66% {
+    transform: translate(-4%, 5%) scale(0.96);
+    opacity: 0.9;
+  }
+}
+
+@keyframes sidebar-sparkle-pulse {
+  0%,
+  100% {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  50% {
+    opacity: 0.95;
+    transform: scale(1.2);
+  }
+}
+
+@keyframes sidebar-shimmer-sweep {
+  0% {
+    transform: translateX(-120%) skewX(-12deg);
+  }
+  100% {
+    transform: translateX(220%) skewX(-12deg);
+  }
+}
+
+@keyframes sidebar-logo-orbit {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes sidebar-brand-hue {
+  0%,
+  100% {
+    filter: hue-rotate(0deg);
+  }
+  50% {
+    filter: hue-rotate(18deg);
+  }
+}
+
+@keyframes sidebar-scan-drift {
+  0% {
+    background-position: 0 0;
+  }
+  100% {
+    background-position: 0 120px;
+  }
+}
+
+.app-shell-sidebar-crazy {
+  background: linear-gradient(165deg, #eef8ff 0%, #fff7ed 38%, #f0fdfa 72%, #faf5ff 100%);
+}
+
+.app-shell-sidebar-atmosphere .sidebar-aurora {
+  background:
+    radial-gradient(ellipse 90% 55% at 0% 0%, rgba(56, 189, 248, 0.42), transparent 58%),
+    radial-gradient(ellipse 75% 50% at 100% 12%, rgba(251, 146, 60, 0.38), transparent 52%),
+    radial-gradient(ellipse 70% 45% at 35% 100%, rgba(45, 212, 191, 0.35), transparent 55%),
+    radial-gradient(ellipse 55% 40% at 80% 75%, rgba(217, 70, 239, 0.22), transparent 50%);
+  animation: sidebar-aurora-shift 10s ease-in-out infinite;
+}
+
+.app-shell-sidebar-atmosphere .sidebar-aurora--alt {
+  background:
+    radial-gradient(ellipse 60% 45% at 70% 20%, rgba(99, 102, 241, 0.28), transparent 55%),
+    radial-gradient(ellipse 50% 40% at 10% 70%, rgba(244, 63, 94, 0.2), transparent 52%);
+  animation: sidebar-aurora-shift 14s ease-in-out infinite reverse;
+  mix-blend-mode: soft-light;
+}
+
+.app-shell-sidebar-atmosphere .sidebar-sparkle {
+  animation-name: sidebar-sparkle-pulse;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  box-shadow: 0 0 6px rgba(255, 255, 255, 0.9);
+}
+
+.app-shell-sidebar-atmosphere .sidebar-scanline {
+  background: repeating-linear-gradient(
+    180deg,
+    transparent 0,
+    transparent 3px,
+    rgba(255, 255, 255, 0.35) 3px,
+    rgba(255, 255, 255, 0.35) 4px
+  );
+  animation: sidebar-scan-drift 8s linear infinite;
+}
+
+.sidebar-nav-shimmer {
+  background: linear-gradient(
+    105deg,
+    transparent 35%,
+    rgba(255, 255, 255, 0.45) 50%,
+    transparent 65%
+  );
+  animation: sidebar-shimmer-sweep 2.8s ease-in-out infinite;
+}
+
+.sidebar-logo-orbit {
+  background: conic-gradient(
+    from 0deg,
+    rgba(249, 115, 22, 0.7),
+    rgba(56, 189, 248, 0.7),
+    rgba(217, 70, 239, 0.7),
+    rgba(16, 185, 129, 0.7),
+    rgba(249, 115, 22, 0.7)
+  );
+  animation: sidebar-logo-orbit 6s linear infinite;
+  opacity: 0.75;
+}
+
+.sidebar-brand-gradient {
+  background-image: linear-gradient(90deg, #0f172a 0%, #0369a1 45%, #ea580c 100%);
+  background-size: 200% auto;
+  animation: sidebar-brand-hue 6s ease-in-out infinite;
+}
+
+.sidebar-menu-label {
+  background: linear-gradient(90deg, #7c3aed, #0ea5e9, #f97316, #7c3aed);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: sidebar-brand-hue 4s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-shell-sidebar-atmosphere .sidebar-aurora,
+  .app-shell-sidebar-atmosphere .sidebar-aurora--alt,
+  .app-shell-sidebar-atmosphere .sidebar-sparkle,
+  .app-shell-sidebar-atmosphere .sidebar-scanline,
+  .sidebar-nav-shimmer,
+  .sidebar-logo-orbit,
+  .sidebar-brand-gradient,
+  .sidebar-menu-label {
+    animation: none !important;
+  }
+}
+
 /* AppShell (admin/teacher/student) sidebar — plain, slim scrollbar */
 .app-shell-sidebar-nav {
   scrollbar-width: thin;
@@ -867,7 +1023,7 @@ body.dashboard-no-scrollbar::-webkit-scrollbar {
   background: transparent;
 }
 
-/* Super Admin sidebar — thin, soft scrollbar (light theme) */
+/* Super Admin sidebar — thin scrollbar (light rail, matches AppShell) */
 .super-admin-sidebar-nav {
   scrollbar-width: thin;
   scrollbar-color: rgba(100, 116, 139, 0.25) transparent;

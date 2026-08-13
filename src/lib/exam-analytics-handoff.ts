@@ -11,6 +11,8 @@ import {
 
 export type HandoffStudentRow = {
   rank: number;
+  resultId?: string;
+  userId?: string;
   name: string;
   classNumber: string;
   attemptLabel: string;
@@ -38,6 +40,163 @@ export type HandoffStudentRow = {
   cohortBand: string;
   subjectAcc: Map<string, number>;
 };
+
+export type HandoffQuestionRow = {
+  questionNumber: number;
+  questionId: string;
+  status: 'correct' | 'wrong' | 'not_answered';
+  questionText: string;
+  subject?: string;
+  chapter?: string;
+  difficulty?: string;
+  timeTaken?: number;
+};
+
+function stripHtmlPreview(text: string) {
+  return String(text || '')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/** Per-question rows for on-screen individual analysis (mirrors attempt detail). */
+export function buildHandoffQuestionRows(
+  result: SchoolAnalysisExamResult | null | undefined,
+): HandoffQuestionRow[] {
+  if (!result) return [];
+  const qa = Array.isArray(result.questionAnalytics) ? result.questionAnalytics : [];
+  const snapshot = Array.isArray(result.questionSnapshot) ? result.questionSnapshot : [];
+  const total = Math.max(
+    qa.length,
+    snapshot.length,
+    toNum(result.totalQuestions, 0),
+    toNum(result.correctAnswers, 0) + toNum(result.wrongAnswers, 0) + toNum(result.unattempted, 0),
+  );
+
+  const rows: HandoffQuestionRow[] = [];
+  for (let i = 0; i < total; i += 1) {
+    const row =
+      qa.find((r) => Number(r?.index) === i) ||
+      qa[i] ||
+      null;
+    const snap = snapshot[i] || null;
+    const statusRaw = String(row?.status || '').toLowerCase();
+    let status: HandoffQuestionRow['status'] = 'not_answered';
+    if (statusRaw === 'correct' || row?.isCorrect === true) status = 'correct';
+    else if (statusRaw === 'wrong' || statusRaw === 'incorrect') status = 'wrong';
+    else if (row?.isAnswered === true) status = row.isCorrect ? 'correct' : 'wrong';
+
+    const questionText =
+      stripHtmlPreview(snap?.questionText || snap?.assertionText || '') ||
+      `Question ${i + 1}`;
+
+    rows.push({
+      questionNumber: i + 1,
+      questionId: String(row?.questionId || snap?._id || `q-${i}`),
+      status,
+      questionText: questionText.slice(0, 280),
+      subject: row?.subject || snap?.subject || '',
+      chapter: row?.chapter || snap?.chapter || '',
+      difficulty: row?.difficulty || snap?.difficulty || '',
+      timeTaken: Number(row?.timeTaken) > 0 ? Number(row?.timeTaken) : undefined,
+    });
+  }
+  return rows;
+}
+
+/** Class-level correct / wrong / blank counts per question (best attempt per student). */
+export type ClassQuestionStat = {
+  questionNumber: number;
+  index: number;
+  questionId: string;
+  questionText: string;
+  subject?: string;
+  chapter?: string;
+  totalStudents: number;
+  correct: number;
+  wrong: number;
+  unattempted: number;
+  attempted: number;
+  accuracyPct: number;
+  classCorrectPct: number;
+};
+
+export function buildClassQuestionBreakdown(
+  results: SchoolAnalysisExamResult[],
+): ClassQuestionStat[] {
+  const prepared = prepareResultsForAnalysisExport(results);
+  const bestByStudent = new Map<string, SchoolAnalysisExamResult>();
+  for (const result of prepared) {
+    const id = String(
+      result.userId?._id || result.userId?.email || result.userId?.fullName || '',
+    ).trim();
+    if (!id) continue;
+    const prev = bestByStudent.get(id);
+    if (!prev || toNum(result.percentage, 0) > toNum(prev.percentage, 0)) {
+      bestByStudent.set(id, result);
+    }
+  }
+
+  const bestList = [...bestByStudent.values()];
+  const totalStudents = bestList.length;
+  if (!totalStudents) return [];
+
+  const rowsByStudent = bestList.map((result) => buildHandoffQuestionRows(result));
+  let maxQ = 0;
+  for (const rows of rowsByStudent) maxQ = Math.max(maxQ, rows.length);
+  if (maxQ === 0) return [];
+
+  const stats: ClassQuestionStat[] = [];
+  for (let i = 0; i < maxQ; i += 1) {
+    let correct = 0;
+    let wrong = 0;
+    let unattempted = 0;
+    let questionId = `q-${i}`;
+    let questionText = `Question ${i + 1}`;
+    let subject = '';
+    let chapter = '';
+
+    for (const rows of rowsByStudent) {
+      const q = rows[i];
+      if (!q) {
+        unattempted += 1;
+        continue;
+      }
+      if (q.questionId) questionId = q.questionId;
+      if (q.questionText && !/^Question \d+$/i.test(q.questionText)) {
+        questionText = q.questionText;
+      } else if (!questionText || /^Question \d+$/i.test(questionText)) {
+        questionText = q.questionText || questionText;
+      }
+      if (q.subject) subject = q.subject;
+      if (q.chapter) chapter = q.chapter;
+
+      if (q.status === 'correct') correct += 1;
+      else if (q.status === 'wrong') wrong += 1;
+      else unattempted += 1;
+    }
+
+    const attempted = correct + wrong;
+    stats.push({
+      questionNumber: i + 1,
+      index: i,
+      questionId,
+      questionText: questionText.slice(0, 280),
+      subject,
+      chapter,
+      totalStudents,
+      correct,
+      wrong,
+      unattempted,
+      attempted,
+      accuracyPct: attempted > 0 ? Math.round((correct / attempted) * 1000) / 10 : 0,
+      classCorrectPct:
+        totalStudents > 0 ? Math.round((correct / totalStudents) * 1000) / 10 : 0,
+    });
+  }
+
+  return stats;
+}
 
 export type HandoffSubjectRow = {
   subjectKey: string;
@@ -93,6 +252,7 @@ export type HandoffIndividualReport = {
   subjectDiagnostics: HandoffSubjectDiagnostic[];
   behaviour: HandoffBehaviourRow[];
   actions: HandoffActionRow[];
+  questions: HandoffQuestionRow[];
 };
 
 export type ExamAnalyticsHandoffReport = {
@@ -437,6 +597,8 @@ export function buildExamAnalyticsHandoffReport(
     const attemptNumber = Number(result.attemptNumber) >= 1 ? Number(result.attemptNumber) : 1;
 
     return {
+      resultId: String(result._id || '').trim() || undefined,
+      userId: String(result.userId?._id || '').trim() || undefined,
       name: result.userId?.fullName || 'Unknown',
       classNumber: String(result.userId?.classNumber || '').trim() || '—',
       attemptLabel: `Attempt ${Math.round(attemptNumber)}`,
@@ -622,19 +784,35 @@ export function buildExamAnalyticsHandoffReport(
     },
   ];
 
-  const individuals: HandoffIndividualReport[] = students.map((student) => ({
-    student,
-    subjectDiagnostics: subjectDiagnosticsForStudent(student, subjectRows, students),
-    behaviour: buildBehaviour(
+  const resultById = new Map(
+    prepared.map((r) => [String(r._id || '').trim(), r] as const).filter(([id]) => Boolean(id)),
+  );
+
+  const individuals: HandoffIndividualReport[] = students.map((student) => {
+    const attempt =
+      (student.resultId && resultById.get(student.resultId)) ||
+      prepared.find(
+        (r) =>
+          String(r.userId?._id || '') === String(student.userId || '') &&
+          `Attempt ${Math.round(Number(r.attemptNumber) >= 1 ? Number(r.attemptNumber) : 1)}` ===
+            student.attemptLabel,
+      ) ||
+      null;
+    return {
       student,
-      classAccuracy,
-      classAttemptRate,
-      classPrecision,
-      classAvgTimeSec,
-      classCorrectPerActiveMin,
-    ),
-    actions: buildActions(student),
-  }));
+      subjectDiagnostics: subjectDiagnosticsForStudent(student, subjectRows, students),
+      behaviour: buildBehaviour(
+        student,
+        classAccuracy,
+        classAttemptRate,
+        classPrecision,
+        classAvgTimeSec,
+        classCorrectPerActiveMin,
+      ),
+      actions: buildActions(student),
+      questions: buildHandoffQuestionRows(attempt),
+    };
+  });
 
   return {
     examTitle: base.examTitle,

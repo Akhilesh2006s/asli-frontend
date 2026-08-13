@@ -478,7 +478,9 @@ export default function TrialMembersManagement() {
           <h2 className="text-xl font-semibold text-slate-900 sm:text-2xl">Trial members</h2>
           <p className="mt-1 max-w-2xl text-sm text-slate-600">
             Individual (B2C) teacher and student accounts. Add members here or they appear after
-            self-signup. Source shows where each account came from. When you Unlock as paid they
+            self-signup. Source shows where each account came from. Unpaid trial: Vidya chat is
+            limited to <strong>3 messages</strong> until payment; AI tools allow{' '}
+            <strong>3 generations per 24 hours</strong> (then refresh). When you Unlock as paid they
             become <strong>Converted</strong> and also appear under{' '}
             <strong>Subscriptions → Individual</strong>.
           </p>

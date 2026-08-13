@@ -200,22 +200,62 @@ export default function AdminLearningPaths() {
     try {
       setIsLoading(true);
       const token = getAuthToken();
-      const response = await fetch(`${API_BASE_URL}/api/admin/subjects`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        }
-      });
+      // includeCatalog=true: full board catalog (ASLI + curriculum + IIT for Asli Prep),
+      // not only subjects already linked to classes — so Super Admin uploads appear.
+      const [subjectsRes, classesRes] = await Promise.all([
+        fetch(`${API_BASE_URL}/api/admin/subjects?includeCatalog=true`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        }),
+        fetch(`${API_BASE_URL}/api/admin/classes`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        }),
+      ]);
 
-      if (response.ok) {
-        const data = await response.json();
-        // Handle both array and object responses
-        const subjectsArray = Array.isArray(data) ? data : (data.data || data.subjects || []);
-        setSubjects(
-          subjectsArray.filter((s: { name?: string; isActive?: boolean }) =>
-            isActiveCatalogSubject(s)
-          )
+      let classNumbers = new Set<string>();
+      if (classesRes.ok) {
+        const classesData = await classesRes.json();
+        const classesArr = Array.isArray(classesData)
+          ? classesData
+          : classesData.data || classesData.classes || [];
+        for (const c of classesArr) {
+          const raw = String(c?.classNumber || c?.name || '')
+            .trim()
+            .replace(/^class\s+/i, '');
+          const digits = raw.match(/\d+/)?.[0];
+          if (digits) classNumbers.add(digits);
+          if (raw) classNumbers.add(raw);
+        }
+      }
+
+      if (subjectsRes.ok) {
+        const data = await subjectsRes.json();
+        const subjectsArray = Array.isArray(data) ? data : data.data || data.subjects || [];
+        const active = subjectsArray.filter((s: { name?: string; isActive?: boolean }) =>
+          isActiveCatalogSubject(s),
         );
+        const scoped =
+          classNumbers.size > 0
+            ? active.filter((s: any) => {
+                const label =
+                  getLearningPathClassLabel(s) ||
+                  String(s?.classNumber || '')
+                    .trim()
+                    .replace(/^class\s+/i, '');
+                const digits = String(label).match(/\d+/)?.[0];
+                if (!label && !digits) return true;
+                return (
+                  (digits && classNumbers.has(digits)) ||
+                  (label && classNumbers.has(String(label)))
+                );
+              })
+            : active;
+        setSubjects(scoped);
       }
     } catch (error) {
       console.error('Failed to fetch subjects:', error);
@@ -231,8 +271,8 @@ export default function AdminLearningPaths() {
       const token = getAuthToken();
 
       // One request for all Asli Prep content (same source Super Admin uses), then group by subject.
-      // This avoids missing paths when the catalog has more content than per-subject calls surface.
       let allContent: any[] = [];
+      let programExclusive = isAsliPrepExclusive;
       try {
         const contentResponse = await fetch(
           `${API_BASE_URL}/api/admin/asli-prep-content?surface=learning-path`,
@@ -247,8 +287,12 @@ export default function AdminLearningPaths() {
           const contentData = await contentResponse.json();
           allContent = contentData.data || contentData || [];
           if (!Array.isArray(allContent)) allContent = [];
+          if (typeof contentData?.meta?.isAsliPrepExclusive === 'boolean') {
+            programExclusive = contentData.meta.isAsliPrepExclusive;
+            setIsAsliPrepExclusive(programExclusive);
+          }
           allContent = filterVideosForLearningPath(
-            filterContentsBySchoolProgram(allContent, isAsliPrepExclusive)
+            filterContentsBySchoolProgram(allContent, programExclusive)
           );
         }
       } catch (e) {
@@ -273,6 +317,19 @@ export default function AdminLearningPaths() {
       }
 
       const merged: any[] = [];
+      const claimedContentIds = new Set<string>();
+
+      const sortContent = (list: any[]) =>
+        list.slice().sort((a: any, b: any) => {
+          const titleA = String(a?.title || a?.name || '').trim();
+          const titleB = String(b?.title || b?.name || '').trim();
+          if (titleA && titleB) {
+            return titleA.localeCompare(titleB, undefined, { numeric: true, sensitivity: 'base' });
+          }
+          const ta = a?.createdAt ? new Date(a.createdAt).getTime() : 0;
+          const tb = b?.createdAt ? new Date(b.createdAt).getTime() : 0;
+          return ta - tb;
+        });
 
       for (const subject of subjects) {
         if (!isActiveCatalogSubject(subject)) continue;
@@ -281,24 +338,15 @@ export default function AdminLearningPaths() {
         const fromId = bySubjectId.get(subjectId) || [];
         const fromName = nameKey ? byNameClass.get(nameKey) || [] : [];
         const seen = new Set<string>();
-        const asliPrepContent = [...fromId, ...fromName]
-          .filter((item) => {
+        const asliPrepContent = sortContent(
+          [...fromId, ...fromName].filter((item) => {
             const id = String(item?._id || item?.id || '');
             if (!id || seen.has(id)) return false;
             seen.add(id);
+            claimedContentIds.add(id);
             return true;
-          })
-          .slice()
-          .sort((a: any, b: any) => {
-            const titleA = String(a?.title || a?.name || '').trim();
-            const titleB = String(b?.title || b?.name || '').trim();
-            if (titleA && titleB) {
-              return titleA.localeCompare(titleB, undefined, { numeric: true, sensitivity: 'base' });
-            }
-            const ta = a?.createdAt ? new Date(a.createdAt).getTime() : 0;
-            const tb = b?.createdAt ? new Date(b.createdAt).getTime() : 0;
-            return ta - tb;
-          });
+          }),
+        );
         merged.push({
           _id: subject._id || subject.id,
           id: subject._id || subject.id,
@@ -307,6 +355,34 @@ export default function AdminLearningPaths() {
           board: subject.board || '',
           productCategory: subject.productCategory || '',
           classNumber: subject.classNumber,
+          asliPrepContent,
+          totalContent: asliPrepContent.length,
+        });
+      }
+
+      // Surface Super Admin content whose subject isn't on the class roster yet.
+      const orphanGroups = new Map<string, any[]>();
+      for (const item of allContent) {
+        if (!isActiveCatalogContent(item)) continue;
+        const id = String(item?._id || item?.id || '');
+        if (!id || claimedContentIds.has(id)) continue;
+        const nameKey = contentNameClassKey(item) || `orphan::${getContentSubjectId(item) || id}`;
+        if (!orphanGroups.has(nameKey)) orphanGroups.set(nameKey, []);
+        orphanGroups.get(nameKey)!.push(item);
+      }
+
+      for (const [nameKey, items] of orphanGroups) {
+        const sample = items[0];
+        const subj = sample?.subject && typeof sample.subject === 'object' ? sample.subject : null;
+        const asliPrepContent = sortContent(items);
+        merged.push({
+          _id: getContentSubjectId(sample) || `orphan-${nameKey}`,
+          id: getContentSubjectId(sample) || `orphan-${nameKey}`,
+          name: subj?.name || extractPlainSubjectName(String(sample?.title || 'Content')) || 'Subject',
+          description: '',
+          board: subj?.board || sample?.board || '',
+          productCategory: subj?.productCategory || sample?.productCategory || '',
+          classNumber: subj?.classNumber || sample?.classNumber,
           asliPrepContent,
           totalContent: asliPrepContent.length,
         });

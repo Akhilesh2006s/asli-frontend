@@ -7,10 +7,13 @@ import {
   PenTool,
   School,
   Search,
+  Sparkles,
+  Star,
+  Zap,
 } from "lucide-react";
 import { Link, useLocation, useSearch } from "wouter";
 import { motion } from "framer-motion";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type MouseEvent, type ReactNode } from "react";
 
 import { ContactSupportLink } from "@/components/ContactSupportLink";
 import {
@@ -61,51 +64,132 @@ const BackpackMini = ({ className }: { className?: string }) => (
   </svg>
 );
 
-/* ──────────────────────────────── soft light décor ─────────────────── */
+const NAV_ACCENTS = [
+  {
+    active: "from-orange-500 via-amber-400 to-yellow-300",
+    glow: "shadow-[0_8px_28px_-6px_rgba(249,115,22,0.75)]",
+    icon: "bg-white/30 text-white",
+    idle: "group-hover:text-orange-600 group-hover:ring-orange-200",
+  },
+  {
+    active: "from-sky-500 via-cyan-400 to-teal-300",
+    glow: "shadow-[0_8px_28px_-6px_rgba(14,165,233,0.7)]",
+    icon: "bg-white/30 text-white",
+    idle: "group-hover:text-sky-600 group-hover:ring-sky-200",
+  },
+  {
+    active: "from-violet-500 via-purple-400 to-fuchsia-300",
+    glow: "shadow-[0_8px_28px_-6px_rgba(139,92,246,0.7)]",
+    icon: "bg-white/30 text-white",
+    idle: "group-hover:text-violet-600 group-hover:ring-violet-200",
+  },
+  {
+    active: "from-rose-500 via-pink-400 to-orange-300",
+    glow: "shadow-[0_8px_28px_-6px_rgba(244,63,94,0.65)]",
+    icon: "bg-white/30 text-white",
+    idle: "group-hover:text-rose-600 group-hover:ring-rose-200",
+  },
+  {
+    active: "from-emerald-500 via-green-400 to-lime-300",
+    glow: "shadow-[0_8px_28px_-6px_rgba(16,185,129,0.65)]",
+    icon: "bg-white/30 text-white",
+    idle: "group-hover:text-emerald-600 group-hover:ring-emerald-200",
+  },
+  {
+    active: "from-indigo-500 via-blue-400 to-cyan-300",
+    glow: "shadow-[0_8px_28px_-6px_rgba(99,102,241,0.65)]",
+    icon: "bg-white/30 text-white",
+    idle: "group-hover:text-indigo-600 group-hover:ring-indigo-200",
+  },
+  {
+    active: "from-teal-500 via-emerald-400 to-sky-300",
+    glow: "shadow-[0_8px_28px_-6px_rgba(20,184,166,0.65)]",
+    icon: "bg-white/30 text-white",
+    idle: "group-hover:text-teal-600 group-hover:ring-teal-200",
+  },
+  {
+    active: "from-fuchsia-500 via-pink-500 to-violet-400",
+    glow: "shadow-[0_8px_28px_-6px_rgba(217,70,239,0.7)]",
+    icon: "bg-white/30 text-white",
+    idle: "group-hover:text-fuchsia-600 group-hover:ring-fuchsia-200",
+  },
+] as const;
+
+const SPARKLE_SEEDS = Array.from({ length: 18 }, (_, i) => ({
+  id: i,
+  left: `${8 + ((i * 17) % 84)}%`,
+  top: `${6 + ((i * 23) % 88)}%`,
+  size: 3 + (i % 4),
+  delay: (i * 0.35) % 4,
+  duration: 2.2 + (i % 5) * 0.4,
+}));
+
+/* ──────────────────────────────── wild sidebar décor ─────────────────── */
 
 function SidebarAtmosphere() {
   const floaters = [
-    { Icon: BookOpen, className: "left-3 top-24 text-sky-400/40", delay: 0, size: 22 },
-    { Icon: PenTool, className: "right-4 top-40 text-orange-400/35", delay: 0.8, size: 20 },
-    { Icon: BackpackMini, className: "left-5 bottom-36 text-teal-500/35", delay: 1.4, size: 24 },
-    { Icon: GraduationCap, className: "right-6 bottom-28 text-amber-500/30", delay: 0.4, size: 22 },
-    { Icon: BookOpen, className: "left-10 top-[55%] text-indigo-400/25", delay: 1.1, size: 18 },
+    { Icon: BookOpen, className: "left-2 top-20 text-sky-500/50", delay: 0, size: 26, path: [0, -14, 6, 0] as number[] },
+    { Icon: PenTool, className: "right-3 top-36 text-orange-500/45", delay: 0.6, size: 22, path: [0, 10, -8, 0] as number[] },
+    { Icon: BackpackMini, className: "left-4 bottom-40 text-teal-500/45", delay: 1.2, size: 28, path: [0, -8, 12, 0] as number[] },
+    { Icon: GraduationCap, className: "right-5 bottom-32 text-amber-500/40", delay: 0.3, size: 24, path: [0, 12, -10, 0] as number[] },
+    { Icon: Star, className: "left-8 top-[48%] text-yellow-400/50", delay: 1.8, size: 16, path: [0, -6, 8, 0] as number[] },
+    { Icon: Sparkles, className: "right-8 top-[58%] text-fuchsia-400/45", delay: 0.9, size: 18, path: [0, 10, -6, 0] as number[] },
+    { Icon: Zap, className: "left-12 bottom-24 text-violet-400/40", delay: 1.5, size: 14, path: [0, -12, 4, 0] as number[] },
+    { Icon: BookOpen, className: "right-2 top-[72%] text-indigo-400/35", delay: 2.1, size: 20, path: [0, 8, -12, 0] as number[] },
   ] as const;
 
   return (
-    <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
-      {/* Light colorful wash */}
-      <div className="absolute inset-0 bg-gradient-to-b from-sky-100/90 via-orange-50/50 to-teal-50/80" />
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_90%_50%_at_0%_0%,rgba(56,189,248,0.28),transparent_55%),radial-gradient(ellipse_70%_45%_at_100%_15%,rgba(251,146,60,0.22),transparent_50%),radial-gradient(ellipse_65%_40%_at_40%_100%,rgba(45,212,191,0.22),transparent_55%)]" />
+    <div className="app-shell-sidebar-atmosphere pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
+      <div className="sidebar-aurora absolute inset-0" />
+      <div className="sidebar-aurora sidebar-aurora--alt absolute inset-0" />
+      <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.55)_0%,rgba(255,255,255,0.15)_45%,rgba(255,255,255,0.35)_100%)]" />
+
+      <div className="sidebar-scanline absolute inset-0 opacity-[0.07]" />
+
+      {SPARKLE_SEEDS.map((s) => (
+        <span
+          key={s.id}
+          className="sidebar-sparkle absolute rounded-full bg-white"
+          style={{
+            left: s.left,
+            top: s.top,
+            width: s.size,
+            height: s.size,
+            animationDelay: `${s.delay}s`,
+            animationDuration: `${s.duration}s`,
+          }}
+        />
+      ))}
 
       <motion.div
-        className="absolute -right-8 top-16 h-36 w-36 rounded-full bg-sky-300/35 blur-3xl"
-        animate={{ y: [0, 14, 0], scale: [1, 1.12, 1], opacity: [0.45, 0.75, 0.45] }}
-        transition={{ duration: 6.5, repeat: Infinity, ease: "easeInOut" }}
+        className="absolute -right-10 top-12 h-44 w-44 rounded-full bg-gradient-to-br from-sky-400/40 to-cyan-300/20 blur-3xl"
+        animate={{ y: [0, 18, 0], x: [0, -8, 0], scale: [1, 1.15, 1], opacity: [0.5, 0.85, 0.5] }}
+        transition={{ duration: 5.5, repeat: Infinity, ease: "easeInOut" }}
       />
       <motion.div
-        className="absolute -left-10 bottom-20 h-40 w-40 rounded-full bg-orange-300/30 blur-3xl"
-        animate={{ y: [0, -12, 0], scale: [1, 1.1, 1], opacity: [0.35, 0.65, 0.35] }}
-        transition={{ duration: 7.5, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
+        className="absolute -left-12 bottom-16 h-48 w-48 rounded-full bg-gradient-to-tr from-orange-400/35 to-rose-300/20 blur-3xl"
+        animate={{ y: [0, -16, 0], x: [0, 10, 0], scale: [1, 1.12, 1], opacity: [0.4, 0.75, 0.4] }}
+        transition={{ duration: 6.5, repeat: Infinity, ease: "easeInOut", delay: 0.4 }}
       />
       <motion.div
-        className="absolute left-1/3 top-1/2 h-28 w-28 -translate-x-1/2 rounded-full bg-teal-300/25 blur-3xl"
-        animate={{ x: [0, 18, 0], opacity: [0.3, 0.55, 0.3] }}
-        transition={{ duration: 9, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+        className="absolute left-1/2 top-[42%] h-32 w-32 -translate-x-1/2 rounded-full bg-gradient-to-r from-violet-400/30 to-fuchsia-300/20 blur-3xl"
+        animate={{ x: [0, 22, -12, 0], opacity: [0.35, 0.65, 0.45, 0.35] }}
+        transition={{ duration: 8, repeat: Infinity, ease: "easeInOut", delay: 0.8 }}
       />
 
-      {floaters.map(({ Icon, className, delay, size }, i) => (
+      {floaters.map(({ Icon, className, delay, size, path }, i) => (
         <motion.div
           key={i}
-          className={cn("absolute", className)}
+          className={cn("absolute drop-shadow-sm", className)}
           style={{ width: size, height: size }}
           animate={{
-            y: [0, -10, 0],
-            rotate: [0, i % 2 === 0 ? 8 : -8, 0],
-            opacity: [0.35, 0.7, 0.35],
+            y: path,
+            rotate: [0, i % 2 === 0 ? 12 : -12, 0],
+            scale: [1, 1.08, 1],
+            opacity: [0.4, 0.85, 0.4],
           }}
           transition={{
-            duration: 5 + i * 0.7,
+            duration: 4.5 + i * 0.5,
             repeat: Infinity,
             ease: "easeInOut",
             delay,
@@ -123,45 +207,91 @@ function SidebarAtmosphere() {
 function NavRow({
   item,
   active,
+  accentIndex,
   onNavigate,
 }: {
   item: NavItem;
   active: boolean;
+  accentIndex: number;
   onNavigate?: () => void;
 }) {
   const Icon = item.icon;
+  const accent = NAV_ACCENTS[accentIndex % NAV_ACCENTS.length];
+  const [location, setLocation] = useLocation();
+
+  const handleClick = (e: MouseEvent) => {
+    const href = item.href || '';
+    const isTeacherDashTab = href.startsWith('/teacher/dashboard?');
+    const isAdminDashTab = href.startsWith('/admin/dashboard?');
+    const onTeacherDash = location.startsWith('/teacher/dashboard');
+    const onAdminDash = location.startsWith('/admin/dashboard');
+    // Same-page tab switches should replace history so Back returns to the prior real page
+    // (e.g. Learning Paths), not Overview → Classes → Students → …
+    if ((isTeacherDashTab && onTeacherDash) || (isAdminDashTab && onAdminDash)) {
+      e.preventDefault();
+      setLocation(href, { replace: true });
+      onNavigate?.();
+      return;
+    }
+    onNavigate?.();
+  };
+
   return (
-    <motion.div whileHover={{ x: 3 }} whileTap={{ scale: 0.98 }} transition={{ type: "spring", stiffness: 420, damping: 28 }}>
+    <motion.div
+      whileHover={{ x: 5, scale: 1.02 }}
+      whileTap={{ scale: 0.97 }}
+      transition={{ type: "spring", stiffness: 480, damping: 24 }}
+    >
       <Link
         href={item.href}
-        onClick={onNavigate}
+        onClick={handleClick}
         className={cn(
-          "group relative flex items-center gap-3 overflow-hidden rounded-2xl px-3 py-2.5 text-sm font-semibold transition-all duration-300",
+          "group relative flex items-center gap-3 overflow-hidden rounded-2xl px-3 py-2.5 text-sm font-bold transition-all duration-300",
           active
-            ? "bg-gradient-to-r from-orange-500 to-amber-400 text-white shadow-md shadow-orange-300/70"
-            : "text-slate-600 hover:bg-white/80 hover:text-slate-900 hover:shadow-sm",
+            ? cn("bg-gradient-to-r text-white", accent.active, accent.glow)
+            : "text-slate-600 hover:bg-white/85 hover:text-slate-900 hover:shadow-md hover:shadow-sky-100/80",
         )}
       >
         {active ? (
-          <motion.span
-            layoutId="app-shell-nav-glow"
-            className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_50%,rgba(255,255,255,0.32),transparent_55%)]"
-            transition={{ type: "spring", stiffness: 380, damping: 32 }}
-          />
-        ) : null}
+          <>
+            <motion.span
+              layoutId="app-shell-nav-glow"
+              className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_15%_50%,rgba(255,255,255,0.35),transparent_58%)]"
+              transition={{ type: "spring", stiffness: 380, damping: 32 }}
+            />
+            <span className="sidebar-nav-shimmer pointer-events-none absolute inset-0" />
+            <span className="pointer-events-none absolute -right-1 top-1/2 h-8 w-8 -translate-y-1/2 rounded-full bg-white/25 blur-md" />
+          </>
+        ) : (
+          <span className="pointer-events-none absolute inset-0 rounded-2xl opacity-0 transition-opacity duration-300 group-hover:opacity-100 group-hover:bg-gradient-to-r group-hover:from-white/60 group-hover:to-sky-50/40" />
+        )}
+
         <motion.span
           className={cn(
-            "relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-colors",
+            "relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ring-1 transition-all duration-300",
             active
-              ? "bg-white/25 text-white"
-              : "bg-white/70 text-slate-500 ring-1 ring-sky-100 group-hover:bg-sky-50 group-hover:text-sky-600",
+              ? accent.icon
+              : cn("bg-white/80 text-slate-500 ring-sky-100/90 group-hover:scale-110", accent.idle),
           )}
-          whileHover={{ rotate: active ? 0 : -8, scale: 1.08 }}
-          transition={{ type: "spring", stiffness: 400, damping: 18 }}
+          animate={active ? { rotate: [0, -6, 6, 0] } : {}}
+          transition={active ? { duration: 0.5, ease: "easeOut" } : { type: "spring", stiffness: 400, damping: 18 }}
+          whileHover={active ? undefined : { rotate: -10, scale: 1.12 }}
         >
           <Icon className="h-[1.125rem] w-[1.125rem]" aria-hidden="true" />
         </motion.span>
+
         <span className="relative min-w-0 flex-1 truncate">{item.label}</span>
+
+        {active ? (
+          <motion.span
+            initial={{ scale: 0, rotate: -30 }}
+            animate={{ scale: 1, rotate: 0 }}
+            className="relative flex h-5 w-5 items-center justify-center"
+          >
+            <Sparkles className="h-3.5 w-3.5 text-white/90" aria-hidden="true" />
+          </motion.span>
+        ) : null}
+
         {item.badge ? (
           <span
             className={cn(
@@ -194,43 +324,47 @@ function SidebarBody({
   onNavigate?: () => void;
 }) {
   return (
-    <div className="relative flex h-full flex-col overflow-hidden border-r border-sky-100/90 text-slate-800 shadow-[4px_0_24px_-12px_rgba(14,165,233,0.18)]">
+    <div className="app-shell-sidebar-crazy relative flex h-full flex-col overflow-hidden border-r border-white/60 text-slate-800 shadow-[6px_0_32px_-10px_rgba(99,102,241,0.25)]">
       <SidebarAtmosphere />
 
       {/* Product brand */}
       <motion.div
-        initial={{ opacity: 0, y: -8 }}
+        initial={{ opacity: 0, y: -12 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4 }}
+        transition={{ duration: 0.45, type: "spring", stiffness: 260, damping: 22 }}
         className="relative z-10"
       >
         <Link
           href={homeHref}
           onClick={onNavigate}
-          className="mx-3 mt-3 flex items-center gap-3 rounded-2xl border border-white/80 bg-white/75 px-3 py-3 shadow-sm backdrop-blur-md transition-all hover:-translate-y-0.5 hover:border-sky-200 hover:bg-white hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400/50"
+          className="sidebar-brand-card mx-3 mt-3 flex items-center gap-3 rounded-2xl border border-white/90 bg-white/80 px-3 py-3 shadow-lg shadow-sky-200/40 backdrop-blur-xl transition-all hover:-translate-y-1 hover:border-sky-200 hover:bg-white hover:shadow-xl hover:shadow-orange-200/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400/50"
           aria-label="Go to home"
           title="Home"
         >
-          <motion.img
-            src="/logo-transparent.png"
-            alt=""
-            className="h-10 w-10 shrink-0 rounded-xl bg-white object-contain p-0.5 ring-1 ring-sky-100"
-            animate={{ y: [0, -2, 0] }}
-            transition={{ duration: 3.2, repeat: Infinity, ease: "easeInOut" }}
-          />
+          <div className="relative shrink-0">
+            <span className="sidebar-logo-orbit absolute inset-[-6px] rounded-2xl" aria-hidden="true" />
+            <motion.img
+              src="/logo-transparent.png"
+              alt=""
+              className="relative h-10 w-10 rounded-xl bg-white object-contain p-0.5 ring-2 ring-white/80"
+              animate={{ y: [0, -3, 0], rotate: [0, 2, -2, 0] }}
+              transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+            />
+          </div>
           <div className="min-w-0">
-            <p className="font-display text-base font-extrabold leading-tight tracking-tight text-slate-900">
-              AsliLearn <span className="text-orange-500">AI</span>
+            <p className="font-display text-base font-extrabold leading-tight tracking-tight">
+              <span className="sidebar-brand-gradient bg-clip-text text-transparent">AsliLearn</span>{" "}
+              <span className="text-orange-500">AI</span>
             </p>
-            <p className="truncate text-[11px] font-medium text-sky-700/80">Your learning library</p>
+            <p className="truncate text-[11px] font-semibold text-sky-700/90">Your learning library ✨</p>
           </div>
         </Link>
       </motion.div>
 
       <div className="relative z-10 mx-5 mt-5 mb-2 flex items-center gap-2">
-        <span className="h-px flex-1 bg-gradient-to-r from-transparent via-sky-300/70 to-transparent" />
-        <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-sky-600/80">Menu</span>
-        <span className="h-px flex-1 bg-gradient-to-r from-transparent via-orange-300/60 to-transparent" />
+        <span className="h-px flex-1 bg-gradient-to-r from-transparent via-fuchsia-400/50 to-transparent" />
+        <span className="sidebar-menu-label text-[10px] font-black uppercase tracking-[0.22em]">Menu</span>
+        <span className="h-px flex-1 bg-gradient-to-r from-transparent via-sky-400/50 to-transparent" />
       </div>
 
       {/* Nav */}
@@ -241,22 +375,23 @@ function SidebarBody({
         {nav.map((item, index) => (
           <motion.div
             key={item.id}
-            initial={{ opacity: 0, x: -14 }}
+            initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.05 * index, duration: 0.35, ease: "easeOut" }}
+            transition={{ delay: 0.04 * index, duration: 0.4, ease: "easeOut" }}
           >
             <NavRow
               item={item}
               active={item.id === activeId}
+              accentIndex={index}
               onNavigate={onNavigate}
             />
           </motion.div>
         ))}
       </nav>
 
-      <div className="relative z-10 border-t border-sky-100/90 bg-white/70 px-3 py-3 backdrop-blur-md">
-        <ContactSupportLink className="w-full justify-center rounded-xl border-sky-100 bg-white/90 text-slate-700 shadow-none hover:bg-sky-50 hover:text-slate-900" />
-        <p className="mt-2.5 text-center text-[9px] leading-tight tracking-wide text-slate-400">
+      <div className="relative z-10 border-t border-white/70 bg-white/75 px-3 py-3 backdrop-blur-xl">
+        <ContactSupportLink className="sidebar-support-btn w-full justify-center rounded-xl border-sky-100/80 bg-white/95 text-slate-700 shadow-sm hover:bg-gradient-to-r hover:from-sky-50 hover:to-orange-50 hover:text-slate-900" />
+        <p className="mt-2.5 text-center text-[9px] font-medium leading-tight tracking-wide text-slate-400">
           © {new Date().getFullYear()} AsliLearn AI
         </p>
       </div>

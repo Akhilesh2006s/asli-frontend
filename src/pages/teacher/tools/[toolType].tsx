@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft, Sparkles, Download, Copy, Check, FileText, FileSpreadsheet, Loader2, RotateCcw, Share2 } from 'lucide-react';
 import { API_BASE_URL } from '@/lib/api-config';
 import { getAuthToken } from '@/lib/auth-utils';
+import { goBackOrFallback } from '@/lib/navigate-back';
 import {
   isAiToolApiFailureInline,
   isAiToolClientValidationError,
@@ -950,6 +951,7 @@ export default function TeacherToolPage() {
         board: selectedBoard,
         gradeLevel: selectedClass,
         chapterScope: !selectedSubTopic,
+        uniqueSeed: `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
       };
 
       const response = await fetch(`${API_BASE_URL}/api/teacher/ai/generate-content`, {
@@ -1604,7 +1606,7 @@ export default function TeacherToolPage() {
           <h1 className="text-xl sm:text-2xl font-bold mb-4">Tool Not Found</h1>
           <Button onClick={() => {
             localStorage.setItem('teacherDashboardTab', 'vidya-ai');
-            setLocation('/teacher/dashboard');
+            goBackOrFallback(setLocation, '/teacher/dashboard?tab=vidya-ai', { replaceFallback: true });
           }}>Go Back</Button>
         </div>
       </div>
@@ -1621,7 +1623,7 @@ export default function TeacherToolPage() {
       badge="Teacher AI"
       onBack={() => {
         localStorage.setItem('teacherDashboardTab', 'vidya-ai');
-        setLocation('/teacher/dashboard');
+        goBackOrFallback(setLocation, '/teacher/dashboard?tab=vidya-ai', { replaceFallback: true });
       }}
     >
         <div className="flex flex-col gap-4 sm:gap-6">

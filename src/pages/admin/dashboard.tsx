@@ -157,7 +157,7 @@ const AdminDashboard = () => {
 
   const selectTab = useCallback((tab: string) => {
     setActiveTab(tab);
-    setLocation(`/admin/dashboard?tab=${tab}`);
+    setLocation(`/admin/dashboard?tab=${tab}`, { replace: true });
   }, [setLocation]);
 
   // Memoize sliced arrays to avoid recalculating on every render

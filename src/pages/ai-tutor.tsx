@@ -557,7 +557,7 @@ export default function AITutor() {
           </div>
 
           {/* Tools Grid */}
-          <div className="grid grid-cols-1 gap-4 sm:gap-5 md:grid-cols-2 xl:grid-cols-3">
+          <div className="grid auto-rows-fr grid-cols-1 gap-4 sm:gap-5 md:grid-cols-2 xl:grid-cols-3">
             {visibleStudentTools.map((tool, index) => {
               const Icon = tool.icon;
               const tone = vidyaPastelToneForTool(tool.id, index);
@@ -566,11 +566,11 @@ export default function AITutor() {
                   key={tool.id}
                   onClick={() => handleToolClick(tool.id)}
                   className={cn(
-                    'group relative min-h-[210px] overflow-hidden rounded-2xl border p-4 text-left shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-elevated sm:min-h-[230px] sm:p-5',
+                    'group relative flex h-full min-h-[210px] flex-col overflow-hidden rounded-2xl border p-4 text-left shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-elevated sm:min-h-[230px] sm:p-5',
                     tone.card
                   )}
                 >
-                  <div className="relative z-10">
+                  <div className="relative z-10 flex h-full flex-1 flex-col">
                     <div className="mb-3 flex items-center justify-between">
                       <div
                         className={cn(
@@ -585,31 +585,31 @@ export default function AITutor() {
                           )}
                         />
                       </div>
-                      <div className="flex flex-col items-end gap-1">
+                      <div className="flex min-h-[52px] flex-col items-end justify-start gap-1">
                         <span className="rounded-full border border-white/80 bg-white/80 px-2.5 py-1 text-mini font-medium text-slate-700">
                           {formatAiToolText('AI Powered')}
                         </span>
-                        {(tool as any).category && (
+                        {(tool as any).category ? (
                           <span className="rounded-full bg-white/70 px-2.5 py-0.5 text-micro font-medium text-slate-600">
                             {formatAiToolText((tool as any).category)}
                           </span>
-                        )}
+                        ) : null}
                       </div>
                     </div>
                     <h3
                       className={cn(
-                        'mb-2 text-sm font-bold leading-snug text-gray-900 transition-colors sm:text-base lg:text-lg',
+                        'mb-2 line-clamp-2 min-h-[2.75rem] text-sm font-bold leading-snug text-gray-900 transition-colors sm:min-h-[3.25rem] sm:text-base lg:text-lg',
                         tone.titleHover
                       )}
                     >
                       {formatAiToolText(tool.name)}
                     </h3>
-                    <p className="line-clamp-2 min-h-[38px] text-xs text-gray-600 sm:min-h-[40px] sm:text-sm">
+                    <p className="line-clamp-2 min-h-[2.5rem] flex-1 text-xs text-gray-600 sm:min-h-[2.75rem] sm:text-sm">
                       {formatAiToolText(tool.description || 'Click to use this AI tool')}
                     </p>
                     <div
                       className={cn(
-                        'mt-4 flex translate-y-1 items-center opacity-0 transition-all group-hover:translate-y-0 group-hover:opacity-100 sm:mt-5',
+                        'mt-auto flex h-6 items-center pt-3 opacity-0 transition-all group-hover:opacity-100 sm:h-7',
                         tone.cta
                       )}
                     >

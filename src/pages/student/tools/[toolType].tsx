@@ -1081,6 +1081,7 @@ export default function StudentToolPage() {
           board: selectedBoard,
           gradeLevel: selectedClass,
           chapterScope: !selectedSubTopic,
+          uniqueSeed: `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
         };
 
         const response = await fetch(`${API_BASE_URL}/api/teacher/ai/generate-content`, {
@@ -1151,6 +1152,7 @@ export default function StudentToolPage() {
             !formParams.subTopic || formParams.subTopic === WHOLE_CHAPTER_VALUE,
           productCategory:
             formParams.productCategory === 'NONE' ? '' : formParams.productCategory || '',
+          uniqueSeed: `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
         };
 
         const response = await fetch(`${API_BASE_URL}/api/student/ai/tool`, {

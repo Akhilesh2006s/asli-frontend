@@ -342,6 +342,8 @@ export function WeeklyDigestCard({ apiBase }: { apiBase: "/api/teacher" | "/api/
               <MetricTile label="Last active" value={m.lastActiveDate || "—"} />
               <MetricTile label="Status (14 days)" value={String(m.status || "—")} />
               <MetricTile label="Active days (14d)" value={n(m.activeDays)} />
+              <MetricTile label="Classes assigned" value={n(m.classesAssigned)} />
+              <MetricTile label="Students in classes" value={n(m.studentsInClasses)} />
             </div>
 
             <SectionTitle icon={Sparkles} title="Teaching with AI" />

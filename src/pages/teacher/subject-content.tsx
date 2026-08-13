@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { useRoute, useLocation } from 'wouter';
+import { useRoute, useLocation, useSearch } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { getAuthToken } from '@/lib/auth-utils';
 import {
@@ -19,6 +19,7 @@ import CalendarView from '@/components/student/calendar-view';
 import { API_BASE_URL } from '@/lib/api-config';
 import { normalizeClassNumber } from '@/lib/exam-classes';
 import { filterVideosForLearningPath } from '@/lib/school-program';
+import { goBackOrFallback } from '@/lib/navigate-back';
 
 interface ContentItem {
   _id: string;
@@ -48,6 +49,23 @@ interface Subject {
 export default function TeacherSubjectContent() {
   const [, params] = useRoute('/teacher/subject/:id');
   const [, setLocation] = useLocation();
+  const search = useSearch();
+  const returnTo = useMemo(() => {
+    const q = search.startsWith('?') ? search.slice(1) : search;
+    return new URLSearchParams(q).get('returnTo') || '';
+  }, [search]);
+
+  const handleBack = () => {
+    if (returnTo === 'learning' || returnTo === 'learning-paths') {
+      setLocation('/learning-paths');
+      return;
+    }
+    if (returnTo === 'eduott' || returnTo === 'edu-ott') {
+      setLocation('/edu-ott');
+      return;
+    }
+    goBackOrFallback(setLocation, '/learning-paths');
+  };
   const [subject, setSubject] = useState<Subject | null>(null);
   const [loading, setLoading] = useState(true);
   const [contents, setContents] = useState<ContentItem[]>([]);
@@ -211,11 +229,13 @@ export default function TeacherSubjectContent() {
         <div className="mb-6">
           <Button
             variant="outline"
-            onClick={() => setLocation('/teacher/dashboard')}
+            onClick={handleBack}
             className="bg-white/90 backdrop-blur-sm border-blue-200 text-blue-700 shadow-sm hover:bg-blue-50 hover:text-blue-800"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Dashboard
+            {returnTo === 'eduott' || returnTo === 'edu-ott'
+              ? 'Back to EduOTT'
+              : 'Back to Learning Paths'}
           </Button>
         </div>
 

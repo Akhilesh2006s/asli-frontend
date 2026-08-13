@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -96,6 +96,7 @@ interface Subject {
   code?: string;
   description?: string;
   board: string;
+  classNumber?: string;
   variantIds?: string[];
   classes?: SubjectClassRef[];
 }
@@ -104,15 +105,6 @@ const normalizeClassNumber = (value: string) =>
   String(value || '')
     .replace(/^class\s*/i, '')
     .trim();
-
-const subjectIdsMatch = (a: string, b: string) => String(a) === String(b);
-
-const subjectRowMatchesStoredId = (row: Subject, storedId: string) => {
-  const ids = new Set(
-    [row.id, row._id, ...(row.variantIds || [])].filter(Boolean).map(String),
-  );
-  return ids.has(String(storedId));
-};
 
 const ClassDashboard = () => {
   const { toast } = useToast();
@@ -176,11 +168,6 @@ const ClassDashboard = () => {
     setEditCustomSectionLetter(isKnown ? '' : section);
     setIsEditClassDialogOpen(true);
   };
-  // Assign Subjects state
-  const [selectedClassForSubjects, setSelectedClassForSubjects] = useState<string>('');
-  const [selectedSectionForSubjects, setSelectedSectionForSubjects] = useState<string>('');
-  const [selectedSubjectIds, setSelectedSubjectIds] = useState<string[]>([]);
-  const [isAssigningSubjects, setIsAssigningSubjects] = useState(false);
   const [selectedClassesForPromotion, setSelectedClassesForPromotion] = useState<Set<string>>(new Set());
   const [isPromoting, setIsPromoting] = useState(false);
   const [selectedStudentForAnalysis, setSelectedStudentForAnalysis] = useState<Student | null>(null);
@@ -189,8 +176,6 @@ const ClassDashboard = () => {
   const [isLoadingAnalysis, setIsLoadingAnalysis] = useState(false);
   const [isAIRiskAnalysisModalOpen, setIsAIRiskAnalysisModalOpen] = useState(false);
   const [selectedStudentForAIRisk, setSelectedStudentForAIRisk] = useState<Student | null>(null);
-  const userEditedAssignRef = useRef(false);
-  const assignTargetKeyRef = useRef('');
 
   useEffect(() => {
     fetchClasses();
@@ -203,89 +188,10 @@ const ClassDashboard = () => {
     return () => window.removeEventListener('subjectsUpdated', onSubjectsUpdated);
   }, []);
 
-  const findClassForAssignSelection = (
-    classNumber: string,
-    section: string,
-  ): Class | undefined => {
-    const wantNum = normalizeClassNumber(classNumber);
-    const wantSection = String(section || '').toUpperCase();
-    return classes.find(
-      (c) =>
-        normalizeClassNumber(c.classNumber) === wantNum &&
-        String(c.section || '').toUpperCase() === wantSection,
-    );
-  };
-
-  const sectionsForSelectedClass = selectedClassForSubjects
-    ? classes
-        .filter(
-          (c) =>
-            normalizeClassNumber(c.classNumber) ===
-              normalizeClassNumber(selectedClassForSubjects) && c.section,
-        )
-        .sort((a, b) => String(a.section).localeCompare(String(b.section)))
-    : [];
-
-  const resolveSubjectIdsForClass = (classItem: Class | undefined): string[] => {
-    if (!classItem || subjects.length === 0) return [];
-
-    const resolved = new Set<string>();
-
-    // Only Class.assignedSubjects — saved from this Assign Subjects tab (not teacher links).
-    for (const subj of classItem.assignedSubjects || []) {
-      const storedId = String(subj.id || subj._id || '');
-      if (!storedId) continue;
-      const row = subjects.find((s) => subjectRowMatchesStoredId(s, storedId));
-      if (row) resolved.add(String(row.id || row._id));
-      else {
-        const byName = subjects.find(
-          (s) => s.name && subj.name && s.name.toLowerCase() === subj.name.toLowerCase(),
-        );
-        if (byName) resolved.add(String(byName.id || byName._id));
-      }
-    }
-
-    return [...resolved];
-  };
-
-  const assignTargetKey =
-    selectedClassForSubjects && selectedSectionForSubjects
-      ? `${normalizeClassNumber(selectedClassForSubjects)}|${String(selectedSectionForSubjects).toUpperCase()}`
-      : '';
-
-  // Load saved subjects when class/section changes (not on every data refetch)
-  useEffect(() => {
-    if (!assignTargetKey) {
-      assignTargetKeyRef.current = '';
-      userEditedAssignRef.current = false;
-      setSelectedSubjectIds([]);
-      return;
-    }
-
-    if (assignTargetKeyRef.current !== assignTargetKey) {
-      assignTargetKeyRef.current = assignTargetKey;
-      userEditedAssignRef.current = false;
-    }
-
-    if (userEditedAssignRef.current) return;
-
-    const [classNumber, section] = assignTargetKey.split('|');
-    const classForSection = findClassForAssignSelection(classNumber, section);
-    setSelectedSubjectIds(resolveSubjectIdsForClass(classForSection));
-  }, [assignTargetKey, classes, subjects]);
-
-  const hydrateAssignSelectionFromServer = () => {
-    if (!assignTargetKey) return;
-    const [classNumber, section] = assignTargetKey.split('|');
-    const classForSection = findClassForAssignSelection(classNumber, section);
-    userEditedAssignRef.current = false;
-    setSelectedSubjectIds(resolveSubjectIdsForClass(classForSection));
-  };
-
   const fetchSubjects = async () => {
     try {
       const token = getAuthToken();
-      const response = await fetch(`${API_BASE_URL}/api/admin/subjects`, {
+      const response = await fetch(`${API_BASE_URL}/api/admin/subjects?includeCatalog=true`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -304,6 +210,7 @@ const ClassDashboard = () => {
               code: subject.code,
               description: subject.description,
               board: subject.board,
+              classNumber: subject.classNumber,
               variantIds: Array.isArray(subject.variantIds)
                 ? subject.variantIds.map(String)
                 : [String(subject._id || subject.id)],
@@ -804,121 +711,6 @@ const ClassDashboard = () => {
     setExpandedTeachersClassId((prev) => (prev === classId ? null : classId));
   };
 
-  const toCanonicalSubjectIds = (ids: string[]) => {
-    const canonical = new Set<string>();
-    for (const raw of ids) {
-      const row = subjects.find((s) => subjectRowMatchesStoredId(s, raw));
-      const id = String(row?.id || row?._id || raw).trim();
-      if (/^[a-f\d]{24}$/i.test(id)) canonical.add(id);
-    }
-    return [...canonical];
-  };
-
-  const handleAssignSubjects = async () => {
-    if (!selectedClassForSubjects) {
-      toast({
-        title: 'Validation Error',
-        description: 'Please select a class number',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    if (!selectedSectionForSubjects) {
-      toast({
-        title: 'Validation Error',
-        description: 'Please select a section',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    const classForSection = findClassForAssignSelection(
-      selectedClassForSubjects,
-      selectedSectionForSubjects,
-    );
-
-    if (!classForSection?.id) {
-      toast({
-        title: 'Class not found',
-        description:
-          'Could not find this class section. Refresh the page or create the class first.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    const subjectIdsToSave = toCanonicalSubjectIds(selectedSubjectIds);
-
-    setIsAssigningSubjects(true);
-    try {
-      const response = await apiFetch(
-        `/api/admin/classes/by-id/${encodeURIComponent(classForSection.id)}/assign-subjects`,
-        {
-          method: 'POST',
-          body: JSON.stringify({ subjectIds: subjectIdsToSave }),
-        },
-      );
-
-      const rawText = await response.text();
-      let data: { success?: boolean; message?: string } = {};
-      try {
-        data = rawText ? JSON.parse(rawText) : {};
-      } catch {
-        throw new Error(
-          response.ok
-            ? 'Invalid server response'
-            : `Server error (${response.status}). Restart the backend and try again.`,
-        );
-      }
-
-      if (response.ok && data.success) {
-        toast({
-          title: 'Success',
-          description:
-            data.message ||
-            `Subjects saved for Class ${selectedClassForSubjects} Section ${selectedSectionForSubjects}`,
-        });
-        userEditedAssignRef.current = false;
-        await fetchClasses();
-        await fetchSubjects();
-        window.dispatchEvent(new CustomEvent('subjectsUpdated'));
-        hydrateAssignSelectionFromServer();
-      } else {
-        const errMsg =
-          data.message ||
-          (response.status === 401
-            ? 'Session expired. Please log in again.'
-            : `Save failed (${response.status})`);
-        toast({
-          title: 'Error',
-          description: errMsg,
-          variant: 'destructive',
-        });
-      }
-    } catch (error) {
-      console.error('Failed to assign subjects:', error);
-      const message =
-        error instanceof Error ? error.message : 'Failed to assign subjects to class';
-      toast({
-        title: 'Error',
-        description: message,
-        variant: 'destructive',
-      });
-    } finally {
-      setIsAssigningSubjects(false);
-    }
-  };
-
-  const handleSubjectToggle = (subjectId: string) => {
-    userEditedAssignRef.current = true;
-    setSelectedSubjectIds((prev) => {
-      const key = String(subjectId);
-      const exists = prev.some((id) => subjectIdsMatch(id, key));
-      return exists ? prev.filter((id) => !subjectIdsMatch(id, key)) : [...prev, key];
-    });
-  };
-
   /** One spelling per subject: "Maths", "maths" and "Mathematics" are the same. */
   const canonicalSubjectKey = (value: string) => {
     const t = String(value || '').trim().replace(/\s+/g, ' ').toLowerCase();
@@ -944,19 +736,39 @@ const ClassDashboard = () => {
     return a.localeCompare(b, undefined, { sensitivity: 'base', numeric: true });
   };
 
-  /** Individual subject labels for a class — never the full comma-joined display string. */
+  /** Individual subject labels for a class — catalog by class number, then saved links. */
   const collectClassSubjectLabels = (classItem: Class): string[] => {
     const labels: string[] = [];
-    for (const subj of classItem.assignedSubjects || []) {
-      const label = plainSubjectLabel(subj.name || subj.code || '');
-      if (label) labels.push(label);
+    const seen = new Set<string>();
+    const pushLabel = (raw: string) => {
+      const label = plainSubjectLabel(raw);
+      if (!label) return;
+      const key = canonicalSubjectKey(label);
+      if (seen.has(key)) return;
+      seen.add(key);
+      labels.push(label);
+    };
+
+    const classNum = normalizeClassNumber(classItem.classNumber);
+    for (const subj of subjects) {
+      const subjClass = normalizeClassNumber(
+        String((subj as { classNumber?: string }).classNumber || ''),
+      );
+      const nameHasClass = new RegExp(`_${classNum}$`).test(String(subj.name || ''));
+      if ((classNum && subjClass === classNum) || (classNum && nameHasClass)) {
+        pushLabel(subj.name || subj.code || '');
+      }
     }
+
+    for (const subj of classItem.assignedSubjects || []) {
+      pushLabel(subj.name || subj.code || '');
+    }
+
     if (labels.length === 0) {
       const raw = String(classItem.subject || '').trim();
       if (raw && raw !== 'General') {
         for (const part of raw.split(',')) {
-          const label = plainSubjectLabel(part);
-          if (label) labels.push(label);
+          pushLabel(part);
         }
       }
     }
@@ -1157,13 +969,6 @@ const ClassDashboard = () => {
             >
               <GraduationCap className="mr-2 h-5 w-5 sm:h-6 sm:w-6" />
               Classes
-            </TabsTrigger>
-            <TabsTrigger
-              value="assign-subjects"
-              className="rounded-2xl px-4 py-2.5 text-sm font-semibold sm:px-6 sm:py-3 sm:text-base data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-pink-500 data-[state=active]:text-white"
-            >
-              <BookOpen className="mr-2 h-5 w-5 sm:h-6 sm:w-6" />
-              Assign Subjects
             </TabsTrigger>
             <TabsTrigger
               value="promote-class"
@@ -1567,179 +1372,6 @@ const ClassDashboard = () => {
             </div>
           )}
           </div>
-          </TabsContent>
-
-          <TabsContent value="assign-subjects" className="mt-0 space-y-3 sm:space-y-4 lg:space-y-6">
-            <Card className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-xl border border-white/20">
-              <CardHeader>
-                <CardTitle className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-purple-600 via-pink-600 to-red-500 bg-clip-text text-transparent">
-                  Assign Subjects to Class
-                </CardTitle>
-                <p className="text-gray-600 mt-2">
-                  Assign subjects directly to a class section here. Teacher class assignments are managed separately under Teachers.
-                </p>
-              </CardHeader>
-              <CardContent className="space-y-3 sm:space-y-4 lg:space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="class-select" className="text-sm sm:text-base font-semibold mb-2 block">Select Class Number *</Label>
-                  <Select
-                    value={selectedClassForSubjects}
-                    onValueChange={(value) => {
-                      userEditedAssignRef.current = false;
-                      assignTargetKeyRef.current = '';
-                      setSelectedClassForSubjects(value);
-                      setSelectedSectionForSubjects('');
-                      setSelectedSubjectIds([]);
-                    }}
-                  >
-                    <SelectTrigger id="class-select" className="w-full">
-                      <SelectValue placeholder="Choose a class number" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Array.from(new Set(classes.map(c => c.classNumber).filter(cn => cn))) // Filter out undefined/null
-                        .sort((a, b) => {
-                          // Sort numerically if both are numbers, otherwise alphabetically
-                          const numA = parseInt(a);
-                          const numB = parseInt(b);
-                          if (!isNaN(numA) && !isNaN(numB)) {
-                            return numA - numB;
-                          }
-                          return a.localeCompare(b);
-                        })
-                        .map(classNumber => {
-                          // Count total students across all sections of this class number
-                          const sectionsForClass = classes.filter(c => c.classNumber === classNumber);
-                          const totalStudents = sectionsForClass.reduce((sum, c) => sum + (c.studentCount || 0), 0);
-                          const sectionCount = sectionsForClass.length;
-                          return (
-                            <SelectItem key={classNumber} value={classNumber}>
-                              Class {classNumber} ({sectionCount} section{sectionCount !== 1 ? 's' : ''}, {totalStudents} students)
-                            </SelectItem>
-                          );
-                        })}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <Label htmlFor="section-select" className="text-sm sm:text-base font-semibold mb-2 block">Select Section *</Label>
-                  <Select
-                    value={selectedSectionForSubjects}
-                    onValueChange={setSelectedSectionForSubjects}
-                    disabled={!selectedClassForSubjects || sectionsForSelectedClass.length === 0}
-                  >
-                    <SelectTrigger id="section-select" className="w-full">
-                      <SelectValue placeholder={selectedClassForSubjects ? 'Choose a section' : 'Select class first'} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {sectionsForSelectedClass.map((classItem) => (
-                        <SelectItem key={classItem.id} value={String(classItem.section)}>
-                          Section {classItem.section} ({classItem.studentCount || 0} students)
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                </div>
-
-                {selectedClassForSubjects && selectedSectionForSubjects && (
-                  <p className="text-xs sm:text-sm text-gray-600">
-                    Subjects will be assigned to Class {selectedClassForSubjects} Section {selectedSectionForSubjects} only.
-                  </p>
-                )}
-
-                <div>
-                  <Label className="text-sm sm:text-base font-semibold mb-4 block">Select Subjects *</Label>
-                  {subjects.length === 0 ? (
-                    <div className="text-center py-4 sm:py-6 lg:py-8 bg-gray-50 rounded-xl">
-                      <BookOpen className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                      <p className="text-gray-600">No subjects available. Please create subjects first.</p>
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-96 overflow-y-auto p-4 bg-gray-50 rounded-xl">
-                      {subjects.map(subject => {
-                        const subjectKey = String(subject.id || subject._id);
-                        const isSelected = selectedSubjectIds.some(
-                          (id) => subjectIdsMatch(id, subjectKey),
-                        );
-                        return (
-                        <div
-                          key={subject.id || subject._id}
-                          className={`flex items-center space-x-3 p-4 rounded-xl border-2 cursor-pointer transition-all ${
-                            isSelected
-                              ? 'border-purple-500 bg-purple-50'
-                              : 'border-gray-200 bg-white hover:border-purple-300'
-                          }`}
-                          onClick={() => handleSubjectToggle(subjectKey)}
-                        >
-                          <Checkbox
-                            checked={isSelected}
-                            onCheckedChange={() => handleSubjectToggle(subjectKey)}
-                          />
-                          <div className="flex-1">
-                            <p className="font-semibold text-gray-900">{subject.name}</p>
-                            {subject.code && (
-                              <p className="text-xs sm:text-sm text-gray-600">Code: {subject.code}</p>
-                            )}
-                            {subject.description && (
-                              <p className="text-xs text-gray-500 mt-1 line-clamp-2">{subject.description}</p>
-                            )}
-                          </div>
-                        </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                  {selectedSubjectIds.length > 0 && (
-                    <div className="mt-4">
-                      <p className="text-xs sm:text-sm text-gray-600 mb-2">
-                        <strong>{selectedSubjectIds.length}</strong> subject(s) selected
-                      </p>
-                      <div className="flex flex-wrap gap-2">
-                        {selectedSubjectIds.map(subjectId => {
-                          const subject = subjects.find(s => s.id === subjectId);
-                          return subject ? (
-                            <Badge key={subjectId} className="bg-purple-100 text-purple-700">
-                              {subject.name}
-                            </Badge>
-                          ) : null;
-                        })}
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                <div className="relative z-[60] flex flex-wrap justify-end gap-3 border-t pt-4 pr-4 pb-2 sm:pr-24">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => {
-                      userEditedAssignRef.current = false;
-                      assignTargetKeyRef.current = '';
-                      setSelectedClassForSubjects('');
-                      setSelectedSectionForSubjects('');
-                      setSelectedSubjectIds([]);
-                    }}
-                    disabled={isAssigningSubjects}
-                  >
-                    Clear
-                  </Button>
-                  <Button
-                    type="button"
-                    onClick={() => void handleAssignSubjects()}
-                    disabled={
-                      !selectedClassForSubjects ||
-                      !selectedSectionForSubjects ||
-                      isAssigningSubjects
-                    }
-                    className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
-                  >
-                    {isAssigningSubjects ? 'Saving...' : 'Save'}
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
           </TabsContent>
 
           <TabsContent value="promote-class" className="mt-0 space-y-3 sm:space-y-4 lg:space-y-6">

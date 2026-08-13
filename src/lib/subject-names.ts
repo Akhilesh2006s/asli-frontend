@@ -72,7 +72,13 @@ export function formatSubjectWithIitCategory(
 }
 
 export function normalizeSubjectDisplayKey(name: string): string {
-  const plain = extractPlainSubjectName(name || '').trim().toLowerCase();
+  const plain = extractPlainSubjectName(name || '')
+    .trim()
+    .toLowerCase()
+    .replace(/\b(iit|neet|jee)\b/g, ' ')
+    .replace(/[-_/]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
   if (plain === 'bio' || plain === 'biology') return 'biology';
   if (plain === 'math' || plain === 'maths' || plain === 'mat' || plain === 'mathematics') {
     return 'math';

@@ -584,6 +584,43 @@ function buildIndividualSheet(
   }
   row += 1;
 
+  if (individual.questions?.length) {
+    mergeBanner(sheet, row, 'QUESTION-BY-QUESTION', 6);
+    row += 1;
+    writeHeaderRow(sheet, row, [
+      'Q#',
+      'Status',
+      'Subject',
+      'Chapter',
+      'Time (s)',
+      'Question',
+    ]);
+    row += 1;
+    for (const q of individual.questions) {
+      const statusLabel =
+        q.status === 'correct' ? 'Correct' : q.status === 'wrong' ? 'Wrong' : 'Unattempted';
+      writeDataRow(
+        sheet,
+        row,
+        [
+          q.questionNumber,
+          statusLabel,
+          q.subject || '—',
+          q.chapter || '—',
+          q.timeTaken != null ? q.timeTaken : '—',
+          q.questionText,
+        ],
+        {
+          zebra: row % 2 === 0,
+          leftAlignCols: [2, 3, 4, 6],
+        },
+      );
+      sheet.getRow(row).height = 30;
+      row += 1;
+    }
+    row += 1;
+  }
+
   mergeBanner(sheet, row, 'PRIORITY ACTION PLAN', 3);
   row += 1;
   writeHeaderRow(sheet, row, ['Priority', 'Focus', 'Recommended Action']);

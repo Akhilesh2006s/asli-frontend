@@ -1,10 +1,24 @@
 export type QuestionAnalyticsRow = {
+  questionId?: string;
+  index?: number;
   subject?: string;
   chapter?: string;
   difficulty?: string;
   questionType?: string;
   timeTaken?: number;
   status?: 'correct' | 'wrong' | 'not_answered';
+  isCorrect?: boolean;
+  isAnswered?: boolean;
+};
+
+export type QuestionSnapshotRow = {
+  _id?: string;
+  questionText?: string;
+  assertionText?: string;
+  subject?: string;
+  chapter?: string;
+  questionType?: string;
+  difficulty?: string;
 };
 
 export type SchoolAnalysisExamResult = {
@@ -19,11 +33,15 @@ export type SchoolAnalysisExamResult = {
   correctAnswers?: number;
   wrongAnswers?: number;
   unattempted?: number;
+  obtainedMarks?: number;
+  totalMarks?: number;
+  percentage?: number;
   timeTaken?: number;
   attemptNumber?: number;
   completedAt?: string;
   subjectWiseScore?: Record<string, { correct?: number; total?: number; marks?: number }>;
   questionAnalytics?: QuestionAnalyticsRow[];
+  questionSnapshot?: QuestionSnapshotRow[];
 };
 
 /** Keep every attempt; only remove exact duplicate rows from the API. */

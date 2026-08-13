@@ -35,6 +35,7 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { useConfirm } from '@/hooks/use-confirm';
 import { API_BASE_URL } from '@/lib/api-config';
+import { cn } from '@/lib/utils';
 import { getExamClassStrings } from '@/lib/exam-classes';
 import {
   normalizeAndFormatExamDisplayText,
@@ -48,6 +49,11 @@ import {
   AdminExamStudentPreview,
 } from '@/components/super-admin/AdminExamStudentPreview';
 import { Plus, Trash2, Edit, Eye, Calendar, Clock, BookOpen, FileQuestion, X, Upload, Download, School, GraduationCap, Loader2, ChevronUp, ChevronDown, Save, Search, Maximize2 } from 'lucide-react';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 
 type ExamSubjectValue =
   | 'maths'
@@ -84,6 +90,130 @@ interface Exam {
   isAllBoards?: boolean;
   createdAt: string;
   updatedAt?: string;
+}
+
+function examTargetSchoolLabel(school: {
+  _id?: string;
+  id?: string;
+  schoolName?: string;
+  name?: string;
+  fullName?: string;
+  email?: string;
+}) {
+  return (
+    String(school.schoolName || school.name || school.fullName || '').trim() ||
+    String(school.email || '').trim() ||
+    'Unnamed school'
+  );
+}
+
+/** Badge that lists specific schools on hover or click. */
+function SpecificSchoolsBadge({
+  targetSchools,
+  schoolDirectory,
+}: {
+  targetSchools?: Array<{
+    _id?: string;
+    id?: string;
+    schoolName?: string;
+    name?: string;
+    fullName?: string;
+    email?: string;
+  }>;
+  schoolDirectory?: Array<{ id: string; name?: string; schoolName?: string; email?: string }>;
+}) {
+  const [open, setOpen] = useState(false);
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const clearCloseTimer = () => {
+    if (closeTimer.current) {
+      clearTimeout(closeTimer.current);
+      closeTimer.current = null;
+    }
+  };
+
+  const scheduleClose = () => {
+    clearCloseTimer();
+    closeTimer.current = setTimeout(() => setOpen(false), 160);
+  };
+
+  const openNow = () => {
+    clearCloseTimer();
+    setOpen(true);
+  };
+
+  const names = useMemo(() => {
+    const dir = new Map(
+      (schoolDirectory || []).map((s) => [
+        String(s.id),
+        String(s.name || s.schoolName || s.email || '').trim(),
+      ]),
+    );
+    const list = (targetSchools || []).map((s) => {
+      const id = String(s._id || s.id || '');
+      const fromExam = examTargetSchoolLabel(s);
+      if (fromExam && fromExam !== 'Unnamed school') return fromExam;
+      return dir.get(id) || fromExam;
+    });
+    return Array.from(new Set(list.filter(Boolean))).sort((a, b) =>
+      a.localeCompare(b, undefined, { sensitivity: 'base' }),
+    );
+  }, [targetSchools, schoolDirectory]);
+
+  const count = names.length || targetSchools?.length || 0;
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-mini font-medium text-amber-900 outline-none transition hover:bg-amber-100 focus-visible:ring-2 focus-visible:ring-amber-300"
+          onMouseEnter={openNow}
+          onMouseLeave={scheduleClose}
+          onFocus={openNow}
+          onBlur={scheduleClose}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            clearCloseTimer();
+            setOpen((v) => !v);
+          }}
+          aria-label={
+            count > 0
+              ? `Specific schools: ${names.join(', ')}`
+              : 'Specific schools'
+          }
+        >
+          Specific schools{count > 0 ? ` · ${count}` : ''}
+        </button>
+      </PopoverTrigger>
+      <PopoverContent
+        align="start"
+        className="w-72 p-3"
+        onMouseEnter={openNow}
+        onMouseLeave={scheduleClose}
+        onOpenAutoFocus={(e) => e.preventDefault()}
+      >
+        <p className="mb-2 text-xs font-semibold text-slate-800">
+          Assigned schools{count > 0 ? ` (${count})` : ''}
+        </p>
+        {names.length === 0 ? (
+          <p className="text-xs text-slate-500">No school names available.</p>
+        ) : (
+          <ul className="max-h-56 space-y-1.5 overflow-y-auto pr-1">
+            {names.map((name) => (
+              <li
+                key={name}
+                className="rounded-md bg-amber-50/80 px-2 py-1.5 text-xs text-slate-800"
+              >
+                {name}
+              </li>
+            ))}
+          </ul>
+        )}
+      </PopoverContent>
+    </Popover>
+  );
 }
 
 const SUBJECT_SECTION_LABELS: Record<string, string> = {
@@ -3513,13 +3643,24 @@ export default function ExamManagement() {
 
   const formSchoolOptions = useMemo(() => {
     const q = formSchoolSearch.trim().toLowerCase();
-    if (!q) return schools;
-    return schools.filter((school) =>
-      String(school.name || school.schoolName || '')
-        .toLowerCase()
-        .includes(q),
-    );
-  }, [schools, formSchoolSearch]);
+    const selected = new Set(formData.selectedSchools.map(String));
+    const filtered = !q
+      ? schools
+      : schools.filter((school) =>
+          String(school.name || school.schoolName || '')
+            .toLowerCase()
+            .includes(q),
+        );
+    const byName = (a: any, b: any) =>
+      normalizeDisplayText(a.name || a.schoolName || '').localeCompare(
+        normalizeDisplayText(b.name || b.schoolName || ''),
+        undefined,
+        { sensitivity: 'base' },
+      );
+    const checked = filtered.filter((s) => selected.has(String(s.id))).sort(byName);
+    const unchecked = filtered.filter((s) => !selected.has(String(s.id))).sort(byName);
+    return [...checked, ...unchecked];
+  }, [schools, formSchoolSearch, formData.selectedSchools]);
 
   const filteredClassPickerOptions = useMemo(() => {
     const q = classPickerSearch.trim().toLowerCase();
@@ -3879,6 +4020,9 @@ export default function ExamManagement() {
               {formData.filterType === 'specific-schools' && (
                 <div>
                   <Label htmlFor="schools">Select Schools *</Label>
+                  <p className="mb-1 text-xs text-slate-500">
+                    Selected schools stay at the top (A–Z within selected and unselected).
+                  </p>
                   {isLoadingSchools ? (
                     <div className="flex items-center gap-2 rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-xs sm:text-sm text-gray-600">
                       <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 animate-spin text-gray-500" />
@@ -3902,12 +4046,20 @@ export default function ExamManagement() {
                         ) : formSchoolOptions.length === 0 ? (
                           <p className="text-xs sm:text-sm text-gray-500">No schools match your search</p>
                         ) : (
-                          formSchoolOptions.map((school) => (
-                            <div key={school.id} className="flex items-center space-x-2">
+                          formSchoolOptions.map((school) => {
+                            const checked = formData.selectedSchools.includes(school.id);
+                            return (
+                            <div
+                              key={school.id}
+                              className={cn(
+                                'flex items-center space-x-2 rounded-md px-1.5 py-1',
+                                checked && 'bg-amber-50',
+                              )}
+                            >
                               <input
                                 type="checkbox"
                                 id={`school-${school.id}`}
-                                checked={formData.selectedSchools.includes(school.id)}
+                                checked={checked}
                                 onChange={(e) => {
                                   if (e.target.checked) {
                                     setFormData({
@@ -3932,7 +4084,8 @@ export default function ExamManagement() {
                                 {school.name}
                               </Label>
                             </div>
-                          ))
+                            );
+                          })
                         )}
                       </div>
                     </div>
@@ -4387,9 +4540,10 @@ export default function ExamManagement() {
                                 {exam.isAllBoards ? (
                                   <Badge className="border border-violet-200 bg-violet-50 text-mini text-violet-800">All boards</Badge>
                                 ) : exam.isSchoolSpecific ? (
-                                  <Badge className="border border-amber-200 bg-amber-50 text-mini text-amber-900">
-                                    Specific schools{(exam.targetSchools?.length ?? 0) > 0 ? ` · ${exam.targetSchools.length}` : ''}
-                                  </Badge>
+                                  <SpecificSchoolsBadge
+                                    targetSchools={exam.targetSchools}
+                                    schoolDirectory={schools}
+                                  />
                                 ) : (
                                   <Badge className={`${getBoardBadgeColor(exam.board)} border text-mini`}>
                                     {BOARDS.find((b) => b.value === exam.board)?.label || exam.board || 'Board'}

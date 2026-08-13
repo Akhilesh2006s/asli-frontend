@@ -248,6 +248,7 @@ const TeacherDashboard = () => {
     | 'learning-paths'
     | 'calendar'
     | 'settings'
+    | 'reports'
   >('ai-classes');
   const [stats, setStats] = useState<TeacherStats>({
     totalStudents: 0,
@@ -295,7 +296,8 @@ const TeacherDashboard = () => {
     | 'vidya-ai'
     | 'learning-paths'
     | 'calendar'
-    | 'settings';
+    | 'settings'
+    | 'reports';
 
   const tabToUrl = (tab: DashboardSubTab): string => {
     switch (tab) {
@@ -317,11 +319,15 @@ const TeacherDashboard = () => {
       setLocation('/learning-paths');
       return;
     }
+    if (tab === 'reports') {
+      setStudentsSubTab('track-progress');
+    }
     setDashboardSubTab(tab);
     if (tab === 'vidya-ai') {
       localStorage.removeItem('teacherDashboardTab');
     }
-    setLocation(`/teacher/dashboard?tab=${tabToUrl(tab)}`);
+    // Replace so browser Back does not walk through every sidebar tab.
+    setLocation(`/teacher/dashboard?tab=${tabToUrl(tab)}`, { replace: true });
     if (typeof window !== 'undefined' && window.innerWidth < 1024) {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
@@ -361,11 +367,11 @@ const TeacherDashboard = () => {
       return;
     }
     if (tab === 'edu-ott' || tab === 'eduott') {
-      setLocation('/edu-ott');
+      setLocation('/edu-ott', { replace: true });
       return;
     }
     if (tab === 'learning-paths') {
-      setLocation('/learning-paths');
+      setLocation('/learning-paths', { replace: true });
       return;
     }
     if (tab === 'calendar' || tab === 'timetable') {
@@ -373,7 +379,8 @@ const TeacherDashboard = () => {
       return;
     }
     if (tab === 'reports') {
-      setLocation('/teacher/dashboard?tab=students');
+      setDashboardSubTab('reports');
+      setStudentsSubTab('track-progress');
       return;
     }
     if (
@@ -404,6 +411,7 @@ const TeacherDashboard = () => {
   const [isLoadingAiInsights, setIsLoadingAiInsights] = useState(false);
   const [filterByClass, setFilterByClass] = useState<string>('all');
   const [filterByStudent, setFilterByStudent] = useState<string>('all');
+  const [progressDetailStudentId, setProgressDetailStudentId] = useState<string | null>(null);
   useEffect(() => {
     setEduottSubjectFilter('all');
   }, [eduottClassFilter]);
@@ -648,9 +656,12 @@ const TeacherDashboard = () => {
     return list;
   }, [students, filterByClass, filterByStudent, searchTerm]);
 
-  // Fetch student performance data when Track Progress tab is active
+  // Fetch student performance data when Track Progress / Reports is active
   useEffect(() => {
-    if (dashboardSubTab === 'students' && studentsSubTab === 'track-progress') {
+    if (
+      dashboardSubTab === 'reports' ||
+      (dashboardSubTab === 'students' && studentsSubTab === 'track-progress')
+    ) {
       setIsLoadingProgress(true);
       fetchStudentPerformance()
         .then(() => Promise.all([fetchTrackProgressRemarks(), fetchHomeworkSubmissions()]))
@@ -1741,22 +1752,15 @@ const TeacherDashboard = () => {
     [trackProgressRemarks, filterByClass, filterByStudent, getHomeworkStatsByStudentId]
   );
 
-  const openStudentProgressDetail = useCallback((student: Student) => {
-    const sid = String(student.id || (student as { _id?: string })._id || '');
-    const classNum = student.classNumber || student.assignedClass?.classNumber;
-    if (classNum != null && String(classNum).trim() !== '') {
-      setFilterByClass(String(classNum));
-    }
-    setFilterByStudent(sid);
-    window.setTimeout(() => {
-      document
-        .getElementById('teacher-progress-analytics')
-        ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 100);
-  }, []);
-
   useEffect(() => {
-    if (dashboardSubTab !== 'students' || studentsSubTab !== 'track-progress') return;
+    if (
+      !(
+        dashboardSubTab === 'reports' ||
+        (dashboardSubTab === 'students' && studentsSubTab === 'track-progress')
+      )
+    ) {
+      return;
+    }
     if (isLoadingProgress) return;
     const timer = setTimeout(() => {
       fetchAiProgressInsights(trackProgressFilteredStudents);
@@ -2232,18 +2236,23 @@ const TeacherDashboard = () => {
             },
             calendar: {
               title: 'Calendar',
-              subtitle: 'Weekly timetable and day-by-day class schedule.',
+              subtitle: 'Your timetable photo and day-by-day schedule.',
             },
             settings: {
               title: 'Settings',
               subtitle: 'Update your teacher details and reset your password.',
+            },
+            reports: {
+              title: 'Reports',
+              subtitle: 'Student analysis — exam results, usage, homework, and improvement insights.',
             },
           };
           const meta = pageMeta[dashboardSubTab] || pageMeta['ai-classes'];
           const showRefresh =
             dashboardSubTab === 'ai-classes' ||
             dashboardSubTab === 'classes' ||
-            dashboardSubTab === 'students';
+            dashboardSubTab === 'students' ||
+            dashboardSubTab === 'reports';
           // Vidya AI has its own unified hero card — skip the separate page title.
           if (dashboardSubTab === 'vidya-ai') return null;
           const teacherName = getTeacherDisplayName(teacherUser || getStoredUser());
@@ -2300,7 +2309,6 @@ const TeacherDashboard = () => {
                   </p>
                 </div>
               </div>
-              <WeeklyDigestCard apiBase="/api/teacher" />
               <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
                 <StatCard
                   label="Total Students"
@@ -2350,6 +2358,8 @@ const TeacherDashboard = () => {
                   </button>
                 ))}
               </div>
+
+              <WeeklyDigestCard apiBase="/api/teacher" />
                 </>
               )}
 
@@ -2412,11 +2422,7 @@ const TeacherDashboard = () => {
                               setFilterByClass('all');
                             }
                             setFilterByStudent(studentId);
-                            window.setTimeout(() => {
-                              document
-                                .getElementById('teacher-student-progress')
-                                ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                            }, 150);
+                            setProgressDetailStudentId(studentId);
                           }}
                         />
                       );
@@ -2731,8 +2737,8 @@ const TeacherDashboard = () => {
                 </>
               )}
 
-              {/* My Students Tab */}
-              {dashboardSubTab === 'students' && (
+              {/* My Students / Reports (student analysis) */}
+              {(dashboardSubTab === 'students' || dashboardSubTab === 'reports') && (
                 <div className="relative overflow-hidden rounded-3xl border border-indigo-blue-100/70 bg-gradient-to-br from-sky-100 via-indigo-blue-50 to-violet-100 p-4 shadow-sm sm:p-5 lg:p-6">
                   <div className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-white/50 blur-3xl" aria-hidden="true" />
                   <div className="pointer-events-none absolute -bottom-20 left-1/4 h-48 w-48 rounded-full bg-violet-200/35 blur-3xl" aria-hidden="true" />
@@ -2740,19 +2746,40 @@ const TeacherDashboard = () => {
                   <div className="relative z-[1] space-y-4 sm:space-y-6">
                     <div className="max-w-2xl">
                       <p className="inline-flex items-center gap-2 rounded-full bg-white/70 px-3 py-1 text-xs font-bold uppercase tracking-[0.12em] text-indigo-blue-700">
-                        <Users className="h-3.5 w-3.5" aria-hidden="true" />
-                        Students
+                        {dashboardSubTab === 'reports' ? (
+                          <>
+                            <BarChart3 className="h-3.5 w-3.5" aria-hidden="true" />
+                            Reports
+                          </>
+                        ) : (
+                          <>
+                            <Users className="h-3.5 w-3.5" aria-hidden="true" />
+                            Students
+                          </>
+                        )}
                       </p>
                       <h2 className="mt-3 font-display text-2xl font-extrabold tracking-tight text-slate-900 sm:text-3xl">
-                        Know every learner.
-                        <span className="text-violet-600"> Guide every step.</span>
+                        {dashboardSubTab === 'reports' ? (
+                          <>
+                            Student analysis.
+                            <span className="text-violet-600"> Clear next steps.</span>
+                          </>
+                        ) : (
+                          <>
+                            Know every learner.
+                            <span className="text-violet-600"> Guide every step.</span>
+                          </>
+                        )}
                       </h2>
                       <p className="mt-2 text-sm leading-relaxed text-slate-600 sm:text-base">
-                        Roster, progress, homework submissions, and daily diary for your classes.
+                        {dashboardSubTab === 'reports'
+                          ? 'Exam results, usage, homework, remarks, and data-driven improvement analysis for your students.'
+                          : 'Roster, progress, homework submissions, and daily diary for your classes.'}
                       </p>
                     </div>
 
-                  {/* Students Sub-Tabs — section filters only (not a second site nav) */}
+                  {/* Students Sub-Tabs — hidden on dedicated Reports view */}
+                  {dashboardSubTab === 'students' ? (
                   <div className="rounded-2xl border border-white/80 bg-white/90 p-2 shadow-sm backdrop-blur-sm">
                     <div className="flex flex-wrap items-center gap-1.5">
                       <Button
@@ -2805,9 +2832,10 @@ const TeacherDashboard = () => {
                       </Button>
                     </div>
                   </div>
+                  ) : null}
 
                   {/* Student List Sub-Tab */}
-                  {studentsSubTab === 'list' && (
+                  {dashboardSubTab === 'students' && studentsSubTab === 'list' && (
                     <>
                       {/* Search Bar */}
                       <div className="rounded-2xl border border-white/80 bg-white/90 p-4 shadow-sm backdrop-blur-sm">
@@ -3118,18 +3146,18 @@ const TeacherDashboard = () => {
                     </>
                   )}
 
-                  {/* Track Progress Sub-Tab */}
-                  {studentsSubTab === 'track-progress' && (
-                    <div id="teacher-student-progress" className="space-y-4 sm:space-y-6 lg:space-y-8 scroll-mt-24">
+                  {/* Track Progress / Reports — student analysis */}
+                  {(dashboardSubTab === 'reports' || studentsSubTab === 'track-progress') && (
+                    <div id="teacher-student-progress" className="space-y-4 sm:space-y-6">
                       {/* Header */}
-                      <div className="bg-white/60 backdrop-blur-xl rounded-3xl p-3 sm:p-4 lg:p-6 shadow-xl border border-white/20">
-                        <div className="flex items-center gap-3 mb-6">
-                          <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-lg flex items-center justify-center">
-                            <BarChart3 className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-white" />
+                      <div className="bg-white/60 backdrop-blur-xl rounded-2xl p-4 sm:p-5 shadow-sm border border-white/20">
+                        <div className="flex items-center gap-3">
+                          <div className="w-11 h-11 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-lg flex items-center justify-center shrink-0">
+                            <BarChart3 className="w-5 h-5 text-white" />
                           </div>
                           <div>
                             <h2 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">Track Student Progress</h2>
-                            <p className="text-gray-600">Exam results, usage, homework, remarks, and data-driven improvement analysis</p>
+                            <p className="text-sm text-gray-600">Open View on a student for exams, usage, remarks, and areas for improvement</p>
                           </div>
                         </div>
                       </div>
@@ -3232,315 +3260,33 @@ const TeacherDashboard = () => {
                       </div>
 
                       {isLoadingProgress ? (
-                        <div className="bg-white/60 backdrop-blur-xl rounded-3xl p-12 shadow-xl border border-white/20 text-center">
+                        <div className="bg-white/60 backdrop-blur-xl rounded-2xl px-4 py-8 shadow-sm border border-white/20 text-center">
                           <div className="flex flex-col items-center justify-center">
-                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600 mb-4"></div>
-                            <p className="text-gray-600">Loading student progress data...</p>
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600 mb-3" />
+                            <p className="text-sm text-gray-600">Loading student progress…</p>
                           </div>
                         </div>
                       ) : (
-                        <>
-                      <TeacherTrackProgressPanels
-                        students={trackProgressFilteredStudents}
-                        remarks={trackProgressRemarks}
-                        aiInsights={aiProgressInsights}
-                        isLoadingAi={isLoadingAiInsights}
-                        onRefreshAi={() => fetchAiProgressInsights(trackProgressFilteredStudents)}
-                        onFetchStudentInsights={(student) =>
-                          fetchAiProgressInsights([student], { updateGlobal: false })
-                        }
-                        getStudentHomeworkStats={getStudentHomeworkStatsForPanel}
-                      />
-
-                      {/* Progress Overview Cards */}
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:p-4 lg:p-6">
-                        <motion.div
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          className="bg-white/60 backdrop-blur-xl rounded-3xl p-3 sm:p-4 lg:p-6 shadow-xl border border-white/20"
-                        >
-                          <div className="flex items-center justify-between mb-4">
-                            <div className="p-3 bg-gradient-to-br from-emerald-600 to-emerald-700 rounded-xl">
-                              <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-white" />
-                            </div>
-                            <div className="text-right">
-                              <p className="text-xl sm:text-2xl font-bold text-gray-900">
-                                {students.filter(s => {
-                                  const perf = s.performance || {};
-                                  return perf.overallProgress && perf.overallProgress >= 70;
-                                }).length}
-                              </p>
-                              <p className="text-xs sm:text-sm text-gray-600">High Performers</p>
-                            </div>
-                          </div>
-                          <p className="text-xs text-gray-500">Students with ≥70% progress</p>
-                        </motion.div>
-
-                        <motion.div
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: 0.1 }}
-                          className="bg-white/60 backdrop-blur-xl rounded-3xl p-3 sm:p-4 lg:p-6 shadow-xl border border-white/20"
-                        >
-                          <div className="flex items-center justify-between mb-4">
-                            <div className="p-3 bg-gradient-to-br from-yellow-400 to-orange-400 rounded-xl">
-                              <Target className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-white" />
-                            </div>
-                            <div className="text-right">
-                              <p className="text-xl sm:text-2xl font-bold text-gray-900">
-                                {students.filter(s => {
-                                  const perf = s.performance || {};
-                                  return perf.overallProgress && perf.overallProgress >= 50 && perf.overallProgress < 70;
-                                }).length}
-                              </p>
-                              <p className="text-xs sm:text-sm text-gray-600">Average Performers</p>
-                            </div>
-                          </div>
-                          <p className="text-xs text-gray-500">Students with 50-69% progress</p>
-                        </motion.div>
-
-                        <motion.div
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: 0.2 }}
-                          className="bg-white/60 backdrop-blur-xl rounded-3xl p-3 sm:p-4 lg:p-6 shadow-xl border border-white/20"
-                        >
-                          <div className="flex items-center justify-between mb-4">
-                            <div className="p-3 bg-gradient-to-br from-red-400 to-pink-400 rounded-xl">
-                              <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-white" />
-                            </div>
-                            <div className="text-right">
-                              <p className="text-xl sm:text-2xl font-bold text-gray-900">
-                                {students.filter(s => {
-                                  const perf = s.performance || {};
-                                  return !perf.overallProgress || perf.overallProgress < 50;
-                                }).length}
-                              </p>
-                              <p className="text-xs sm:text-sm text-gray-600">Need Attention</p>
-                            </div>
-                          </div>
-                          <p className="text-xs text-gray-500">Students with &lt;50% progress</p>
-                        </motion.div>
-                      </div>
-
-                      {/* Student Progress Table */}
-                      <div className="bg-white/60 backdrop-blur-xl rounded-3xl p-3 sm:p-4 lg:p-6 shadow-xl border border-white/20">
-                        <div className="mb-6">
-                          <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-2">Detailed Progress Report</h3>
-                          <p className="text-xs sm:text-sm text-gray-600">View individual student progress and performance metrics</p>
-                        </div>
-                        {/* Scrolls inside itself with the header row pinned, so the
-                            shell chrome stays fixed and columns stay labelled. */}
-                        <DashboardScrollPanel>
-                          <table className="w-full min-w-[1100px]">
-                            <thead className="sticky top-0 z-10 bg-white">
-                              <tr className="border-b border-gray-200">
-                                <th className="bg-white text-left py-3 px-4 font-medium text-gray-900">Student</th>
-                                <th className="bg-white text-left py-3 px-4 font-medium text-gray-900">Class</th>
-                                <th className="bg-white text-left py-3 px-4 font-medium text-gray-900">Overall Progress</th>
-                                <th className="bg-white text-left py-3 px-4 font-medium text-gray-900">Learning Progress</th>
-                                <th className="bg-white text-left py-3 px-4 font-medium text-gray-900">Average Score</th>
-                                <th className="bg-white text-left py-3 px-4 font-medium text-gray-900">Exams Taken</th>
-                                <th className="bg-white text-left py-3 px-4 font-medium text-gray-900">Daily Avg Watch Time</th>
-                                <th className="bg-white text-left py-3 px-4 font-medium text-gray-900">Last Activity</th>
-                                <th className="bg-white text-left py-3 px-4 font-medium text-gray-900">Status</th>
-                                <th className="bg-white text-right py-3 px-4 font-medium text-gray-900">Actions</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {students
-                                .filter((student) => {
-                                  if (filterByClass !== 'all') {
-                                    const studentClass =
-                                      student.classNumber || student.assignedClass?.classNumber;
-                                    if (studentClass !== filterByClass) return false;
-                                  }
-                                  if (filterByStudent !== 'all') {
-                                    const sid = student.id || student._id;
-                                    if (String(sid) !== String(filterByStudent)) return false;
-                                  }
-                                  return (
-                                    (student.name || '')
-                                      .toLowerCase()
-                                      .includes(searchTerm.toLowerCase()) ||
-                                    student.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                                    (student.phone || '')
-                                      .toLowerCase()
-                                      .includes(searchTerm.toLowerCase())
-                                  );
-                                })
-                                .map((student) => {
-                                  const perf = student.performance || {};
-                                  const classDisplay = student.assignedClass 
-                                    ? `${student.assignedClass.classNumber || student.classNumber}${student.assignedClass.section || ''}`
-                                    : student.classNumber;
-                                  // Get data from database
-                                  const progress = perf.overallProgress !== null && perf.overallProgress !== undefined ? perf.overallProgress : 0;
-                                  const avgScore = perf.averagePercentage !== null && perf.averagePercentage !== undefined ? perf.averagePercentage : 0;
-                                  const examsTaken = perf.totalExams !== null && perf.totalExams !== undefined ? perf.totalExams : 0;
-                                  const watchTime = perf.dailyAverageWatchTime !== null && perf.dailyAverageWatchTime !== undefined ? perf.dailyAverageWatchTime : 0;
-                                  
-                                  // Debug: Log watch time for troubleshooting
-                                  if (student.name) {
-                                    console.log(`Student: ${student.name}, Watch Time: ${watchTime}, Performance:`, perf);
-                                  }
-                                  
-                                  return (
-                                    <tr key={student.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                                      <td className="py-3 px-4">
-                                        <div>
-                                          <p className="font-medium text-gray-900">{student.name || student.fullName}</p>
-                                          <p className="text-xs sm:text-sm text-gray-600">{student.email}</p>
-                                        </div>
-                                      </td>
-                                      <td className="py-3 px-4">
-                                        <Badge className="bg-blue-100 text-blue-800">{classDisplay}</Badge>
-                                      </td>
-                                      <td className="py-3 px-4">
-                                        <div className="space-y-2">
-                                          <div className="flex items-center justify-between">
-                                            <span className="text-xs sm:text-sm font-medium text-gray-900">{progress.toFixed(1)}%</span>
-                                            <Badge className={
-                                              progress >= 70 ? 'bg-green-100 text-green-800' : 
-                                              progress >= 50 ? 'bg-yellow-100 text-yellow-800' : 
-                                              'bg-red-100 text-red-800'
-                                            }>
-                                              {progress >= 70 ? 'Excellent' : progress >= 50 ? 'Good' : 'Needs Improvement'}
-                                            </Badge>
-                                          </div>
-                                          <div className="w-full bg-gray-200 rounded-full h-2">
-                                            <div 
-                                              className={`h-2 rounded-full transition-all ${
-                                                progress >= 70 ? 'bg-green-500' : 
-                                                progress >= 50 ? 'bg-yellow-500' : 
-                                                'bg-red-500'
-                                              }`}
-                                              style={{ width: `${Math.min(progress, 100)}%` }}
-                                            />
-                                          </div>
-                                        </div>
-                                      </td>
-                                      <td className="py-3 px-4">
-                                        {(() => {
-                                          const learningProgress = perf.learningProgress !== null && perf.learningProgress !== undefined ? perf.learningProgress : 0;
-                                          return learningProgress > 0 ? (
-                                            <div className="space-y-2">
-                                              <div className="flex items-center justify-between">
-                                                <span className="text-xs sm:text-sm font-medium text-gray-900">{learningProgress.toFixed(1)}%</span>
-                                                <Badge className={
-                                                  learningProgress >= 70 ? 'bg-blue-100 text-blue-800' : 
-                                                  learningProgress >= 50 ? 'bg-yellow-100 text-yellow-800' : 
-                                                  'bg-red-100 text-red-800'
-                                                }>
-                                                  {learningProgress >= 70 ? 'High' : learningProgress >= 50 ? 'Medium' : 'Low'}
-                                                </Badge>
-                                              </div>
-                                              <div className="w-full bg-gray-200 rounded-full h-2">
-                                                <div 
-                                                  className={`h-2 rounded-full transition-all ${
-                                                    learningProgress >= 70 ? 'bg-blue-500' : 
-                                                    learningProgress >= 50 ? 'bg-yellow-500' : 
-                                                    'bg-red-500'
-                                                  }`}
-                                                  style={{ width: `${Math.min(learningProgress, 100)}%` }}
-                                                />
-                                              </div>
-                                              <p className="text-xs text-gray-500">Content Completion</p>
-                                            </div>
-                                          ) : (
-                                            <span className="text-xs sm:text-sm text-gray-400">No data</span>
-                                          );
-                                        })()}
-                                      </td>
-                                      <td className="py-3 px-4">
-                                        {examsTaken > 0 ? (
-                                          <div>
-                                            <span className="text-xs sm:text-sm font-medium text-gray-900">
-                                              {avgScore.toFixed(1)}%
-                                            </span>
-                                            <p className="text-xs text-gray-500">Average Score</p>
-                                          </div>
-                                        ) : (
-                                          <span className="text-xs sm:text-sm text-gray-400">No data</span>
-                                        )}
-                                      </td>
-                                      <td className="py-3 px-4">
-                                        <div className="flex items-center space-x-2">
-                                          <ClipboardCheck className="w-3 h-3 sm:w-4 sm:h-4 text-gray-500" />
-                                          <span className="text-xs sm:text-sm font-medium text-gray-900">{examsTaken}</span>
-                                          {examsTaken > 0 && (
-                                            <span className="text-xs text-gray-500">exam{examsTaken !== 1 ? 's' : ''}</span>
-                                          )}
-                                        </div>
-                                      </td>
-                                      <td className="py-3 px-4">
-                                        {watchTime !== null && watchTime !== undefined && watchTime > 0 ? (
-                                          <div className="flex items-center space-x-2">
-                                            <Clock className="w-3 h-3 sm:w-4 sm:h-4 text-gray-500" />
-                                            <span className="text-xs sm:text-sm font-medium text-gray-900">
-                                              {watchTime.toFixed(1)} min
-                                            </span>
-                                          </div>
-                                        ) : (
-                                          <div className="flex items-center space-x-2">
-                                            <Clock className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400" />
-                                            <span className="text-xs sm:text-sm text-gray-400">0 min</span>
-                                          </div>
-                                        )}
-                                      </td>
-                                      <td className="py-3 px-4">
-                                        {student.lastLogin ? (
-                                          <div>
-                                            <p className="text-xs sm:text-sm text-gray-900">
-                                              {new Date(student.lastLogin).toLocaleDateString()}
-                                            </p>
-                                            <p className="text-xs text-gray-500">
-                                              {new Date(student.lastLogin).toLocaleTimeString()}
-                                            </p>
-                                          </div>
-                                        ) : (
-                                          <span className="text-xs sm:text-sm text-gray-400">Never</span>
-                                        )}
-                                      </td>
-                                      <td className="py-3 px-4">
-                                        <Badge className={student.isActive !== false ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>
-                                          {student.isActive !== false ? 'Active' : 'Inactive'}
-                                        </Badge>
-                                      </td>
-                                      <td className="py-3 px-4 text-right">
-                                        <div className="flex flex-wrap items-center justify-end gap-2">
-                                          <Button
-                                            type="button"
-                                            size="sm"
-                                            variant="outline"
-                                            className="h-8 rounded-lg border-indigo-200 bg-white text-xs font-semibold text-indigo-700 hover:bg-indigo-50"
-                                            onClick={() => openStudentProgressDetail(student)}
-                                          >
-                                            <Eye className="mr-1 h-3.5 w-3.5" aria-hidden />
-                                            View
-                                          </Button>
-                                        </div>
-                                      </td>
-                                    </tr>
-                                  );
-                                })}
-                            </tbody>
-                          </table>
-                          {students.length === 0 && (
-                            <div className="text-center py-12">
-                              <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                              <p className="text-gray-500">No students found</p>
-                            </div>
-                          )}
-                        </DashboardScrollPanel>
-                      </div>
-                        </>
+                        <TeacherTrackProgressPanels
+                          students={trackProgressFilteredStudents}
+                          remarks={trackProgressRemarks}
+                          aiInsights={aiProgressInsights}
+                          isLoadingAi={isLoadingAiInsights}
+                          onRefreshAi={() => fetchAiProgressInsights(trackProgressFilteredStudents)}
+                          onFetchStudentInsights={(student) =>
+                            fetchAiProgressInsights([student], { updateGlobal: false })
+                          }
+                          getStudentHomeworkStats={getStudentHomeworkStatsForPanel}
+                          classNumberFilter={filterByClass}
+                          openStudentId={progressDetailStudentId}
+                          onOpenStudentConsumed={() => setProgressDetailStudentId(null)}
+                        />
                       )}
                     </div>
                   )}
 
                   {/* Submissions Sub-Tab */}
-                  {studentsSubTab === 'submissions' && (
+                  {dashboardSubTab === 'students' && studentsSubTab === 'submissions' && (
                     <div className="space-y-4 sm:space-y-6 lg:space-y-8">
                       {/* Header */}
                       <div className="bg-white/60 backdrop-blur-xl rounded-3xl p-3 sm:p-4 lg:p-6 shadow-xl border border-white/20">
@@ -3952,7 +3698,7 @@ const TeacherDashboard = () => {
                     </div>
                   )}
 
-                  {studentsSubTab === 'daily' && <TeacherWorkDiaryPanel />}
+                  {dashboardSubTab === 'students' && studentsSubTab === 'daily' && <TeacherWorkDiaryPanel />}
 
                   </div>
                 </div>

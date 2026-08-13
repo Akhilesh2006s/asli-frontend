@@ -33,7 +33,6 @@ import {
   type ChapterCompletedDates,
 } from "@/lib/video-chapter-schedule";
 import { StudentTeacherDiaryFeed } from "@/components/student/StudentTeacherDiaryFeed";
-import StudentTimetableView from "@/components/student/StudentTimetableView";
 import { WeeklyDigestCard } from "@/components/weekly-digest-card";
 import { 
   CheckCircle, 
@@ -511,21 +510,6 @@ export default function Dashboard() {
     [incompleteQuizzes, incompleteContent]
   );
 
-  const dashboardTodoStats = useMemo(() => {
-    const liveTotal = dailyTasks.content.length + dailyTasks.quizzes.length;
-    const liveCompleted =
-      dailyTasks.content.filter((c: any) => completedScheduleIds.has(c._id)).length +
-      dailyTasks.quizzes.filter((q: any) => completedScheduleIds.has(q._id)).length;
-    if (liveTotal > 0) {
-      return { totalTodos: liveTotal, completedTodos: liveCompleted };
-    }
-    const cached = dashboardStatsCacheRef.current;
-    return {
-      totalTodos: cached?.totalTodos ?? 0,
-      completedTodos: cached?.completedTodos ?? 0,
-    };
-  }, [dailyTasks, completedScheduleIds]);
-
   useEffect(() => {
     const liveTotal = dailyTasks.content.length + dailyTasks.quizzes.length;
     if (liveTotal === 0) return;
@@ -561,7 +545,7 @@ export default function Dashboard() {
 
   const calendarMonthStart = format(startOfMonth(calendarMonth), 'yyyy-MM-dd');
   const calendarMonthEnd = format(endOfMonth(calendarMonth), 'yyyy-MM-dd');
-  const { data: monthTimetableEntries = [], isLoading: timetableLoading } = useTimetableEntries({
+  const { data: monthTimetableEntries = [] } = useTimetableEntries({
     startDate: calendarMonthStart,
     endDate: calendarMonthEnd,
   });
@@ -1797,6 +1781,69 @@ export default function Dashboard() {
     }, {});
   }, [calendarEntries]);
 
+  const latestExamResultByExamId = useMemo(() => {
+    const map = new Map<string, { percentage: number; completedAt?: string }>();
+    for (const result of examResults) {
+      const examId = String(
+        typeof result?.examId === 'object' ? result.examId?._id : result?.examId || result?.exam?._id || ''
+      );
+      if (!examId) continue;
+      const percentage = Number(result?.percentage);
+      if (!Number.isFinite(percentage)) continue;
+      const completedAt = result?.completedAt || result?.createdAt;
+      const existing = map.get(examId);
+      if (!existing) {
+        map.set(examId, { percentage, completedAt });
+        continue;
+      }
+      const prevTime = existing.completedAt ? new Date(existing.completedAt).getTime() : 0;
+      const nextTime = completedAt ? new Date(completedAt).getTime() : 0;
+      if (nextTime >= prevTime) {
+        map.set(examId, { percentage, completedAt });
+      }
+    }
+    return map;
+  }, [examResults]);
+
+  const quizPanelItems = useMemo(() => {
+    const dayKey = formatDateKey(selectedCalendarDate);
+    const dayItems = (entriesByDate[dayKey] || [])
+      .filter((e: { type?: string }) => e.type === 'quiz' || e.type === 'exam')
+      .sort((a: any, b: any) => a.date.getTime() - b.date.getTime());
+
+    if (dayItems.length > 0) return dayItems;
+
+    return studentQuizzes.slice(0, 8).map((quiz: any) => ({
+      id: quiz._id || quiz.id,
+      type: 'quiz' as const,
+      title: quiz.title || 'Quiz',
+      subject:
+        typeof quiz.subject === 'string'
+          ? quiz.subject
+          : quiz.subject?.name || 'General',
+      date: parseDate(quiz.deadline) || parseDate(quiz.startDate) || new Date(),
+      source: quiz,
+    }));
+  }, [selectedCalendarDate, entriesByDate, studentQuizzes]);
+
+  const getQuizPanelPrevPercent = (entry: any): number | null => {
+    if (entry?.type === 'exam') {
+      const examId = String(entry.id || entry.source?._id || '');
+      const prev = latestExamResultByExamId.get(examId);
+      return prev ? Math.round(prev.percentage) : null;
+    }
+    const quiz = entry?.source || {};
+    const best = Number(quiz.bestScore);
+    const total = Number(quiz.totalPoints);
+    if (Number.isFinite(best) && Number.isFinite(total) && total > 0) {
+      return Math.round((best / total) * 100);
+    }
+    if (Number.isFinite(best) && best >= 0 && best <= 100 && quiz.hasAttempted) {
+      return Math.round(best);
+    }
+    return null;
+  };
+
   const calendarDays = useMemo(() => {
     const year = calendarMonth.getFullYear();
     const month = calendarMonth.getMonth();
@@ -1900,24 +1947,9 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Summary Statistics Cards */}
+        {/* Summary Statistics Cards — single row, no duplicate below */}
         <div className="mb-8 relative z-10">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {(() => {
-              const { totalTodos, completedTodos } = dashboardTodoStats;
-              const percentage = totalTodos > 0 ? Math.round((completedTodos / totalTodos) * 100) : 0;
-              return (
-                <StatCard
-                  label="Today's Progress"
-                  value={`${completedTodos}/${totalTodos}`}
-                  caption={`Tasks completed ${percentage}%`}
-                  icon={Target}
-                  tone="amber"
-                  progress={percentage}
-                />
-              );
-            })()}
-
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <StatCard
               label="Study Time"
               value={
@@ -1949,39 +1981,39 @@ export default function Dashboard() {
             />
 
             {(() => {
-              const { totalTodos, completedTodos } = dashboardTodoStats;
               const efficiency =
-                totalTodos > 0
-                  ? Math.round((completedTodos / totalTodos) * 100)
-                  : scheduleCompletionStats.total > 0
-                    ? scheduleCompletionStats.completionPercent
-                    : overallProgress > 0
-                      ? Math.round(overallProgress)
-                      : 0;
-              const completedLabel =
-                totalTodos > 0
-                  ? `${completedTodos}/${totalTodos} tasks done`
-                  : scheduleCompletionStats.total > 0
-                    ? `${scheduleCompletionStats.completed}/${scheduleCompletionStats.total} items done`
-                    : 'Content & quizzes';
+                scheduleCompletionStats.total > 0
+                  ? scheduleCompletionStats.completionPercent
+                  : overallProgress > 0
+                    ? Math.round(overallProgress)
+                    : 0;
               return (
                 <StatCard
                   label="Efficiency"
                   value={`${efficiency}%`}
-                  caption={completedLabel}
+                  caption="Completion rate"
                   icon={TrendingUp}
                   tone="violet"
                   motif="ring"
                 />
               );
             })()}
+
+            <StatCard
+              label="Overall Progress"
+              value={`${Math.round(overallProgress)}%`}
+              caption="Across all subjects"
+              icon={Target}
+              tone="amber"
+              progress={Math.round(overallProgress)}
+            />
           </div>
         </div>
 
-        {/* Student Calendar + Timetable */}
+        {/* Student Calendar + Quiz panel */}
         <div className="mb-6 relative z-10 space-y-6">
-          <div className="grid grid-cols-1 gap-4">
-            <Card className="bg-white rounded-xl shadow-md">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <Card className="lg:col-span-2 bg-white rounded-xl shadow-md">
               <CardHeader className="pb-3">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div className="min-w-0">
@@ -2206,9 +2238,142 @@ export default function Dashboard() {
               </CardContent>
             </Card>
 
-          </div>
+            <Card className="quiz-panel-shell rounded-xl overflow-hidden">
+              <CardHeader className="pb-3 border-b border-sky-100/80 bg-gradient-to-r from-sky-50/90 via-white to-teal-50/80">
+                <div className="flex items-center gap-2.5">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-sky-100 text-sky-600 shadow-sm ring-1 ring-sky-200/70">
+                    <TargetIcon className="h-4 w-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <CardTitle className="text-base sm:text-lg font-semibold text-slate-800">Quiz</CardTitle>
+                    <p className="text-xs sm:text-sm text-slate-500">
+                      Hover to start · see previous %
+                    </p>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-3 pt-4">
+                {isLoadingSchedule ? (
+                  <div className="h-24 rounded-xl bg-gradient-to-r from-sky-50 via-teal-50 to-sky-50 animate-pulse" />
+                ) : quizPanelItems.length === 0 ? (
+                  <div className="rounded-xl border border-dashed border-sky-200 bg-sky-50/50 px-3 py-6 text-center">
+                    <TargetIcon className="mx-auto mb-2 h-7 w-7 text-sky-300" />
+                    <p className="text-xs sm:text-sm font-medium text-slate-600">No quizzes yet</p>
+                    <p className="mt-1 text-xs text-slate-500">Assigned quizzes and exams will show up here.</p>
+                  </div>
+                ) : (
+                  quizPanelItems.map((entry: any, index: number) => {
+                    const prevPercent = getQuizPanelPrevPercent(entry);
+                    const isExam = entry.type === 'exam';
+                    return (
+                      <div
+                        key={`${entry.type}-${entry.id}`}
+                        className="quiz-panel-item group relative overflow-hidden rounded-xl border border-sky-100/90 bg-gradient-to-br from-white via-sky-50/40 to-teal-50/50 p-3.5"
+                        style={{ animationDelay: `${Math.min(index, 6) * 60}ms` }}
+                      >
+                        <div
+                          className="pointer-events-none absolute -right-6 -top-6 h-20 w-20 rounded-full bg-sky-200/30 blur-2xl transition-opacity duration-300 group-hover:opacity-80"
+                          aria-hidden
+                        />
+                        <div className="relative flex items-start justify-between gap-2">
+                          <div className="min-w-0 flex-1">
+                            <p className="text-xs sm:text-sm font-semibold text-slate-800 line-clamp-2">
+                              {entry.title}
+                            </p>
+                            <p className="mt-1 text-xs text-slate-500">{entry.subject}</p>
+                          </div>
+                          <Badge
+                            className={`text-micro shrink-0 border-0 shadow-sm ${
+                              isExam ? 'bg-rose-100 text-rose-700' : 'bg-teal-100 text-teal-700'
+                            }`}
+                          >
+                            {isExam ? 'EXAM' : 'QUIZ'}
+                          </Badge>
+                        </div>
 
-          <StudentTimetableView />
+                        <div className="relative mt-2.5 flex items-center justify-between gap-2 text-xs text-slate-500">
+                          <span className="inline-flex items-center gap-1 rounded-full bg-white/80 px-2 py-0.5 ring-1 ring-sky-100">
+                            <Clock className="h-3 w-3 text-sky-500" />
+                            {entry.date
+                              ? entry.date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                              : 'Anytime'}
+                          </span>
+                          <span className="text-sky-500/80 transition-opacity duration-300 sm:opacity-0 sm:group-hover:opacity-100">
+                            Hover for actions
+                          </span>
+                        </div>
+
+                        <div className="quiz-panel-item-actions relative mt-0 max-h-0 overflow-hidden opacity-0 translate-y-1 sm:group-hover:mt-3 sm:group-hover:max-h-44 sm:group-hover:opacity-100 sm:group-hover:translate-y-0 max-sm:mt-3 max-sm:max-h-44 max-sm:opacity-100 max-sm:translate-y-0">
+                          <div className="grid grid-cols-1 gap-2">
+                            <Button
+                              size="sm"
+                              className="w-full rounded-lg bg-gradient-to-r from-sky-400 to-teal-400 text-white shadow-sm transition-transform duration-200 hover:from-sky-500 hover:to-teal-500 hover:scale-[1.02] active:scale-[0.98]"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (isExam) {
+                                  const examId = String(entry.id || entry.source?._id || '');
+                                  setLocation(
+                                    examId
+                                      ? `/student-exams?examId=${encodeURIComponent(examId)}`
+                                      : '/student-exams'
+                                  );
+                                  return;
+                                }
+                                const quizId = String(entry.id || entry.source?._id || '');
+                                if (quizId) setLocation(`/quiz/${encodeURIComponent(quizId)}`);
+                                else setLocation('/learning-paths');
+                              }}
+                            >
+                              <Play className="mr-1.5 h-3 w-3" />
+                              {isExam ? 'Start Exam' : 'Start Quiz'}
+                            </Button>
+                            <div className="rounded-lg border border-sky-100 bg-white/90 px-3 py-2.5 shadow-sm">
+                              <div className="flex items-center justify-between gap-2">
+                                <p className="text-micro uppercase tracking-wide text-slate-500">Prev result</p>
+                                {prevPercent != null ? (
+                                  <span className="text-sm font-bold tabular-nums text-teal-700">
+                                    {prevPercent}%
+                                  </span>
+                                ) : (
+                                  <span className="text-xs font-medium text-slate-400">—</span>
+                                )}
+                              </div>
+                              {prevPercent != null ? (
+                                <>
+                                  <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-sky-100">
+                                    <div
+                                      className="quiz-panel-score-bar h-full rounded-full"
+                                      style={{ width: `${Math.min(100, Math.max(4, prevPercent))}%` }}
+                                    />
+                                  </div>
+                                  <p className="mt-1 text-xs text-slate-500">last score</p>
+                                </>
+                              ) : (
+                                <p className="mt-1 text-sm font-medium text-slate-500">Not attempted yet</p>
+                              )}
+                              {prevPercent != null && isExam && (
+                                <button
+                                  type="button"
+                                  className="mt-1.5 text-xs font-medium text-sky-600 transition-colors hover:text-sky-700 hover:underline"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setLocation('/student-exams');
+                                  }}
+                                >
+                                  View full result
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </CardContent>
+            </Card>
+
+          </div>
         </div>
 
         {/* Teachers report + Homework side by side */}
@@ -2467,73 +2632,6 @@ export default function Dashboard() {
                 </div>
               </CardHeader>
               <CardContent className="space-y-3 sm:space-y-4 lg:space-y-6">
-                {/* Overview boxes — same style as dashboard top stats */}
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                  {(() => {
-                    const { totalTodos, completedTodos } = dashboardTodoStats;
-                    const percentage = totalTodos > 0 ? Math.round((completedTodos / totalTodos) * 100) : 0;
-                    return (
-                      <StatCard
-                        label="Tasks Done"
-                        value={`${completedTodos}/${totalTodos}`}
-                        caption={`${percentage}% completed`}
-                        icon={Target}
-                        tone="amber"
-                        progress={percentage}
-                      />
-                    );
-                  })()}
-                  <StatCard
-                    label="Study Time"
-                    value={
-                      studyTimeToday >= 60
-                        ? `${(studyTimeToday / 60).toFixed(1)} hrs`
-                        : studyTimeToday < 1 && studyTimeToday > 0
-                          ? '<1m'
-                          : `${Math.round(studyTimeToday)}m`
-                    }
-                    caption="Logged in today"
-                    icon={Clock}
-                    tone="blue"
-                    motif="wave"
-                  />
-                  <StatCard
-                    label="This Week"
-                    value={
-                      studyTimeThisWeek >= 60
-                        ? `${(studyTimeThisWeek / 60).toFixed(1)} hrs`
-                        : studyTimeThisWeek < 1 && studyTimeThisWeek > 0
-                          ? '<1m'
-                          : `${Math.round(studyTimeThisWeek)}m`
-                    }
-                    caption="Study time this week"
-                    icon={Calendar}
-                    tone="teal"
-                    motif="bars"
-                  />
-                  {(() => {
-                    const { totalTodos, completedTodos } = dashboardTodoStats;
-                    const efficiency =
-                      totalTodos > 0
-                        ? Math.round((completedTodos / totalTodos) * 100)
-                        : scheduleCompletionStats.total > 0
-                          ? scheduleCompletionStats.completionPercent
-                          : overallProgress > 0
-                            ? Math.round(overallProgress)
-                            : 0;
-                    return (
-                      <StatCard
-                        label="Efficiency"
-                        value={`${efficiency}%`}
-                        caption={`${Math.round(overallProgress)}% overall progress`}
-                        icon={TrendingUp}
-                        tone="violet"
-                        motif="ring"
-                      />
-                    );
-                  })()}
-                </div>
-
                 {/* Progress Overview */}
                 <div>
                   <div className="flex items-center justify-between mb-2">

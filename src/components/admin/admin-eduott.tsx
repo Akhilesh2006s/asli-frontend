@@ -129,9 +129,27 @@ export default function AdminEduOTT() {
         if (response.ok) {
           const data = await response.json();
           const videosList = data.data || data || [];
+          const metaReason = data?.meta?.reason ? String(data.meta.reason) : '';
+          const fallbackNote =
+            data?.meta?.iitBrowseFallback === true
+              ? ' Showing full IIT catalog preview — assign Alpha/Beta/Gamma on the school profile for student access.'
+              : '';
           setVideosEmptyMessage(
-            !videosList.length && data?.message ? String(data.message) : '',
+            !videosList.length
+              ? String(data?.message || '') + (metaReason ? '' : '')
+              : fallbackNote.trim()
+                ? fallbackNote.trim()
+                : '',
           );
+          if (!videosList.length && data?.message) {
+            setVideosEmptyMessage(String(data.message));
+          } else if (videosList.length && data?.meta?.iitBrowseFallback) {
+            setVideosEmptyMessage(
+              'IIT EduOTT preview: tracks are not assigned on this school yet. Students will see videos after Super Admin assigns Alpha/Beta/Gamma.',
+            );
+          } else {
+            setVideosEmptyMessage('');
+          }
           const videosWithSubjects = videosList.map((content: any) => {
             const subjectName = content.subject?.name || content.subject || 'Unknown Subject';
             const subjectId = content.subject?._id || content.subject;

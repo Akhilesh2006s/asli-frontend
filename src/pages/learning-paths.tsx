@@ -228,7 +228,6 @@ export default function LearningPaths() {
 
   const [previewContent, setPreviewContent] = useState<any | null>(() => readStoredPreview());
   const [isPreviewOpen, setIsPreviewOpen] = useState(() => Boolean(readStoredPreview()));
-  const [isNavigatingToSubject, setIsNavigatingToSubject] = useState(false);
 
   const openContentPreview = (content: any) => {
     if (!content?.fileUrl) return;
@@ -263,12 +262,12 @@ export default function LearningPaths() {
       : [primaryId];
     const otherIds = mergedIds.filter((id) => id !== primaryId);
     const base = isTeacher ? `/teacher/subject/${primaryId}` : `/subject/${primaryId}`;
-    const href =
-      otherIds.length > 0
-        ? `${base}?merge=${encodeURIComponent(otherIds.join(','))}`
-        : base;
-    setIsNavigatingToSubject(true);
-    setLocation(href);
+    const params = new URLSearchParams();
+    params.set('returnTo', 'learning');
+    if (otherIds.length > 0) {
+      params.set('merge', otherIds.join(','));
+    }
+    setLocation(`${base}?${params.toString()}`);
   };
 
   const isYouTubeUrl = (url?: string) => {
@@ -632,20 +631,10 @@ export default function LearningPaths() {
 
   return (
     <Shell>
-      {isNavigatingToSubject && (
-        <div
-          className="fixed inset-0 z-[100] bg-sky-50/90 backdrop-blur-sm flex flex-col items-center justify-center"
-          role="status"
-          aria-live="polite"
-          aria-busy="true"
-        >
-          <Loader2 className="w-10 h-10 text-sky-500 animate-spin mb-3" aria-hidden />
-          <p className="text-sm text-gray-600 font-medium">Opening subject...</p>
-        </div>
-      )}
       <div className="relative mx-auto w-full max-w-7xl">
         
         {!isMobile && !isTeacher && <VidyaAIFloatingAssistant />}
+        
         
         {/* Header Section */}
         <div className="mb-8">
@@ -741,20 +730,23 @@ export default function LearningPaths() {
                 const mine = allLibraryContent.filter((c: any) =>
                   libraryContentMatchesSubject(c, subject),
                 );
+                const boardMine = mine.filter((c: any) => !isIitTrackContent(c));
+                const iitMine = mine.filter((c: any) => isIitTrackContent(c));
                 const countOf = (t: string) =>
-                  mine.filter((c: any) => c?.type === t && !isIitTrackContent(c)).length;
-                const iitCount = mine.filter((c: any) => isIitTrackContent(c)).length;
+                  boardMine.filter((c: any) => c?.type === t).length;
+                const iitCount = iitMine.length;
                 const videoCount = countOf('Video');
                 const tiles = [
-                  { label: 'Textbooks', value: countOf('TextBook') },
-                  { label: 'Materials', value: countOf('Material') },
+                  { label: 'Textbooks', value: countOf('TextBook'), iit: false },
+                  { label: 'Materials', value: countOf('Material'), iit: false },
                   ...(iitCount > 0 || subject.hasIitTrack
-                    ? [{ label: 'IIT materials', value: iitCount }]
+                    ? [{ label: 'IIT', value: iitCount, iit: true }]
                     : isAsliPrepExclusive && allowedBrowseTypes.includes('Video')
-                      ? [{ label: 'Videos', value: videoCount }]
+                      ? [{ label: 'Videos', value: videoCount, iit: false }]
                       : []),
                 ];
-                const recent = mine.slice(0, 2);
+                const recentBoard = boardMine.slice(0, 2);
+                const recentIit = iitMine.slice(0, 2);
 
                 return (
                   <div
@@ -770,7 +762,7 @@ export default function LearningPaths() {
                         <h3 className="truncate font-display text-lg font-bold text-ink">{displayName}</h3>
                         <p className="truncate text-sm text-muted-foreground">
                           {iitCount > 0
-                            ? `${displayName} · includes IIT materials`
+                            ? `${displayName} · includes ${displayName} IIT`
                             : `Content for ${displayName}`}
                         </p>
                       </div>
@@ -784,21 +776,21 @@ export default function LearningPaths() {
                         <div
                           key={t.label}
                           className={`rounded-xl border px-2 py-2.5 text-center ${
-                            t.label === 'IIT'
+                            t.iit
                               ? 'border-slate-800 bg-slate-900 text-amber-200'
                               : 'border-border bg-background'
                           }`}
                         >
                           <p
                             className={`font-display text-lg font-bold leading-none ${
-                              t.label === 'IIT' ? 'text-amber-200' : 'text-ink'
+                              t.iit ? 'text-amber-200' : 'text-ink'
                             }`}
                           >
                             {t.value}
                           </p>
                           <p
                             className={`mt-1 text-micro font-medium ${
-                              t.label === 'IIT' ? 'text-amber-200/80' : 'text-muted-foreground'
+                              t.iit ? 'text-amber-200/80' : 'text-muted-foreground'
                             }`}
                           >
                             {t.label}
@@ -807,23 +799,43 @@ export default function LearningPaths() {
                       ))}
                     </div>
 
-                    {recent.length > 0 && (
+                    {recentBoard.length > 0 && (
                       <div className="mt-4">
                         <p className="mb-2 text-micro font-bold uppercase tracking-wider text-muted-foreground">
-                          Recent content
+                          {displayName}
                         </p>
                         <ul className="space-y-1.5">
-                          {recent.map((c: any, i: number) => (
+                          {recentBoard.map((c: any, i: number) => (
                             <li
-                              key={c?._id || c?.id || i}
+                              key={c?._id || c?.id || `board-${i}`}
                               className="flex items-center justify-between gap-2 rounded-lg bg-background px-3 py-2"
                             >
                               <span className="truncate text-sm text-ink-soft">
-                                {isIitTrackContent(c)
-                                  ? formatIitLearningPathContentLabel(c, displayName)
-                                  : c?.title || c?.name || 'Untitled'}
+                                {c?.title || c?.name || 'Untitled'}
                               </span>
                               <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {recentIit.length > 0 && (
+                      <div className="mt-3">
+                        <p className="mb-2 text-micro font-bold uppercase tracking-wider text-amber-700">
+                          {displayName} IIT
+                        </p>
+                        <ul className="space-y-1.5">
+                          {recentIit.map((c: any, i: number) => (
+                            <li
+                              key={c?._id || c?.id || `iit-${i}`}
+                              className="flex items-center justify-between gap-2 rounded-lg border border-amber-100 bg-amber-50/70 px-3 py-2"
+                            >
+                              <span className="truncate text-sm text-ink-soft">
+                                {formatIitLearningPathContentLabel(c, displayName)}
+                                {c?.title ? ` · ${c.title}` : ''}
+                              </span>
+                              <ChevronRight className="h-4 w-4 shrink-0 text-amber-600" aria-hidden="true" />
                             </li>
                           ))}
                         </ul>
@@ -833,7 +845,7 @@ export default function LearningPaths() {
                     <button
                       type="button"
                       onClick={() => handleSubjectClick(subject)}
-                      className={`mt-auto flex w-full items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${theme.btn} ${recent.length ? 'mt-4' : 'mt-4'}`}
+                      className={`mt-auto flex w-full items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${theme.btn} ${recentBoard.length || recentIit.length ? 'mt-4' : 'mt-4'}`}
                     >
                       View Content
                       <ArrowRight className="h-4 w-4" aria-hidden="true" />
@@ -1012,9 +1024,12 @@ export default function LearningPaths() {
                   <p className="text-gray-500">No {selectedContentType} available at the moment.</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:p-4 lg:p-6 items-stretch">
-                  {filteredContent.map((content: any) => (
-                    <Card key={content._id} className="hover:shadow-lg transition-shadow duration-200 h-full flex flex-col">
+                <div className="space-y-8">
+                  {(() => {
+                    const boardRows = filteredContent.filter((c: any) => !isIitTrackContent(c));
+                    const iitRows = filteredContent.filter((c: any) => isIitTrackContent(c));
+                    const renderCard = (content: any) => (
+                      <Card key={content._id} className="hover:shadow-lg transition-shadow duration-200 h-full flex flex-col">
                       <CardHeader>
                         <div className="flex items-center justify-between mb-2">
                           <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center shadow-lg">
@@ -1032,8 +1047,16 @@ export default function LearningPaths() {
                               <FileTextIcon className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-white" />
                             )}
                           </div>
-                          <Badge variant="outline" className="text-xs">
-                            {content.type}
+                          <Badge
+                            variant="outline"
+                            className={`text-xs ${isIitTrackContent(content) ? 'border-amber-300 bg-amber-50 text-amber-800' : ''}`}
+                          >
+                            {isIitTrackContent(content)
+                              ? formatIitLearningPathContentLabel(
+                                  content,
+                                  typeof content.subject === 'object' ? content.subject?.name : '',
+                                )
+                              : content.type}
                           </Badge>
                         </div>
                         <CardTitle className="text-base sm:text-lg">{content.title}</CardTitle>
@@ -1055,7 +1078,7 @@ export default function LearningPaths() {
                                       : '',
                                   )
                                 : typeof content.subject === 'object'
-                                  ? content.subject.name
+                                  ? learningPathDisplayName(content.subject.name || '')
                                   : 'Subject'}
                             </span>
                           </div>
@@ -1085,7 +1108,33 @@ export default function LearningPaths() {
                         </div>
                     </CardContent>
                   </Card>
-                  ))}
+                    );
+
+                    return (
+                      <>
+                        {boardRows.length > 0 ? (
+                          <section>
+                            <h3 className="mb-3 text-sm font-bold uppercase tracking-wide text-slate-600">
+                              Board / curriculum
+                            </h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:p-4 lg:p-6 items-stretch">
+                              {boardRows.map(renderCard)}
+                            </div>
+                          </section>
+                        ) : null}
+                        {iitRows.length > 0 ? (
+                          <section>
+                            <h3 className="mb-3 text-sm font-bold uppercase tracking-wide text-amber-700">
+                              IIT materials
+                            </h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:p-4 lg:p-6 items-stretch">
+                              {iitRows.map(renderCard)}
+                            </div>
+                          </section>
+                        ) : null}
+                      </>
+                    );
+                  })()}
                 </div>
             )}
           </div>

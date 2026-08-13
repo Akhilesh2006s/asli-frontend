@@ -17,9 +17,14 @@ import {
   type ExamClassCard,
 } from '@/lib/exam-classes';
 import { downloadSchoolPerformanceAnalysisExcel } from '@/lib/school-performance-analysis-excel';
-import { buildExamAnalyticsHandoffReport } from '@/lib/exam-analytics-handoff';
+import {
+  buildClassQuestionBreakdown,
+  buildExamAnalyticsHandoffReport,
+} from '@/lib/exam-analytics-handoff';
 import StudentExamHandoffModal from '@/components/admin/StudentExamHandoffModal';
+import AdminExamQuestionBreakdown from '@/components/admin/AdminExamQuestionBreakdown';
 import type { HandoffIndividualReport } from '@/lib/exam-analytics-handoff';
+import type { SchoolAnalysisExamResult } from '@/lib/school-performance-analysis-data';
 
 interface Exam {
   _id: string;
@@ -64,12 +69,25 @@ interface ExamResult {
   attemptNumber?: number;
   subjectWiseScore?: Record<string, { correct?: number; total?: number; marks?: number }>;
   questionAnalytics?: Array<{
+    questionId?: string;
+    index?: number;
     subject?: string;
     chapter?: string;
     difficulty?: string;
     questionType?: string;
     timeTaken?: number;
     status?: 'correct' | 'wrong' | 'not_answered';
+    isCorrect?: boolean;
+    isAnswered?: boolean;
+  }>;
+  questionSnapshot?: Array<{
+    _id?: string;
+    questionText?: string;
+    assertionText?: string;
+    subject?: string;
+    chapter?: string;
+    questionType?: string;
+    difficulty?: string;
   }>;
   completedAt: string;
 }
@@ -418,19 +436,41 @@ export default function ExamViewOnly() {
 
   const [isExporting, setIsExporting] = useState(false);
   const [studentReport, setStudentReport] = useState<HandoffIndividualReport | null>(null);
+  const [selectedAttemptResult, setSelectedAttemptResult] =
+    useState<SchoolAnalysisExamResult | null>(null);
 
   const handoffReport = useMemo(() => {
     if (!selectedExam || examResults.length === 0) return null;
     return buildExamAnalyticsHandoffReport(selectedExam.title, examResults);
   }, [selectedExam, examResults]);
 
-  const openStudentReport = (fullName: string) => {
+  const classQuestionStats = useMemo(
+    () => buildClassQuestionBreakdown(examResults),
+    [examResults],
+  );
+
+  const openStudentReport = (result: ExamResult) => {
     if (!handoffReport) return;
+    const resultId = String(result._id || '').trim();
+    const userId = String(result.userId?._id || '').trim();
+    const name = String(result.userId?.fullName || '').trim().toLowerCase();
+    const attemptLabel = `Attempt ${Math.round(Number(result.attemptNumber) >= 1 ? Number(result.attemptNumber) : 1)}`;
+
     const match =
+      handoffReport.individuals.find((row) => row.student.resultId && row.student.resultId === resultId) ||
       handoffReport.individuals.find(
-        (row) => row.student.name.trim().toLowerCase() === String(fullName || '').trim().toLowerCase(),
-      ) || null;
+        (row) =>
+          row.student.userId &&
+          row.student.userId === userId &&
+          row.student.attemptLabel === attemptLabel,
+      ) ||
+      handoffReport.individuals.find(
+        (row) => row.student.name.trim().toLowerCase() === name,
+      ) ||
+      null;
+
     setStudentReport(match);
+    setSelectedAttemptResult(result as SchoolAnalysisExamResult);
   };
 
   const exportToExcel = async () => {
@@ -713,6 +753,11 @@ export default function ExamViewOnly() {
           </Card>
         ) : null}
 
+        <AdminExamQuestionBreakdown
+          questions={classQuestionStats}
+          examTitle={selectedExam?.title}
+        />
+
         {/* All Results */}
         <Card>
           <CardHeader>
@@ -731,8 +776,9 @@ export default function ExamViewOnly() {
             </CardTitle>
             {handoffReport ? (
               <p className="text-xs text-slate-500 font-normal mt-1">
-                Excel includes Executive Dashboard, Student Data, Subject Data, and one sheet per student.
-                Tap a student for the on-screen individual report.
+                Click <span className="font-semibold text-slate-700">View analysis</span> on any
+                student for the full on-screen report (same as the Excel individual sheet: snapshot,
+                every question, class counts, subjects, behaviour, actions). Excel export is optional.
               </p>
             ) : null}
           </CardHeader>
@@ -858,7 +904,7 @@ export default function ExamViewOnly() {
                               variant="outline"
                               size="sm"
                               className="whitespace-nowrap"
-                              onClick={() => openStudentReport(result.userId.fullName)}
+                              onClick={() => openStudentReport(result)}
                             >
                               View analysis
                             </Button>
@@ -880,10 +926,15 @@ export default function ExamViewOnly() {
         <StudentExamHandoffModal
           open={Boolean(studentReport)}
           onOpenChange={(open) => {
-            if (!open) setStudentReport(null);
+            if (!open) {
+              setStudentReport(null);
+              setSelectedAttemptResult(null);
+            }
           }}
           individual={studentReport}
           examTitle={selectedExam?.title}
+          attemptResult={selectedAttemptResult}
+          classQuestionStats={classQuestionStats}
         />
       </div>
     );

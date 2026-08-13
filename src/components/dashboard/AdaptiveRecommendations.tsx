@@ -26,6 +26,7 @@ import {
   Target,
 } from 'lucide-react';
 import { API_BASE_URL } from '@/lib/api-config';
+import { extractYouTubeId } from '@/lib/eduott-video-utils';
 import { capAdaptiveRecommendationsPerSubject } from '@/utils/adaptive-recommendations-display';
 import PdfPreviewPanel from '@/components/shared/PdfPreviewPanel';
 
@@ -163,6 +164,22 @@ function resolveFileUrl(url: string) {
   return `${API_BASE_URL}/${url}`;
 }
 
+function isVideoItem(item: RecommendedItem, url = '') {
+  const type = String(item.displayType || '').toLowerCase();
+  const u = String(url || item.fileUrl || '').toLowerCase();
+  return (
+    type === 'video' ||
+    u.includes('youtube.com') ||
+    u.includes('youtu.be') ||
+    /\.(mp4|webm|ogg|m3u8)(\?|$)/i.test(u)
+  );
+}
+
+function youtubeEmbedSrc(url: string): string | null {
+  const id = extractYouTubeId(url);
+  return id ? `https://www.youtube.com/embed/${id}?rel=0&modestbranding=1&autoplay=1` : null;
+}
+
 const EMPTY_REASON_MESSAGES: Record<string, string> = {
   student_not_found: 'Your student profile could not be loaded. Try signing out and back in.',
   no_subjects: 'No subjects are assigned to your class yet. Ask your teacher or admin to assign subjects.',
@@ -213,7 +230,17 @@ export default function AdaptiveRecommendations(_props: AdaptiveRecommendationsP
 
   const openResource = (item: RecommendedItem) => {
     const mode = item.openMode || 'url';
-    if (mode === 'navigate' && item.navigatePath) {
+    const rawUrl = item.fileUrl || '';
+    const fullUrl = rawUrl ? resolveFileUrl(rawUrl) : '';
+    const video = isVideoItem(item, fullUrl);
+
+    // Videos always stay on this page (modal player) — never navigate away.
+    if (video && fullUrl) {
+      setPreviewItem({ ...item, fileUrl: fullUrl, openMode: 'preview' });
+      return;
+    }
+
+    if (mode === 'navigate' && item.navigatePath && !video) {
       if (item.examId) {
         try {
           sessionStorage.setItem('adaptiveJumpExamId', item.examId);
@@ -224,22 +251,12 @@ export default function AdaptiveRecommendations(_props: AdaptiveRecommendationsP
       setLocation(item.navigatePath);
       return;
     }
-    const url = item.fileUrl;
-    if (!url) return;
 
-    const fullUrl = resolveFileUrl(url);
-    const isPdf =
-      item.displayType?.toLowerCase() === 'pdf' ||
-      fullUrl.toLowerCase().includes('.pdf') ||
-      mode === 'preview';
-
-    if (isPdf) {
-      setPreviewItem({ ...item, fileUrl: fullUrl });
-      return;
-    }
-
-    if (item.displayType?.toLowerCase() === 'video' || fullUrl.includes('youtube') || fullUrl.includes('youtu.be')) {
-      window.open(fullUrl, '_blank', 'noopener,noreferrer');
+    if (!fullUrl) {
+      // Video/library row with no playable URL — stay put rather than leaving the dashboard.
+      if (item.navigatePath && !video) {
+        setLocation(item.navigatePath);
+      }
       return;
     }
 
@@ -489,35 +506,87 @@ export default function AdaptiveRecommendations(_props: AdaptiveRecommendationsP
       </Card>
 
       <Dialog open={Boolean(previewItem)} onOpenChange={(open) => !open && setPreviewItem(null)}>
-        <DialogContent className="w-[min(96vw,860px)] max-w-[860px] h-[min(96dvh,1120px)] max-h-[96dvh] flex flex-col overflow-hidden p-4 sm:p-6">
+        <DialogContent
+          className={
+            previewItem && isVideoItem(previewItem, previewItem.fileUrl || '')
+              ? 'flex max-h-[94vh] w-[min(96vw,1100px)] max-w-[1100px] flex-col overflow-hidden border-slate-800 bg-[#071318] p-0 text-white shadow-2xl sm:rounded-2xl'
+              : 'flex h-[min(96dvh,1120px)] max-h-[96dvh] w-[min(96vw,860px)] max-w-[860px] flex-col overflow-hidden p-4 sm:p-6'
+          }
+        >
           {previewItem ? (
-            <>
-              <DialogHeader className="shrink-0">
-                <DialogTitle className="text-base sm:text-lg pr-6">{previewItem.title}</DialogTitle>
-                <DialogDescription className="text-xs sm:text-sm">
-                  Read like a book — scroll pages vertically. Pinch on the page to zoom. Double-tap to reset.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="flex min-h-0 flex-1 touch-manipulation flex-col overflow-hidden rounded-lg border bg-stone-100">
-                {previewItem.displayType?.toLowerCase() === 'pdf' ||
-                previewItem.fileUrl?.toLowerCase().includes('.pdf') ? (
-                  <PdfPreviewPanel
-                    fileUrl={previewItem.fileUrl || ''}
-                    title={previewItem.title}
-                    className="h-full min-h-0 w-full flex-1"
-                    variant="book"
-                  />
-                ) : previewItem.displayType?.toLowerCase() === 'video' ? (
-                  <video src={previewItem.fileUrl} controls className="h-full w-full" />
-                ) : (
-                  <iframe
-                    title={previewItem.title}
-                    src={previewItem.fileUrl}
-                    className="h-full w-full border-0"
-                  />
-                )}
-              </div>
-            </>
+            isVideoItem(previewItem, previewItem.fileUrl || '') ? (
+              <>
+                <DialogHeader className="shrink-0 border-b border-white/10 px-5 py-4 pr-12 text-left sm:px-6">
+                  <DialogDescription className="mb-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-teal-300">
+                    Now playing
+                  </DialogDescription>
+                  <DialogTitle className="text-base text-white sm:text-lg">
+                    {previewItem.title}
+                  </DialogTitle>
+                </DialogHeader>
+                <div className="min-h-0 flex-1 overflow-hidden bg-black">
+                  {(() => {
+                    const src = previewItem.fileUrl || '';
+                    const yt = youtubeEmbedSrc(src);
+                    if (yt) {
+                      return (
+                        <div className="relative mx-auto aspect-video w-full max-h-[70vh] bg-black">
+                          <iframe
+                            title={previewItem.title}
+                            src={yt}
+                            className="absolute inset-0 h-full w-full border-0"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                            allowFullScreen
+                          />
+                        </div>
+                      );
+                    }
+                    return (
+                      <video
+                        key={src}
+                        src={src}
+                        controls
+                        autoPlay
+                        playsInline
+                        preload="metadata"
+                        className="mx-auto block w-full bg-black object-contain"
+                        style={{ aspectRatio: '16 / 9', minHeight: 240, maxHeight: '70vh' }}
+                      >
+                        <track kind="captions" />
+                        Your browser does not support embedded video.
+                      </video>
+                    );
+                  })()}
+                </div>
+              </>
+            ) : (
+              <>
+                <DialogHeader className="shrink-0">
+                  <DialogTitle className="pr-6 text-base sm:text-lg">{previewItem.title}</DialogTitle>
+                  <DialogDescription className="text-xs sm:text-sm">
+                    Read like a book — scroll pages vertically. Pinch on the page to zoom. Double-tap to
+                    reset.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="flex min-h-0 flex-1 touch-manipulation flex-col overflow-hidden rounded-lg border bg-stone-100">
+                  {previewItem.displayType?.toLowerCase() === 'pdf' ||
+                  previewItem.fileUrl?.toLowerCase().includes('.pdf') ? (
+                    <PdfPreviewPanel
+                      fileUrl={previewItem.fileUrl || ''}
+                      title={previewItem.title}
+                      className="h-full min-h-0 w-full flex-1"
+                      variant="book"
+                    />
+                  ) : (
+                    <iframe
+                      title={previewItem.title}
+                      src={previewItem.fileUrl}
+                      className="h-full w-full border-0"
+                    />
+                  )}
+                </div>
+              </>
+            )
           ) : null}
         </DialogContent>
       </Dialog>

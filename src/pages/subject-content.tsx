@@ -27,7 +27,6 @@ import {
   X,
 } from 'lucide-react';
 import StudentShell from "@/components/layout/StudentShell";
-import StudentPageLoader from '@/components/student/StudentPageLoader';
 import { filterVideosForLearningPath } from '@/lib/school-program';
 import VideoModal from '@/components/video-modal';
 import CalendarView from '@/components/student/calendar-view';
@@ -358,7 +357,22 @@ export default function SubjectContent() {
   };
 
   if (loading) {
-    return <StudentPageLoader message="Loading subject content..." />;
+    return (
+      <StudentShell>
+        <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+          <div className="mb-6 h-10 w-48 animate-pulse rounded-xl bg-slate-200/80" />
+          <div className="mb-8 h-28 animate-pulse rounded-2xl bg-slate-200/70" />
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="h-36 animate-pulse rounded-2xl bg-slate-200/60" />
+            ))}
+          </div>
+          <p className="sr-only" role="status" aria-live="polite">
+            Loading subject content
+          </p>
+        </div>
+      </StudentShell>
+    );
   }
 
   if (!subject) {
