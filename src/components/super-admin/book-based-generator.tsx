@@ -1079,31 +1079,33 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
                 </SelectContent>
               </Select>
             </div>
+            {isIitBoardSelected ? (
+              <div className="space-y-1">
+                <Label className="text-xs">IIT track</Label>
+                <Select
+                  value={productCategory || "__general__"}
+                  onValueChange={handleCategoryChange}
+                  disabled={!board}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder={!board ? "Board first" : "General"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categorySelectOptions.map((c) => (
+                      <SelectItem key={c.code || "__general__"} value={c.code || "__general__"}>
+                        {c.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            ) : null}
             <div className="space-y-1">
               <Label className="text-xs">Class</Label>
               <Select value={classNumber} onValueChange={handleClassChange} disabled={!board || loadingClasses}>
                 <SelectTrigger><SelectValue placeholder={!board ? "Board first" : loadingClasses ? "Loading…" : "Class"} /></SelectTrigger>
                 <SelectContent>
                   {classOptionsForSelectWithBook.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs">IIT track</Label>
-              <Select
-                value={productCategory || "__general__"}
-                onValueChange={handleCategoryChange}
-                disabled={!board}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder={!board ? "Board first" : "General"} />
-                </SelectTrigger>
-                <SelectContent>
-                  {categorySelectOptions.map((c) => (
-                    <SelectItem key={c.code || "__general__"} value={c.code || "__general__"}>
-                      {c.label}
-                    </SelectItem>
-                  ))}
                 </SelectContent>
               </Select>
             </div>

@@ -293,7 +293,6 @@ export default function TeacherToolPage() {
     return {
       ...config,
       fields: [
-        ...config.fields.slice(0, 2),
         {
           name: 'productCategory',
           label: 'IIT Track (Optional)',
@@ -302,7 +301,7 @@ export default function TeacherToolPage() {
           options: ['NONE', ...schoolIitCategories],
           placeholder: 'General',
         },
-        ...config.fields.slice(2),
+        ...config.fields,
       ],
     };
   }, [config, schoolIitCategories, selectedBoard]);

@@ -103,6 +103,15 @@ export function expandIitCategoriesByClass(opts: {
   return map;
 }
 
+/** True for IIT / NEET / JEE style boards where Alpha–Delta tracks apply. */
+export function isIitStyleBoard(board?: string | null): boolean {
+  const compact = String(board || '')
+    .toUpperCase()
+    .replace(/[\s/\\-]+/g, '');
+  if (!compact) return false;
+  return compact.includes('IIT') || compact.includes('NEET') || compact.includes('JEE');
+}
+
 export function formatIitCategoryLabel(value?: string | null, labelMap?: Record<string, string>): string {
   const c = normalizeIitCategory(value);
   if (!c) return 'General';

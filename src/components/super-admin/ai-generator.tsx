@@ -29,7 +29,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useConfirm } from "@/hooks/use-confirm";
 import { useCurriculumCascade } from "@/hooks/use-curriculum-cascade";
 import { useProductCategories } from "@/hooks/use-product-categories";
-import { formatIitCategoryLabel, normalizeIitCategory } from "@/lib/products";
+import { formatIitCategoryLabel, isIitStyleBoard, normalizeIitCategory } from "@/lib/products";
 import { GeneratedRecordBody } from "@/components/super-admin/generated-record-body";
 import { AiToolRecordPreviewBody } from "@/components/super-admin/ai-tool-record-preview-body";
 import {
@@ -1177,28 +1177,30 @@ export default function SuperAdminAiGenerator() {
               </SelectContent>
             </Select>
           </div>
-          <div className="space-y-1">
-            <Label className="text-xs">IIT track</Label>
-            <Select
-              value={productCategory || "__general__"}
-              onValueChange={handleCategoryChange}
-              disabled={!board}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder={!board ? "Board first" : "General"} />
-              </SelectTrigger>
-              <SelectContent>
-                {categoryOptions.map((c) => (
-                  <SelectItem key={c.code || "__general__"} value={c.code || "__general__"}>
-                    {c.label || "General"}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <p className="mt-1 text-[11px] text-muted-foreground">
-              Alpha–Delta must match school track.
-            </p>
-          </div>
+          {isIitStyleBoard(board) ? (
+            <div className="space-y-1">
+              <Label className="text-xs">IIT track</Label>
+              <Select
+                value={productCategory || "__general__"}
+                onValueChange={handleCategoryChange}
+                disabled={!board}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={!board ? "Board first" : "General"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {categoryOptions.map((c) => (
+                    <SelectItem key={c.code || "__general__"} value={c.code || "__general__"}>
+                      {c.label || "General"}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="mt-1 text-[11px] text-muted-foreground">
+                Alpha–Delta must match school track.
+              </p>
+            </div>
+          ) : null}
           <div className="space-y-1">
             <Label className="text-xs">Class</Label>
             <Select value={classNumber} onValueChange={handleClassChange} disabled={!board || loadingClasses}>

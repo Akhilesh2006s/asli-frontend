@@ -29,7 +29,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useConfirm } from "@/hooks/use-confirm";
 import { useCurriculumCascade } from "@/hooks/use-curriculum-cascade";
 import { cn } from "@/lib/utils";
-import { formatIitCategoryLabel, normalizeIitCategory } from "@/lib/products";
+import { formatIitCategoryLabel, isIitStyleBoard, normalizeIitCategory } from "@/lib/products";
 import { useProductCategories } from "@/hooks/use-product-categories";
 
 type BookRow = {
@@ -228,6 +228,7 @@ export default function BookKnowledgeBase() {
   const handleBoardChange = (value: string) => {
     setBoard(value);
     clearFieldError("board");
+    setProductCategory("");
     setClassLabel("");
     setSubject("");
     setTopic("");
@@ -707,6 +708,41 @@ export default function BookKnowledgeBase() {
             </Select>
             {fieldErrors.board ? <p className="text-xs text-red-600">{fieldErrors.board}</p> : null}
           </div>
+          {isIitStyleBoard(board) ? (
+            <div className="space-y-2">
+              <Label>IIT track</Label>
+              <Select
+                value={productCategory || "NONE"}
+                onValueChange={(v) => {
+                  const next = v === "NONE" ? "" : v;
+                  setProductCategory(next);
+                  setClassLabel("");
+                  setSubject("");
+                  setTopic("");
+                  setSubTopic("");
+                  setFieldErrors((prev) => {
+                    const nextErrors = { ...prev };
+                    delete nextErrors.classLabel;
+                    delete nextErrors.subject;
+                    return nextErrors;
+                  });
+                }}
+                disabled={!board}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={!board ? "Select board first" : "General"} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="NONE">General (no IIT track)</SelectItem>
+                  {iitCategoryCodes.map((c) => (
+                    <SelectItem key={c} value={c}>
+                      IIT {formatIitCategoryLabel(c, iitLabelMap)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          ) : null}
           <div className="space-y-2">
             <Label>Class</Label>
             <Select value={classLabel} onValueChange={handleClassChange} disabled={!board || loadingClasses}>
@@ -721,37 +757,6 @@ export default function BookKnowledgeBase() {
               </SelectContent>
             </Select>
             {fieldErrors.classLabel ? <p className="text-xs text-red-600">{fieldErrors.classLabel}</p> : null}
-          </div>
-          <div className="space-y-2">
-            <Label>IIT product category (optional)</Label>
-            <Select
-              value={productCategory || "NONE"}
-              onValueChange={(v) => {
-                const next = v === "NONE" ? "" : v;
-                setProductCategory(next);
-                setSubject("");
-                setTopic("");
-                setSubTopic("");
-                setFieldErrors((prev) => {
-                  const nextErrors = { ...prev };
-                  delete nextErrors.subject;
-                  return nextErrors;
-                });
-              }}
-              disabled={!board}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder={!board ? "Select board first" : "General"} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="NONE">General (no IIT track)</SelectItem>
-                {iitCategoryCodes.map((c) => (
-                  <SelectItem key={c} value={c}>
-                    IIT {formatIitCategoryLabel(c, iitLabelMap)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
           </div>
           <div className="space-y-2">
             <Label>Subject</Label>
