@@ -143,6 +143,8 @@ function normalizeCorrectTexts(q: AdminPreviewQuestion): string[] {
     }
     const s = String(v).trim();
     if (!s) return '';
+    const byText = opts.find((o) => o.trim().toLowerCase() === s.toLowerCase());
+    if (byText) return byText.trim();
     if (/^[a-d]$/i.test(s) && opts.length) {
       const idx = s.toLowerCase().charCodeAt(0) - 97;
       return opts[idx] || s;

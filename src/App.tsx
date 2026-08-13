@@ -16,7 +16,6 @@ import {
   AdminRoute,
   SuperAdminRoute,
 } from "@/components/ProtectedRoute";
-import { BrandLoadingState } from "@/components/BrandLoadingState";
 
 const Dashboard = lazy(() => import("./pages/dashboard"));
 const LearningPaths = lazy(() => import("./pages/learning-paths"));
@@ -38,6 +37,7 @@ const TeacherToolPage = lazy(() => import("./pages/teacher/tools/[toolType]"));
 const StudentToolPage = lazy(() => import("./pages/student/tools/[toolType]"));
 const StudentExams = lazy(() => import("./pages/student-exams"));
 const StudentOmrResults = lazy(() => import("./pages/student-omr-results"));
+const StudentTimetable = lazy(() => import("./pages/student-timetable"));
 const AsliPrepContentPage = lazy(() => import("./pages/asli-prep-content"));
 const SubjectContent = lazy(() => import("./pages/subject-content"));
 const EduOTT = lazy(() => import("./pages/edu-ott"));
@@ -67,7 +67,18 @@ const Faq = lazy(() =>
 );
 
 function RouteLoadingState() {
-  return <BrandLoadingState />;
+  // Lightweight route chunk loader — avoid full-screen "Opening Your Workspace"
+  // on every sidebar click.
+  return (
+    <div
+      className="flex min-h-[40vh] items-center justify-center p-6"
+      role="status"
+      aria-live="polite"
+      aria-busy="true"
+    >
+      <div className="h-8 w-8 animate-spin rounded-full border-2 border-slate-300 border-t-sky-500" />
+    </div>
+  );
 }
 
 function EduOTTWithFilters() {
@@ -120,6 +131,7 @@ function Router() {
         <Route path="/tests" component={() => <Guarded Guard={StudentRoute} Page={PracticeTests} />} />
         <Route path="/student-exams" component={() => <Guarded Guard={StudentRoute} Page={StudentExams} />} />
         <Route path="/student/results" component={() => <Guarded Guard={StudentRoute} Page={StudentOmrResults} />} />
+        <Route path="/student/timetable" component={() => <Guarded Guard={StudentRoute} Page={StudentTimetable} />} />
         <Route path="/asli-prep-content" component={() => <Guarded Guard={StudentRoute} Page={AsliPrepContentPage} />} />
         <Route path="/edu-ott" component={() => <Guarded Guard={ProtectedRoute} Page={EduOTTWithFilters} />} />
         <Route path="/iq-rank-boost-subjects" component={() => <Guarded Guard={StudentRoute} Page={IQRankBoostSubjects} />} />

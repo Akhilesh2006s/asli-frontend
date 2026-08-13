@@ -47,6 +47,18 @@ type SchoolSnap = {
   keyObservation?: string;
   topSubjects?: Array<{ subject: string; sessions: number; pct: number }>;
   teachers?: Array<{ name: string; status: string; generationsCreated: number; email?: string }>;
+  studentReports?: Array<{
+    name?: string;
+    classNumber?: string;
+    accessed?: boolean;
+    sessions?: number;
+    minutes?: number;
+    examAttempts?: number;
+    aiDoubts?: number;
+    summary?: string;
+  }>;
+  activeStudentCount?: number;
+  totalStudents?: number;
 };
 
 type Mode = "weekly" | "custom";
@@ -155,10 +167,10 @@ export function SchoolImpactReportCard() {
           <div>
             <CardTitle className="text-base sm:text-lg flex items-center gap-2">
               <FileText className="h-5 w-5 text-orange-600" />
-              Personalized School Impact Report
+              Weekly School Impact Report
             </CardTitle>
             <p className="text-sm text-slate-600 mt-1">
-              {snap?.periodLabel || "Select a period"} · your school only
+              {snap?.periodLabel || "Select a period"} · teachers, students & PDF for your school
             </p>
           </div>
           <div className="flex gap-2">
@@ -277,6 +289,90 @@ export function SchoolImpactReportCard() {
                     {row.subject}: {row.pct}%
                   </Badge>
                 ))}
+              </div>
+            ) : null}
+
+            {Array.isArray(snap.teachers) && snap.teachers.length > 0 ? (
+              <div className="space-y-2">
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  Teachers ({snap.teachers.length})
+                </p>
+                <div className="max-h-48 overflow-y-auto rounded-xl border border-slate-200 bg-white divide-y">
+                  {snap.teachers.map((t, idx) => (
+                    <div
+                      key={`${t.email || t.name}-${idx}`}
+                      className="flex items-center justify-between gap-2 px-3 py-2 text-sm"
+                    >
+                      <div className="min-w-0">
+                        <p className="font-medium text-slate-900 truncate">{t.name || "Teacher"}</p>
+                        {t.email ? <p className="text-[11px] text-slate-500 truncate">{t.email}</p> : null}
+                      </div>
+                      <div className="shrink-0 text-right">
+                        <Badge
+                          variant="outline"
+                          className={
+                            t.status === "active"
+                              ? "border-emerald-200 text-emerald-700 bg-emerald-50"
+                              : t.status === "occasional"
+                                ? "border-amber-200 text-amber-700 bg-amber-50"
+                                : "border-slate-200 text-slate-600"
+                          }
+                        >
+                          {t.status || "—"}
+                        </Badge>
+                        <p className="text-[11px] text-slate-500 mt-0.5">
+                          {t.generationsCreated || 0} AI resource
+                          {(t.generationsCreated || 0) === 1 ? "" : "s"}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+
+            {Array.isArray(snap.studentReports) && snap.studentReports.length > 0 ? (
+              <div className="space-y-2">
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  Students ({snap.activeStudentCount ?? snap.studentReports.filter((s) => s.accessed).length}
+                  {" / "}
+                  {snap.totalStudents ?? snap.studentReports.length} active)
+                </p>
+                <div className="max-h-64 overflow-y-auto rounded-xl border border-slate-200 bg-white divide-y">
+                  {snap.studentReports.slice(0, 40).map((s, idx) => (
+                    <div
+                      key={`${s.name}-${idx}`}
+                      className="flex items-start justify-between gap-2 px-3 py-2 text-sm"
+                    >
+                      <div className="min-w-0">
+                        <p className="font-medium text-slate-900 truncate">
+                          {s.name || "Student"}
+                          {s.classNumber ? (
+                            <span className="ml-1.5 text-[11px] font-normal text-slate-500">
+                              Class {s.classNumber}
+                            </span>
+                          ) : null}
+                        </p>
+                        <p className="text-[11px] text-slate-500 line-clamp-2">
+                          {s.summary ||
+                            (s.accessed
+                              ? `${s.sessions || 0} sessions · ${s.minutes || 0} min`
+                              : "No activity this period")}
+                        </p>
+                      </div>
+                      <div className="shrink-0 text-right text-[11px] text-slate-600">
+                        <p>{s.accessed ? "Active" : "Inactive"}</p>
+                        <p>{s.examAttempts || 0} exams</p>
+                        <p>{s.aiDoubts || 0} AI</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                {snap.studentReports.length > 40 ? (
+                  <p className="text-xs text-slate-500">
+                    Showing first 40 — download PDF for the full school report.
+                  </p>
+                ) : null}
               </div>
             ) : null}
           </>

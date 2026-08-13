@@ -74,6 +74,11 @@ interface CalendarViewProps {
   completedItems?: string[];
   /** Plain subject name for IIT section labels (e.g. Biology → Biology IIT Alpha). */
   subjectName?: string;
+  /**
+   * Student-only: Assigned homework → upload file → submit.
+   * School admin / teacher should leave this false (view + download only).
+   */
+  allowHomeworkSubmit?: boolean;
 }
 
 export default function CalendarView({
@@ -82,6 +87,7 @@ export default function CalendarView({
   onMarkAsDone,
   completedItems = [],
   subjectName = '',
+  allowHomeworkSubmit = false,
 }: CalendarViewProps) {
   const { toast } = useToast();
   const [markedDone, setMarkedDone] = useState<Set<string>>(new Set(completedItems));
@@ -112,14 +118,14 @@ export default function CalendarView({
   };
 
   const handleContentClick = (content: ContentItem) => {
-    if (content.type === 'Homework') {
+    if (content.type === 'Homework' && allowHomeworkSubmit) {
       setSelectedHomework(content);
       setIsSubmissionOpen(true);
       fetchExistingSubmission(content._id);
-    } else {
-      setSelectedContent(content);
-      setIsPreviewOpen(true);
+      return;
     }
+    setSelectedContent(content);
+    setIsPreviewOpen(true);
   };
 
   const fetchExistingSubmission = async (homeworkId: string) => {
@@ -495,7 +501,25 @@ export default function CalendarView({
             )}
           </div>
         </div>
-        {onMarkAsDone && (
+        {content.type === 'Homework' && allowHomeworkSubmit ? (
+          <div className="flex items-center space-x-2 ml-2">
+            {isDone ? (
+              <Badge className="bg-green-100 text-green-700 text-xs">Submitted</Badge>
+            ) : (
+              <Button
+                size="sm"
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleContentClick(content);
+                }}
+              >
+                <Upload className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
+                Upload & submit
+              </Button>
+            )}
+          </div>
+        ) : onMarkAsDone ? (
           <div className="flex items-center space-x-2">
             {isDone ? (
               <Button
@@ -523,7 +547,7 @@ export default function CalendarView({
               </Button>
             )}
           </div>
-        )}
+        ) : null}
         {content.deadline && content.type === 'Homework' && (
           <Badge className="bg-orange-100 text-orange-700 text-xs ml-2">
             Deadline: {new Date(content.deadline).toLocaleDateString()}
@@ -602,8 +626,21 @@ export default function CalendarView({
         </DialogContent>
       </Dialog>
 
-      {/* Homework Submission Dialog */}
-      <Dialog open={isSubmissionOpen} onOpenChange={setIsSubmissionOpen}>
+      {/* Student-only: Assigned → Upload → Submit */}
+      {allowHomeworkSubmit && (
+      <Dialog
+        open={isSubmissionOpen}
+        onOpenChange={(open) => {
+          setIsSubmissionOpen(open);
+          if (!open) {
+            setSelectedHomework(null);
+            setSubmissionFile(null);
+            setSubmissionDescription('');
+            setSubmissionLink('');
+            setExistingSubmission(null);
+          }
+        }}
+      >
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-lg sm:text-xl font-semibold flex items-center gap-2">
@@ -611,27 +648,38 @@ export default function CalendarView({
               {selectedHomework?.title}
             </DialogTitle>
             <DialogDescription>
-              {selectedHomework?.description || 'Homework Assignment'}
+              Assigned homework → upload your file → submit
             </DialogDescription>
           </DialogHeader>
           
           {selectedHomework && (
             <div className="space-y-3 sm:space-y-4 lg:space-y-6">
-              {/* Reference File Section */}
+              <div className="flex flex-wrap gap-2 text-xs sm:text-sm">
+                <Badge className="bg-slate-100 text-slate-800 hover:bg-slate-100">1. Assigned</Badge>
+                <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">2. Upload</Badge>
+                <Badge className="bg-green-100 text-green-800 hover:bg-green-100">3. Submit</Badge>
+              </div>
+
+              {/* Step 1 — Assigned reference */}
               <div className="space-y-2">
-                <Label className="text-xs sm:text-sm font-semibold text-gray-700">Reference File</Label>
+                <Label className="text-xs sm:text-sm font-semibold text-gray-700">
+                  1. Assigned homework (reference)
+                </Label>
                 <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
-                      <div>
-                        <p className="font-medium text-gray-900">{selectedHomework.title}</p>
-                        <p className="text-xs sm:text-sm text-gray-500">Reference material</p>
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 shrink-0" />
+                      <div className="min-w-0">
+                        <p className="font-medium text-gray-900 truncate">{selectedHomework.title}</p>
+                        <p className="text-xs sm:text-sm text-gray-500">
+                          {selectedHomework.description || 'Download the assigned file, then upload your completed work'}
+                        </p>
                       </div>
                     </div>
                     <Button
                       variant="outline"
                       size="sm"
+                      className="shrink-0"
                       onClick={() => handleDownload(selectedHomework)}
                     >
                       <Download className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
@@ -641,7 +689,6 @@ export default function CalendarView({
                 </div>
               </div>
 
-              {/* Deadline */}
               {selectedHomework.deadline && (
                 <div className="p-3 bg-orange-50 border border-orange-200 rounded-lg">
                   <p className="text-xs sm:text-sm text-orange-800">
@@ -651,7 +698,6 @@ export default function CalendarView({
                 </div>
               )}
 
-              {/* Submission Status */}
               {existingSubmission && (
                 <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
                   <div className="flex items-center gap-2 text-green-800">
@@ -664,11 +710,10 @@ export default function CalendarView({
                 </div>
               )}
 
-              {/* Submission Form */}
               <div className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="submissionFile" className="text-xs sm:text-sm font-semibold text-gray-700">
-                    Upload Homework File <span className="text-red-500">*</span>
+                    2. Upload homework file <span className="text-red-500">*</span>
                   </Label>
                   <Input
                     id="submissionFile"
@@ -678,17 +723,17 @@ export default function CalendarView({
                     disabled={!!existingSubmission}
                   />
                   <p className="text-xs text-gray-500">
-                    Upload your completed homework file (PDF, DOC, images, etc.)
+                    Upload your completed homework (PDF, DOC, images, etc.)
                   </p>
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="submissionDescription" className="text-xs sm:text-sm font-semibold text-gray-700">
-                    Description (Optional)
+                    Notes (optional)
                   </Label>
                   <Textarea
                     id="submissionDescription"
-                    placeholder="Add any additional notes or comments about your submission..."
+                    placeholder="Add any notes about your submission..."
                     value={submissionDescription}
                     onChange={(e) => setSubmissionDescription(e.target.value)}
                     rows={4}
@@ -699,7 +744,7 @@ export default function CalendarView({
                 {existingSubmission && (
                   <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
                     <p className="text-xs sm:text-sm text-blue-800">
-                      <span className="font-semibold">Your Submission:</span>{' '}
+                      <span className="font-semibold">Your submission:</span>{' '}
                       <a
                         href={existingSubmission.submissionLink}
                         target="_blank"
@@ -711,7 +756,7 @@ export default function CalendarView({
                     </p>
                     {existingSubmission.description && (
                       <p className="text-xs sm:text-sm text-blue-700 mt-2">
-                        <span className="font-semibold">Description:</span>{' '}
+                        <span className="font-semibold">Notes:</span>{' '}
                         {existingSubmission.description}
                       </p>
                     )}
@@ -742,7 +787,7 @@ export default function CalendarView({
                       ) : (
                         <>
                           <Upload className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
-                          Submit & Mark as Done
+                          3. Submit homework
                         </>
                       )}
                     </Button>
@@ -753,6 +798,7 @@ export default function CalendarView({
           )}
         </DialogContent>
       </Dialog>
+      )}
     </div>
   );
 }

@@ -714,7 +714,7 @@ const TeacherDashboard = () => {
         const token = getAuthToken();
 
         // Fetch video content from Content model (filtered by teacher's assigned subjects and type=Video)
-        const response = await fetch(`${API_BASE_URL}/api/teacher/asli-prep-content?type=Video`, {
+        const response = await fetch(`${API_BASE_URL}/api/teacher/asli-prep-content?type=Video&surface=eduott`, {
           headers: {
             ...(token ? { Authorization: `Bearer ${token}` } : {}),
             'Content-Type': 'application/json',

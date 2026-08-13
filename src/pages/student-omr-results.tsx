@@ -164,7 +164,7 @@ export default function StudentOmrResultsPage() {
               <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-orange-100 text-orange-700">
                 <ScanLine className="h-5 w-5" aria-hidden />
               </span>
-              OMR Results
+              Offline Results
             </h1>
             <p className="mt-1 text-sm text-slate-600">
               Sheet scores from your school
@@ -197,9 +197,9 @@ export default function StudentOmrResultsPage() {
         ) : !selected ? (
           <div className="rounded-2xl border border-dashed border-orange-200 bg-orange-50/40 px-6 py-10 text-center">
             <ScanLine className="mx-auto mb-2 h-10 w-10 text-orange-300" />
-            <p className="font-semibold text-slate-800">No OMR results yet</p>
+            <p className="font-semibold text-slate-800">No Offline Results Yet</p>
             <p className="mx-auto mt-1 max-w-md text-sm text-slate-500">
-              When your school uploads an OMR score sheet and links your Candidate ID, scores show up
+              When your school uploads an Offline Score Sheet and links your Candidate ID, scores show up
               here.
             </p>
           </div>
@@ -219,7 +219,7 @@ export default function StudentOmrResultsPage() {
                     id="omr-exam-filter"
                     className="h-10 flex-1 rounded-xl border-slate-200 bg-white"
                   >
-                    <SelectValue placeholder="Choose an OMR exam" />
+                    <SelectValue placeholder="Choose an Offline Exam" />
                   </SelectTrigger>
                   <SelectContent>
                     {history.map((h) => (
@@ -275,7 +275,7 @@ export default function StudentOmrResultsPage() {
                       Overall score
                     </p>
                     <h2 className="mt-0.5 text-lg font-bold leading-snug text-slate-900 sm:text-xl">
-                      {selected.testTitle || 'OMR test'}
+                      {selected.testTitle || 'Offline Test'}
                     </h2>
                     <div className="mt-1.5 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-xs text-slate-500 sm:justify-start">
                       {formatTestDate(selected.testDate) ? (
@@ -389,7 +389,7 @@ export default function StudentOmrResultsPage() {
 
             {history.length > 1 ? (
               <div>
-                <h3 className="mb-2 text-sm font-semibold text-slate-800">All OMR tests</h3>
+                <h3 className="mb-2 text-sm font-semibold text-slate-800">All Offline Tests</h3>
                 <div className="divide-y divide-slate-100 overflow-hidden rounded-xl border border-slate-200 bg-white">
                   {history.map((h) => {
                     const active = h._id === selected._id;

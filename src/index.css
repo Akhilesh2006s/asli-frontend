@@ -53,7 +53,7 @@
 
   /* App shell — light throughout; content sits on a soft grey field */
   --shell-backdrop: #ffffff;
-  --shell-surface: #f7f8fc;
+  --shell-surface: #f4f8fc;
   --shell-radius: 1.5rem;
   --shell-topbar: #ffffff;
   --shell-rail-w: 16rem;
@@ -254,6 +254,26 @@
 
   #root {
     min-height: 100%;
+    /* Product-wide: first letter of every word capitalized in UI copy. */
+    text-transform: capitalize;
+  }
+
+  /* Keep typed / long-form / code content in natural sentence case. */
+  #root :is(
+    input,
+    textarea,
+    select,
+    option,
+    [contenteditable='true'],
+    pre,
+    code,
+    kbd,
+    samp,
+    .normal-case,
+    [data-no-title-case],
+    [data-no-title-case] *
+  ) {
+    text-transform: none !important;
   }
 
   h1, h2, h3, h4, .font-display {
@@ -307,6 +327,14 @@
 }
 
 /* ── Layered app surface ── */
+.student-school-surface {
+  background:
+    radial-gradient(ellipse 75% 45% at 8% -5%, rgba(14, 165, 233, 0.09), transparent 55%),
+    radial-gradient(ellipse 60% 40% at 98% 0%, rgba(249, 115, 22, 0.07), transparent 52%),
+    radial-gradient(ellipse 50% 35% at 70% 100%, rgba(20, 184, 166, 0.07), transparent 55%),
+    linear-gradient(180deg, #f7fbff 0%, #f4f8fc 45%, #f8fafc 100%);
+}
+
 .asli-app-bg {
   position: relative;
   isolation: isolate;
@@ -535,8 +563,54 @@
   50% { box-shadow: 0 0 28px 4px rgba(20, 184, 166, 0.25); }
 }
 
+@keyframes quizCardIn {
+  from { opacity: 0; transform: translateY(10px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes quizShimmer {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
 .animate-fade-rise {
   animation: fadeRise 0.7s ease-out both;
+}
+
+.quiz-panel-shell {
+  background:
+    linear-gradient(160deg, rgba(255, 255, 255, 0.96) 0%, rgba(240, 253, 250, 0.95) 45%, rgba(224, 242, 254, 0.9) 100%);
+  border: 1px solid rgba(125, 211, 252, 0.45);
+  box-shadow: 0 10px 30px -18px rgba(14, 165, 233, 0.45);
+}
+
+.quiz-panel-item {
+  animation: quizCardIn 0.45s ease-out both;
+  transition:
+    transform 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.28s ease,
+    border-color 0.28s ease,
+    background 0.28s ease;
+}
+
+.quiz-panel-item:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 14px 28px -16px rgba(14, 165, 233, 0.55);
+}
+
+.quiz-panel-item-actions {
+  transition:
+    max-height 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.28s ease,
+    transform 0.28s ease,
+    margin-top 0.28s ease;
+}
+
+.quiz-panel-score-bar {
+  background: linear-gradient(90deg, #99f6e4, #7dd3fc, #bae6fd, #99f6e4);
+  background-size: 200% 100%;
+  animation: quizShimmer 3.2s ease infinite;
 }
 
 .homepage-reveal {
@@ -793,10 +867,10 @@ body.dashboard-no-scrollbar::-webkit-scrollbar {
   background: transparent;
 }
 
-/* Super Admin sidebar — thin, soft scrollbar */
+/* Super Admin sidebar — thin, soft scrollbar (light theme) */
 .super-admin-sidebar-nav {
   scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+  scrollbar-color: rgba(100, 116, 139, 0.25) transparent;
 }
 
 .super-admin-sidebar-nav::-webkit-scrollbar {
@@ -808,12 +882,12 @@ body.dashboard-no-scrollbar::-webkit-scrollbar {
 }
 
 .super-admin-sidebar-nav::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(100, 116, 139, 0.25);
   border-radius: 999px;
 }
 
 .super-admin-sidebar-nav::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.4);
+  background: rgba(100, 116, 139, 0.45);
 }
 
 .super-admin-sidebar-nav::-webkit-scrollbar-button {

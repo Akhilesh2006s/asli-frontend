@@ -259,27 +259,42 @@ function PdfMobilePage({
 
   useEffect(() => {
     if (!layoutReady || renderedRef.current) return;
-    const canvas = canvasRef.current;
-    if (!canvas) return;
 
     let cancelled = false;
-    void (async () => {
-      const result = await renderPdfPageCanvas(
-        pdf,
-        pageNum,
-        containerWidth,
-        canvas,
-        maxPageHeight,
-      );
-      if (cancelled || !result) return;
-      renderedRef.current = true;
-      setDims({ w: result.cssWidth, h: result.cssHeight });
-    })();
+    let attempts = 0;
+
+    const paint = () => {
+      if (cancelled || renderedRef.current) return;
+      const canvas = canvasRef.current;
+      if (!canvas) {
+        // Canvas mounts one frame after layoutReady — retry briefly.
+        if (attempts < 20) {
+          attempts += 1;
+          window.requestAnimationFrame(paint);
+        }
+        return;
+      }
+
+      void (async () => {
+        const result = await renderPdfPageCanvas(
+          pdf,
+          pageNum,
+          containerWidth,
+          canvas,
+          maxPageHeight,
+        );
+        if (cancelled || !result) return;
+        renderedRef.current = true;
+        setDims({ w: result.cssWidth, h: result.cssHeight });
+      })();
+    };
+
+    paint();
 
     return () => {
       cancelled = true;
     };
-  }, [layoutReady, pdf, pageNum, layoutKey, maxPageHeight]);
+  }, [layoutReady, pdf, pageNum, layoutKey, maxPageHeight, containerWidth]);
 
   const slotStyle =
     fillViewport && viewportHeight > 0
@@ -301,7 +316,7 @@ function PdfMobilePage({
           pageHeight={baseHeight}
           onZoomChange={handlePageZoom}
         >
-          {() => <PdfPageCanvas canvasRef={canvasRef} />}
+          <PdfPageCanvas canvasRef={canvasRef} />
         </PdfPagePinchFrame>
       ) : (
         <div

@@ -1,17 +1,15 @@
 import { useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { CalendarDays } from 'lucide-react';
+import { CalendarDays, ImageOff } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { useTimetableEntries } from '@/hooks/useTimetable';
-import type { TimetableEntry } from '@/types/timetable';
-import { WeeklyTimetableGrid } from '@/components/timetable/WeeklyTimetableGrid';
-import { buildWeekdayPlacements, sanitizeTimetableEntries } from '@/lib/student-timetable-utils';
+import {
+  resolveTimetablePhotoUrl,
+  useTimetablePhoto,
+} from '@/hooks/useTimetable';
 
 type Props = {
-  entries?: TimetableEntry[];
+  entries?: unknown;
   isLoading?: boolean;
-  /** School label above "Class Timetable" (from admin / student profile) */
   schoolName?: string;
 };
 
@@ -25,83 +23,77 @@ function resolveSchoolLabel(explicit?: string): string {
       schoolName?: string;
       assignedAdmin?: { schoolName?: string };
     };
-    return (
-      String(stored?.assignedAdmin?.schoolName || stored?.schoolName || '').trim()
-    );
+    return String(stored?.assignedAdmin?.schoolName || stored?.schoolName || '').trim();
   } catch {
     return '';
   }
 }
 
 export default function StudentTimetableView({
-  entries: entriesProp,
   isLoading: isLoadingProp,
   schoolName: schoolNameProp,
 }: Props) {
-  const { data: fetchedEntries = [], isLoading: fetchLoading } = useTimetableEntries(
-    {},
-    { enabled: !entriesProp }
-  );
-
-  const rawEntries = entriesProp ?? fetchedEntries;
-  const isLoading = isLoadingProp ?? (entriesProp ? false : fetchLoading);
-
-  const safeEntries = useMemo(() => sanitizeTimetableEntries(rawEntries), [rawEntries]);
-  const placements = useMemo(() => buildWeekdayPlacements(safeEntries), [safeEntries]);
-  const sessionCount = placements.length;
+  const { data: photo, isLoading: fetchLoading } = useTimetablePhoto(undefined, {
+    enabled: true,
+  });
+  const isLoading = isLoadingProp ?? fetchLoading;
   const schoolLabel = useMemo(() => resolveSchoolLabel(schoolNameProp), [schoolNameProp]);
+  const imageUrl = resolveTimetablePhotoUrl(photo?.imageUrl);
 
   return (
     <div className="space-y-4">
-      <Card className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-        <CardHeader className="pb-4 border-b bg-gradient-to-r from-sky-50 via-white to-indigo-50">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="w-11 h-11 rounded-xl bg-gradient-to-br from-sky-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-200/50"
-              >
-                <CalendarDays className="w-6 h-6 text-white" />
-              </motion.div>
-              <div>
-                {schoolLabel ? (
-                  <p className="text-micro sm:text-xs font-semibold text-indigo-600 tracking-wide truncate max-w-[220px] sm:max-w-md">
-                    {schoolLabel}
-                  </p>
-                ) : null}
-                <CardTitle className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight">
-                  Class Timetable
-                </CardTitle>
-                <p className="text-xs sm:text-sm text-gray-600 mt-0.5">
-                  Monday – Saturday · same schedule every week
+      <Card className="overflow-hidden rounded-2xl border border-sky-100 bg-white shadow-sm">
+        <CardHeader className="border-b bg-gradient-to-r from-sky-50 via-white to-teal-50 pb-4">
+          <div className="flex items-center gap-3">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-sky-500 to-teal-500 shadow-lg shadow-sky-200/50"
+            >
+              <CalendarDays className="h-6 w-6 text-white" />
+            </motion.div>
+            <div>
+              {schoolLabel ? (
+                <p className="max-w-[220px] truncate text-micro font-semibold tracking-wide text-sky-700 sm:max-w-md sm:text-xs">
+                  {schoolLabel}
                 </p>
-              </div>
+              ) : null}
+              <CardTitle className="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">
+                Class Timetable
+                {photo?.label ? (
+                  <span className="ml-2 text-base font-semibold text-sky-600 sm:text-lg">
+                    · {photo.label}
+                  </span>
+                ) : null}
+              </CardTitle>
+              <p className="mt-0.5 text-xs text-slate-600 sm:text-sm">
+                Photo uploaded by your school · pinch / zoom to read
+              </p>
             </div>
-
-            <Badge className="bg-indigo-100 text-indigo-800 border-indigo-200 px-3 py-1 text-sm font-semibold">
-              {sessionCount} {sessionCount === 1 ? 'session' : 'sessions'}
-            </Badge>
           </div>
         </CardHeader>
-      </Card>
-
-      <Card className="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden">
-        <CardContent className="p-0">
+        <CardContent className="p-3 sm:p-4">
           {isLoading ? (
-            <div className="p-6 space-y-3">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className="h-14 bg-gray-100 animate-pulse rounded-xl" />
-              ))}
-            </div>
+            <div className="h-56 animate-pulse rounded-xl bg-sky-50" />
+          ) : imageUrl ? (
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="overflow-hidden rounded-xl border border-sky-100 bg-slate-50"
+            >
+              <img
+                src={imageUrl}
+                alt={photo?.label ? `${photo.label} timetable` : 'Class timetable'}
+                className="mx-auto max-h-[min(75vh,900px)] w-full object-contain"
+              />
+            </motion.div>
           ) : (
-            <div className="p-3 sm:p-4">
-              {sessionCount === 0 && (
-                <p className="text-center text-xs text-gray-500 mb-3 pb-2 border-b border-dashed border-gray-200">
-                  No classes in your weekly timetable yet.
-                </p>
-              )}
-              <WeeklyTimetableGrid entries={safeEntries} variant="student" />
+            <div className="flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-sky-200 bg-sky-50/50 px-4 py-12 text-center">
+              <ImageOff className="h-8 w-8 text-sky-300" />
+              <p className="text-sm font-medium text-slate-700">No timetable photo yet</p>
+              <p className="text-xs text-slate-500">
+                Ask your school admin or teacher to upload the class timetable photo.
+              </p>
             </div>
           )}
         </CardContent>

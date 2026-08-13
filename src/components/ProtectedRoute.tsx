@@ -21,29 +21,34 @@ type ProtectedRouteProps = {
   loginPath?: string;
 };
 
+function cachedAccessOk(roles?: Role[]): boolean {
+  if (!isAuthenticated() && !getAuthToken()) return false;
+  const user = getUser();
+  if (!user) return false;
+  if (!roles || roles.length === 0) return true;
+  const role = String(user.role || "").toLowerCase() as Role;
+  return roles.includes(role);
+}
+
 /**
  * Client route guard: verifies identity via /api/auth/me (cookie or Bearer).
+ * If a valid session is already cached, render children immediately and
+ * re-check in the background — no full-screen "Opening workspace" on every click.
  */
 export function ProtectedRoute({
   children,
   roles,
   loginPath = "/signin",
 }: ProtectedRouteProps) {
-  const [state, setState] = useState<"loading" | "ok" | "deny">("loading");
+  const [state, setState] = useState<"loading" | "ok" | "deny">(() =>
+    cachedAccessOk(roles) ? "ok" : "loading"
+  );
 
   useEffect(() => {
     let cancelled = false;
 
-    /**
-     * Re-check identity, not just on mount.
-     *
-     * Browsers restore pages from the back/forward cache without re-running
-     * effects, so pressing Forward after logging out brought back a fully
-     * rendered dashboard that was never re-authorised. Revalidating on bfcache
-     * restore — and when the tab regains focus, which catches a logout in
-     * another tab — closes that.
-     */
-    const run = async () => {
+    const run = async (opts?: { showLoader?: boolean }) => {
+      if (opts?.showLoader && !cancelled) setState("loading");
       try {
         const token = getAuthToken();
         const headers: Record<string, string> = {
@@ -72,24 +77,25 @@ export function ProtectedRoute({
         }
         if (!cancelled) setState("ok");
       } catch {
-        if (!cancelled) setState("deny");
+        if (!cancelled) {
+          // Keep existing UI if we already showed a cached session.
+          if (!cachedAccessOk(roles)) setState("deny");
+        }
       }
     };
 
-    run();
+    // First paint: only block the screen when we have no cached session.
+    void run({ showLoader: !cachedAccessOk(roles) });
 
-    // `persisted` means this page came back from the bfcache with its old DOM
-    // and state intact — the only moment the mount check is skipped. The stale
-    // dashboard is already on screen, so hide it while identity is re-checked.
     const onPageShow = (event: PageTransitionEvent) => {
       if (!event.persisted || cancelled) return;
-      setState("loading");
-      void run();
+      // bfcache restore can show a stale logged-in page after logout elsewhere.
+      void run({ showLoader: true });
     };
-    // Re-check quietly on tab focus (catches a logout in another tab) without
-    // flashing the loading screen every time someone switches tabs.
     const onVisibility = () => {
-      if (document.visibilityState === "visible" && !cancelled) void run();
+      if (document.visibilityState === "visible" && !cancelled) {
+        void run({ showLoader: false });
+      }
     };
 
     window.addEventListener("pageshow", onPageShow);
@@ -105,8 +111,8 @@ export function ProtectedRoute({
   if (state === "loading") {
     return (
       <BrandLoadingState
-        title="Opening Your Workspace"
-        subtitle="Checking your access and preparing your dashboard."
+        title="Loading"
+        subtitle="Just a moment…"
       />
     );
   }

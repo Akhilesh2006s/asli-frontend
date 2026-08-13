@@ -99,6 +99,7 @@ export default function AdminEduOTT() {
   const [selectedVideo, setSelectedVideo] = useState<EduOTTVideoCardItem | null>(null);
   const [selectedLiveSession, setSelectedLiveSession] = useState<LiveSession | null>(null);
   const [filterStatus, setFilterStatus] = useState<string>('all');
+  const [videosEmptyMessage, setVideosEmptyMessage] = useState('');
 
   useEffect(() => {
     setVideoSubjectFilter('all');
@@ -128,7 +129,9 @@ export default function AdminEduOTT() {
         if (response.ok) {
           const data = await response.json();
           const videosList = data.data || data || [];
-          
+          setVideosEmptyMessage(
+            !videosList.length && data?.message ? String(data.message) : '',
+          );
           const videosWithSubjects = videosList.map((content: any) => {
             const subjectName = content.subject?.name || content.subject || 'Unknown Subject';
             const subjectId = content.subject?._id || content.subject;
@@ -453,8 +456,9 @@ export default function AdminEduOTT() {
                 <CardContent className="py-16 text-center">
                   <VideoIcon className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                   <h3 className="text-base sm:text-lg font-semibold text-gray-600 mb-2">No IIT videos yet</h3>
-                  <p className="text-gray-500">
-                    EduOTT shows IIT Exclusive track videos only. Enable IIT EduOTT on the school and upload IIT videos under the IIT board / Alpha–Beta–Gamma tracks.
+                  <p className="text-gray-500 max-w-xl mx-auto">
+                    {videosEmptyMessage ||
+                      'EduOTT shows IIT Exclusive track videos only. Enable Asli Prep + IIT EduOTT (Alpha/Beta/Gamma) on the school, then open EduOTT — IIT videos are not listed inside Learning Paths.'}
                   </p>
                 </CardContent>
               </Card>

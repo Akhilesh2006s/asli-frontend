@@ -136,8 +136,10 @@ function ImpactDatePicker({
   const selected = parseYmd(value);
 
   return (
-    <div className="space-y-1">
-      <Label htmlFor={id}>{label}</Label>
+    <div className="flex min-w-0 w-full flex-col gap-1.5">
+      <Label htmlFor={id} className="text-sm font-medium text-slate-600">
+        {label}
+      </Label>
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <Button
@@ -145,12 +147,12 @@ function ImpactDatePicker({
             type="button"
             variant="outline"
             className={cn(
-              "h-10 min-w-[180px] justify-start rounded-xl border-slate-200 bg-white px-3 text-left font-normal",
+              "h-10 w-full justify-start gap-2 rounded-xl border-slate-200 bg-white px-3 text-left font-normal shadow-none",
               !value && "text-slate-400",
             )}
           >
-            <CalendarDays className="mr-2 h-4 w-4 shrink-0 text-orange-600" />
-            {formatDisplayDate(value)}
+            <CalendarDays className="h-4 w-4 shrink-0 text-orange-600" />
+            <span className="min-w-0 truncate">{formatDisplayDate(value)}</span>
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-auto p-0" align="start">
@@ -362,12 +364,12 @@ export function ImpactReportsPanel() {
   };
 
   return (
-    <Card className="border-orange-100 shadow-sm">
+    <Card className="border-orange-100 shadow-sm min-w-0 overflow-hidden">
       <CardHeader className="pb-2">
         <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
+          <div className="min-w-0">
             <CardTitle className="text-base sm:text-lg flex items-center gap-2">
-              <FileText className="h-5 w-5 text-orange-600" />
+              <FileText className="h-5 w-5 shrink-0 text-orange-600" />
               Weekly School Impact Reports
             </CardTitle>
             <p className="text-sm text-slate-600 mt-1">
@@ -392,8 +394,8 @@ export function ImpactReportsPanel() {
           </div>
         </div>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-3 space-y-3">
+      <CardContent className="min-w-0 space-y-4 overflow-x-hidden">
+        <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-3 space-y-3 min-w-0">
           <div className="flex flex-wrap gap-2">
             <Button
               type="button"
@@ -414,45 +416,55 @@ export function ImpactReportsPanel() {
           </div>
 
           {mode === "weekly" ? (
-            <div className="flex flex-wrap items-end gap-3">
-              <ImpactDatePicker
-                id="impact-week"
-                label="Week of (any day in that week)"
-                value={weekStart}
-                onChange={setWeekStart}
-              />
-              <div className="flex gap-1">
-                <Button type="button" size="sm" variant="outline" onClick={() => shiftWeek(-1)}>
-                  <ChevronLeft className="h-4 w-4" />
-                  Prev week
-                </Button>
-                <Button type="button" size="sm" variant="outline" onClick={() => shiftWeek(1)}>
-                  Next week
-                  <ChevronRight className="h-4 w-4" />
+            <div className="space-y-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-end">
+                <ImpactDatePicker
+                  id="impact-week"
+                  label="Week of (any day in that week)"
+                  value={weekStart}
+                  onChange={setWeekStart}
+                />
+                <div className="flex flex-wrap gap-1">
+                  <Button type="button" size="sm" variant="outline" onClick={() => shiftWeek(-1)}>
+                    <ChevronLeft className="h-4 w-4" />
+                    Prev week
+                  </Button>
+                  <Button type="button" size="sm" variant="outline" onClick={() => shiftWeek(1)}>
+                    Next week
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+                <Button type="button" size="sm" className="w-full sm:w-auto" onClick={() => void load(true)} disabled={loading}>
+                  Apply week
                 </Button>
               </div>
-              <Button type="button" size="sm" onClick={() => void load(true)} disabled={loading}>
-                Apply week
-              </Button>
             </div>
           ) : (
-            <div className="flex flex-wrap items-end gap-3">
-              <ImpactDatePicker
-                id="impact-from"
-                label="From"
-                value={fromDate}
-                onChange={setFromDate}
-              />
-              <ImpactDatePicker
-                id="impact-to"
-                label="To"
-                value={toDate}
-                onChange={setToDate}
-              />
-              <Button type="button" size="sm" onClick={() => void load(true)} disabled={loading}>
-                Apply range
-              </Button>
-              <p className="text-xs text-slate-500 w-full sm:w-auto">
+            <div className="space-y-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-end">
+                <ImpactDatePicker
+                  id="impact-from"
+                  label="From"
+                  value={fromDate}
+                  onChange={setFromDate}
+                />
+                <ImpactDatePicker
+                  id="impact-to"
+                  label="To"
+                  value={toDate}
+                  onChange={setToDate}
+                />
+                <Button
+                  type="button"
+                  size="sm"
+                  className="w-full sm:col-span-2 lg:col-span-1 lg:w-auto"
+                  onClick={() => void load(true)}
+                  disabled={loading}
+                >
+                  Apply range
+                </Button>
+              </div>
+              <p className="text-xs text-slate-500">
                 Click the calendar to pick dates (IST). Apply rebuilds live usage; active schools rise to the top.
               </p>
             </div>

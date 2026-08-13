@@ -1,11 +1,15 @@
 import {
+  BookOpen,
   ChevronDown,
+  GraduationCap,
   LogOut,
   Menu,
+  PenTool,
   School,
   Search,
 } from "lucide-react";
 import { Link, useLocation, useSearch } from "wouter";
+import { motion } from "framer-motion";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 
 import { ContactSupportLink } from "@/components/ContactSupportLink";
@@ -30,12 +34,89 @@ type AppShellProps = {
   orgSubtitle?: string;
   orgLogoUrl?: string;
   homeHref?: string;
+  /** @deprecated Ask Vidya promo card removed from sidebar */
   showUpgrade?: boolean;
   onUpgrade?: () => void;
   onLogout?: () => void;
   onSearch?: (q: string) => void;
   children: ReactNode;
 };
+
+const BackpackMini = ({ className }: { className?: string }) => (
+  <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+    <path
+      d="M6 8h12M6 8c0-2.21 1.79-4 4-4h4c2.21 0 4 1.79 4 4v10c0 2.21-1.79 4-4 4h-4c-2.21 0-4-1.79-4-4V8z"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M10 8V6c0-1.1.9-2 2-2s2 .9 2 2v2M8 12h8"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
+/* ──────────────────────────────── soft light décor ─────────────────── */
+
+function SidebarAtmosphere() {
+  const floaters = [
+    { Icon: BookOpen, className: "left-3 top-24 text-sky-400/40", delay: 0, size: 22 },
+    { Icon: PenTool, className: "right-4 top-40 text-orange-400/35", delay: 0.8, size: 20 },
+    { Icon: BackpackMini, className: "left-5 bottom-36 text-teal-500/35", delay: 1.4, size: 24 },
+    { Icon: GraduationCap, className: "right-6 bottom-28 text-amber-500/30", delay: 0.4, size: 22 },
+    { Icon: BookOpen, className: "left-10 top-[55%] text-indigo-400/25", delay: 1.1, size: 18 },
+  ] as const;
+
+  return (
+    <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
+      {/* Light colorful wash */}
+      <div className="absolute inset-0 bg-gradient-to-b from-sky-100/90 via-orange-50/50 to-teal-50/80" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_90%_50%_at_0%_0%,rgba(56,189,248,0.28),transparent_55%),radial-gradient(ellipse_70%_45%_at_100%_15%,rgba(251,146,60,0.22),transparent_50%),radial-gradient(ellipse_65%_40%_at_40%_100%,rgba(45,212,191,0.22),transparent_55%)]" />
+
+      <motion.div
+        className="absolute -right-8 top-16 h-36 w-36 rounded-full bg-sky-300/35 blur-3xl"
+        animate={{ y: [0, 14, 0], scale: [1, 1.12, 1], opacity: [0.45, 0.75, 0.45] }}
+        transition={{ duration: 6.5, repeat: Infinity, ease: "easeInOut" }}
+      />
+      <motion.div
+        className="absolute -left-10 bottom-20 h-40 w-40 rounded-full bg-orange-300/30 blur-3xl"
+        animate={{ y: [0, -12, 0], scale: [1, 1.1, 1], opacity: [0.35, 0.65, 0.35] }}
+        transition={{ duration: 7.5, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
+      />
+      <motion.div
+        className="absolute left-1/3 top-1/2 h-28 w-28 -translate-x-1/2 rounded-full bg-teal-300/25 blur-3xl"
+        animate={{ x: [0, 18, 0], opacity: [0.3, 0.55, 0.3] }}
+        transition={{ duration: 9, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+      />
+
+      {floaters.map(({ Icon, className, delay, size }, i) => (
+        <motion.div
+          key={i}
+          className={cn("absolute", className)}
+          style={{ width: size, height: size }}
+          animate={{
+            y: [0, -10, 0],
+            rotate: [0, i % 2 === 0 ? 8 : -8, 0],
+            opacity: [0.35, 0.7, 0.35],
+          }}
+          transition={{
+            duration: 5 + i * 0.7,
+            repeat: Infinity,
+            ease: "easeInOut",
+            delay,
+          }}
+        >
+          <Icon className="h-full w-full" />
+        </motion.div>
+      ))}
+    </div>
+  );
+}
 
 /* ──────────────────────────────── nav row ───────────────────────────── */
 
@@ -50,24 +131,49 @@ function NavRow({
 }) {
   const Icon = item.icon;
   return (
-    <Link
-      href={item.href}
-      onClick={onNavigate}
-      className={cn(
-        "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
-        active
-          ? "bg-sidebar-accent text-sidebar-accent-foreground shadow-sm"
-          : "text-sidebar-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground",
-      )}
-    >
-      <Icon className="h-5 w-5 shrink-0" aria-hidden="true" />
-      <span className="min-w-0 flex-1 truncate">{item.label}</span>
-      {item.badge ? (
-        <span className="rounded-full bg-primary/15 px-2 py-0.5 text-xs font-semibold text-primary">
-          {item.badge}
-        </span>
-      ) : null}
-    </Link>
+    <motion.div whileHover={{ x: 3 }} whileTap={{ scale: 0.98 }} transition={{ type: "spring", stiffness: 420, damping: 28 }}>
+      <Link
+        href={item.href}
+        onClick={onNavigate}
+        className={cn(
+          "group relative flex items-center gap-3 overflow-hidden rounded-2xl px-3 py-2.5 text-sm font-semibold transition-all duration-300",
+          active
+            ? "bg-gradient-to-r from-orange-500 to-amber-400 text-white shadow-md shadow-orange-300/70"
+            : "text-slate-600 hover:bg-white/80 hover:text-slate-900 hover:shadow-sm",
+        )}
+      >
+        {active ? (
+          <motion.span
+            layoutId="app-shell-nav-glow"
+            className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_50%,rgba(255,255,255,0.32),transparent_55%)]"
+            transition={{ type: "spring", stiffness: 380, damping: 32 }}
+          />
+        ) : null}
+        <motion.span
+          className={cn(
+            "relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-colors",
+            active
+              ? "bg-white/25 text-white"
+              : "bg-white/70 text-slate-500 ring-1 ring-sky-100 group-hover:bg-sky-50 group-hover:text-sky-600",
+          )}
+          whileHover={{ rotate: active ? 0 : -8, scale: 1.08 }}
+          transition={{ type: "spring", stiffness: 400, damping: 18 }}
+        >
+          <Icon className="h-[1.125rem] w-[1.125rem]" aria-hidden="true" />
+        </motion.span>
+        <span className="relative min-w-0 flex-1 truncate">{item.label}</span>
+        {item.badge ? (
+          <span
+            className={cn(
+              "relative rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide",
+              active ? "bg-white/25 text-white" : "bg-orange-100 text-orange-700",
+            )}
+          >
+            {item.badge}
+          </span>
+        ) : null}
+      </Link>
+    </motion.div>
   );
 }
 
@@ -75,8 +181,6 @@ function SidebarBody({
   nav,
   activeId,
   homeHref = "/",
-  showUpgrade,
-  onUpgrade,
   onNavigate,
 }: {
   nav: NavItem[];
@@ -90,66 +194,71 @@ function SidebarBody({
   onNavigate?: () => void;
 }) {
   return (
-    <div className="flex h-full flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground">
-      {/* Product brand — click returns to role home */}
-      <Link
-        href={homeHref}
-        onClick={onNavigate}
-        className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-sidebar-accent/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
-        aria-label="Go to home"
-        title="Home"
+    <div className="relative flex h-full flex-col overflow-hidden border-r border-sky-100/90 text-slate-800 shadow-[4px_0_24px_-12px_rgba(14,165,233,0.18)]">
+      <SidebarAtmosphere />
+
+      {/* Product brand */}
+      <motion.div
+        initial={{ opacity: 0, y: -8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+        className="relative z-10"
       >
-        <img
-          src="/logo-transparent.png"
-          alt=""
-          className="h-10 w-10 shrink-0 rounded-lg bg-white object-contain p-0.5 ring-1 ring-sidebar-border"
-        />
-        <div className="min-w-0">
-          <p className="font-display text-base font-extrabold leading-tight text-sidebar-heading">
-            AsliLearn <span className="text-primary">AI</span>
-          </p>
-          <p className="truncate text-xs text-sidebar-foreground">AI-Powered Learning</p>
-        </div>
-      </Link>
+        <Link
+          href={homeHref}
+          onClick={onNavigate}
+          className="mx-3 mt-3 flex items-center gap-3 rounded-2xl border border-white/80 bg-white/75 px-3 py-3 shadow-sm backdrop-blur-md transition-all hover:-translate-y-0.5 hover:border-sky-200 hover:bg-white hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400/50"
+          aria-label="Go to home"
+          title="Home"
+        >
+          <motion.img
+            src="/logo-transparent.png"
+            alt=""
+            className="h-10 w-10 shrink-0 rounded-xl bg-white object-contain p-0.5 ring-1 ring-sky-100"
+            animate={{ y: [0, -2, 0] }}
+            transition={{ duration: 3.2, repeat: Infinity, ease: "easeInOut" }}
+          />
+          <div className="min-w-0">
+            <p className="font-display text-base font-extrabold leading-tight tracking-tight text-slate-900">
+              AsliLearn <span className="text-orange-500">AI</span>
+            </p>
+            <p className="truncate text-[11px] font-medium text-sky-700/80">Your learning library</p>
+          </div>
+        </Link>
+      </motion.div>
+
+      <div className="relative z-10 mx-5 mt-5 mb-2 flex items-center gap-2">
+        <span className="h-px flex-1 bg-gradient-to-r from-transparent via-sky-300/70 to-transparent" />
+        <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-sky-600/80">Menu</span>
+        <span className="h-px flex-1 bg-gradient-to-r from-transparent via-orange-300/60 to-transparent" />
+      </div>
 
       {/* Nav */}
-      <nav aria-label="Main" className="app-shell-sidebar-nav flex-1 space-y-0.5 overflow-y-auto px-3 pb-4">
-        {nav.map((item) => (
-          <NavRow
+      <nav
+        aria-label="Main"
+        className="app-shell-sidebar-nav relative z-10 flex-1 space-y-1.5 overflow-y-auto px-3 pb-4"
+      >
+        {nav.map((item, index) => (
+          <motion.div
             key={item.id}
-            item={item}
-            active={item.id === activeId}
-            onNavigate={onNavigate}
-          />
+            initial={{ opacity: 0, x: -14 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.05 * index, duration: 0.35, ease: "easeOut" }}
+          >
+            <NavRow
+              item={item}
+              active={item.id === activeId}
+              onNavigate={onNavigate}
+            />
+          </motion.div>
         ))}
       </nav>
 
-      {/* Assistant card */}
-      {showUpgrade ? (
-        <div className="mx-3 mb-3 rounded-2xl border border-sidebar-border bg-gradient-to-b from-indigo-blue-50 to-white p-4">
-          <p className="font-display text-base font-bold text-primary">Vidya AI</p>
-          <p className="mt-1 text-xs leading-relaxed text-sidebar-foreground">
-            Your smart learning assistant
-          </p>
-          <button
-            type="button"
-            onClick={onUpgrade}
-            className="mt-3 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
-          >
-            Ask Vidya AI
-          </button>
-        </div>
-      ) : null}
-
-      <div className="border-t border-sidebar-border p-3">
-        <p className="mt-3 text-center text-micro leading-relaxed text-sidebar-foreground">
+      <div className="relative z-10 border-t border-sky-100/90 bg-white/70 px-3 py-3 backdrop-blur-md">
+        <ContactSupportLink className="w-full justify-center rounded-xl border-sky-100 bg-white/90 text-slate-700 shadow-none hover:bg-sky-50 hover:text-slate-900" />
+        <p className="mt-2.5 text-center text-[9px] leading-tight tracking-wide text-slate-400">
           © {new Date().getFullYear()} AsliLearn AI
-          <br />
-          All rights reserved
         </p>
-        <div className="mt-2">
-          <ContactSupportLink className="w-full justify-center border-sidebar-border bg-transparent text-sidebar-foreground shadow-none hover:bg-sidebar-accent hover:text-sidebar-accent-foreground" />
-        </div>
       </div>
     </div>
   );
@@ -164,8 +273,8 @@ export function AppShell({
   orgSubtitle,
   orgLogoUrl,
   homeHref = "/",
-  showUpgrade = false,
-  onUpgrade,
+  showUpgrade: _showUpgrade = false,
+  onUpgrade: _onUpgrade,
   onLogout,
   onSearch,
   children,
@@ -241,14 +350,12 @@ export function AppShell({
           orgSubtitle={orgSubtitle}
           orgLogoUrl={orgLogoUrl}
           homeHref={homeHref}
-          showUpgrade={showUpgrade}
-          onUpgrade={onUpgrade}
         />
       </aside>
 
       {/* Mobile drawer — one open-menu control only */}
       <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-        <SheetContent side="left" className="w-[min(18rem,88vw)] border-none bg-sidebar p-0">
+        <SheetContent side="left" className="w-[min(18rem,88vw)] border-none bg-white p-0">
           <SheetTitle className="sr-only">Navigation menu</SheetTitle>
           <SidebarBody
             nav={nav}
@@ -257,8 +364,6 @@ export function AppShell({
             orgSubtitle={orgSubtitle}
             orgLogoUrl={orgLogoUrl}
             homeHref={homeHref}
-            showUpgrade={showUpgrade}
-            onUpgrade={onUpgrade}
             onNavigate={() => setMobileOpen(false)}
           />
         </SheetContent>

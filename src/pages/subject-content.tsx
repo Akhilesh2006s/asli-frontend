@@ -537,6 +537,7 @@ export default function SubjectContent() {
                 onMarkAsDone={handleMarkAsDone}
                 completedItems={Array.from(completedContentIds)}
                 subjectName={subject?.name || ''}
+                allowHomeworkSubmit
               />
             )}
           </div>

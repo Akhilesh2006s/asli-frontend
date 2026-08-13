@@ -13,6 +13,7 @@ export type WeeklyReportPdfInput = {
   highlights?: string[];
   studentName?: string;
   schoolName?: string;
+  role?: "student" | "teacher";
   metrics: Record<string, unknown>;
 };
 
@@ -80,6 +81,8 @@ function usageRows(
 
 export function buildWeeklyReportHtml(input: WeeklyReportPdfInput): string {
   const m = input.metrics || {};
+  const isTeacher =
+    input.role === 'teacher' || String(m.role || '') === 'teacher' || 'generationsCreated' in m;
   const exams = Array.isArray(m.exams) ? (m.exams as WeeklyReportPdfExam[]) : [];
   const omr = Array.isArray(m.omrResults) ? (m.omrResults as WeeklyReportPdfExam[]) : [];
   const highlights = Array.isArray(input.highlights) ? input.highlights : [];
@@ -94,7 +97,7 @@ export function buildWeeklyReportHtml(input: WeeklyReportPdfInput): string {
     | { subject?: string; sessions?: number; pct?: number }
     | null;
 
-  return `<!DOCTYPE html><html><head><meta charset="utf-8" />
+  const shellStart = `<!DOCTYPE html><html><head><meta charset="utf-8" />
   <style>
     * { box-sizing: border-box; }
     body {
@@ -228,16 +231,77 @@ export function buildWeeklyReportHtml(input: WeeklyReportPdfInput): string {
     }
   </style></head><body><div class="sheet">
     <div class="hero">
-      <div class="brand">AsliLearn · Student weekly report</div>
-      <h1>${esc(input.title || 'Your weekly AsliLearn learning report')}</h1>
+      <div class="brand">AsliLearn · ${isTeacher ? 'Teacher' : 'Student'} weekly report</div>
+      <h1>${esc(
+        input.title ||
+          (isTeacher
+            ? 'Your weekly AsliLearn teacher report'
+            : 'Your weekly AsliLearn learning report'),
+      )}</h1>
       <p class="sub">${esc(input.summary || '')}</p>
       <div class="meta">
         ${input.studentName ? `<span class="chip">${esc(input.studentName)}</span>` : ''}
         ${input.schoolName ? `<span class="chip">${esc(input.schoolName)}</span>` : ''}
         <span class="chip">Generated ${esc(new Date().toLocaleString('en-IN'))}</span>
       </div>
-    </div>
+    </div>`;
 
+  const highlightsBlock = highlights.length
+    ? `<section class="section"><div class="highlights">
+            <h3>This week at a glance</h3>
+            <ul>${highlights.map((h) => `<li>${esc(h)}</li>`).join('')}</ul>
+          </div></section>`
+    : '';
+
+  const shellEnd = `
+    <div class="footer">
+      <span>AsliLearn.ai · ${isTeacher ? 'Teaching impact summary' : 'Keep practising your weak chapters'}</span>
+      <span>Confidential ${isTeacher ? 'teacher' : 'student'} report</span>
+    </div>
+  </div></body></html>`;
+
+  if (isTeacher) {
+    return `${shellStart}
+    ${section(
+      'Your activity',
+      `<div class="grid">
+        ${tile('Logins this week', String(n(m.loginCount)), 'Days you opened the app')}
+        ${tile('Sessions', String(n(m.sessions)))}
+        ${tile('Time on platform', String(m.totalTimeLabel || `${n(m.minutes)} min`))}
+        ${tile('Last active', String(m.lastActiveDate || '—'))}
+        ${tile('Status (14 days)', String(m.status || '—'))}
+        ${tile('Active days (14d)', String(n(m.activeDays)))}
+      </div>`,
+    )}
+    ${section(
+      'Teaching with AI',
+      `<div class="grid">
+        ${tile('AI resources created', String(n(m.generationsCreated)))}
+        ${tile('Vidya AI asks', String(n(m.aiDoubts)))}
+        ${tile('Tool opens', String(n(m.aiToolUses)))}
+      </div>
+      ${usageRows(
+        toolsUsed.slice(0, 8).map((t) => ({
+          title: t.name || 'Tool',
+          detail: Array.isArray(t.subjects) && t.subjects.length ? t.subjects.slice(0, 3).join(' · ') : '',
+          value: `${n(t.count)}×`,
+        })),
+        'No AI tools used this week yet.',
+      )}`,
+    )}
+    ${section(
+      'Your school this week',
+      `<div class="grid">
+        ${tile('Students accessed', String(n(m.schoolStudentsAccessed)))}
+        ${tile('School sessions', String(n(m.schoolSessions)))}
+        ${tile('Teachers active', String(n(m.schoolTeachersActive)))}
+      </div>`,
+    )}
+    ${highlightsBlock}
+    ${shellEnd}`;
+  }
+
+  return `${shellStart}
     ${section(
       'Adoption',
       `<div class="grid">
@@ -314,7 +378,7 @@ export function buildWeeklyReportHtml(input: WeeklyReportPdfInput): string {
     )}
 
     ${section(
-      'OMR results',
+      'Offline Results',
       `<div class="grid">
         ${tile('OMR tests', String(n(m.omrAttempts)))}
         ${tile('Average score', n(m.omrAttempts) > 0 ? `${n(m.omrAvgPct)}%` : '—')}
@@ -325,7 +389,7 @@ export function buildWeeklyReportHtml(input: WeeklyReportPdfInput): string {
           ? `<p class="empty" style="margin-top:8px">Best rank this week: #${esc(n(m.omrBestRank))}</p>`
           : ''
       }
-      ${listRows(omr.slice(0, 8), 'No OMR results assigned this week yet.')}`,
+      ${listRows(omr.slice(0, 8), 'No Offline Results Assigned This Week Yet.')}`,
     )}
 
     ${section(
@@ -344,20 +408,8 @@ export function buildWeeklyReportHtml(input: WeeklyReportPdfInput): string {
       </div>`,
     )}
 
-    ${
-      highlights.length
-        ? `<section class="section"><div class="highlights">
-            <h3>This week at a glance</h3>
-            <ul>${highlights.map((h) => `<li>${esc(h)}</li>`).join('')}</ul>
-          </div></section>`
-        : ''
-    }
-
-    <div class="footer">
-      <span>AsliLearn.ai · Keep practising your weak chapters</span>
-      <span>Confidential student learning report</span>
-    </div>
-  </div></body></html>`;
+    ${highlightsBlock}
+    ${shellEnd}`;
 }
 
 function addCanvasPages(pdf: jsPDF, canvas: HTMLCanvasElement) {

@@ -1,5 +1,6 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsTrigger } from '@/components/ui/tabs';
 import { Label } from '@/components/ui/label';
@@ -12,6 +13,10 @@ import {
   Eye,
   Users,
   Calendar,
+  ChevronRight,
+  FileText,
+  Loader2,
+  ArrowLeft,
 } from 'lucide-react';
 import StudentShell from "@/components/layout/StudentShell";
 import TeacherShell from "@/components/layout/TeacherShell";
@@ -23,10 +28,18 @@ import { EduOTTVideoPlayerDialog } from '@/components/eduott/EduOTTVideoPlayerDi
 import { EduOTTLiveSessionDialog } from '@/components/eduott/EduOTTLiveSessionDialog';
 import { EduOTTJoinSessionButton } from '@/components/eduott/EduOTTJoinSessionButton';
 import { Skeleton } from '@/components/ui/skeleton';
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet';
 import { useIsMobile } from '@/hooks/use-mobile';
 import {
   extractPlainSubjectName,
   getSubjectClassLabel,
+  formatSubjectWithIitCategory,
 } from '@/lib/subject-names';
 import { normalizeVideoLike, normalizeSessionLike } from '@/lib/eduott-normalize';
 import { resolveContentDurationSeconds } from '@/lib/eduott-video-utils';
@@ -36,6 +49,8 @@ import { EduOTTGlobalFilterBar } from '@/components/eduott/EduOTTGlobalFilterBar
 import { EduOTTTabsList, eduOttTabTriggerClass } from '@/components/eduott/EduOTTTabsList';
 import { EduOTTStage } from '@/components/eduott/EduOTTStage';
 import VidyaAIFloatingAssistant from '@/components/student/VidyaAIFloatingAssistant';
+import { isIitTrackContent } from '@/lib/library-content-labels';
+import { cn } from '@/lib/utils';
 
 interface Video {
   _id: string;
@@ -54,11 +69,41 @@ interface Video {
   classNumber?: string;
   fileUrl?: string;
   id?: string;
+  productCategory?: string;
   /** Normalized class number / label for filters & binding */
   class: string;
   /** Plain subject name for filters & binding */
   subject: string;
 }
+
+type SubjectGroup = {
+  key: string;
+  subject: string;
+  classLabel: string;
+  subjectIds: string[];
+  productCategories: string[];
+  videos: Video[];
+};
+
+type LibraryRow = {
+  _id: string;
+  title?: string;
+  name?: string;
+  type?: string;
+  description?: string;
+  fileUrl?: string;
+  thumbnailUrl?: string;
+  duration?: number;
+  durationSeconds?: number;
+  views?: number;
+  createdAt?: string;
+  classNumber?: string;
+  productCategory?: string;
+  board?: string;
+  subject?: { _id?: string; name?: string; classNumber?: string; board?: string; productCategory?: string } | string;
+};
+
+const PREVIEW_VIDEO_COUNT = 3;
 
 interface LiveSession {
   _id: string;
@@ -137,6 +182,10 @@ function mapContentToVideo(content: any): Video {
     subjectId,
     subjectName,
     classNumber: classNum,
+    productCategory:
+      content.productCategory ||
+      content.subject?.productCategory ||
+      '',
     class: norm.class,
     subject: norm.subject,
     isYouTubeVideo: !!(
@@ -221,6 +270,9 @@ export default function EduOTT() {
   const [selectedVideo, setSelectedVideo] = useState<EduOTTVideoCardItem | null>(null);
   const [selectedLiveSession, setSelectedLiveSession] = useState<LiveSession | null>(null);
   const [filterStatus, setFilterStatus] = useState<string>('all');
+  const [subjectFocus, setSubjectFocus] = useState<SubjectGroup | null>(null);
+  const [subjectLibrary, setSubjectLibrary] = useState<LibraryRow[]>([]);
+  const [subjectLibraryLoading, setSubjectLibraryLoading] = useState(false);
 
   /** Unfiltered catalog for global class/subject dropdown options */
   useEffect(() => {
@@ -397,10 +449,124 @@ export default function EduOTT() {
     return videos.filter((video) => {
       const matchesSearch =
         video.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (video.description || '').toLowerCase().includes(searchTerm.toLowerCase());
+        (video.description || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        video.subject.toLowerCase().includes(searchTerm.toLowerCase());
       return matchesSearch;
     });
   }, [videos, searchTerm]);
+
+  const subjectGroups = useMemo((): SubjectGroup[] => {
+    const map = new Map<string, SubjectGroup>();
+    for (const video of filteredVideos) {
+      const subject = video.subject || extractPlainSubjectName(video.subjectName || '') || 'Subject';
+      const classLabel = video.class || video.classNumber || '';
+      const key = `${classLabel}::${subject}`.toLowerCase();
+      let group = map.get(key);
+      if (!group) {
+        group = {
+          key,
+          subject,
+          classLabel,
+          subjectIds: [],
+          productCategories: [],
+          videos: [],
+        };
+        map.set(key, group);
+      }
+      group.videos.push(video);
+      const sid = String(video.subjectId || '').trim();
+      if (sid && !group.subjectIds.includes(sid)) group.subjectIds.push(sid);
+      const cat = String(video.productCategory || '').trim().toUpperCase();
+      if (cat && !group.productCategories.includes(cat)) group.productCategories.push(cat);
+    }
+    return Array.from(map.values()).sort((a, b) => {
+      const classCmp =
+        (parseInt(a.classLabel, 10) || 0) - (parseInt(b.classLabel, 10) || 0) ||
+        a.classLabel.localeCompare(b.classLabel);
+      if (classCmp) return classCmp;
+      return a.subject.localeCompare(b.subject);
+    });
+  }, [filteredVideos]);
+
+  const openSubjectMore = useCallback((group: SubjectGroup) => {
+    setSubjectFocus(group);
+  }, []);
+
+  useEffect(() => {
+    if (!subjectFocus) {
+      setSubjectLibrary([]);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      setSubjectLibraryLoading(true);
+      try {
+        const res = await fetch(`${API_BASE_URL}${apiRoot()}/asli-prep-content`, {
+          headers: authHeaders(),
+        });
+        if (!res.ok || cancelled) return;
+        const data = await res.json();
+        const list: LibraryRow[] = Array.isArray(data?.data)
+          ? data.data
+          : Array.isArray(data)
+            ? data
+            : [];
+        const idSet = new Set(subjectFocus.subjectIds.map(String));
+        const subjectKey = subjectFocus.subject.toLowerCase();
+        const classKey = String(subjectFocus.classLabel || '').trim();
+
+        const matched = list.filter((row) => {
+          const sid = String(
+            typeof row.subject === 'object' && row.subject?._id
+              ? row.subject._id
+              : row.subject || '',
+          );
+          if (idSet.size > 0 && idSet.has(sid)) return true;
+
+          const rawName =
+            typeof row.subject === 'object' ? row.subject?.name || '' : String(row.subject || '');
+          const plain = extractPlainSubjectName(rawName).toLowerCase();
+          if (plain !== subjectKey) return false;
+
+          const rowClass =
+            getSubjectClassLabel(
+              typeof row.subject === 'object' ? row.subject : { classNumber: row.classNumber },
+            ) || String(row.classNumber || '').trim();
+          if (classKey && rowClass && classKey !== rowClass) return false;
+
+          return isIitTrackContent(row) || idSet.has(sid);
+        });
+
+        // Prefer IIT-tagged rows when both board + IIT exist for the same subject.
+        const iitOnly = matched.filter((row) => isIitTrackContent(row));
+        setSubjectLibrary(iitOnly.length > 0 ? iitOnly : matched);
+      } catch {
+        if (!cancelled) setSubjectLibrary([]);
+      } finally {
+        if (!cancelled) setSubjectLibraryLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [subjectFocus]);
+
+  const subjectLibraryVideos = useMemo(
+    () =>
+      subjectLibrary
+        .filter((row) => String(row.type || '').trim() === 'Video')
+        .map((row) => mapContentToVideo(row)),
+    [subjectLibrary],
+  );
+
+  const subjectLibraryMaterials = useMemo(
+    () =>
+      subjectLibrary.filter((row) => {
+        const t = String(row.type || '').trim();
+        return t && t !== 'Video';
+      }),
+    [subjectLibrary],
+  );
 
   const filteredSessions = useMemo(() => {
     return liveSessions.filter((session) => {
@@ -470,7 +636,7 @@ export default function EduOTT() {
               <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-teal-green-300" />
               <Input
                 type="text"
-                placeholder="Search videos..."
+                placeholder="Search IIT subjects or videos..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="h-12 border-ink/10 bg-white pl-11 text-base text-ink placeholder:text-muted-foreground"
@@ -479,7 +645,8 @@ export default function EduOTT() {
 
             <div className="mb-2 flex items-center justify-between gap-3">
               <p className="text-base text-muted-foreground">
-                Showing {filteredVideos.length} of {videos.length} videos
+                {subjectGroups.length} IIT subject{subjectGroups.length === 1 ? '' : 's'} ·{' '}
+                {filteredVideos.length} video{filteredVideos.length === 1 ? '' : 's'}
               </p>
               {isRefreshingVideos ? (
                 <p className="text-[0.9375rem] font-medium text-teal-green-700">Updating list...</p>
@@ -488,18 +655,25 @@ export default function EduOTT() {
 
             <div className="min-h-[240px] sm:min-h-[420px]">
             {loading ? (
-              <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {Array.from({ length: 6 }).map((_, i) => (
-                  <div key={i} className="overflow-hidden rounded-2xl border border-ink/10 bg-white">
-                    <Skeleton className="aspect-video w-full bg-mist-deep" />
-                    <div className="space-y-3 p-5">
-                      <Skeleton className="mb-2 h-6 w-3/4 bg-mist-deep" />
-                      <Skeleton className="h-4 w-1/2 bg-mist-deep" />
+              <div className="space-y-8">
+                {Array.from({ length: 2 }).map((_, i) => (
+                  <div key={i} className="space-y-4">
+                    <Skeleton className="h-8 w-56 bg-mist-deep" />
+                    <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+                      {Array.from({ length: 3 }).map((_, j) => (
+                        <div key={j} className="overflow-hidden rounded-2xl border border-ink/10 bg-white">
+                          <Skeleton className="aspect-video w-full bg-mist-deep" />
+                          <div className="space-y-3 p-5">
+                            <Skeleton className="mb-2 h-6 w-3/4 bg-mist-deep" />
+                            <Skeleton className="h-4 w-1/2 bg-mist-deep" />
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 ))}
               </div>
-            ) : filteredVideos.length === 0 ? (
+            ) : subjectGroups.length === 0 ? (
               <div className="rounded-3xl border border-dashed border-ink/15 bg-mist py-16 text-center">
                 <VideoIcon className="mx-auto mb-4 h-16 w-16 text-ink/25" />
                 <h3 className="mb-2 font-display text-xl font-semibold text-ink">
@@ -515,32 +689,94 @@ export default function EduOTT() {
                 </p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {filteredVideos.map((video) => {
-                  const videoId = video._id || video.id || '';
+              <div className="space-y-10">
+                {subjectGroups.map((group) => {
+                  const preview = group.videos.slice(0, PREVIEW_VIDEO_COUNT);
+                  const remaining = Math.max(0, group.videos.length - PREVIEW_VIDEO_COUNT);
+                  const trackLabel = group.productCategories[0]
+                    ? formatSubjectWithIitCategory(group.subject, group.productCategories[0])
+                    : `${group.subject} IIT`;
                   return (
-                    <EduOTTVideoCard
-                      key={videoId}
-                      video={video}
-                      onPlay={() => setSelectedVideo(video)}
-                      subjectBadges={
-                        video.subjectName ? (
-                          <EduOTTSubjectBadges
-                            subjectLabel={
-                              video.subject || extractPlainSubjectName(video.subjectName)
-                            }
-                            classLabel={
-                              video.class ||
-                              getSubjectClassLabel({
-                                name: video.subjectName,
-                                classNumber: video.classNumber,
-                              }) ||
-                              undefined
-                            }
-                          />
-                        ) : undefined
-                      }
-                    />
+                    <section key={group.key} className="space-y-4">
+                      <div className="flex flex-wrap items-end justify-between gap-3 border-b border-ink/10 pb-3">
+                        <div className="min-w-0">
+                          <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-teal-green-700">
+                            IIT subject
+                          </p>
+                          <h3 className="font-display text-xl font-bold text-ink sm:text-2xl">
+                            {trackLabel}
+                          </h3>
+                          <p className="mt-0.5 text-sm text-muted-foreground">
+                            {group.classLabel ? `Class ${group.classLabel} · ` : ''}
+                            {group.videos.length} video{group.videos.length === 1 ? '' : 's'}
+                          </p>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="shrink-0 gap-1.5 rounded-xl border-teal-green-200 bg-white text-teal-green-800 hover:bg-teal-green-50"
+                          onClick={() => openSubjectMore(group)}
+                        >
+                          More
+                          <ChevronRight className="h-4 w-4" />
+                        </Button>
+                      </div>
+
+                      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+                        {preview.map((video) => {
+                          const videoId = video._id || video.id || '';
+                          return (
+                            <EduOTTVideoCard
+                              key={videoId}
+                              video={video}
+                              onPlay={() => setSelectedVideo(video)}
+                              subjectBadges={
+                                video.subjectName ? (
+                                  <EduOTTSubjectBadges
+                                    subjectLabel={
+                                      video.subject || extractPlainSubjectName(video.subjectName)
+                                    }
+                                    classLabel={
+                                      video.class ||
+                                      getSubjectClassLabel({
+                                        name: video.subjectName,
+                                        classNumber: video.classNumber,
+                                      }) ||
+                                      undefined
+                                    }
+                                  />
+                                ) : undefined
+                              }
+                            />
+                          );
+                        })}
+                      </div>
+
+                      {remaining > 0 ? (
+                        <div className="flex justify-center sm:justify-start">
+                          <Button
+                            type="button"
+                            className="gap-2 rounded-xl bg-gradient-to-r from-teal-green-500 to-indigo-blue-600 text-white shadow-glow"
+                            onClick={() => openSubjectMore(group)}
+                          >
+                            More — view all {group.videos.length} videos & materials
+                            <ChevronRight className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="flex justify-center sm:justify-start">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            className="gap-1.5 text-teal-green-800 hover:bg-teal-green-50"
+                            onClick={() => openSubjectMore(group)}
+                          >
+                            View materials & full library
+                            <ChevronRight className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      )}
+                    </section>
                   );
                 })}
               </div>
@@ -681,6 +917,134 @@ export default function EduOTT() {
         </EduOTTStage>
         </div>
       </div>
+
+      <Sheet
+        open={!!subjectFocus}
+        onOpenChange={(open) => {
+          if (!open) setSubjectFocus(null);
+        }}
+      >
+        <SheetContent
+          side="right"
+          className="flex w-full flex-col gap-0 overflow-hidden p-0 sm:max-w-xl lg:max-w-2xl"
+        >
+          <SheetHeader className="shrink-0 border-b border-slate-200 bg-gradient-to-br from-teal-50 via-white to-orange-50 px-5 py-4 text-left sm:px-6">
+            <button
+              type="button"
+              className="mb-2 inline-flex w-fit items-center gap-1 text-xs font-semibold text-teal-800 hover:underline"
+              onClick={() => setSubjectFocus(null)}
+            >
+              <ArrowLeft className="h-3.5 w-3.5" />
+              Back to subjects
+            </button>
+            <SheetTitle className="font-display text-xl text-ink sm:text-2xl">
+              {subjectFocus
+                ? subjectFocus.productCategories[0]
+                  ? formatSubjectWithIitCategory(
+                      subjectFocus.subject,
+                      subjectFocus.productCategories[0],
+                    )
+                  : `${subjectFocus.subject} IIT`
+                : 'Subject library'}
+            </SheetTitle>
+            <SheetDescription className="text-sm text-muted-foreground">
+              {subjectFocus?.classLabel ? `Class ${subjectFocus.classLabel} · ` : ''}
+              All assigned IIT videos and materials for this subject
+            </SheetDescription>
+          </SheetHeader>
+
+          <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4 sm:px-6">
+            {subjectLibraryLoading ? (
+              <div className="flex items-center justify-center gap-2 py-16 text-sm text-slate-500">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Loading IIT library…
+              </div>
+            ) : (
+              <div className="space-y-8">
+                <section className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <VideoIcon className="h-4 w-4 text-teal-700" />
+                    <h4 className="text-sm font-bold uppercase tracking-wide text-slate-700">
+                      Videos ({subjectLibraryVideos.length || subjectFocus?.videos.length || 0})
+                    </h4>
+                  </div>
+                  {(subjectLibraryVideos.length > 0 ? subjectLibraryVideos : subjectFocus?.videos || [])
+                    .length === 0 ? (
+                    <p className="text-sm text-slate-500">No IIT videos for this subject yet.</p>
+                  ) : (
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                      {(subjectLibraryVideos.length > 0
+                        ? subjectLibraryVideos
+                        : subjectFocus?.videos || []
+                      ).map((video) => (
+                        <EduOTTVideoCard
+                          key={video._id || video.id}
+                          video={video}
+                          onPlay={() => setSelectedVideo(video)}
+                          subjectBadges={
+                            <EduOTTSubjectBadges
+                              subjectLabel={video.subject}
+                              classLabel={video.class || undefined}
+                            />
+                          }
+                        />
+                      ))}
+                    </div>
+                  )}
+                </section>
+
+                <section className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <FileText className="h-4 w-4 text-orange-600" />
+                    <h4 className="text-sm font-bold uppercase tracking-wide text-slate-700">
+                      Materials ({subjectLibraryMaterials.length})
+                    </h4>
+                  </div>
+                  {subjectLibraryMaterials.length === 0 ? (
+                    <p className="text-sm text-slate-500">
+                      No IIT materials (notes, textbooks, workbooks) assigned for this subject yet.
+                    </p>
+                  ) : (
+                    <ul className="divide-y divide-slate-100 overflow-hidden rounded-2xl border border-slate-200 bg-white">
+                      {subjectLibraryMaterials.map((row) => {
+                        const title = String(row.title || row.name || 'Material').trim();
+                        const type = String(row.type || 'Material').trim();
+                        const href = row.fileUrl
+                          ? row.fileUrl.startsWith('http') || row.fileUrl.startsWith('//')
+                            ? row.fileUrl
+                            : `${API_BASE_URL}${row.fileUrl.startsWith('/') ? '' : '/'}${row.fileUrl}`
+                          : '';
+                        return (
+                          <li key={row._id} className="flex items-start justify-between gap-3 px-4 py-3">
+                            <div className="min-w-0">
+                              <p className="truncate text-sm font-semibold text-slate-900">{title}</p>
+                              <p className="text-xs text-slate-500">{type}</p>
+                            </div>
+                            {href ? (
+                              <a
+                                href={href}
+                                target="_blank"
+                                rel="noreferrer"
+                                className={cn(
+                                  'shrink-0 rounded-lg border border-orange-200 bg-orange-50 px-2.5 py-1 text-xs font-semibold text-orange-800 hover:bg-orange-100',
+                                )}
+                              >
+                                Open
+                              </a>
+                            ) : (
+                              <span className="shrink-0 text-xs text-slate-400">No file</span>
+                            )}
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
+                </section>
+              </div>
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
 
       <EduOTTVideoPlayerDialog
         video={selectedVideo}

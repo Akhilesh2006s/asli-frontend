@@ -11,6 +11,11 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import Navigation from "@/components/navigation";
 import {
   filterContentsBySchoolProgram,
@@ -69,7 +74,6 @@ import {
   Sparkles,
   BookMarked,
   Brain,
-  Calendar as CalendarIcon,
   HelpCircle,
   FileText as FileTextIcon2,
   Key,
@@ -118,7 +122,6 @@ import {
   readDashboardStatsCache,
   writeDashboardStatsCache,
 } from '@/utils/dashboard-stats-cache';
-import { InteractiveBackground, FloatingParticles } from "@/components/background/InteractiveBackground";
 import AdaptiveRecommendations from "@/components/dashboard/AdaptiveRecommendations";
 
 // Mock user ID - in a real app, this would come from authentication
@@ -488,6 +491,7 @@ export default function Dashboard() {
     Record<string, ChapterCompletedDates>
   >({});
   const [incompleteQuizzes, setIncompleteQuizzes] = useState<any[]>([]);
+  const [studentQuizzes, setStudentQuizzes] = useState<any[]>([]);
   const [scheduleCompletionStats, setScheduleCompletionStats] = useState({
     total: 0,
     completed: 0,
@@ -546,6 +550,7 @@ export default function Dashboard() {
     return new Date(now.getFullYear(), now.getMonth(), 1);
   });
   const [selectedCalendarDate, setSelectedCalendarDate] = useState<Date>(new Date());
+  const [openCalendarDayKey, setOpenCalendarDayKey] = useState<string | null>(null);
   const [calendarJumpDate, setCalendarJumpDate] = useState<string>(() => {
     const now = new Date();
     const year = now.getFullYear();
@@ -1167,6 +1172,9 @@ export default function Dashboard() {
         if (quizzesResponse.ok) {
           const quizzesData = await quizzesResponse.json();
           allQuizzes = quizzesData.data || quizzesData || [];
+          setStudentQuizzes(allQuizzes);
+        } else {
+          setStudentQuizzes([]);
         }
 
         let chapterProgressBySubject: Record<string, ChapterCompletedDates> = {};
@@ -1240,6 +1248,7 @@ export default function Dashboard() {
         console.error('Failed to fetch schedule items:', error);
         setIncompleteContent([]);
         setIncompleteQuizzes([]);
+        setStudentQuizzes([]);
       } finally {
         setIsLoadingSchedule(false);
       }
@@ -1741,6 +1750,7 @@ export default function Dashboard() {
     const targetDate = new Date(year, month - 1, day);
     setSelectedCalendarDate(targetDate);
     setCalendarMonth(new Date(targetDate.getFullYear(), targetDate.getMonth(), 1));
+    setOpenCalendarDayKey(formatDateKey(targetDate));
   };
 
   const parseDate = (value: any): Date | null => {
@@ -1786,14 +1796,6 @@ export default function Dashboard() {
       return acc;
     }, {});
   }, [calendarEntries]);
-
-  const selectedDateEntries = useMemo(() => {
-    const key = formatDateKey(selectedCalendarDate);
-    const entries = (entriesByDate[key] || []).filter(
-      (e: { type?: string }) => e.type !== 'timetable' && e.type !== 'content'
-    );
-    return [...entries].sort((a, b) => a.date.getTime() - b.date.getTime());
-  }, [selectedCalendarDate, entriesByDate]);
 
   const calendarDays = useMemo(() => {
     const year = calendarMonth.getFullYear();
@@ -1978,14 +1980,14 @@ export default function Dashboard() {
 
         {/* Student Calendar + Timetable */}
         <div className="mb-6 relative z-10 space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            <Card className="lg:col-span-2 bg-white rounded-xl shadow-md">
+          <div className="grid grid-cols-1 gap-4">
+            <Card className="bg-white rounded-xl shadow-md">
               <CardHeader className="pb-3">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div className="min-w-0">
                     <CardTitle className="text-lg sm:text-xl font-bold text-gray-900">Study Calendar</CardTitle>
                     <p className="text-xs sm:text-sm text-gray-600 mt-1 break-words">
-                      Quizzes by due date; exams on their scheduled dates
+                      Click a date to see quizzes and exams
                     </p>
                   </div>
                   <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 shrink-0">
@@ -2042,302 +2044,252 @@ export default function Dashboard() {
                     if (!day) return <div key={`empty-${idx}`} className="h-12" />;
                     const dayKey = formatDateKey(day);
                     const isSelected = formatDateKey(selectedCalendarDate) === dayKey;
-                    const itemCount = (entriesByDate[dayKey] || []).filter(
+                    const dayEntries = (entriesByDate[dayKey] || []).filter(
                       (entry: { type?: string }) =>
                         entry.type !== 'timetable' && entry.type !== 'content'
-                    ).length;
-                    const isToday = formatDateKey(new Date()) === dayKey;
-                    return (
-                      <button
-                        key={dayKey}
-                        type="button"
-                        onClick={() => setSelectedCalendarDate(day)}
-                        className={`h-12 rounded-lg border text-xs sm:text-sm transition-colors relative ${
-                          isSelected
-                            ? 'bg-indigo-600 text-white border-indigo-600'
-                            : isToday
-                            ? 'bg-indigo-50 text-indigo-700 border-indigo-200'
-                            : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
-                        }`}
-                      >
-                        {day.getDate()}
-                        {itemCount > 0 && (
-                          <span
-                            className={`absolute bottom-1 right-1 text-micro px-1.5 py-0.5 rounded-full ${
-                              isSelected ? 'bg-white text-indigo-700' : 'bg-orange-100 text-orange-700'
-                            }`}
-                          >
-                            {itemCount}
-                          </span>
-                        )}
-                      </button>
                     );
-                  })}
-                </div>
-              </CardContent>
-            </Card>
+                    const itemCount = dayEntries.length;
+                    const isToday = formatDateKey(new Date()) === dayKey;
+                    const isPopoverOpen = openCalendarDayKey === dayKey;
 
-            <Card className="bg-white rounded-xl shadow-md">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base sm:text-lg font-semibold text-gray-900">Study & exams</CardTitle>
-                <p className="text-xs sm:text-sm text-gray-600">
-                  {selectedCalendarDate.toLocaleDateString('en-US', {
-                    weekday: 'long',
-                    month: 'short',
-                    day: 'numeric'
-                  })}
-                  {' · '}Class timetable is in the table below
-                </p>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {timetableLoading ? (
-                  <div className="h-20 bg-gray-100 animate-pulse rounded-lg" />
-                ) : selectedDateEntries.length === 0 ? (
-                  <div className="text-center py-3 sm:py-4 lg:py-6">
-                    <CalendarIcon className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-gray-300 mx-auto mb-2" />
-                    <p className="text-xs sm:text-sm font-medium text-gray-600">No study tasks or exams</p>
-                    <p className="text-xs text-gray-500 mt-1">Class sessions for this day are in the timetable table below.</p>
-                  </div>
-                ) : (
-                  selectedDateEntries.map((entry: any) => {
-                    const badgeClass =
-                      entry.type === 'exam'
-                        ? 'bg-red-100 text-red-700'
-                        : entry.type === 'quiz'
-                        ? 'bg-orange-100 text-orange-700'
-                        : entry.type === 'event'
-                        ? 'bg-amber-100 text-amber-800'
-                        : entry.type === 'timetable'
-                        ? 'bg-sky-100 text-sky-700'
-                        : 'bg-blue-100 text-blue-700';
-                    const badgeLabel =
-                      entry.type === 'timetable'
-                        ? (entry.sessionType || 'CLASS').toUpperCase()
-                        : entry.type === 'event'
-                        ? 'EVENT'
-                        : entry.type.toUpperCase();
-                    const timeLabel =
-                      entry.type === 'timetable'
-                        ? `${entry.startTime || ''}${entry.endTime ? `â€“${entry.endTime}` : ''}`
-                        : entry.date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                    const isClickable = entry.type !== 'timetable' && entry.type !== 'event';
                     return (
-                      <div
-                        key={`${entry.type}-${entry.id}`}
-                        className={`p-3 rounded-lg border border-gray-200 transition-colors ${isClickable ? 'hover:bg-gray-50 cursor-pointer' : 'bg-sky-50/40'}`}
-                        onClick={() => {
-                          if (entry.type === 'timetable') return;
-                          if (entry.type === 'exam') {
-                            const examId = String(entry.id || entry.source?._id || '');
-                            if (examId) {
-                              setLocation(`/student-exams?examId=${encodeURIComponent(examId)}`);
-                            } else {
-                              setLocation('/student-exams');
-                            }
-                          } else {
-                            handleOpenPreview(entry.source, entry.type === 'quiz');
+                      <Popover
+                        key={dayKey}
+                        open={isPopoverOpen}
+                        onOpenChange={(open) => {
+                          if (open) {
+                            setSelectedCalendarDate(day);
+                            setOpenCalendarDayKey(dayKey);
+                          } else if (openCalendarDayKey === dayKey) {
+                            setOpenCalendarDayKey(null);
                           }
                         }}
                       >
-                        <div className="flex items-center justify-between gap-2">
-                          <p className="text-xs sm:text-sm font-semibold text-gray-900 line-clamp-1">{entry.title}</p>
-                          <Badge className={`${badgeClass} text-micro`}>{badgeLabel}</Badge>
-                        </div>
-                        <p className="text-xs text-gray-600 mt-1">{entry.subject}</p>
-                        {entry.type === 'timetable' && entry.teacher && (
-                          <p className="text-xs text-gray-600 mt-1">{entry.teacher}</p>
-                        )}
-                        <p className="text-xs text-gray-500 mt-1">
-                          {timeLabel}
-                          {entry.type === 'timetable' && entry.room ? ` Â· ${entry.room}` : ''}
-                        </p>
-                      </div>
-                    );
-                  })
-                )}
-              </CardContent>
-            </Card>
-          </div>
-
-          <StudentTimetableView
-            entries={monthTimetableEntries}
-            isLoading={timetableLoading}
-            schoolName={schoolDisplayName}
-          />
-
-          {/* Today's Tasks */}
-          <Card className="bg-white rounded-xl shadow-md">
-            <CardHeader className="pb-4">
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex items-center space-x-3 min-w-0">
-                  <div className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 bg-gray-100 rounded-full flex items-center justify-center shrink-0">
-                    <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-gray-500" />
-                  </div>
-                  <CardTitle className="text-lg sm:text-xl font-semibold tracking-wide text-gray-700">TODAY'S TASKS</CardTitle>
-                </div>
-                <p className="text-xs sm:text-sm text-gray-600 shrink-0">
-                  {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
-                </p>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {isLoadingSchedule ? (
-                <div className="text-center py-4 sm:py-6 lg:py-8">
-                  <div className="animate-spin rounded-full h-6 w-6 sm:h-7 sm:w-7 lg:h-8 lg:w-8 border-b-2 border-teal-600 mx-auto mb-2"></div>
-                  <p className="text-gray-600 text-xs sm:text-sm">Loading schedule...</p>
-                </div>
-              ) : dailyTasks.content.length === 0 && dailyTasks.quizzes.length === 0 ? (
-                <div className="text-center py-4 sm:py-6 lg:py-8">
-                  <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-2" />
-                  <p className="text-gray-600 font-medium">All caught up!</p>
-                  <p className="text-gray-500 text-xs sm:text-sm mt-1">No pending content or quizzes</p>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {/* Incomplete Quizzes */}
-                  {dailyTasks.quizzes.map((quiz: any) => {
-                    const isCompleted = completedScheduleIds.has(String(quiz._id || quiz.id));
-                    
-                    const timeLabel = getTaskTimeLabel(quiz, true);
-                    return (
-                      <div 
-                        key={`quiz-${quiz._id}`}
-                        className={`flex items-center gap-4 px-4 py-3 border-b border-gray-100 hover:bg-gray-50 transition-colors cursor-pointer ${
-                          isCompleted ? 'bg-emerald-50' : ''
-                        }`}
-                        onClick={() => handleOpenPreview(quiz, true)}
-                      >
-                        <button
-                          type="button"
-                          aria-label={isCompleted ? "Undo completed task" : "Mark task as completed"}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleToggleScheduleComplete(quiz, true);
-                          }}
-                          className="flex-shrink-0"
-                        >
-                          {isCompleted ? (
-                            <div className="w-7 h-7 bg-emerald-500 rounded-full flex items-center justify-center">
-                              <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
-                            </div>
-                          ) : (
-                            <div className="w-7 h-7 border-2 border-gray-300 rounded-full"></div>
-                          )}
-                        </button>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <h4 className={`font-semibold text-gray-900 truncate ${isCompleted ? 'line-through text-gray-400' : ''}`}>
-                              Complete {quiz.title || 'Quiz'}
-                            </h4>
-                          </div>
-                          <div className="flex items-center gap-3 text-xs text-gray-500 mt-1">
-                            <span className="truncate">
-                              {typeof quiz.subject === 'string' 
-                                ? quiz.subject 
-                                : (typeof quiz.subject === 'object' && quiz.subject?.name 
-                                  ? quiz.subject.name 
-                                  : 'Unknown Subject')}
-                            </span>
-                            <span className="flex items-center space-x-1 whitespace-nowrap">
-                              <Clock className="w-3 h-3" />
-                              <span>{quiz.duration || 30} min</span>
-                            </span>
-                          </div>
-                        </div>
-                        <Badge variant="outline" className="rounded-full px-3 py-1 text-xs bg-white">
-                          {timeLabel}
-                        </Badge>
-                      </div>
-                    );
-                  })}
-
-                  {/* Incomplete Content */}
-                  {dailyTasks.content.map((content: any) => {
-                    const subjectName = getSubjectName(content);
-
-                    const isCompleted = completedScheduleIds.has(String(content._id || content.id));
-                    const isHomework = content.type === 'Homework';
-                    const isVideo = isVideoContentType(content.type);
-                    const deadline = content.deadline ? new Date(content.deadline) : null;
-                    const isOverdue = deadline && deadline < new Date() && !isCompleted;
-                    
-                    const timeLabel = getTaskTimeLabel(content, false);
-                    return (
-                      <div 
-                        key={`content-${content._id}`}
-                        className={`flex items-center gap-4 px-4 py-3 border-b border-gray-100 hover:bg-gray-50 transition-colors cursor-pointer ${
-                          isCompleted ? 'bg-emerald-50' : ''
-                        } ${isOverdue ? 'bg-red-50' : ''}`}
-                        onClick={() => handleOpenPreview(content, false)}
-                      >
-                        <button
-                          type="button"
-                          aria-label={
-                            isVideo && !isCompleted
-                              ? 'Watch video'
-                              : isCompleted
-                                ? 'Undo completed task'
-                                : 'Mark task as completed'
-                          }
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (isVideo && !isCompleted) {
-                              handleOpenPreview(content, false);
-                              return;
-                            }
-                            handleToggleScheduleComplete(content, false);
-                          }}
-                          className="flex-shrink-0"
-                        >
-                          {isCompleted ? (
-                            <div className="w-7 h-7 bg-emerald-500 rounded-full flex items-center justify-center">
-                              <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
-                            </div>
-                          ) : isVideo ? (
-                            <div className="w-7 h-7 border-2 border-sky-400 rounded-full flex items-center justify-center bg-sky-50">
-                              <Play className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-sky-600 ml-0.5" />
-                            </div>
-                          ) : (
-                            <div className="w-7 h-7 border-2 border-gray-300 rounded-full"></div>
-                          )}
-                        </button>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <h4 className={`font-semibold text-gray-900 truncate ${isCompleted ? 'line-through text-gray-400' : ''}`}>
-                              {isVideo
-                                ? getVideoDisplayTitle(content)
-                                : `${getContentTypeLabel(content.type || 'Material')} ${content.title || 'Content'}`}
-                            </h4>
-                          </div>
-                          <div className="flex items-center gap-3 text-xs text-gray-500 mt-1">
-                            <span className="truncate">{subjectName}</span>
-                            {content.type && (
-                              <span className="text-xs bg-gray-100 px-2 py-1 rounded whitespace-nowrap">{content.type}</span>
-                            )}
-                            {isHomework && deadline && (
-                              <span className={`text-xs px-2 py-1 rounded font-medium whitespace-nowrap ${
-                                isOverdue ? 'bg-red-100 text-red-700' : 'text-red-600'
-                              }`}>
-                                Due: {deadline.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                        <PopoverTrigger asChild>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedCalendarDate(day);
+                              setOpenCalendarDayKey(dayKey);
+                            }}
+                            className={`h-12 w-full rounded-lg border text-xs sm:text-sm transition-colors relative ${
+                              isSelected
+                                ? 'bg-indigo-600 text-white border-indigo-600'
+                                : isToday
+                                ? 'bg-indigo-50 text-indigo-700 border-indigo-200'
+                                : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
+                            }`}
+                          >
+                            {day.getDate()}
+                            {itemCount > 0 && (
+                              <span
+                                className={`absolute bottom-1 right-1 text-micro px-1.5 py-0.5 rounded-full ${
+                                  isSelected ? 'bg-white text-indigo-700' : 'bg-orange-100 text-orange-700'
+                                }`}
+                              >
+                                {itemCount}
                               </span>
                             )}
+                          </button>
+                        </PopoverTrigger>
+                        <PopoverContent
+                          side="right"
+                          align="start"
+                          sideOffset={10}
+                          collisionPadding={16}
+                          className="z-[60] w-[min(20rem,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-sky-100 bg-white p-0 shadow-xl shadow-sky-200/40"
+                        >
+                          <div className="border-b border-sky-100 bg-gradient-to-r from-sky-50 via-white to-indigo-50 px-3.5 py-3">
+                            <p className="text-sm font-bold text-slate-900">
+                              {day.toLocaleDateString('en-US', {
+                                weekday: 'short',
+                                month: 'short',
+                                day: 'numeric',
+                                year: 'numeric',
+                              })}
+                            </p>
+                            <p className="mt-0.5 text-xs text-slate-500">
+                              {itemCount === 0
+                                ? 'No scheduled items'
+                                : `${itemCount} scheduled item${itemCount === 1 ? '' : 's'}`}
+                            </p>
                           </div>
+
+                          <div className="max-h-64 space-y-2 overflow-y-auto p-2.5">
+                            {itemCount === 0 ? (
+                              <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/80 px-3 py-5 text-center">
+                                <Calendar className="mx-auto mb-1.5 h-5 w-5 text-slate-300" />
+                                <p className="text-xs font-medium text-slate-600">Nothing on this day</p>
+                                <p className="mt-0.5 text-[11px] text-slate-400">
+                                  Quizzes, exams, and school events will show here.
+                                </p>
+                              </div>
+                            ) : (
+                              dayEntries
+                                .slice()
+                                .sort(
+                                  (a: any, b: any) =>
+                                    (a.date?.getTime?.() || 0) - (b.date?.getTime?.() || 0)
+                                )
+                                .map((entry: any) => {
+                                  const type = String(entry.type || 'event');
+                                  const typeLabel =
+                                    type === 'exam'
+                                      ? 'Exam'
+                                      : type === 'quiz'
+                                        ? 'Quiz'
+                                        : type === 'event'
+                                          ? 'Event'
+                                          : type;
+                                  const typeClass =
+                                    type === 'exam'
+                                      ? 'bg-rose-100 text-rose-700'
+                                      : type === 'quiz'
+                                        ? 'bg-teal-100 text-teal-700'
+                                        : 'bg-indigo-100 text-indigo-700';
+                                  return (
+                                    <button
+                                      key={`${type}-${entry.id}`}
+                                      type="button"
+                                      className="flex w-full items-start gap-2.5 rounded-xl border border-slate-100 bg-white px-3 py-2.5 text-left shadow-sm transition hover:border-sky-200 hover:bg-sky-50/60"
+                                      onClick={() => {
+                                        setOpenCalendarDayKey(null);
+                                        if (type === 'exam') {
+                                          const examId = String(entry.id || entry.source?._id || '');
+                                          setLocation(
+                                            examId
+                                              ? `/student-exams?examId=${encodeURIComponent(examId)}`
+                                              : '/student-exams'
+                                          );
+                                          return;
+                                        }
+                                        if (type === 'quiz') {
+                                          const quizId = String(entry.id || entry.source?._id || '');
+                                          if (quizId) setLocation(`/quiz/${encodeURIComponent(quizId)}`);
+                                          else setLocation('/learning-paths');
+                                          return;
+                                        }
+                                      }}
+                                    >
+                                      <span
+                                        className={`mt-0.5 shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${typeClass}`}
+                                      >
+                                        {typeLabel}
+                                      </span>
+                                      <span className="min-w-0 flex-1">
+                                        <span className="block truncate text-sm font-semibold text-slate-800">
+                                          {entry.title || 'Scheduled item'}
+                                        </span>
+                                        <span className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-slate-500">
+                                          {entry.subject ? <span>{entry.subject}</span> : null}
+                                          {entry.date ? (
+                                            <span className="inline-flex items-center gap-1">
+                                              <Clock className="h-3 w-3 text-sky-500" />
+                                              {entry.date.toLocaleTimeString([], {
+                                                hour: '2-digit',
+                                                minute: '2-digit',
+                                              })}
+                                            </span>
+                                          ) : null}
+                                        </span>
+                                      </span>
+                                    </button>
+                                  );
+                                })
+                            )}
+                          </div>
+                        </PopoverContent>
+                      </Popover>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+
+          </div>
+
+          <StudentTimetableView />
+        </div>
+
+        {/* Teachers report + Homework side by side */}
+        <div className="mb-responsive relative z-10 grid grid-cols-1 gap-4 lg:grid-cols-2 lg:items-stretch">
+          <StudentTeacherDiaryFeed />
+
+          <Card className="h-full bg-white rounded-xl shadow-md">
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-orange-400 rounded-lg flex items-center justify-center">
+                  <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                </div>
+                <CardTitle className="text-lg sm:text-xl font-bold text-gray-900">
+                  My Homework
+                </CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent className="max-h-[28rem] overflow-y-auto">
+              {assignedHomework.length > 0 ? (
+                <div className="space-y-2">
+                  <h4 className="text-xs sm:text-sm font-semibold text-gray-700 mb-3">
+                    Assigned Homework ({assignedHomework.length})
+                  </h4>
+                  {assignedHomework.slice(0, 10).map((homework: any) => {
+                    const homeworkId = String(homework._id || homework.id || '');
+                    const submitted = homeworkSubmissionByHomeworkId.has(homeworkId);
+
+                    return (
+                      <div
+                        key={homeworkId}
+                        className={`flex items-center justify-between gap-3 rounded-lg border px-3 py-2 ${
+                          submitted ? 'bg-emerald-50 border-emerald-200' : 'bg-orange-50 border-orange-200'
+                        }`}
+                      >
+                        <div className="min-w-0">
+                          <p className="text-xs sm:text-sm font-medium text-gray-900 truncate">
+                            {homework.title || 'Untitled Homework'}
+                          </p>
+                          <p className="text-xs text-gray-600 truncate">
+                            {getSubjectName(homework)}
+                            {homework.deadline
+                              ? ` • Due ${new Date(homework.deadline).toLocaleDateString('en-US', {
+                                  month: 'short',
+                                  day: 'numeric',
+                                  year: 'numeric',
+                                })}`
+                              : ''}
+                          </p>
                         </div>
-                        <Badge variant="outline" className="rounded-full px-3 py-1 text-xs bg-white whitespace-nowrap">
-                          {isCompleted ? 'Done' : timeLabel}
-                        </Badge>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <Badge
+                            className={
+                              submitted
+                                ? 'bg-emerald-100 text-emerald-700'
+                                : 'bg-orange-100 text-orange-700'
+                            }
+                          >
+                            {submitted ? 'Submitted' : 'Pending'}
+                          </Badge>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleOpenHomeworkSubmit(homework)}
+                          >
+                            {submitted ? 'Update' : 'Submit'}
+                          </Button>
+                        </div>
                       </div>
                     );
                   })}
                 </div>
+              ) : isLoadingSubmissions ? (
+                <div className="text-center py-4 sm:py-6 lg:py-8">
+                  <div className="animate-spin rounded-full h-6 w-6 sm:h-7 sm:w-7 lg:h-8 lg:w-8 border-b-2 border-orange-600 mx-auto mb-2"></div>
+                  <p className="text-gray-600 text-xs sm:text-sm">Loading homework...</p>
+                </div>
+              ) : (
+                <p className="py-6 text-center text-sm text-slate-500">No homework assigned yet.</p>
               )}
-              </CardContent>
-            </Card>
-        </div>
-
-        {/* Teacher daily diary (class updates from teachers) */}
-        <div className="mb-responsive relative z-10">
-          <StudentTeacherDiaryFeed />
+            </CardContent>
+          </Card>
         </div>
 
         {/* Teacher Remarks Section */}
@@ -2500,80 +2452,6 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* Homework Submissions Section */}
-        <div className="mb-responsive relative z-10">
-          <Card className="bg-white rounded-xl shadow-md">
-            <CardHeader>
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-orange-400 rounded-lg flex items-center justify-center">
-                  <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
-                </div>
-                <CardTitle className="text-lg sm:text-xl font-bold text-gray-900">
-                  My Homework
-                </CardTitle>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {assignedHomework.length > 0 && (
-                <div className="mb-6">
-                  <h4 className="text-xs sm:text-sm font-semibold text-gray-700 mb-3">
-                    Assigned Homework ({assignedHomework.length})
-                  </h4>
-                  <div className="space-y-2">
-                    {assignedHomework.slice(0, 10).map((homework: any) => {
-                      const homeworkId = String(homework._id || homework.id || '');
-                      const submitted = homeworkSubmissionByHomeworkId.has(homeworkId);
-
-                      return (
-                        <div
-                          key={homeworkId}
-                          className={`flex items-center justify-between gap-3 rounded-lg border px-3 py-2 ${
-                            submitted ? 'bg-emerald-50 border-emerald-200' : 'bg-orange-50 border-orange-200'
-                          }`}
-                        >
-                          <div className="min-w-0">
-                            <p className="text-xs sm:text-sm font-medium text-gray-900 truncate">{homework.title || 'Untitled Homework'}</p>
-                            <p className="text-xs text-gray-600 truncate">
-                              {getSubjectName(homework)}
-                              {homework.deadline
-                                ? ` â€¢ Due ${new Date(homework.deadline).toLocaleDateString('en-US', {
-                                    month: 'short',
-                                    day: 'numeric',
-                                    year: 'numeric'
-                                  })}`
-                                : ''}
-                            </p>
-                          </div>
-                          <div className="flex items-center gap-2 flex-shrink-0">
-                            <Badge className={submitted ? 'bg-emerald-100 text-emerald-700' : 'bg-orange-100 text-orange-700'}>
-                              {submitted ? 'Submitted' : 'Pending'}
-                            </Badge>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleOpenHomeworkSubmit(homework)}
-                            >
-                              {submitted ? 'Update' : 'Submit'}
-                            </Button>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
-              {isLoadingSubmissions && assignedHomework.length === 0 && (
-                <div className="text-center py-4 sm:py-6 lg:py-8">
-                  <div className="animate-spin rounded-full h-6 w-6 sm:h-7 sm:w-7 lg:h-8 lg:w-8 border-b-2 border-orange-600 mx-auto mb-2"></div>
-                  <p className="text-gray-600 text-xs sm:text-sm">Loading homework...</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-
-
         {/* Main Content */}
         <div className="relative z-10 space-y-3 sm:space-y-4 sm:p-6 lg:space-y-6 lg:p-8">
           <div className="min-w-0 space-y-3 sm:space-y-4 lg:space-y-6">
@@ -2589,6 +2467,73 @@ export default function Dashboard() {
                 </div>
               </CardHeader>
               <CardContent className="space-y-3 sm:space-y-4 lg:space-y-6">
+                {/* Overview boxes — same style as dashboard top stats */}
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                  {(() => {
+                    const { totalTodos, completedTodos } = dashboardTodoStats;
+                    const percentage = totalTodos > 0 ? Math.round((completedTodos / totalTodos) * 100) : 0;
+                    return (
+                      <StatCard
+                        label="Tasks Done"
+                        value={`${completedTodos}/${totalTodos}`}
+                        caption={`${percentage}% completed`}
+                        icon={Target}
+                        tone="amber"
+                        progress={percentage}
+                      />
+                    );
+                  })()}
+                  <StatCard
+                    label="Study Time"
+                    value={
+                      studyTimeToday >= 60
+                        ? `${(studyTimeToday / 60).toFixed(1)} hrs`
+                        : studyTimeToday < 1 && studyTimeToday > 0
+                          ? '<1m'
+                          : `${Math.round(studyTimeToday)}m`
+                    }
+                    caption="Logged in today"
+                    icon={Clock}
+                    tone="blue"
+                    motif="wave"
+                  />
+                  <StatCard
+                    label="This Week"
+                    value={
+                      studyTimeThisWeek >= 60
+                        ? `${(studyTimeThisWeek / 60).toFixed(1)} hrs`
+                        : studyTimeThisWeek < 1 && studyTimeThisWeek > 0
+                          ? '<1m'
+                          : `${Math.round(studyTimeThisWeek)}m`
+                    }
+                    caption="Study time this week"
+                    icon={Calendar}
+                    tone="teal"
+                    motif="bars"
+                  />
+                  {(() => {
+                    const { totalTodos, completedTodos } = dashboardTodoStats;
+                    const efficiency =
+                      totalTodos > 0
+                        ? Math.round((completedTodos / totalTodos) * 100)
+                        : scheduleCompletionStats.total > 0
+                          ? scheduleCompletionStats.completionPercent
+                          : overallProgress > 0
+                            ? Math.round(overallProgress)
+                            : 0;
+                    return (
+                      <StatCard
+                        label="Efficiency"
+                        value={`${efficiency}%`}
+                        caption={`${Math.round(overallProgress)}% overall progress`}
+                        icon={TrendingUp}
+                        tone="violet"
+                        motif="ring"
+                      />
+                    );
+                  })()}
+                </div>
+
                 {/* Progress Overview */}
                 <div>
                   <div className="flex items-center justify-between mb-2">
@@ -2598,34 +2543,37 @@ export default function Dashboard() {
                   <Progress value={overallProgress} className="h-3 [&>div]:bg-gradient-to-r [&>div]:from-orange-400 [&>div]:via-blue-500 [&>div]:to-teal-500" />
                 </div>
 
-                {/* Subject Progress */}
-                <div className="space-y-2.5">
-                  {subjectProgress.length > 0 ? subjectProgress.map((subject, idx) => (
-                    <div
-                      key={subject.id || subject.name || `subject-${idx}`}
-                      className="rounded-xl border border-orange-50 bg-white p-3 shadow-sm"
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-2.5 min-w-0">
+                {/* Subject Progress — boxes */}
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  {subjectProgress.length > 0 ? subjectProgress.map((subject, idx) => {
+                    const meta = getSubjectProgressIconMeta(subject.name || '');
+                    return (
+                      <div
+                        key={subject.id || subject.name || `subject-${idx}`}
+                        className={`flex flex-col rounded-2xl border border-white/80 p-4 shadow-sm ${meta.bgClass}`}
+                      >
+                        <div className="mb-3 flex items-start justify-between gap-2">
                           <SubjectProgressIcon name={subject.name || ''} />
-                          <div className="min-w-0">
-                            <h3 className="font-semibold text-gray-900 truncate capitalize">{subject.name}</h3>
-                            <p className="text-responsive-xs text-gray-500 truncate">{subject.currentTopic}</p>
-                          </div>
+                          <p className="text-xl font-extrabold tabular-nums text-slate-900">
+                            {subject.progress}%
+                          </p>
                         </div>
-                        <div className="text-right flex-shrink-0">
-                          <p className="text-lg font-bold text-slate-900 leading-none">{subject.progress}%</p>
+                        <h3 className="truncate text-base font-bold capitalize text-slate-900">
+                          {subject.name}
+                        </h3>
+                        <p className="mt-0.5 line-clamp-2 min-h-[2rem] text-xs text-slate-500">
+                          {subject.currentTopic}
+                        </p>
+                        <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-white/80">
+                          <div
+                            className="h-2 rounded-full bg-gradient-to-r from-orange-400 via-blue-500 to-teal-500"
+                            style={{ width: `${Math.min(100, Math.max(0, Number(subject.progress) || 0))}%` }}
+                          />
                         </div>
                       </div>
-                      <div className="mt-2 h-2 w-full rounded-full bg-gray-100 overflow-hidden">
-                        <div
-                          className="h-2 rounded-full bg-gradient-to-r from-orange-400 via-blue-500 to-teal-500"
-                          style={{ width: `${subject.progress}%` }}
-                        />
-                      </div>
-                    </div>
-                  )) : (
-                    <div className="text-center py-4 text-gray-500">
+                    );
+                  }) : (
+                    <div className="col-span-full py-4 text-center text-gray-500">
                       Complete exams to see your subject-wise progress
                     </div>
                   )}

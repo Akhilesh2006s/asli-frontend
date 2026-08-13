@@ -9,8 +9,8 @@ type BrandLoadingStateProps = {
 };
 
 export function BrandLoadingState({
-  title = 'Opening Your Workspace',
-  subtitle = 'Preparing a clear, personalised view for you.',
+  title = 'Loading',
+  subtitle = 'Just a moment…',
 }: BrandLoadingStateProps) {
   return (
     <div

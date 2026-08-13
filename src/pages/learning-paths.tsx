@@ -744,12 +744,15 @@ export default function LearningPaths() {
                 const countOf = (t: string) =>
                   mine.filter((c: any) => c?.type === t && !isIitTrackContent(c)).length;
                 const iitCount = mine.filter((c: any) => isIitTrackContent(c)).length;
+                const videoCount = countOf('Video');
                 const tiles = [
                   { label: 'Textbooks', value: countOf('TextBook') },
                   { label: 'Materials', value: countOf('Material') },
                   ...(iitCount > 0 || subject.hasIitTrack
-                    ? [{ label: 'IIT', value: iitCount }]
-                    : [{ label: 'Videos', value: countOf('Video') }]),
+                    ? [{ label: 'IIT materials', value: iitCount }]
+                    : isAsliPrepExclusive && allowedBrowseTypes.includes('Video')
+                      ? [{ label: 'Videos', value: videoCount }]
+                      : []),
                 ];
                 const recent = mine.slice(0, 2);
 

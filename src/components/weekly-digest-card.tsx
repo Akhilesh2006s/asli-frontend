@@ -26,6 +26,8 @@ import {
   Target,
   ScanLine,
   Sparkles,
+  Users,
+  ChevronDown,
 } from "lucide-react";
 import { getAuthToken, getStudentDisplayName, getUser } from "@/lib/auth-utils";
 import { downloadWeeklyReportPdf } from "@/lib/weekly-report-pdf";
@@ -52,6 +54,7 @@ type OmrRow = {
 };
 
 type DigestMetrics = {
+  role?: string;
   activationDate?: string | null;
   loginCount?: number;
   loginDays?: number;
@@ -90,6 +93,12 @@ type DigestMetrics = {
   omrBestPct?: number;
   omrBestRank?: number | null;
   omrResults?: OmrRow[];
+  generationsCreated?: number;
+  status?: string;
+  activeDays?: number;
+  schoolStudentsAccessed?: number;
+  schoolSessions?: number;
+  schoolTeachersActive?: number;
 };
 
 type Digest = {
@@ -150,11 +159,22 @@ export function WeeklyDigestCard({ apiBase }: { apiBase: "/api/teacher" | "/api/
   const [previewOpen, setPreviewOpen] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const [downloadDone, setDownloadDone] = useState(false);
+  const [showAllMetrics, setShowAllMetrics] = useState(false);
   const isStudent = apiBase === "/api/student";
+  const isTeacher = apiBase === "/api/teacher";
 
   const studentName = useMemo(() => {
     try {
       return getStudentDisplayName(getUser()) || "";
+    } catch {
+      return "";
+    }
+  }, []);
+
+  const teacherName = useMemo(() => {
+    try {
+      const u = getUser();
+      return String(u?.fullName || u?.name || "").trim();
     } catch {
       return "";
     }
@@ -187,7 +207,7 @@ export function WeeklyDigestCard({ apiBase }: { apiBase: "/api/teacher" | "/api/
   };
 
   useEffect(() => {
-    void load(isStudent);
+    void load(true);
   }, [apiBase]);
 
   const m = digest?.metrics || {};
@@ -204,6 +224,16 @@ export function WeeklyDigestCard({ apiBase }: { apiBase: "/api/teacher" | "/api/
     );
   }, [digest, isStudent]);
 
+  const hasRichTeacherMetrics = useMemo(() => {
+    if (!isTeacher || !digest?.metrics) return false;
+    return (
+      "generationsCreated" in digest.metrics ||
+      "status" in digest.metrics ||
+      "loginCount" in digest.metrics ||
+      digest.metrics.role === "teacher"
+    );
+  }, [digest, isTeacher]);
+
   const canDownload = Boolean(digest);
 
   const handleDownloadPdf = async () => {
@@ -215,8 +245,9 @@ export function WeeklyDigestCard({ apiBase }: { apiBase: "/api/teacher" | "/api/
         title: digest.title,
         summary: digest.summary,
         highlights: digest.highlights || [],
-        studentName: studentName || undefined,
+        studentName: (isStudent ? studentName : teacherName) || undefined,
         schoolName: schoolName || undefined,
+        role: isTeacher ? "teacher" : "student",
         metrics: (digest.metrics || {}) as Record<string, unknown>,
       });
       setDownloadDone(true);
@@ -237,16 +268,27 @@ export function WeeklyDigestCard({ apiBase }: { apiBase: "/api/teacher" | "/api/
     }
   };
 
-  const previewStats = [
-    { label: "Logins", value: String(n(m.loginCount)) },
-    { label: "Sessions", value: String(n(m.sessions)) },
-    { label: "Study time", value: String(m.totalTimeLabel || `${n(m.minutes)} min`) },
-    { label: "Exams", value: String(n(m.examAttempts)) },
-    { label: "Avg exam", value: n(m.examAttempts) > 0 ? `${n(m.avgExamPct)}%` : "—" },
-    { label: "OMR", value: String(n(m.omrAttempts)) },
-    { label: "AI uses", value: String(n(m.aiExplanations)) },
-    { label: "Streak", value: n(m.streak) > 0 ? `${n(m.streak)}d` : "0" },
-  ];
+  const previewStats = isTeacher
+    ? [
+        { label: "Logins", value: String(n(m.loginCount)) },
+        { label: "Sessions", value: String(n(m.sessions)) },
+        { label: "Time", value: String(m.totalTimeLabel || `${n(m.minutes)} min`) },
+        { label: "AI resources", value: String(n(m.generationsCreated)) },
+        { label: "Vidya", value: String(n(m.aiDoubts)) },
+        { label: "Status", value: String(m.status || "—") },
+        { label: "School stu.", value: String(n(m.schoolStudentsAccessed)) },
+        { label: "School sess.", value: String(n(m.schoolSessions)) },
+      ]
+    : [
+        { label: "Logins", value: String(n(m.loginCount)) },
+        { label: "Sessions", value: String(n(m.sessions)) },
+        { label: "Study time", value: String(m.totalTimeLabel || `${n(m.minutes)} min`) },
+        { label: "Exams", value: String(n(m.examAttempts)) },
+        { label: "Avg exam", value: n(m.examAttempts) > 0 ? `${n(m.avgExamPct)}%` : "—" },
+        { label: "Offline", value: String(n(m.omrAttempts)) },
+        { label: "AI uses", value: String(n(m.aiExplanations)) },
+        { label: "Streak", value: n(m.streak) > 0 ? `${n(m.streak)}d` : "0" },
+      ];
 
   return (
     <Card className="border-sky-100 shadow-sm overflow-hidden">
@@ -254,7 +296,7 @@ export function WeeklyDigestCard({ apiBase }: { apiBase: "/api/teacher" | "/api/
         <div className="flex items-center justify-between gap-2">
           <CardTitle className="text-base flex items-center gap-2">
             <FileText className="h-4 w-4 text-sky-600" />
-            Weekly report
+            {isTeacher ? "Weekly teacher report" : "Weekly report"}
           </CardTitle>
           <div className="flex items-center gap-1">
             {canDownload ? (
@@ -285,6 +327,104 @@ export function WeeklyDigestCard({ apiBase }: { apiBase: "/api/teacher" | "/api/
           <p className="text-sm text-slate-500">
             Your weekly digest will appear here every Monday. Tap refresh to build one for this week.
           </p>
+        ) : hasRichTeacherMetrics ? (
+          <div className="space-y-3">
+            <div>
+              <p className="text-sm font-medium text-slate-900">{digest.title}</p>
+              <p className="text-xs text-slate-500">{digest.summary}</p>
+            </div>
+
+            <SectionTitle icon={LogIn} title="Your activity" />
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              <MetricTile label="Logins this week" value={n(m.loginCount)} hint="Days you opened the app" />
+              <MetricTile label="Sessions" value={n(m.sessions)} />
+              <MetricTile label="Time on platform" value={m.totalTimeLabel || `${n(m.minutes)} min`} />
+              <MetricTile label="Last active" value={m.lastActiveDate || "—"} />
+              <MetricTile label="Status (14 days)" value={String(m.status || "—")} />
+              <MetricTile label="Active days (14d)" value={n(m.activeDays)} />
+            </div>
+
+            <SectionTitle icon={Sparkles} title="Teaching with AI" />
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              <MetricTile label="AI resources created" value={n(m.generationsCreated)} />
+              <MetricTile label="Vidya AI asks" value={n(m.aiDoubts)} />
+              <MetricTile label="Tool opens" value={n(m.aiToolUses)} />
+            </div>
+            {(Array.isArray(m.toolsUsed) ? m.toolsUsed : []).length > 0 ? (
+              <ul className="space-y-1.5 rounded-xl border border-slate-100 bg-white px-3 py-2">
+                {(m.toolsUsed || []).slice(0, 8).map((tool, idx) => (
+                  <li
+                    key={`${tool.name}-${idx}`}
+                    className="flex items-start justify-between gap-2 text-sm"
+                  >
+                    <span className="min-w-0 flex-1 text-slate-700">
+                      <span className="font-medium line-clamp-1">{tool.name || "Tool"}</span>
+                      {Array.isArray(tool.subjects) && tool.subjects.length > 0 ? (
+                        <span className="block text-[11px] text-slate-500 line-clamp-1">
+                          {tool.subjects.slice(0, 3).join(" · ")}
+                        </span>
+                      ) : null}
+                    </span>
+                    <span className="shrink-0 font-semibold tabular-nums text-slate-900">
+                      {n(tool.count)}×
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-xs text-slate-500">No AI tools used this week yet.</p>
+            )}
+
+            <SectionTitle icon={Users} title="Your school this week" />
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              <MetricTile label="Students accessed" value={n(m.schoolStudentsAccessed)} />
+              <MetricTile label="School sessions" value={n(m.schoolSessions)} />
+              <MetricTile label="Teachers active" value={n(m.schoolTeachersActive)} />
+            </div>
+
+            {(digest.highlights || []).length > 0 ? (
+              <div className="rounded-xl bg-sky-50/80 border border-sky-100 px-3 py-2">
+                <p className="text-xs font-bold text-sky-800 mb-1 flex items-center gap-1">
+                  <Flame className="h-3.5 w-3.5" />
+                  This week at a glance
+                </p>
+                <ul className="list-disc pl-4 text-sm text-slate-700 space-y-1">
+                  {(digest.highlights || []).map((h) => (
+                    <li key={h}>{h}</li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+
+            <motion.div
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="rounded-xl border border-teal-100 bg-gradient-to-r from-sky-50 via-white to-teal-50 p-3"
+            >
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-slate-900 flex items-center gap-1.5">
+                    <Sparkles className="h-4 w-4 text-teal-600" />
+                    Save your week as a PDF
+                  </p>
+                  <p className="text-xs text-slate-500">
+                    Keep a record of your teaching activity for this week.
+                  </p>
+                </div>
+                <Button
+                  size="sm"
+                  className="shrink-0 bg-sky-600 hover:bg-sky-700 text-white"
+                  onClick={() => {
+                    setPreviewOpen(true);
+                    setDownloadDone(false);
+                  }}
+                >
+                  <Download className="h-3.5 w-3.5 mr-1.5" />
+                  Download PDF
+                </Button>
+              </div>
+            </motion.div>
+          </div>
         ) : hasRichStudentMetrics ? (
           <div className="space-y-3">
             <div>
@@ -309,6 +449,21 @@ export function WeeklyDigestCard({ apiBase }: { apiBase: "/api/teacher" | "/api/
               />
             </div>
 
+            {!showAllMetrics ? (
+              <div className="pt-1">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="w-full rounded-xl border-sky-200 bg-sky-50/70 text-sky-800 hover:bg-sky-100"
+                  onClick={() => setShowAllMetrics(true)}
+                >
+                  <ChevronDown className="mr-1.5 h-4 w-4" />
+                  Load more
+                </Button>
+              </div>
+            ) : (
+              <>
             <SectionTitle icon={BookOpen} title="Learning behaviour" />
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               <MetricTile label="Topics practised" value={n(m.topicsPractised)} />
@@ -417,9 +572,9 @@ export function WeeklyDigestCard({ apiBase }: { apiBase: "/api/teacher" | "/api/
               <p className="text-xs text-slate-500">No exams written this week yet.</p>
             )}
 
-            <SectionTitle icon={ScanLine} title="OMR results" />
+            <SectionTitle icon={ScanLine} title="Offline Results" />
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              <MetricTile label="OMR tests" value={n(m.omrAttempts)} />
+              <MetricTile label="Offline Tests" value={n(m.omrAttempts)} />
               <MetricTile
                 label="Average score"
                 value={n(m.omrAttempts) > 0 ? `${n(m.omrAvgPct)}%` : "—"}
@@ -452,7 +607,7 @@ export function WeeklyDigestCard({ apiBase }: { apiBase: "/api/teacher" | "/api/
                 ))}
               </ul>
             ) : (
-              <p className="text-xs text-slate-500">No OMR results assigned this week yet.</p>
+              <p className="text-xs text-slate-500">No Offline Results Assigned This Week Yet.</p>
             )}
 
             <SectionTitle icon={Target} title="Content & progress" />
@@ -492,6 +647,18 @@ export function WeeklyDigestCard({ apiBase }: { apiBase: "/api/teacher" | "/api/
                 </ul>
               </div>
             ) : null}
+
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="w-full text-slate-500"
+              onClick={() => setShowAllMetrics(false)}
+            >
+              Show less
+            </Button>
+              </>
+            )}
 
             <motion.div
               initial={{ opacity: 0, y: 6 }}
@@ -575,11 +742,11 @@ export function WeeklyDigestCard({ apiBase }: { apiBase: "/api/teacher" | "/api/
                 {digest?.summary || "Preview your report, then download a polished PDF."}
               </DialogDescription>
             </DialogHeader>
-            {(studentName || schoolName) && (
+            {(studentName || teacherName || schoolName) && (
               <div className="relative mt-3 flex flex-wrap gap-2">
-                {studentName ? (
+                {(isStudent ? studentName : teacherName) ? (
                   <span className="rounded-full border border-white/25 bg-white/15 px-2.5 py-0.5 text-xs font-semibold">
-                    {studentName}
+                    {isStudent ? studentName : teacherName}
                   </span>
                 ) : null}
                 {schoolName ? (
@@ -592,7 +759,7 @@ export function WeeklyDigestCard({ apiBase }: { apiBase: "/api/teacher" | "/api/
           </div>
 
           <div className="space-y-4 px-5 py-4">
-            {hasRichStudentMetrics ? (
+            {hasRichStudentMetrics || hasRichTeacherMetrics ? (
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                 {previewStats.map((stat, i) => (
                   <motion.div

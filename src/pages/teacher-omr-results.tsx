@@ -71,14 +71,14 @@ export default function TeacherOmrResultsPage() {
       <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
         <div className="mb-6">
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-orange-600">
-            OMR Results
+            Offline Results
           </p>
           <h1 className="mt-1 flex items-center gap-2.5 font-display text-2xl font-bold text-slate-900 sm:text-3xl">
             <ScanLine className="h-7 w-7 shrink-0 text-orange-600" aria-hidden />
-            OMR Results
+            Offline Results
           </h1>
           <p className="mt-1 text-sm text-slate-600">
-            OMR scores for students in your classes (after school admin assigns Candidate IDs).
+            Offline scores for students in your classes (after school admin assigns Candidate IDs).
           </p>
         </div>
 
@@ -106,9 +106,9 @@ export default function TeacherOmrResultsPage() {
           <Card className="rounded-2xl border-orange-100">
             <CardContent className="flex flex-col items-center py-16 text-center">
               <ScanLine className="mb-3 h-12 w-12 text-orange-300" />
-              <p className="font-semibold text-slate-800">No OMR results yet</p>
+              <p className="font-semibold text-slate-800">No Offline Results Yet</p>
               <p className="mt-1 max-w-md text-sm text-slate-500">
-                Ask your school admin to upload the OMR Score List and assign candidates to students.
+                Ask your school admin to upload the offline score list and assign candidates to students.
               </p>
             </CardContent>
           </Card>

@@ -30,7 +30,8 @@ import { collectVidyaSubjectLabels } from "@/lib/vidya-subjects";
 import { getStudentDisplayName, getAuthToken } from '@/lib/auth-utils';
 import { isAiToolVisibleForSubjects } from "@/lib/ai-tool-subject-rules";
 import { isVidyaEnabledForUser } from "@/lib/vidya-access";
-import { vidyaPastelTone } from "@/lib/vidya-pastel-tones";
+import { vidyaPastelToneForTool } from "@/lib/vidya-pastel-tones";
+import { formatAiToolText } from "@/lib/title-case";
 import { cn } from "@/lib/utils";
 
 export default function AITutor() {
@@ -488,8 +489,10 @@ export default function AITutor() {
                   <h1 className="font-display text-4xl font-extrabold leading-none tracking-tight text-ink sm:text-5xl lg:text-6xl">
                     Vidya <span className="text-sky-600">AI</span>
                   </h1>
-                  <p className="mt-2 max-w-xl text-base leading-relaxed text-ink-soft sm:mt-3 sm:text-lg">
-                    Smart revision, practice and study support — all in one place.
+                  <p className="mt-2 max-w-2xl text-base leading-relaxed text-ink-soft sm:mt-3 sm:text-lg">
+                    {formatAiToolText(
+                      'What are you working on today? Stuck on a concept? Revising a chapter? Preparing for a test? Vidya AI has a tool to help.'
+                    )}
                   </p>
                 </div>
                 <img
@@ -502,15 +505,45 @@ export default function AITutor() {
 
               <div className="mt-6 grid gap-3 sm:grid-cols-3">
                 {[
-                  { Icon: Clock, title: 'Save Time', copy: 'Automate revision & notes' },
-                  { Icon: Brain, title: 'Practice Smarter', copy: 'Questions built for you' },
-                  { Icon: TrendingUp, title: 'Better Outcomes', copy: 'Track progress & improve' },
-                ].map(({ Icon, title, copy }) => (
+                  {
+                    Icon: BookMarked,
+                    title: 'Learn',
+                    copy: 'Understand Concepts Clearly',
+                    iconBg: 'bg-sky-100',
+                    iconColor: 'text-sky-700',
+                    card: 'border-sky-100 bg-sky-50/90',
+                  },
+                  {
+                    Icon: Brain,
+                    title: 'Practise',
+                    copy: 'Questions, Flashcards & Tests',
+                    iconBg: 'bg-emerald-100',
+                    iconColor: 'text-emerald-700',
+                    card: 'border-emerald-100 bg-emerald-50/90',
+                  },
+                  {
+                    Icon: Calendar,
+                    title: 'Prepare',
+                    copy: 'Study Guides, Projects & Plans',
+                    iconBg: 'bg-amber-100',
+                    iconColor: 'text-amber-800',
+                    card: 'border-amber-100 bg-amber-50/90',
+                  },
+                ].map(({ Icon, title, copy, iconBg, iconColor, card }) => (
                   <div
                     key={title}
-                    className="flex items-start gap-3 rounded-2xl border border-white/80 bg-white/85 px-4 py-3 shadow-sm backdrop-blur"
+                    className={cn(
+                      'flex items-start gap-3 rounded-2xl border px-4 py-3 shadow-sm backdrop-blur',
+                      card
+                    )}
                   >
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-indigo-blue-50 text-indigo-blue-600">
+                    <span
+                      className={cn(
+                        'flex h-9 w-9 shrink-0 items-center justify-center rounded-xl',
+                        iconBg,
+                        iconColor
+                      )}
+                    >
                       <Icon className="h-[1.15rem] w-[1.15rem]" aria-hidden="true" />
                     </span>
                     <span className="leading-tight">
@@ -527,7 +560,7 @@ export default function AITutor() {
           <div className="grid grid-cols-1 gap-4 sm:gap-5 md:grid-cols-2 xl:grid-cols-3">
             {visibleStudentTools.map((tool, index) => {
               const Icon = tool.icon;
-              const tone = vidyaPastelTone(index);
+              const tone = vidyaPastelToneForTool(tool.id, index);
               return (
                 <button
                   key={tool.id}
@@ -554,23 +587,35 @@ export default function AITutor() {
                       </div>
                       <div className="flex flex-col items-end gap-1">
                         <span className="rounded-full border border-white/80 bg-white/80 px-2.5 py-1 text-mini font-medium text-slate-700">
-                          AI Powered
+                          {formatAiToolText('AI Powered')}
                         </span>
                         {(tool as any).category && (
                           <span className="rounded-full bg-white/70 px-2.5 py-0.5 text-micro font-medium text-slate-600">
-                            {(tool as any).category}
+                            {formatAiToolText((tool as any).category)}
                           </span>
                         )}
                       </div>
                     </div>
-                    <h3 className="mb-2 text-sm font-bold leading-snug text-gray-900 transition-colors group-hover:text-indigo-700 sm:text-base lg:text-lg">
-                      {tool.name}
+                    <h3
+                      className={cn(
+                        'mb-2 text-sm font-bold leading-snug text-gray-900 transition-colors sm:text-base lg:text-lg',
+                        tone.titleHover
+                      )}
+                    >
+                      {formatAiToolText(tool.name)}
                     </h3>
                     <p className="line-clamp-2 min-h-[38px] text-xs text-gray-600 sm:min-h-[40px] sm:text-sm">
-                      {tool.description || 'Click to use this AI tool'}
+                      {formatAiToolText(tool.description || 'Click to use this AI tool')}
                     </p>
-                    <div className="mt-4 flex translate-y-1 items-center text-indigo-700 opacity-0 transition-all group-hover:translate-y-0 group-hover:opacity-100 sm:mt-5">
-                      <span className="text-xs font-semibold sm:text-sm">Get Started</span>
+                    <div
+                      className={cn(
+                        'mt-4 flex translate-y-1 items-center opacity-0 transition-all group-hover:translate-y-0 group-hover:opacity-100 sm:mt-5',
+                        tone.cta
+                      )}
+                    >
+                      <span className="text-xs font-semibold sm:text-sm">
+                        {formatAiToolText('Get Started')}
+                      </span>
                       <ArrowRight className="ml-2 h-3 w-3 sm:h-4 sm:w-4" />
                     </div>
                   </div>

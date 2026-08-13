@@ -28,6 +28,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useSuperAdminDrawerNav } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
+import { motion } from "framer-motion";
 import type { SuperAdminView } from "@/lib/super-admin-views";
 
 export type { SuperAdminView };
@@ -119,14 +120,14 @@ export function SuperAdminSidebar({ currentView, onViewChange, user, onLogout }:
         }}
         title={compact ? item.label : undefined}
         className={cn(
-          "w-full flex items-center gap-2 lg:gap-3 rounded-lg transition-colors text-left",
+          "w-full flex items-center gap-2 lg:gap-3 rounded-xl transition-all duration-200 text-left",
           compact
             ? "justify-center px-2 py-2 lg:justify-start lg:px-4 lg:py-3 mx-1 lg:mx-2"
             : "items-start gap-3 px-4 py-3",
           "text-xs sm:text-sm font-medium",
           isActive
-            ? "bg-white text-orange-600 shadow-md"
-            : "text-white hover:bg-orange-600/50",
+            ? "bg-gradient-to-r from-sky-500 to-teal-400 text-white shadow-md shadow-sky-200/70"
+            : "text-slate-600 hover:bg-white/80 hover:text-slate-900 hover:shadow-sm",
         )}
       >
         <Icon
@@ -148,7 +149,23 @@ export function SuperAdminSidebar({ currentView, onViewChange, user, onLogout }:
   };
 
   const sidebarContent = (
-    <div className="flex h-full min-h-0 flex-col">
+    <div className="relative flex h-full min-h-0 flex-col overflow-hidden">
+      <div className="pointer-events-none absolute inset-0" aria-hidden="true">
+        <div className="absolute inset-0 bg-gradient-to-b from-sky-100/90 via-orange-50/45 to-teal-50/80" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_90%_50%_at_0%_0%,rgba(56,189,248,0.25),transparent_55%),radial-gradient(ellipse_70%_45%_at_100%_20%,rgba(251,146,60,0.18),transparent_50%)]" />
+        <motion.div
+          className="absolute -right-8 top-20 h-32 w-32 rounded-full bg-sky-300/30 blur-3xl"
+          animate={{ y: [0, 12, 0], opacity: [0.4, 0.7, 0.4] }}
+          transition={{ duration: 6.5, repeat: Infinity, ease: "easeInOut" }}
+        />
+        <motion.div
+          className="absolute -left-10 bottom-24 h-36 w-36 rounded-full bg-orange-300/25 blur-3xl"
+          animate={{ y: [0, -10, 0], opacity: [0.3, 0.6, 0.3] }}
+          transition={{ duration: 7.5, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
+        />
+      </div>
+
+      <div className="relative z-10 flex h-full min-h-0 flex-col">
       <div className="shrink-0 px-3 pt-3 pb-1 lg:px-4 lg:pt-4">
         <button
           type="button"
@@ -157,26 +174,38 @@ export function SuperAdminSidebar({ currentView, onViewChange, user, onLogout }:
             setMobileOpen(false);
           }}
           className={cn(
-            "flex w-full items-center mb-1 rounded-lg text-left transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60",
+            "flex w-full items-center mb-1 rounded-xl text-left transition-all hover:bg-white/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300/60",
             useDrawerNav ? "space-x-3 px-1 py-1" : "justify-center lg:justify-start lg:space-x-3 px-1 py-1",
           )}
           aria-label="Go to Super Admin home"
           title="Home"
         >
-          <GraduationCapIcon className="h-5 w-5 lg:h-8 lg:w-8 text-white shrink-0" />
+          <motion.div
+            className="flex h-8 w-8 lg:h-10 lg:w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-sky-500 to-teal-400 shadow-md shadow-sky-200/60"
+            animate={{ y: [0, -2, 0] }}
+            transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+          >
+            <GraduationCapIcon className="h-4 w-4 lg:h-5 lg:w-5 text-white" />
+          </motion.div>
           <div className={cn(!useDrawerNav && "hidden lg:block")}>
-            <h2 className="text-sm sm:text-base lg:text-lg font-bold text-white">Aslilearn AI</h2>
-            <p className="text-xs text-orange-100/90">Super Admin</p>
+            <h2 className="text-sm sm:text-base lg:text-lg font-bold text-slate-900">Aslilearn AI</h2>
+            <p className="text-xs font-medium text-sky-600">Super Admin</p>
           </div>
         </button>
       </div>
 
       <nav className="super-admin-sidebar-nav min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-0 pb-2">
-        {NAV_SECTIONS.map((section) => (
-          <div key={section.title} className="pt-0.5 first:pt-0">
+        {NAV_SECTIONS.map((section, sIdx) => (
+          <motion.div
+            key={section.title}
+            className="pt-0.5 first:pt-0"
+            initial={{ opacity: 0, x: -8 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.04 * sIdx, duration: 0.3 }}
+          >
             <p
               className={cn(
-                "px-4 pb-1 pt-3 text-[10px] font-extrabold uppercase tracking-[0.12em] text-white/85",
+                "px-4 pb-1 pt-3 text-[10px] font-extrabold uppercase tracking-[0.12em] text-sky-600/70",
                 !useDrawerNav && "hidden lg:block",
               )}
             >
@@ -185,25 +214,25 @@ export function SuperAdminSidebar({ currentView, onViewChange, user, onLogout }:
             <div className="space-y-1">
               {section.items.map((item) => renderNavButton(item, !useDrawerNav))}
             </div>
-          </div>
+          </motion.div>
         ))}
       </nav>
 
-      <div className="shrink-0 mt-auto p-3 sm:p-4 lg:p-6 border-t border-orange-300/50 space-y-3 bg-orange-500/40">
+      <div className="shrink-0 mt-auto space-y-3 border-t border-sky-100/90 bg-white/70 p-3 sm:p-4 lg:p-6 backdrop-blur-sm">
         <div
           className={cn(
             "flex items-center space-x-3",
             !useDrawerNav && "justify-center lg:justify-start",
           )}
         >
-          <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center shrink-0">
-            <CrownIcon className="h-4 w-4 text-white" />
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-amber-300 to-orange-400 shadow-sm">
+            <CrownIcon className="h-4 w-4 text-slate-900" />
           </div>
           <div className={cn(!useDrawerNav && "hidden lg:block")}>
-            <p className="text-xs sm:text-sm font-medium text-white">
+            <p className="text-xs sm:text-sm font-medium text-slate-900">
               {user?.fullName || "Super Admin"}
             </p>
-            <p className="text-xs text-orange-100/90">Super Administrator</p>
+            <p className="text-xs text-slate-500">Super Administrator</p>
           </div>
         </div>
         <button
@@ -213,7 +242,7 @@ export function SuperAdminSidebar({ currentView, onViewChange, user, onLogout }:
             setMobileOpen(false);
           }}
           className={cn(
-            "w-full flex items-center rounded-lg transition-colors text-white border border-white/35 hover:bg-red-600/45 hover:border-red-200/50",
+            "w-full flex items-center rounded-xl transition-colors text-slate-700 border border-slate-200 bg-white/90 hover:bg-rose-50 hover:border-rose-200 hover:text-rose-700",
             "px-3 py-2 lg:px-4 lg:py-3 text-xs sm:text-sm font-medium",
             !useDrawerNav && "justify-center lg:justify-start",
           )}
@@ -224,7 +253,7 @@ export function SuperAdminSidebar({ currentView, onViewChange, user, onLogout }:
         <a
           href="mailto:hello@aslilearn.ai?subject=AsliLearn%20support%20request"
           className={cn(
-            "w-full flex items-center rounded-lg transition-colors text-white/95 border border-white/25 hover:bg-white/15",
+            "w-full flex items-center rounded-xl transition-colors text-slate-700 border border-sky-100 bg-white/90 hover:bg-sky-50 hover:border-sky-200 hover:text-slate-900",
             "px-3 py-2 lg:px-4 lg:py-2.5 text-xs sm:text-sm font-medium",
             !useDrawerNav && "justify-center lg:justify-start",
           )}
@@ -233,13 +262,14 @@ export function SuperAdminSidebar({ currentView, onViewChange, user, onLogout }:
           <span className={cn(useDrawerNav ? "hidden" : "lg:hidden")}>?</span>
         </a>
       </div>
+      </div>
     </div>
   );
 
   if (useDrawerNav) {
     return (
       <>
-        <div className="fixed top-0 left-0 right-0 z-30 bg-gradient-to-r from-orange-400 to-orange-500 border-b border-orange-300 shadow-md pt-[env(safe-area-inset-top,0px)]">
+        <div className="fixed left-0 right-0 top-0 z-30 border-b border-slate-200 bg-white/95 shadow-sm backdrop-blur-md pt-[env(safe-area-inset-top,0px)]">
           <div className="h-14 px-4 flex items-center justify-between min-h-[3.5rem] gap-2">
             <button
               type="button"
@@ -247,15 +277,17 @@ export function SuperAdminSidebar({ currentView, onViewChange, user, onLogout }:
                 onViewChange("dashboard");
                 setMobileOpen(false);
               }}
-              className="flex items-center space-x-2 min-w-0 rounded-md px-1 py-1 text-left hover:bg-white/10"
+              className="flex items-center space-x-2 min-w-0 rounded-md px-1 py-1 text-left hover:bg-sky-50"
               aria-label="Go to Super Admin home"
             >
-              <GraduationCapIcon className="h-5 w-5 text-white shrink-0" />
+              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-sky-500 to-teal-400">
+                <GraduationCapIcon className="h-3.5 w-3.5 text-white" />
+              </div>
               <div className="min-w-0">
-                <h2 className="text-xs sm:text-sm font-bold text-white leading-none truncate">
+                <h2 className="text-xs sm:text-sm font-bold text-slate-900 leading-none truncate">
                   Aslilearn AI
                 </h2>
-                <p className="text-micro text-orange-100/90">Super Admin</p>
+                <p className="text-micro text-sky-600">Super Admin</p>
               </div>
             </button>
             <div className="flex items-center gap-1 shrink-0">
@@ -264,7 +296,7 @@ export function SuperAdminSidebar({ currentView, onViewChange, user, onLogout }:
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="text-white hover:bg-orange-600/50 shrink-0"
+                    className="shrink-0 text-slate-700 hover:bg-sky-50"
                     aria-label="Open menu"
                   >
                     <Menu className="h-5 w-5" />
@@ -272,7 +304,7 @@ export function SuperAdminSidebar({ currentView, onViewChange, user, onLogout }:
                 </SheetTrigger>
                 <SheetContent
                   side="left"
-                  className="w-[min(20rem,92vw)] sm:w-80 p-0 bg-gradient-to-b from-orange-400 to-orange-500 border-r border-orange-300 overflow-hidden"
+                  className="w-[min(20rem,92vw)] overflow-hidden border-r border-slate-200 bg-gradient-to-b from-white via-sky-50/50 to-slate-50 p-0 sm:w-80"
                 >
                   {sidebarContent}
                 </SheetContent>
@@ -294,7 +326,7 @@ export function SuperAdminSidebar({ currentView, onViewChange, user, onLogout }:
                 onClick={() => onViewChange(item.id as SuperAdminView)}
                 className={cn(
                   "flex flex-col items-center gap-0.5 px-2 py-1 min-w-0",
-                  isActive ? "text-orange-600" : "text-muted-foreground",
+                  isActive ? "text-teal-600" : "text-muted-foreground",
                 )}
               >
                 <Icon className="w-5 h-5 shrink-0" />
@@ -314,7 +346,7 @@ export function SuperAdminSidebar({ currentView, onViewChange, user, onLogout }:
       className={cn(
         "super-admin-sidebar hidden sm:flex flex-col transition-all duration-300",
         "sm:w-[60px] lg:w-64 sm:min-w-[60px] lg:min-w-[16rem] lg:max-w-[16rem]",
-        "bg-gradient-to-b from-orange-400 to-orange-500 shadow-sm border-r border-orange-300",
+        "border-r border-sky-100/90 bg-transparent shadow-[4px_0_24px_-12px_rgba(14,165,233,0.15)]",
         "h-screen fixed top-0 left-0 overflow-hidden z-20",
       )}
     >

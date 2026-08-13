@@ -1633,7 +1633,7 @@ export default function SuperAdminAiGenerator() {
             </span>
           </p>
         </CardHeader>
-        <CardContent>
+        <CardContent className="min-w-0 overflow-x-hidden px-3 sm:px-6">
           {recordsLoading ? (
             <div className="flex items-center gap-2 text-xs sm:text-sm text-slate-600">
               <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 animate-spin" />
@@ -1660,51 +1660,51 @@ export default function SuperAdminAiGenerator() {
               )}
             </p>
           ) : (
-            <Accordion type="multiple" className="w-full">
+            <Accordion type="multiple" className="w-full min-w-0">
               {recordsTree.map((toolNode) => (
-                <AccordionItem key={toolNode.toolSlug} value={`tool-${toolNode.toolSlug}`} className="border rounded-xl px-3 mb-3">
-                  <AccordionTrigger className="hover:no-underline">
-                    <div className="text-left">
-                      <p className="font-semibold">{toolNode.toolName}</p>
-                      <p className="text-xs text-slate-500">{toolNode.toolSlug}</p>
+                <AccordionItem key={toolNode.toolSlug} value={`tool-${toolNode.toolSlug}`} className="border rounded-xl px-0 sm:px-2 mb-3 min-w-0 overflow-hidden">
+                  <AccordionTrigger className="hover:no-underline px-3 py-3 min-h-0">
+                    <div className="text-left min-w-0">
+                      <p className="font-semibold break-words">{toolNode.toolName}</p>
+                      <p className="text-xs text-slate-500 break-all">{toolNode.toolSlug}</p>
                     </div>
                   </AccordionTrigger>
-                  <AccordionContent>
+                  <AccordionContent className="px-1 sm:px-3 pb-2 pt-2">
                     <p className="text-xs text-slate-500 mb-3">Classes in this tool</p>
-                    <Accordion type="multiple" className="w-full">
+                    <Accordion type="multiple" className="w-full min-w-0 space-y-2">
                       {toolNode.classes.map((classNode) => (
-                        <AccordionItem key={`${toolNode.toolSlug}-${classNode.className}-${classNode.boardName || ''}`} value={`class-${toolNode.toolSlug}-${classNode.className}-${classNode.boardName || ''}`} className="border rounded-lg px-3 mb-2">
-                          <AccordionTrigger className="hover:no-underline">
-                            <div className="text-left">
+                        <AccordionItem key={`${toolNode.toolSlug}-${classNode.className}-${classNode.boardName || ''}`} value={`class-${toolNode.toolSlug}-${classNode.className}-${classNode.boardName || ''}`} className="border rounded-lg px-0 mb-0 min-w-0 overflow-hidden">
+                          <AccordionTrigger className="hover:no-underline px-3 py-2.5 min-h-0 gap-2">
+                            <div className="text-left min-w-0">
                               <p className="text-xs text-slate-500">CLASS</p>
-                              <p className="font-medium">
+                              <p className="font-medium break-words">
                                 {classNode.className}
                                 {classNode.boardName ? ` (${classNode.boardName})` : ""}
                               </p>
                             </div>
                           </AccordionTrigger>
-                          <AccordionContent>
-                            <Accordion type="multiple" className="w-full">
+                          <AccordionContent className="px-1 sm:px-2 pb-2 pt-2">
+                            <Accordion type="multiple" className="w-full min-w-0 space-y-2">
                               {classNode.subjects.map((subjectNode) => (
-                                <AccordionItem key={`${classNode.className}-${subjectNode.subjectName}`} value={`subject-${classNode.className}-${subjectNode.subjectName}`} className="border rounded-lg px-3 mb-2">
-                                  <AccordionTrigger className="hover:no-underline">
-                                    <div className="text-left">
+                                <AccordionItem key={`${classNode.className}-${subjectNode.subjectName}`} value={`subject-${classNode.className}-${subjectNode.subjectName}`} className="border rounded-lg px-0 mb-0 min-w-0 overflow-hidden">
+                                  <AccordionTrigger className="hover:no-underline px-3 py-2.5 min-h-0 gap-2">
+                                    <div className="text-left min-w-0">
                                       <p className="text-xs text-slate-500">SUBJECT</p>
-                                      <p className="font-medium">{subjectNode.subjectName}</p>
+                                      <p className="font-medium break-words">{subjectNode.subjectName}</p>
                                     </div>
                                   </AccordionTrigger>
-                                  <AccordionContent>
-                                    <Accordion type="multiple" className="w-full">
+                                  <AccordionContent className="px-1 sm:px-2 pb-2 pt-2">
+                                    <Accordion type="multiple" className="w-full min-w-0 space-y-2">
                                       {subjectNode.topics.map((topicNode) => (
-                                        <AccordionItem key={`${subjectNode.subjectName}-${topicNode.topicName}`} value={`topic-${subjectNode.subjectName}-${topicNode.topicName}`} className="border rounded-lg px-3 mb-2">
-                                          <AccordionTrigger className="hover:no-underline">
-                                            <div className="text-left">
+                                        <AccordionItem key={`${subjectNode.subjectName}-${topicNode.topicName}`} value={`topic-${subjectNode.subjectName}-${topicNode.topicName}`} className="border rounded-lg px-0 mb-0 min-w-0 overflow-hidden">
+                                          <AccordionTrigger className="hover:no-underline px-3 py-2.5 min-h-0 gap-2">
+                                            <div className="text-left min-w-0">
                                               <p className="text-xs text-slate-500">TOPIC</p>
-                                              <p className="font-medium">{topicNode.topicName || "General"}</p>
+                                              <p className="font-medium break-words">{topicNode.topicName || "General"}</p>
                                             </div>
                                           </AccordionTrigger>
-                                          <AccordionContent>
-                                            <Accordion type="multiple" className="w-full">
+                                          <AccordionContent className="px-1 sm:px-2 pb-2 pt-2">
+                                            <Accordion type="multiple" className="w-full min-w-0 space-y-2">
                                               {topicNode.subtopics.map((subtopicNode) => {
                                                 const subtopicKey = subtopicSectionKey(
                                                   toolNode.toolSlug,
@@ -1716,16 +1716,16 @@ export default function SuperAdminAiGenerator() {
                                                 );
                                                 const isDeletingSubtopic = deletingSubtopicKey === subtopicKey;
                                                 return (
-                                                <AccordionItem key={`${topicNode.topicName}-${subtopicNode.subtopicName}`} value={`subtopic-${topicNode.topicName}-${subtopicNode.subtopicName}`} className="border rounded-lg px-3 mb-2">
-                                                  <AccordionTrigger className="hover:no-underline">
-                                                    <div className="text-left">
+                                                <AccordionItem key={`${topicNode.topicName}-${subtopicNode.subtopicName}`} value={`subtopic-${topicNode.topicName}-${subtopicNode.subtopicName}`} className="border rounded-lg px-0 mb-0 min-w-0 overflow-hidden">
+                                                  <AccordionTrigger className="hover:no-underline px-3 py-2.5 min-h-0 gap-2">
+                                                    <div className="text-left min-w-0">
                                                       <p className="text-xs text-slate-500">SUBTOPIC</p>
-                                                      <p className="font-medium">{formatSubtopicGroupLabel(subtopicNode.subtopicName)}</p>
+                                                      <p className="font-medium break-words">{formatSubtopicGroupLabel(subtopicNode.subtopicName)}</p>
                                                     </div>
                                                   </AccordionTrigger>
-                                                  <AccordionContent>
-                                                    <div className="rounded-2xl border border-slate-200/90 bg-gradient-to-br from-white via-slate-50/30 to-orange-50/20 shadow-sm overflow-hidden">
-                                                      <div className="border-b border-slate-100/80 bg-white/80 px-3 sm:px-4 py-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                                                  <AccordionContent className="px-1 sm:px-2 pb-2 pt-2">
+                                                    <div className="rounded-2xl border border-slate-200/90 bg-gradient-to-br from-white via-slate-50/30 to-orange-50/20 shadow-sm overflow-hidden min-w-0">
+                                                      <div className="border-b border-slate-100/80 bg-white/80 px-3 py-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                                                         <div className="min-w-0">
                                                           <p className="text-xs text-slate-500">RECORDS</p>
                                                           <p className="text-xs sm:text-sm font-semibold text-slate-900 break-words">
@@ -1758,32 +1758,32 @@ export default function SuperAdminAiGenerator() {
                                                           </Button>
                                                         ) : null}
                                                       </div>
-                                                      <div className="p-4">
-                                                      <div className="space-y-3">
+                                                      <div className="p-2 sm:p-4 min-w-0 overflow-x-hidden">
+                                                      <div className="space-y-3 min-w-0">
                                                         {sortAiToolRecordsByVariantThenDate(subtopicNode.records).map((row) => (
-                                                          <div key={row._id} className="group rounded-xl border border-slate-200/90 bg-white p-4 shadow-sm transition-all hover:border-orange-200/80 hover:shadow-md">
-                                                            <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
-                                                              <div className="flex flex-wrap items-center gap-2">
-                                                                <p className="inline-flex items-center gap-1.5 text-xs text-slate-500">
+                                                          <div key={row._id} className="group rounded-xl border border-slate-200/90 bg-white p-3 sm:p-4 shadow-sm transition-all hover:border-orange-200/80 hover:shadow-md min-w-0 overflow-hidden">
+                                                            <div className="flex flex-col gap-2 mb-2 min-w-0">
+                                                              <div className="flex flex-wrap items-center gap-2 min-w-0">
+                                                                <p className="inline-flex items-center gap-1.5 text-xs text-slate-500 break-words">
                                                                   {row.createdAt ? new Date(row.createdAt).toLocaleString() : "-"}
                                                                 </p>
                                                                 {row.generationVariant ? (
-                                                                  <Badge variant="outline" className="text-micro h-5 border-orange-200 text-orange-800 bg-orange-50">
+                                                                  <Badge variant="outline" className="text-micro h-5 border-orange-200 text-orange-800 bg-orange-50 shrink-0">
                                                                     Variant {row.generationVariant}
                                                                   </Badge>
                                                                 ) : null}
                                                                 {row.variantAngle ? (
-                                                                  <span className="text-micro text-slate-500 max-w-[220px] truncate" title={row.variantAngle}>
+                                                                  <span className="text-micro text-slate-500 w-full sm:w-auto break-words" title={row.variantAngle}>
                                                                     {row.variantAngle}
                                                                   </span>
                                                                 ) : null}
                                                                 {row.metadata?.cost?.inr != null && Number(row.metadata.cost.inr) > 0 ? (
-                                                                  <Badge variant="outline" className="text-micro h-5 border-emerald-200 text-emerald-800 bg-emerald-50">
+                                                                  <Badge variant="outline" className="text-micro h-5 border-emerald-200 text-emerald-800 bg-emerald-50 shrink-0">
                                                                     {formatCostInr(Number(row.metadata.cost.inr))}
                                                                   </Badge>
                                                                 ) : null}
                                                               </div>
-                                                              <div className="flex items-center gap-1">
+                                                              <div className="flex flex-wrap items-center gap-1 -ml-1">
                                                                 <Button
                                                                   variant="ghost"
                                                                   size="sm"

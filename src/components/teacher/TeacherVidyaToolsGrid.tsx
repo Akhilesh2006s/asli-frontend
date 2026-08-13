@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import { filterVisibleTeacherTools } from '@/lib/teacher-ai-tools';
 import { formatAiToolText } from '@/lib/title-case';
-import { vidyaPastelTone } from '@/lib/vidya-pastel-tones';
+import { vidyaPastelToneForTool } from '@/lib/vidya-pastel-tones';
 import { cn } from '@/lib/utils';
 
 type TeacherVidyaToolsGridProps = {
@@ -44,7 +44,7 @@ export function TeacherVidyaToolsGrid({ subjectNames, onOpenTool }: TeacherVidya
         const ui = TOOL_UI[tool.id];
         if (!ui) return null;
         const Icon = ui.icon;
-        const tone = vidyaPastelTone(index);
+        const tone = vidyaPastelToneForTool(tool.id, index);
         return (
           <motion.div
             key={tool.id}

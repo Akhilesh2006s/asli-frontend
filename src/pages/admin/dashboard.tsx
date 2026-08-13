@@ -35,7 +35,7 @@ const ExamViewOnly = lazy(() => import('@/components/admin/exam-view-only'));
 const AdminLearningPaths = lazy(() => import('@/components/admin/learning-paths'));
 const AdminEduOTT = lazy(() => import('@/components/admin/admin-eduott'));
 const AdminCalendar = lazy(() => import('@/components/admin/admin-calendar'));
-const TimetableManagement = lazy(() => import('@/components/admin/timetable-management'));
+const TimetableManagement = lazy(() => import('@/components/admin/TimetablePhotoManagement'));
 const OmrResultsManagement = lazy(() => import('@/components/admin/omr-results-management'));
 const AIChat = lazy(() => import('@/components/ai-chat'));
 
@@ -322,8 +322,8 @@ const AdminDashboard = () => {
               subtitle: 'View scheduled exams and results for your school.',
             },
             results: {
-              title: 'OMR Results',
-              subtitle: 'Upload OMR score CSVs and assign candidates to students.',
+              title: 'Offline Results',
+              subtitle: 'Upload offline score CSVs and assign candidates to students.',
             },
             'learning-paths': {
               title: 'Learning Paths',

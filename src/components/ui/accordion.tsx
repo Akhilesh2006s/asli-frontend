@@ -22,17 +22,17 @@ const AccordionTrigger = React.forwardRef<
   React.ElementRef<typeof AccordionPrimitive.Trigger>,
   React.ComponentPropsWithoutRef<typeof AccordionPrimitive.Trigger>
 >(({ className, children, ...props }, ref) => (
-  <AccordionPrimitive.Header className="flex">
+  <AccordionPrimitive.Header className="flex min-w-0">
     <AccordionPrimitive.Trigger
       ref={ref}
       className={cn(
-        "flex min-h-16 flex-1 items-center justify-between gap-4 px-5 py-4 text-left text-base font-bold text-slate-800 transition-colors hover:bg-indigo-blue-50 hover:text-indigo-blue-700 [&[data-state=open]>svg]:rotate-180",
+        "flex min-h-12 sm:min-h-16 flex-1 items-start sm:items-center justify-between gap-2 sm:gap-4 px-3 sm:px-5 py-3 sm:py-4 text-left text-sm sm:text-base font-bold text-slate-800 transition-colors hover:bg-indigo-blue-50 hover:text-indigo-blue-700 [&[data-state=open]>svg]:rotate-180",
         className
       )}
       {...props}
     >
-      {children}
-      <ChevronDown className="h-6 w-6 shrink-0 text-indigo-blue-600 transition-transform duration-200" />
+      <div className="min-w-0 flex-1">{children}</div>
+      <ChevronDown className="h-5 w-5 sm:h-6 sm:w-6 shrink-0 text-indigo-blue-600 transition-transform duration-200" />
     </AccordionPrimitive.Trigger>
   </AccordionPrimitive.Header>
 ))
@@ -44,10 +44,10 @@ const AccordionContent = React.forwardRef<
 >(({ className, children, ...props }, ref) => (
   <AccordionPrimitive.Content
     ref={ref}
-    className="overflow-hidden text-base text-slate-600 transition-all data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down"
+    className="overflow-hidden text-sm sm:text-base text-slate-600 transition-all data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down"
     {...props}
   >
-    <div className={cn("border-t border-slate-100 px-5 pb-5 pt-4 leading-relaxed", className)}>{children}</div>
+    <div className={cn("border-t border-slate-100 px-2 sm:px-5 pb-3 sm:pb-5 pt-3 sm:pt-4 leading-relaxed min-w-0", className)}>{children}</div>
   </AccordionPrimitive.Content>
 ))
 

@@ -218,3 +218,86 @@ export async function exportTimetableCSV(filters: TimetableFilters = {}) {
   a.click();
   URL.revokeObjectURL(url);
 }
+
+export type TimetablePhoto = {
+  _id: string;
+  classId: string;
+  classNumber: string;
+  sectionId: string;
+  label: string;
+  imageUrl: string;
+  originalFileName?: string;
+  updatedAt?: string;
+};
+
+export function resolveTimetablePhotoUrl(imageUrl?: string | null): string {
+  const raw = String(imageUrl || '').trim();
+  if (!raw) return '';
+  if (raw.startsWith('http://') || raw.startsWith('https://')) return raw;
+  if (raw.startsWith('/')) return `${API_BASE_URL}${raw}`;
+  return `${API_BASE_URL}/${raw}`;
+}
+
+export function useTimetablePhotos(options?: { enabled?: boolean }) {
+  return useQuery({
+    queryKey: ['timetable-photos'],
+    enabled: options?.enabled !== false,
+    queryFn: async () => {
+      const res = await apiFetch('/api/timetable/photos');
+      const data = await parseJson<{ data: TimetablePhoto[] }>(res);
+      return data.data || [];
+    },
+  });
+}
+
+export function useTimetablePhoto(classId?: string, options?: { enabled?: boolean }) {
+  const enabled = options?.enabled !== false;
+  return useQuery({
+    queryKey: ['timetable-photo', classId || 'mine'],
+    enabled,
+    queryFn: async () => {
+      const qs = classId ? `?classId=${encodeURIComponent(classId)}` : '';
+      const res = await apiFetch(`/api/timetable/photo${qs}`);
+      const data = await parseJson<{ data: TimetablePhoto | null }>(res);
+      return data.data || null;
+    },
+  });
+}
+
+export function useUploadTimetablePhoto() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ classId, file }: { classId: string; file: File }) => {
+      const token = getAuthToken();
+      const form = new FormData();
+      form.append('classId', classId);
+      form.append('image', file);
+      const res = await fetch(`${API_BASE_URL}/api/timetable/photo`, {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: form,
+      });
+      return parseJson<{ success: boolean; message?: string; data: TimetablePhoto }>(res);
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['timetable-photos'] });
+      qc.invalidateQueries({ queryKey: ['timetable-photo'] });
+    },
+  });
+}
+
+export function useDeleteTimetablePhoto() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (classId: string) => {
+      const res = await apiFetch(`/api/timetable/photo?classId=${encodeURIComponent(classId)}`, {
+        method: 'DELETE',
+      });
+      return parseJson(res);
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['timetable-photos'] });
+      qc.invalidateQueries({ queryKey: ['timetable-photo'] });
+    },
+  });
+}

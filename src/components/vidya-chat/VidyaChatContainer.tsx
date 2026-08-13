@@ -20,10 +20,16 @@ export default function VidyaChatContainer({
 }: VidyaChatContainerProps) {
   const model = useVidyaChat({ userId, role, context });
 
-  if (role === "super_admin") return <SuperAdminChatUI model={model} className={className} />;
-  if (role === "admin") return <AdminChatUI model={model} className={className} />;
-  if (role === "teacher") return <TeacherChatUI model={model} className={className} />;
-  if (role === "student") return <StudentChatUI model={model} className={className} />;
+  // Chat stays sentence-case (global Title Case CSS must not rewrite messages).
+  let chat;
+  if (role === "super_admin") chat = <SuperAdminChatUI model={model} className={className} />;
+  else if (role === "admin") chat = <AdminChatUI model={model} className={className} />;
+  else if (role === "teacher") chat = <TeacherChatUI model={model} className={className} />;
+  else chat = <StudentChatUI model={model} className={className} />;
 
-  return <StudentChatUI model={model} className={className} />;
+  return (
+    <div data-no-title-case className="flex h-full min-h-0 flex-1 flex-col normal-case">
+      {chat}
+    </div>
+  );
 }

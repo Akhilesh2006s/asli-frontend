@@ -26,6 +26,7 @@ import { API_BASE_URL } from '@/lib/api-config';
 import { filterContentsBySchoolProgram, filterVideosForLearningPath, resolveIsAsliPrepExclusive } from '@/lib/school-program';
 import {
   extractPlainSubjectName,
+  getLearningPathClassLabel,
   isSoftDeletedSubjectName,
 } from '@/lib/subject-names';
 import {
@@ -70,6 +71,49 @@ function getContentSubjectId(content: any): string | null {
   if (typeof subj === 'object' && subj._id != null) return String(subj._id);
   if (typeof subj === 'string' && subj.trim()) return subj.trim();
   return null;
+}
+
+function normalizeSubjectNameKey(name: string): string {
+  const plain = extractPlainSubjectName(name || '')
+    .trim()
+    .toLowerCase()
+    .replace(/\b(iit|neet|jee)\b/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (/^bio(logy)?$/.test(plain) || plain === 'bio') return 'biology';
+  if (/^chem(istry)?$/.test(plain)) return 'chemistry';
+  if (/^phy(sics)?$/.test(plain)) return 'physics';
+  if (/^math(s|ematics)?$/.test(plain)) return 'mathematics';
+  if (/^sci(ence)?$/.test(plain)) return 'science';
+  if (/^eng(lish)?$/.test(plain)) return 'english';
+  if (/social/.test(plain)) return 'social science';
+  return plain;
+}
+
+function contentNameClassKey(content: any): string | null {
+  const subj = content?.subject;
+  if (subj == null || typeof subj !== 'object') return null;
+  const classLabel =
+    getLearningPathClassLabel(subj) ||
+    String(subj.classNumber || content.classNumber || '')
+      .trim()
+      .replace(/^class\s+/i, '') ||
+    'none';
+  const nameKey = normalizeSubjectNameKey(String(subj.name || ''));
+  if (!nameKey) return null;
+  return `${classLabel}::${nameKey}`;
+}
+
+function subjectNameClassKey(subject: any): string | null {
+  const classLabel =
+    getLearningPathClassLabel(subject) ||
+    String(subject?.classNumber || '')
+      .trim()
+      .replace(/^class\s+/i, '') ||
+    'none';
+  const nameKey = normalizeSubjectNameKey(String(subject?.name || ''));
+  if (!nameKey) return null;
+  return `${classLabel}::${nameKey}`;
 }
 
 export default function AdminLearningPaths() {
@@ -213,12 +257,19 @@ export default function AdminLearningPaths() {
       }
 
       const bySubjectId = new Map<string, any[]>();
+      const byNameClass = new Map<string, any[]>();
       for (const item of allContent) {
         if (!isActiveCatalogContent(item)) continue;
         const sid = getContentSubjectId(item);
-        if (!sid) continue;
-        if (!bySubjectId.has(sid)) bySubjectId.set(sid, []);
-        bySubjectId.get(sid)!.push(item);
+        if (sid) {
+          if (!bySubjectId.has(sid)) bySubjectId.set(sid, []);
+          bySubjectId.get(sid)!.push(item);
+        }
+        const nameKey = contentNameClassKey(item);
+        if (nameKey) {
+          if (!byNameClass.has(nameKey)) byNameClass.set(nameKey, []);
+          byNameClass.get(nameKey)!.push(item);
+        }
       }
 
       const merged: any[] = [];
@@ -226,7 +277,17 @@ export default function AdminLearningPaths() {
       for (const subject of subjects) {
         if (!isActiveCatalogSubject(subject)) continue;
         const subjectId = String(subject._id || subject.id);
-        const asliPrepContent = (bySubjectId.get(subjectId) || [])
+        const nameKey = subjectNameClassKey(subject);
+        const fromId = bySubjectId.get(subjectId) || [];
+        const fromName = nameKey ? byNameClass.get(nameKey) || [] : [];
+        const seen = new Set<string>();
+        const asliPrepContent = [...fromId, ...fromName]
+          .filter((item) => {
+            const id = String(item?._id || item?.id || '');
+            if (!id || seen.has(id)) return false;
+            seen.add(id);
+            return true;
+          })
           .slice()
           .sort((a: any, b: any) => {
             const titleA = String(a?.title || a?.name || '').trim();

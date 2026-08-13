@@ -1,23 +1,23 @@
-import { useState, useEffect } from "react";
-import { motion, useMotionValue, useSpring } from "framer-motion";
-import { 
-  BookOpen, 
-  BookIcon, 
-  PenTool, 
-  Calculator, 
-  Ruler, 
-  GraduationCap, 
-  Notebook, 
-  Clipboard, 
-  FileText, 
-  Lightbulb, 
-  Award, 
-  StarIcon 
+import { useMemo } from "react";
+import { motion } from "framer-motion";
+import {
+  BookOpen,
+  Book,
+  PenTool,
+  Calculator,
+  Ruler,
+  GraduationCap,
+  NotebookPen,
+  Pencil,
+  Highlighter,
+  Lightbulb,
+  Award,
+  Star,
 } from "lucide-react";
 
-// Custom Backpack Icon Component
+/** Soft school-bag glyph for the light ambient décor. */
 const BackpackIcon = ({ className }: { className?: string }) => (
-  <svg viewBox="0 0 24 24" fill="none" className={className}>
+  <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
     <path
       d="M6 8h12M6 8c0-2.21 1.79-4 4-4h4c2.21 0 4 1.79 4 4v10c0 2.21-1.79 4-4 4h-4c-2.21 0-4-1.79-4-4V8z"
       stroke="currentColor"
@@ -37,11 +37,11 @@ const BackpackIcon = ({ className }: { className?: string }) => (
       stroke="currentColor"
       strokeWidth="1.5"
       strokeLinecap="round"
+      strokeLinejoin="round"
     />
   </svg>
 );
 
-// School Item Types
 type SchoolItem = {
   icon: React.ComponentType<{ className?: string }>;
   size: number;
@@ -53,183 +53,130 @@ type SchoolItem = {
   rotation: number;
 };
 
-// Interactive Background with School Items
+const ICON_POOL = [
+  { icon: BookOpen, color: "text-sky-400/35", size: 34 },
+  { icon: Book, color: "text-orange-400/30", size: 30 },
+  { icon: PenTool, color: "text-teal-500/30", size: 28 },
+  { icon: Pencil, color: "text-amber-500/30", size: 26 },
+  { icon: Highlighter, color: "text-rose-400/25", size: 28 },
+  { icon: Calculator, color: "text-indigo-400/28", size: 30 },
+  { icon: Ruler, color: "text-sky-500/28", size: 28 },
+  { icon: GraduationCap, color: "text-teal-500/30", size: 34 },
+  { icon: NotebookPen, color: "text-orange-400/28", size: 30 },
+  { icon: Lightbulb, color: "text-amber-400/30", size: 28 },
+  { icon: Award, color: "text-sky-500/25", size: 30 },
+  { icon: Star, color: "text-orange-300/30", size: 24 },
+  { icon: BackpackIcon, color: "text-teal-500/30", size: 34 },
+] as const;
+
+/** Deterministic layout so icons don't jump on every remount. */
+function buildSchoolItems(count = 22): SchoolItem[] {
+  const items: SchoolItem[] = [];
+  for (let i = 0; i < count; i++) {
+    const pick = ICON_POOL[i % ICON_POOL.length];
+    const col = i % 5;
+    const row = Math.floor(i / 5);
+    items.push({
+      icon: pick.icon,
+      size: pick.size + ((i * 3) % 8),
+      color: pick.color,
+      delay: (i % 7) * 0.35,
+      duration: 14 + (i % 6) * 2.2,
+      x: 6 + col * 20 + ((i * 7) % 9),
+      y: 8 + row * 18 + ((i * 5) % 10),
+      rotation: (i * 37) % 360,
+    });
+  }
+  return items;
+}
+
+/** Light ambient school décor — books, bags, pens (non-interactive). */
 export const InteractiveBackground = () => {
-  const [items, setItems] = useState<SchoolItem[]>([]);
-  const mouseX = useMotionValue(0);
-  const mouseY = useMotionValue(0);
-  const springConfig = { damping: 25, stiffness: 200 };
-  const x = useSpring(mouseX, springConfig);
-  const y = useSpring(mouseY, springConfig);
-
-  useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      mouseX.set(e.clientX);
-      mouseY.set(e.clientY);
-    };
-    window.addEventListener('mousemove', handleMouseMove);
-    return () => window.removeEventListener('mousemove', handleMouseMove);
-  }, [mouseX, mouseY]);
-
-  useEffect(() => {
-    const schoolIcons = [
-      { icon: BookOpen, color: 'text-blue-600/60', size: 36 },
-      { icon: BookIcon, color: 'text-blue-500/60', size: 32 },
-      { icon: PenTool, color: 'text-blue-400/60', size: 34 },
-      { icon: Calculator, color: 'text-blue-600/60', size: 32 },
-      { icon: Ruler, color: 'text-blue-500/60', size: 30 },
-      { icon: GraduationCap, color: 'text-cyan-600/60', size: 38 },
-      { icon: Notebook, color: 'text-blue-600/60', size: 34 },
-      { icon: Clipboard, color: 'text-blue-500/60', size: 32 },
-      { icon: FileText, color: 'text-blue-600/60', size: 30 },
-      { icon: Lightbulb, color: 'text-blue-400/60', size: 36 },
-      { icon: Award, color: 'text-blue-500/60', size: 34 },
-      { icon: StarIcon, color: 'text-blue-500/60', size: 28 },
-      { icon: BackpackIcon, color: 'text-blue-600/60', size: 36 },
-    ];
-
-    const generateItems = () => {
-      const count = 25; // More items for dashboard
-      const newItems: SchoolItem[] = [];
-      
-      for (let i = 0; i < count; i++) {
-        const randomIcon = schoolIcons[Math.floor(Math.random() * schoolIcons.length)];
-        newItems.push({
-          icon: randomIcon.icon,
-          size: randomIcon.size,
-          color: randomIcon.color,
-          delay: Math.random() * 2,
-          duration: 15 + Math.random() * 10,
-          x: Math.random() * 100,
-          y: Math.random() * 100,
-          rotation: Math.random() * 360,
-        });
-      }
-      setItems(newItems);
-    };
-
-    generateItems();
-  }, []);
+  const items = useMemo(() => buildSchoolItems(22), []);
 
   return (
-    <div className="absolute inset-0 overflow-hidden">
+    <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
+      {/* Soft light wash */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_15%_-10%,rgba(14,165,233,0.10),transparent_55%),radial-gradient(ellipse_70%_45%_at_95%_5%,rgba(249,115,22,0.08),transparent_50%),radial-gradient(ellipse_60%_40%_at_50%_100%,rgba(20,184,166,0.08),transparent_55%)]" />
+
       {items.map((item, index) => {
         const IconComponent = item.icon;
         return (
           <motion.div
             key={index}
-            className={`absolute ${item.color} transition-colors duration-300 cursor-default`}
+            className={`absolute ${item.color}`}
             style={{
               left: `${item.x}%`,
               top: `${item.y}%`,
               width: `${item.size}px`,
               height: `${item.size}px`,
-              pointerEvents: 'auto',
             }}
-            initial={{ opacity: 0, scale: 0 }}
+            initial={{ opacity: 0, scale: 0.85 }}
             animate={{
-              opacity: [0.5, 0.75, 0.5],
-              y: [0, -40, 0],
-              x: [0, Math.sin(index) * 25, 0],
-              rotate: [item.rotation, item.rotation + 360],
-              scale: [0.9, 1.1, 0.9],
+              opacity: [0.28, 0.48, 0.28],
+              y: [0, -18, 0],
+              x: [0, Math.sin(index + 1) * 10, 0],
+              rotate: [item.rotation, item.rotation + 12, item.rotation],
             }}
             transition={{
               duration: item.duration,
               delay: item.delay,
               repeat: Infinity,
-              ease: 'easeInOut',
-            }}
-            whileHover={{
-              scale: 1.5,
-              opacity: 0.9,
-              rotate: item.rotation + 15,
-              transition: { duration: 0.3 },
+              ease: "easeInOut",
             }}
           >
-            <IconComponent className="w-full h-full drop-shadow-lg" />
+            <IconComponent className="h-full w-full" />
           </motion.div>
         );
       })}
-      
-      {/* Parallax effect based on mouse movement */}
-      <motion.div
-        className="absolute inset-0 opacity-15 pointer-events-none"
-        style={{
-          background: `radial-gradient(circle at ${x}px ${y}px, rgba(59, 130, 246, 0.4) 0%, transparent 50%)`,
-        }}
-      />
-      
-      {/* Subtle grid pattern overlay */}
-      <div 
-        className="absolute inset-0 opacity-[0.05] pointer-events-none"
+
+      {/* Very light notebook grid */}
+      <div
+        className="absolute inset-0 opacity-[0.04]"
         style={{
           backgroundImage: `
-            linear-gradient(rgba(59, 130, 246, 0.2) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(59, 130, 246, 0.2) 1px, transparent 1px)
+            linear-gradient(rgba(14, 165, 233, 0.45) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(14, 165, 233, 0.45) 1px, transparent 1px)
           `,
-          backgroundSize: '50px 50px',
+          backgroundSize: "48px 48px",
         }}
       />
     </div>
   );
 };
 
-// Floating Particles Effect
 export const FloatingParticles = () => {
+  const dots = useMemo(
+    () =>
+      Array.from({ length: 14 }, (_, i) => ({
+        left: `${(i * 17 + 9) % 100}%`,
+        top: `${(i * 23 + 11) % 100}%`,
+        duration: 11 + (i % 5) * 2,
+        delay: (i % 6) * 0.4,
+      })),
+    []
+  );
+
   return (
-    <div className="absolute inset-0 overflow-hidden pointer-events-none">
-      {[...Array(20)].map((_, i) => (
+    <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
+      {dots.map((dot, i) => (
         <motion.div
           key={i}
-          className="absolute w-2.5 h-2.5 bg-blue-500/50 rounded-full"
-          style={{
-            left: `${Math.random() * 100}%`,
-            top: `${Math.random() * 100}%`,
-          }}
+          className="absolute h-1.5 w-1.5 rounded-full bg-sky-400/35"
+          style={{ left: dot.left, top: dot.top }}
           animate={{
-            y: [0, -120, 0],
-            x: [0, Math.sin(i) * 60, 0],
-            opacity: [0.3, 0.7, 0.3],
-            scale: [0.6, 1.2, 0.6],
+            y: [0, -70, 0],
+            opacity: [0.2, 0.55, 0.2],
+            scale: [0.7, 1.15, 0.7],
           }}
           transition={{
-            duration: 10 + Math.random() * 10,
-            delay: Math.random() * 5,
+            duration: dot.duration,
+            delay: dot.delay,
             repeat: Infinity,
-            ease: 'easeInOut',
-          }}
-        />
-      ))}
-      
-      {/* Glowing orbs for depth */}
-      {[...Array(3)].map((_, i) => (
-        <motion.div
-          key={`orb-${i}`}
-          className="absolute rounded-full blur-3xl"
-          style={{
-            width: `${250 + i * 120}px`,
-            height: `${250 + i * 120}px`,
-            left: `${20 + i * 30}%`,
-            top: `${30 + i * 20}%`,
-            background: `radial-gradient(circle, rgba(59, 130, 246, ${0.2 - i * 0.04}) 0%, transparent 70%)`,
-          }}
-          animate={{
-            x: [0, 60, 0],
-            y: [0, 40, 0],
-            scale: [1, 1.3, 1],
-            opacity: [0.4, 0.7, 0.4],
-          }}
-          transition={{
-            duration: 15 + i * 5,
-            delay: i * 2,
-            repeat: Infinity,
-            ease: 'easeInOut',
+            ease: "easeInOut",
           }}
         />
       ))}
     </div>
   );
 };
-
-

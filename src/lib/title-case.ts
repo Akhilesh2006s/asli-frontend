@@ -47,18 +47,7 @@ const ACRONYM_DISPLAY = new Map<string, string>([
   ['SMS', 'SMS'],
 ]);
 
-/**
- * Words that stay lowercase inside a title (never at the start or end).
- * Without this, labels read "Leave Empty For Whole Chapter" and
- * "Fill In The Blanks".
- */
-const SMALL_WORDS = new Set([
-  'a', 'an', 'and', 'as', 'at', 'but', 'by', 'for', 'from', 'in', 'into',
-  'nor', 'of', 'on', 'onto', 'or', 'over', 'per', 'the', 'to', 'up', 'via',
-  'vs', 'with',
-]);
-
-function titleCaseToken(token: string, isFirst: boolean, isLast: boolean): string {
+function titleCaseToken(token: string): string {
   if (!token) return token;
   if (/^\d+$/.test(token)) return token;
 
@@ -73,10 +62,7 @@ function titleCaseToken(token: string, isFirst: boolean, isLast: boolean): strin
   if (!match) return token;
   const [, pre, core, post] = match;
 
-  if (!isFirst && !isLast && SMALL_WORDS.has(core.toLowerCase())) {
-    return `${pre}${core.toLowerCase()}${post}`;
-  }
-
+  // Capitalize the first letter of every word (product-wide Title Case rule).
   const cased = core.charAt(0).toUpperCase() + core.slice(1).toLowerCase();
   return `${pre}${cased}${post}`;
 }
@@ -98,7 +84,5 @@ export function formatAiToolText(value: string): string {
       .join('\n');
   }
   const words = raw.split(/\s+/).filter(Boolean);
-  return words
-    .map((token, i) => titleCaseToken(token, i === 0, i === words.length - 1))
-    .join(' ');
+  return words.map((token) => titleCaseToken(token)).join(' ');
 }

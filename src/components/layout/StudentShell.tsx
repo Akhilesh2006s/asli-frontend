@@ -1,7 +1,10 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { useLocation } from "wouter";
 
 import { AppShell } from "@/components/layout/AppShell";
+import {
+  FloatingParticles,
+  InteractiveBackground,
+} from "@/components/background/InteractiveBackground";
 import { studentNav } from "@/lib/app-nav";
 import { getSchoolBranding } from "@/lib/school-branding";
 import { API_BASE_URL } from "@/lib/api-config";
@@ -12,6 +15,7 @@ import {
   getStudentDisplayName,
   setUser as persistUser,
 } from "@/lib/auth-utils";
+import { cn } from "@/lib/utils";
 
 /**
  * Student-portal chrome.
@@ -29,7 +33,6 @@ export function StudentShell({
   /** Override when a page needs to manage its own padding (e.g. full-bleed players). */
   contentClassName?: string;
 }) {
-  const [, setLocation] = useLocation();
   const [user, setUser] = useState<any>(() => getStoredUser());
 
   // Storage is read once on mount; refresh if another tab logs in/out.
@@ -110,10 +113,14 @@ export function StudentShell({
       homeHref="/dashboard"
       user={{ name: getStudentDisplayName(user) || "Student", role: "Student" }}
       onLogout={handleLogout}
-      showUpgrade
-      onUpgrade={() => setLocation("/ai-tutor?tool=chat")}
     >
-      <div className={contentClassName}>{children}</div>
+      <div className="student-school-surface relative isolate min-h-full">
+        <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
+          <InteractiveBackground />
+          <FloatingParticles />
+        </div>
+        <div className={cn("relative z-10", contentClassName)}>{children}</div>
+      </div>
     </AppShell>
   );
 }

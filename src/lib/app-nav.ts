@@ -42,7 +42,7 @@ export const teacherNav: NavItem[] = [
   // NOTE: /teacher/timetable is currently a redirect back to the dashboard,
   // so Calendar points at a tab until a real calendar page exists.
   { id: "calendar", label: "Calendar", icon: CalendarDays, href: "/teacher/dashboard?tab=calendar" },
-  { id: "results", label: "OMR Results", icon: ScanLine, href: "/teacher/results" },
+  { id: "results", label: "Offline Results", icon: ScanLine, href: "/teacher/results" },
   { id: "settings", label: "Settings", icon: Settings, href: "/teacher/dashboard?tab=settings" },
 ];
 
@@ -58,7 +58,8 @@ export const studentNav: NavItem[] = [
   { id: "edu-ott", label: "EduOTT", icon: MonitorPlay, href: "/edu-ott" },
   { id: "exams", label: "Exams", icon: FileText, href: "/student-exams" },
   { id: "quiz", label: "Quiz", icon: Trophy, href: "/iq-rank-boost-subjects" },
-  { id: "results", label: "OMR Results", icon: ScanLine, href: "/student/results" },
+  { id: "results", label: "Offline Results", icon: ScanLine, href: "/student/results" },
+  { id: "timetable", label: "Timetable", icon: CalendarDays, href: "/student/timetable" },
   // Flashcards / Practice / Mock Tests intentionally live inside Vidya AI
   // rather than the sidebar — the AI tools are the core of the platform and
   // belong in one place.
@@ -76,7 +77,7 @@ export const adminNav: NavItem[] = [
   { id: "teachers", label: "Teachers", icon: Users, href: "/admin/dashboard?tab=teachers" },
   { id: "subjects", label: "Subjects", icon: BookOpen, href: "/admin/dashboard?tab=subjects" },
   { id: "exams", label: "Exams", icon: FileText, href: "/admin/dashboard?tab=exams" },
-  { id: "results", label: "OMR Results", icon: ScanLine, href: "/admin/dashboard?tab=results" },
+  { id: "results", label: "Offline Results", icon: ScanLine, href: "/admin/dashboard?tab=results" },
   { id: "learning-paths", label: "Learning Paths", icon: ClipboardList, href: "/admin/dashboard?tab=learning-paths" },
   { id: "eduott", label: "EduOTT", icon: MonitorPlay, href: "/admin/dashboard?tab=eduott" },
   { id: "timetable", label: "Timetable", icon: CalendarDays, href: "/admin/dashboard?tab=timetable" },

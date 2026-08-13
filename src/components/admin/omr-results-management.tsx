@@ -296,7 +296,7 @@ export default function OmrResultsManagement() {
       const data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.message || 'Upload failed');
       toast({
-        title: 'OMR scores imported',
+        title: 'Offline Scores Imported',
         description: `${data.message}${
           data.data?.autoAssigned ? ` · ${data.data.autoAssigned} auto-assigned` : ''
         }`,
@@ -379,7 +379,7 @@ export default function OmrResultsManagement() {
             onValueChange={(v) => setSelectedBatchId(v)}
           >
             <SelectTrigger className="h-11 max-w-xl rounded-xl border-slate-200 bg-white">
-              <SelectValue placeholder="Select an uploaded OMR score list" />
+              <SelectValue placeholder="Select an uploaded Offline Score List" />
             </SelectTrigger>
             <SelectContent>
               {batches.map((b) => {
@@ -400,7 +400,7 @@ export default function OmrResultsManagement() {
               {batchMeta.sourceFileName ? ` · ${batchMeta.sourceFileName}` : ''}
             </p>
           ) : (
-            <p className="text-xs text-slate-500">Upload a Score List CSV from OMR scanning.</p>
+            <p className="text-xs text-slate-500">Upload a Score List CSV From Offline Scanning.</p>
           )}
         </div>
         <div className="flex flex-wrap gap-2">
@@ -730,9 +730,9 @@ export default function OmrResultsManagement() {
       <Dialog open={uploadOpen} onOpenChange={setUploadOpen}>
         <DialogContent className="max-w-md rounded-2xl">
           <DialogHeader>
-            <DialogTitle>Upload OMR Score List</DialogTitle>
+            <DialogTitle>Upload Offline Score List</DialogTitle>
             <DialogDescription>
-              CSV columns should match the OMR export (Candidate ID, subject R/W/L/Mk, ranks,
+              CSV columns should match the Offline Export (Candidate ID, subject R/W/L/Mk, ranks,
               percentage). Then assign each candidate to a student in the table.
             </DialogDescription>
           </DialogHeader>
