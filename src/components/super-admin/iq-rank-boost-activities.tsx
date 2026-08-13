@@ -498,7 +498,7 @@ export default function IQRankBoostActivities() {
 
       {/* Class Cards Grid — equal height tiles */}
       <div className="grid auto-rows-fr grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((classNum) => {
+        {[6, 7, 8, 9, 10].map((classNum) => {
           const classActivities = activities.filter(
             (a) => a.classNumber === classNum.toString() && !a.trialOnly,
           );
@@ -790,7 +790,7 @@ export default function IQRankBoostActivities() {
               <Input
                 value={formData.classNumber}
                 onChange={(e) => setFormData({ ...formData, classNumber: e.target.value })}
-                placeholder="e.g., 10, 11, 12, or all"
+                placeholder="e.g., 6, 7, 8, 9, 10, or all"
               />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1039,7 +1039,7 @@ export default function IQRankBoostActivities() {
               <Input
                 value={formData.classNumber}
                 onChange={(e) => setFormData({ ...formData, classNumber: e.target.value })}
-                placeholder="e.g., 10, 11, 12"
+                placeholder="e.g., 6–10"
               />
             </div>
             <div className="space-y-3 rounded-lg border border-amber-200 bg-amber-50/60 p-3">

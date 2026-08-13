@@ -108,6 +108,27 @@ const TAB_ALIASES: Record<string, string> = {
   results: "results",
 };
 
+/** Extra path prefixes → nav id (for nested routes that are not the nav href). */
+const PATH_PREFIX_ALIASES: Array<{ prefix: string; id: string }> = [
+  { prefix: "/iq-rank-boost", id: "quiz" },
+  { prefix: "/quiz/", id: "quiz" },
+  { prefix: "/quiz", id: "quiz" },
+  { prefix: "/student-exams", id: "exams" },
+  { prefix: "/exam/", id: "exams" },
+  { prefix: "/student/results", id: "results" },
+  { prefix: "/student/timetable", id: "timetable" },
+  { prefix: "/student/tools", id: "ai-tutor" },
+  { prefix: "/ai-tutor", id: "ai-tutor" },
+  { prefix: "/learning-paths", id: "learning-paths" },
+  { prefix: "/edu-ott", id: "edu-ott" },
+  { prefix: "/profile", id: "profile" },
+];
+
+function pathMatchesBase(pathname: string, base: string): boolean {
+  if (!base || base === "/") return false;
+  return pathname === base || pathname.startsWith(`${base}/`);
+}
+
 /** Resolves the active nav id from a wouter location + search string. */
 export function resolveActiveNavId(pathname: string, search: string, items: NavItem[]): string {
   const tab = new URLSearchParams(search).get("tab");
@@ -116,18 +137,32 @@ export function resolveActiveNavId(pathname: string, search: string, items: NavI
     const byTab = items.find((i) => i.id === normalized || i.id === tab);
     if (byTab) return byTab.id;
   }
+
+  // Nested route aliases (e.g. /iq-rank-boost/quiz/:id → Quiz)
+  const alias = PATH_PREFIX_ALIASES.find(({ prefix }) => pathMatchesBase(pathname, prefix));
+  if (alias && items.some((i) => i.id === alias.id)) {
+    return alias.id;
+  }
+
   // Longest matching base wins, so /student/tools/mock-test-builder beats a
   // shorter sibling rather than whichever happens to be listed first.
   const byPath = items
     .filter((i) => !i.href.includes("?"))
     .map((i) => ({ id: i.id, base: i.href.split("?")[0] }))
-    .filter(({ base }) => base !== "/" && pathname.startsWith(base))
+    .filter(({ base }) => pathMatchesBase(pathname, base))
     .sort((a, b) => b.base.length - a.base.length)[0];
 
   if (byPath) return byPath.id;
+
   // Admin/teacher dashboard base path with no tab → first item
   if (pathname.includes("/admin/dashboard") || pathname.includes("/teacher/dashboard")) {
     return items[0]?.id ?? "";
   }
-  return items[0]?.id ?? "";
+
+  // Exact dashboard home only — never fall back to Dashboard for unrelated pages
+  if (pathname === "/dashboard" && items.some((i) => i.id === "dashboard")) {
+    return "dashboard";
+  }
+
+  return "";
 }

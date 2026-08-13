@@ -597,6 +597,7 @@
 .quiz-panel-item:hover {
   transform: translateY(-3px);
   box-shadow: 0 14px 28px -16px rgba(14, 165, 233, 0.55);
+  border-color: rgba(56, 189, 248, 0.55);
 }
 
 .quiz-panel-item-actions {
@@ -611,6 +612,53 @@
   background: linear-gradient(90deg, #99f6e4, #7dd3fc, #bae6fd, #99f6e4);
   background-size: 200% 100%;
   animation: quizShimmer 3.2s ease infinite;
+}
+
+.quiz-hero-shell {
+  transition: box-shadow 0.35s ease, border-color 0.35s ease;
+}
+
+.quiz-hero-shell:hover {
+  border-color: rgba(56, 189, 248, 0.55);
+  box-shadow: 0 16px 32px -20px rgba(14, 165, 233, 0.4);
+}
+
+.quiz-meter-card {
+  transition: border-color 0.28s ease;
+}
+
+.quiz-meter-card:hover {
+  border-color: rgba(56, 189, 248, 0.55);
+}
+
+.quiz-start-btn {
+  position: relative;
+  overflow: hidden;
+}
+
+.quiz-start-btn::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(105deg, transparent 35%, rgba(255, 255, 255, 0.28) 50%, transparent 65%);
+  transform: translateX(-120%);
+  transition: transform 0.55s ease;
+}
+
+.quiz-start-btn:hover::after {
+  transform: translateX(120%);
+}
+
+.quiz-option-btn {
+  transition: border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .quiz-panel-item,
+  .quiz-start-btn::after {
+    animation: none !important;
+    transition: none !important;
+  }
 }
 
 .homepage-reveal {

@@ -1,11 +1,10 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { CalendarDays, ImageOff } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-  resolveTimetablePhotoUrl,
-  useTimetablePhoto,
-} from '@/hooks/useTimetable';
+import { API_BASE_URL } from '@/lib/api-config';
+import { getAuthToken } from '@/lib/auth-utils';
+import { useTimetablePhoto } from '@/hooks/useTimetable';
 
 type Props = {
   entries?: unknown;
@@ -38,7 +37,49 @@ export default function StudentTimetableView({
   });
   const isLoading = isLoadingProp ?? fetchLoading;
   const schoolLabel = useMemo(() => resolveSchoolLabel(schoolNameProp), [schoolNameProp]);
-  const imageUrl = resolveTimetablePhotoUrl(photo?.imageUrl);
+  const [imageUrl, setImageUrl] = useState('');
+  const [imageFailed, setImageFailed] = useState(false);
+  const [imageLoading, setImageLoading] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    let objectUrl = '';
+    setImageFailed(false);
+    setImageUrl('');
+
+    if (!photo?.imageUrl) {
+      setImageLoading(false);
+      return;
+    }
+
+    setImageLoading(true);
+    (async () => {
+      try {
+        const token = getAuthToken();
+        const res = await fetch(`${API_BASE_URL}/api/timetable/photo/file`, {
+          credentials: 'include',
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const blob = await res.blob();
+        if (!String(blob.type || '').startsWith('image/')) {
+          throw new Error('Response was not an image');
+        }
+        if (cancelled) return;
+        objectUrl = URL.createObjectURL(blob);
+        setImageUrl(objectUrl);
+      } catch {
+        if (!cancelled) setImageFailed(true);
+      } finally {
+        if (!cancelled) setImageLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [photo?.imageUrl, photo?.updatedAt]);
 
   return (
     <div className="space-y-4">
@@ -73,9 +114,9 @@ export default function StudentTimetableView({
           </div>
         </CardHeader>
         <CardContent className="p-3 sm:p-4">
-          {isLoading ? (
+          {isLoading || imageLoading ? (
             <div className="h-56 animate-pulse rounded-xl bg-sky-50" />
-          ) : imageUrl ? (
+          ) : imageUrl && !imageFailed ? (
             <motion.div
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
@@ -85,22 +126,17 @@ export default function StudentTimetableView({
                 src={imageUrl}
                 alt={photo?.label ? `${photo.label} timetable` : 'Class timetable'}
                 className="mx-auto max-h-[min(75vh,900px)] w-full object-contain"
-                onError={(e) => {
-                  const el = e.currentTarget;
-                  el.style.display = 'none';
-                  const fallback = el.nextElementSibling as HTMLElement | null;
-                  if (fallback) fallback.hidden = false;
-                }}
               />
-              <div
-                hidden
-                className="flex flex-col items-center justify-center gap-2 px-4 py-12 text-center"
-              >
-                <ImageOff className="h-8 w-8 text-sky-300" />
-                <p className="text-sm font-medium text-slate-700">Timetable image could not load</p>
-                <p className="text-xs text-slate-500">Refresh the page, or ask admin to re-upload.</p>
-              </div>
             </motion.div>
+          ) : photo?.imageUrl || imageFailed ? (
+            <div className="flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-amber-200 bg-amber-50/50 px-4 py-12 text-center">
+              <ImageOff className="h-8 w-8 text-amber-400" />
+              <p className="text-sm font-medium text-slate-700">Timetable photo file missing</p>
+              <p className="max-w-sm text-xs text-slate-500">
+                The school uploaded a timetable record, but the image file is not on the server.
+                Ask admin to open Timetable and upload the class photo again.
+              </p>
+            </div>
           ) : (
             <div className="flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-sky-200 bg-sky-50/50 px-4 py-12 text-center">
               <ImageOff className="h-8 w-8 text-sky-300" />

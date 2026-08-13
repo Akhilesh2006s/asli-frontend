@@ -1403,6 +1403,18 @@ export default function ExamManagement() {
   const handleAssignFigureToSavedQuestion = async (questionId: string, imageUrl: string) => {
     if (!selectedExam?._id || !questionId || !imageUrl) return;
     try {
+      // Never persist ?exp=&sig= — signatures expire and then student figures break.
+      let bareUrl = String(imageUrl || '').trim();
+      try {
+        if (bareUrl.startsWith('http')) {
+          const u = new URL(bareUrl);
+          if (u.pathname.startsWith('/uploads/')) bareUrl = u.pathname;
+        } else {
+          bareUrl = bareUrl.split('?')[0];
+        }
+      } catch {
+        bareUrl = bareUrl.split('?')[0];
+      }
       const token = getAuthToken();
       const response = await fetch(
         `${API_BASE_URL}/api/super-admin/exams/${selectedExam._id}/questions/${questionId}`,
@@ -1412,15 +1424,18 @@ export default function ExamManagement() {
             Authorization: `Bearer ${token}`,
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ questionImage: imageUrl }),
+          body: JSON.stringify({ questionImage: bareUrl }),
         },
       );
       const data = await response.json().catch(() => null);
       if (!response.ok || !data?.success) {
         throw new Error(data?.message || 'Failed to assign figure');
       }
-      patchLocalQuestion(questionId, { questionImage: imageUrl });
-      const nextPool = examFigurePool.filter((img) => img.url !== imageUrl);
+      patchLocalQuestion(questionId, { questionImage: bareUrl });
+      const nextPool = examFigurePool.filter((img) => {
+        const u = String(img.url || '').split('?')[0];
+        return u !== bareUrl && String(img.url) !== imageUrl;
+      });
       setExamFigurePool(nextPool);
       setFigureAssignQuestionId(null);
       // Best-effort sync pool on server (updateQuestion also $pulls)

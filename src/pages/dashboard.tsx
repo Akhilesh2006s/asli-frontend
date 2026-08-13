@@ -87,6 +87,8 @@ import {
   Globe,
   Flame,
   Monitor,
+  Lock,
+  CalendarDays,
   type LucideIcon,
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
@@ -491,6 +493,24 @@ export default function Dashboard() {
   >({});
   const [incompleteQuizzes, setIncompleteQuizzes] = useState<any[]>([]);
   const [studentQuizzes, setStudentQuizzes] = useState<any[]>([]);
+  const [dailyQuizStatus, setDailyQuizStatus] = useState<{
+    today: {
+      dateKey: string;
+      completed: boolean;
+      score: number | null;
+      correctCount: number;
+      totalQuestions: number;
+    };
+    history: Array<{
+      dateKey: string;
+      score: number | null;
+      correctCount: number;
+      totalQuestions: number;
+      completedAt?: string;
+    }>;
+    nextUnlockDateKey: string;
+    lockedUntilTomorrow: boolean;
+  } | null>(null);
   const [scheduleCompletionStats, setScheduleCompletionStats] = useState({
     total: 0,
     completed: 0,
@@ -1119,13 +1139,35 @@ export default function Dashboard() {
           }
         });
 
-        // Fetch all quizzes
-        const quizzesResponse = await fetch(`${API_BASE_URL}/api/student/quizzes`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          }
-        });
+        // Fetch learning-path quizzes + IQ Rank / Daily quizzes (Quiz menu)
+        const [quizzesResponse, iqQuizzesResponse, dailyStatusResponse] = await Promise.all([
+          fetch(`${API_BASE_URL}/api/student/quizzes`, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+          }),
+          fetch(`${API_BASE_URL}/api/student/iq-rank-quizzes`, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+          }),
+          fetch(`${API_BASE_URL}/api/student/daily-quiz-status`, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+          }),
+        ]);
+
+        if (dailyStatusResponse.ok) {
+          const dailyJson = await dailyStatusResponse.json().catch(() => null);
+          if (dailyJson?.data) setDailyQuizStatus(dailyJson.data);
+          else setDailyQuizStatus(null);
+        } else {
+          setDailyQuizStatus(null);
+        }
 
         let allContent: any[] = [];
         let allQuizzes: any[] = [];
@@ -1155,11 +1197,35 @@ export default function Dashboard() {
 
         if (quizzesResponse.ok) {
           const quizzesData = await quizzesResponse.json();
-          allQuizzes = quizzesData.data || quizzesData || [];
-          setStudentQuizzes(allQuizzes);
-        } else {
-          setStudentQuizzes([]);
+          const learning = quizzesData.data || quizzesData || [];
+          allQuizzes = (Array.isArray(learning) ? learning : []).map((q: any) => ({
+            ...q,
+            quizModule: 'learning',
+          }));
         }
+
+        if (iqQuizzesResponse.ok) {
+          const iqData = await iqQuizzesResponse.json();
+          const iqList = Array.isArray(iqData.data) ? iqData.data : [];
+          const mappedIq = iqList.map((q: any) => {
+            const isDaily =
+              q?.questionBankSource === 'daily-quiz-xlsx' || q?.activityType === 'daily';
+            return {
+              ...q,
+              quizModule: 'iq-rank',
+              title: q.title || (isDaily ? 'Daily Quiz' : 'Quiz'),
+              totalQuestions: isDaily
+                ? Number(q.dailyPickCount) || Number(q.totalQuestions) || 5
+                : Number(q.totalQuestions) || 0,
+              _isDailyQuiz: isDaily,
+            };
+          });
+          // Daily first, then other IQ quizzes, then learning-path quizzes
+          mappedIq.sort((a: any, b: any) => Number(b._isDailyQuiz) - Number(a._isDailyQuiz));
+          allQuizzes = [...mappedIq, ...allQuizzes];
+        }
+
+        setStudentQuizzes(allQuizzes);
 
         let chapterProgressBySubject: Record<string, ChapterCompletedDates> = {};
         try {
@@ -1781,67 +1847,80 @@ export default function Dashboard() {
     }, {});
   }, [calendarEntries]);
 
-  const latestExamResultByExamId = useMemo(() => {
-    const map = new Map<string, { percentage: number; completedAt?: string }>();
-    for (const result of examResults) {
-      const examId = String(
-        typeof result?.examId === 'object' ? result.examId?._id : result?.examId || result?.exam?._id || ''
-      );
-      if (!examId) continue;
-      const percentage = Number(result?.percentage);
-      if (!Number.isFinite(percentage)) continue;
-      const completedAt = result?.completedAt || result?.createdAt;
-      const existing = map.get(examId);
-      if (!existing) {
-        map.set(examId, { percentage, completedAt });
-        continue;
-      }
-      const prevTime = existing.completedAt ? new Date(existing.completedAt).getTime() : 0;
-      const nextTime = completedAt ? new Date(completedAt).getTime() : 0;
-      if (nextTime >= prevTime) {
-        map.set(examId, { percentage, completedAt });
-      }
-    }
-    return map;
-  }, [examResults]);
-
   const quizPanelItems = useMemo(() => {
     const dayKey = formatDateKey(selectedCalendarDate);
-    const dayItems = (entriesByDate[dayKey] || [])
-      .filter((e: { type?: string }) => e.type === 'quiz' || e.type === 'exam')
+    const dayQuizzes = (entriesByDate[dayKey] || [])
+      .filter((e: { type?: string }) => e.type === 'quiz')
       .sort((a: any, b: any) => a.date.getTime() - b.date.getTime());
 
-    if (dayItems.length > 0) return dayItems;
+    if (dayQuizzes.length > 0) return dayQuizzes;
 
-    return studentQuizzes.slice(0, 8).map((quiz: any) => ({
-      id: quiz._id || quiz.id,
-      type: 'quiz' as const,
-      title: quiz.title || 'Quiz',
-      subject:
+    return studentQuizzes.slice(0, 8).map((quiz: any) => {
+      const isDaily = Boolean(quiz._isDailyQuiz);
+      const subjectName =
         typeof quiz.subject === 'string'
           ? quiz.subject
-          : quiz.subject?.name || 'General',
-      date: parseDate(quiz.deadline) || parseDate(quiz.startDate) || new Date(),
-      source: quiz,
-    }));
+          : quiz.subject?.name || (isDaily ? 'Daily' : 'General');
+      return {
+        id: quiz._id || quiz.id,
+        type: 'quiz' as const,
+        title: quiz.title || (isDaily ? 'Daily Quiz' : 'Quiz'),
+        subject: subjectName,
+        date: parseDate(quiz.deadline) || parseDate(quiz.startDate) || new Date(),
+        source: quiz,
+        quizModule: quiz.quizModule || 'learning',
+        isDaily,
+      };
+    });
   }, [selectedCalendarDate, entriesByDate, studentQuizzes]);
 
   const getQuizPanelPrevPercent = (entry: any): number | null => {
-    if (entry?.type === 'exam') {
-      const examId = String(entry.id || entry.source?._id || '');
-      const prev = latestExamResultByExamId.get(examId);
-      return prev ? Math.round(prev.percentage) : null;
-    }
     const quiz = entry?.source || {};
-    const best = Number(quiz.bestScore);
+    const best = Number(quiz.bestScore ?? quiz.latestScore ?? quiz.score);
     const total = Number(quiz.totalPoints);
     if (Number.isFinite(best) && Number.isFinite(total) && total > 0) {
       return Math.round((best / total) * 100);
     }
-    if (Number.isFinite(best) && best >= 0 && best <= 100 && quiz.hasAttempted) {
+    if (Number.isFinite(best) && best >= 0 && best <= 100 && (quiz.hasAttempted || quiz.isCompleted)) {
       return Math.round(best);
     }
     return null;
+  };
+
+  const openQuizFromPanel = (entry: any) => {
+    const quizId = String(entry.id || entry.source?._id || '');
+    const module = entry.quizModule || entry.source?.quizModule;
+    const isDaily = Boolean(entry.isDaily || entry.source?._isDailyQuiz);
+    if (isDaily && dailyQuizStatus?.lockedUntilTomorrow) {
+      const key = dailyQuizStatus.today?.dateKey;
+      if (key) {
+        setLocation(`/iq-rank-boost-subjects?review=${encodeURIComponent(key)}`);
+        return;
+      }
+      setLocation('/iq-rank-boost-subjects');
+      return;
+    }
+    if (module === 'iq-rank' && quizId) {
+      setLocation(`/iq-rank-boost/quiz/${encodeURIComponent(quizId)}`);
+      return;
+    }
+    if (quizId) {
+      setLocation(`/quiz/${encodeURIComponent(quizId)}`);
+      return;
+    }
+    setLocation('/iq-rank-boost-subjects');
+  };
+
+  const formatDailyDateLabel = (dateKey: string) => {
+    try {
+      return new Date(`${dateKey}T12:00:00`).toLocaleDateString(undefined, {
+        weekday: 'short',
+        day: 'numeric',
+        month: 'short',
+      });
+    } catch {
+      return dateKey;
+    }
   };
 
   const calendarDays = useMemo(() => {
@@ -2238,138 +2317,209 @@ export default function Dashboard() {
               </CardContent>
             </Card>
 
-            <Card className="quiz-panel-shell rounded-xl overflow-hidden">
-              <CardHeader className="pb-3 border-b border-sky-100/80 bg-gradient-to-r from-sky-50/90 via-white to-teal-50/80">
-                <div className="flex items-center gap-2.5">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-sky-100 text-sky-600 shadow-sm ring-1 ring-sky-200/70">
-                    <TargetIcon className="h-4 w-4" />
+            <Card className="quiz-panel-shell overflow-hidden rounded-2xl border-sky-100">
+              <CardHeader className="border-b border-sky-100/80 bg-gradient-to-r from-sky-50/90 via-white to-teal-50/80 pb-3">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2.5">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-sky-100 text-sky-600 shadow-sm ring-1 ring-sky-200/70">
+                      <TargetIcon className="h-4 w-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <CardTitle className="text-base font-semibold text-slate-800 sm:text-lg">
+                        Quiz
+                      </CardTitle>
+                      <p className="text-xs text-slate-500 sm:text-sm">
+                        Start a quiz · see your previous %
+                      </p>
+                    </div>
                   </div>
-                  <div className="min-w-0">
-                    <CardTitle className="text-base sm:text-lg font-semibold text-slate-800">Quiz</CardTitle>
-                    <p className="text-xs sm:text-sm text-slate-500">
-                      Hover to start · see previous %
-                    </p>
-                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 shrink-0 rounded-lg px-2 text-xs font-semibold text-sky-700 hover:bg-sky-50"
+                    onClick={() => setLocation('/iq-rank-boost-subjects')}
+                  >
+                    View all
+                  </Button>
                 </div>
               </CardHeader>
               <CardContent className="space-y-3 pt-4">
                 {isLoadingSchedule ? (
-                  <div className="h-24 rounded-xl bg-gradient-to-r from-sky-50 via-teal-50 to-sky-50 animate-pulse" />
+                  <div className="h-24 animate-pulse rounded-xl bg-gradient-to-r from-sky-50 via-teal-50 to-sky-50" />
                 ) : quizPanelItems.length === 0 ? (
                   <div className="rounded-xl border border-dashed border-sky-200 bg-sky-50/50 px-3 py-6 text-center">
                     <TargetIcon className="mx-auto mb-2 h-7 w-7 text-sky-300" />
-                    <p className="text-xs sm:text-sm font-medium text-slate-600">No quizzes yet</p>
-                    <p className="mt-1 text-xs text-slate-500">Assigned quizzes and exams will show up here.</p>
+                    <p className="text-xs font-medium text-slate-600 sm:text-sm">No quizzes yet</p>
+                    <p className="mt-1 text-xs text-slate-500">
+                      Assigned quizzes will show up here. Exams stay under Exams.
+                    </p>
                   </div>
                 ) : (
                   quizPanelItems.map((entry: any, index: number) => {
-                    const prevPercent = getQuizPanelPrevPercent(entry);
-                    const isExam = entry.type === 'exam';
+                    const isDaily = Boolean(entry.isDaily || entry.source?._isDailyQuiz);
+                    const dailyLocked = isDaily && Boolean(dailyQuizStatus?.lockedUntilTomorrow);
+                    const prevPercent = isDaily && dailyQuizStatus?.today?.completed
+                      ? dailyQuizStatus.today.score
+                      : getQuizPanelPrevPercent(entry);
                     return (
                       <div
                         key={`${entry.type}-${entry.id}`}
                         className="quiz-panel-item group relative overflow-hidden rounded-xl border border-sky-100/90 bg-gradient-to-br from-white via-sky-50/40 to-teal-50/50 p-3.5"
                         style={{ animationDelay: `${Math.min(index, 6) * 60}ms` }}
                       >
-                        <div
-                          className="pointer-events-none absolute -right-6 -top-6 h-20 w-20 rounded-full bg-sky-200/30 blur-2xl transition-opacity duration-300 group-hover:opacity-80"
-                          aria-hidden
-                        />
                         <div className="relative flex items-start justify-between gap-2">
                           <div className="min-w-0 flex-1">
-                            <p className="text-xs sm:text-sm font-semibold text-slate-800 line-clamp-2">
+                            <p className="line-clamp-2 text-xs font-semibold text-slate-800 sm:text-sm">
                               {entry.title}
                             </p>
-                            <p className="mt-1 text-xs text-slate-500">{entry.subject}</p>
+                            <p className="mt-1 text-xs text-slate-500">
+                              {isDaily ? 'Daily · Class bank' : entry.subject}
+                            </p>
                           </div>
                           <Badge
                             className={`text-micro shrink-0 border-0 shadow-sm ${
-                              isExam ? 'bg-rose-100 text-rose-700' : 'bg-teal-100 text-teal-700'
+                              isDaily
+                                ? 'bg-teal-100 text-teal-700'
+                                : 'bg-sky-100 text-sky-700'
                             }`}
                           >
-                            {isExam ? 'EXAM' : 'QUIZ'}
+                            {isDaily ? 'DAILY' : 'QUIZ'}
                           </Badge>
                         </div>
 
                         <div className="relative mt-2.5 flex items-center justify-between gap-2 text-xs text-slate-500">
                           <span className="inline-flex items-center gap-1 rounded-full bg-white/80 px-2 py-0.5 ring-1 ring-sky-100">
                             <Clock className="h-3 w-3 text-sky-500" />
-                            {entry.date
-                              ? entry.date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                              : 'Anytime'}
+                            {entry.source?.totalQuestions
+                              ? `${entry.source.totalQuestions} Q`
+                              : entry.date
+                                ? entry.date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                                : 'Open'}
                           </span>
-                          <span className="text-sky-500/80 transition-opacity duration-300 sm:opacity-0 sm:group-hover:opacity-100">
-                            Hover for actions
-                          </span>
+                          {prevPercent != null ? (
+                            <span className="font-semibold tabular-nums text-teal-700">{prevPercent}%</span>
+                          ) : (
+                            <span className="text-slate-400">Not attempted</span>
+                          )}
                         </div>
 
-                        <div className="quiz-panel-item-actions relative mt-0 max-h-0 overflow-hidden opacity-0 translate-y-1 sm:group-hover:mt-3 sm:group-hover:max-h-44 sm:group-hover:opacity-100 sm:group-hover:translate-y-0 max-sm:mt-3 max-sm:max-h-44 max-sm:opacity-100 max-sm:translate-y-0">
-                          <div className="grid grid-cols-1 gap-2">
+                        <div className="quiz-panel-item-actions relative mt-3 space-y-2">
+                          {dailyLocked ? (
+                            <>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="w-full rounded-lg border-sky-200 bg-white text-sky-700 hover:bg-sky-50"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  const key = dailyQuizStatus?.today?.dateKey;
+                                  if (key) {
+                                    setLocation(
+                                      `/iq-rank-boost-subjects?review=${encodeURIComponent(key)}`,
+                                    );
+                                  } else {
+                                    setLocation('/iq-rank-boost-subjects');
+                                  }
+                                }}
+                              >
+                                View today’s result
+                              </Button>
+                              <Button
+                                size="sm"
+                                disabled
+                                className="w-full cursor-not-allowed rounded-lg bg-slate-200 text-slate-500"
+                              >
+                                <Lock className="mr-1.5 h-3 w-3" />
+                                Locked until tomorrow
+                              </Button>
+                            </>
+                          ) : (
                             <Button
                               size="sm"
-                              className="w-full rounded-lg bg-gradient-to-r from-sky-400 to-teal-400 text-white shadow-sm transition-transform duration-200 hover:from-sky-500 hover:to-teal-500 hover:scale-[1.02] active:scale-[0.98]"
+                              className="quiz-start-btn w-full rounded-lg bg-gradient-to-r from-sky-400 to-teal-400 text-white shadow-sm transition-transform duration-200 hover:scale-[1.02] hover:from-sky-500 hover:to-teal-500 active:scale-[0.98]"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                if (isExam) {
-                                  const examId = String(entry.id || entry.source?._id || '');
-                                  setLocation(
-                                    examId
-                                      ? `/student-exams?examId=${encodeURIComponent(examId)}`
-                                      : '/student-exams'
-                                  );
-                                  return;
-                                }
-                                const quizId = String(entry.id || entry.source?._id || '');
-                                if (quizId) setLocation(`/quiz/${encodeURIComponent(quizId)}`);
-                                else setLocation('/learning-paths');
+                                openQuizFromPanel(entry);
                               }}
                             >
                               <Play className="mr-1.5 h-3 w-3" />
-                              {isExam ? 'Start Exam' : 'Start Quiz'}
+                              Start Quiz
                             </Button>
-                            <div className="rounded-lg border border-sky-100 bg-white/90 px-3 py-2.5 shadow-sm">
-                              <div className="flex items-center justify-between gap-2">
-                                <p className="text-micro uppercase tracking-wide text-slate-500">Prev result</p>
-                                {prevPercent != null ? (
-                                  <span className="text-sm font-bold tabular-nums text-teal-700">
-                                    {prevPercent}%
-                                  </span>
-                                ) : (
-                                  <span className="text-xs font-medium text-slate-400">—</span>
-                                )}
-                              </div>
-                              {prevPercent != null ? (
-                                <>
-                                  <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-sky-100">
-                                    <div
-                                      className="quiz-panel-score-bar h-full rounded-full"
-                                      style={{ width: `${Math.min(100, Math.max(4, prevPercent))}%` }}
-                                    />
-                                  </div>
-                                  <p className="mt-1 text-xs text-slate-500">last score</p>
-                                </>
-                              ) : (
-                                <p className="mt-1 text-sm font-medium text-slate-500">Not attempted yet</p>
-                              )}
-                              {prevPercent != null && isExam && (
-                                <button
-                                  type="button"
-                                  className="mt-1.5 text-xs font-medium text-sky-600 transition-colors hover:text-sky-700 hover:underline"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setLocation('/student-exams');
-                                  }}
-                                >
-                                  View full result
-                                </button>
-                              )}
-                            </div>
-                          </div>
+                          )}
                         </div>
                       </div>
                     );
                   })
                 )}
+
+                {/* Next unlock + previous daily results */}
+                {dailyQuizStatus ? (
+                  <div className="space-y-2 border-t border-sky-100 pt-3">
+                    <div className="rounded-xl border border-dashed border-sky-200 bg-sky-50/50 px-3 py-2.5">
+                      <div className="mb-1 flex items-center gap-1.5 text-sky-700">
+                        <Lock className="h-3.5 w-3.5" />
+                        <p className="text-xs font-semibold">Next unlock</p>
+                      </div>
+                      <p className="text-xs text-slate-600">
+                        {dailyQuizStatus.lockedUntilTomorrow
+                          ? 'Tomorrow’s daily quiz unlocks at midnight (IST).'
+                          : 'Finish today’s daily quiz to keep your streak.'}
+                      </p>
+                      <div className="mt-2 inline-flex items-center gap-1.5 rounded-lg bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-600 ring-1 ring-sky-100">
+                        <CalendarDays className="h-3 w-3 text-sky-600" />
+                        Unlocks{' '}
+                        {dailyQuizStatus.nextUnlockDateKey
+                          ? formatDailyDateLabel(dailyQuizStatus.nextUnlockDateKey)
+                          : 'tomorrow'}
+                      </div>
+                    </div>
+
+                    <div className="rounded-xl border border-sky-100 bg-white px-3 py-2.5">
+                      <div className="mb-2 flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-1.5 text-teal-700">
+                          <TargetIcon className="h-3.5 w-3.5" />
+                          <p className="text-xs font-semibold">Previous results</p>
+                        </div>
+                        <button
+                          type="button"
+                          className="text-[11px] font-semibold text-sky-700 hover:underline"
+                          onClick={() => setLocation('/iq-rank-boost-subjects')}
+                        >
+                          See all
+                        </button>
+                      </div>
+                      {dailyQuizStatus.history?.length ? (
+                        <ul className="max-h-36 space-y-1.5 overflow-y-auto pr-0.5">
+                          {dailyQuizStatus.history.slice(0, 5).map((row) => (
+                            <li key={row.dateKey}>
+                              <button
+                                type="button"
+                                className="flex w-full items-center justify-between rounded-lg bg-slate-50 px-2.5 py-2 text-left text-xs transition hover:bg-sky-50 hover:ring-1 hover:ring-sky-200"
+                                onClick={() =>
+                                  setLocation(
+                                    `/iq-rank-boost-subjects?review=${encodeURIComponent(row.dateKey)}`,
+                                  )
+                                }
+                              >
+                                <span className="font-medium text-slate-700">
+                                  {formatDailyDateLabel(row.dateKey)}
+                                </span>
+                                <span className="inline-flex items-center gap-1 font-bold tabular-nums text-teal-700">
+                                  {row.score != null ? `${row.score}%` : '—'}
+                                  <ChevronRight className="h-3.5 w-3.5 text-sky-500" />
+                                </span>
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="text-[11px] text-slate-500">
+                          No saved daily scores yet. Complete today’s quiz to start your record.
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                ) : null}
               </CardContent>
             </Card>
 

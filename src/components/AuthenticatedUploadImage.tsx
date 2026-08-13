@@ -96,7 +96,8 @@ async function fetchImageBlobUrl(url: string): Promise<string> {
 
 /**
  * Renders /uploads images with cookie, Bearer, or signed ?exp=&sig=.
- * Signed URLs use native img (faster + cache). Others use fetch+blob for auth headers.
+ * Prefer native img for signed URLs (faster). If that fails (expired sig / CORS),
+ * fall back to authenticated fetch+blob so students still see figures.
  */
 export function AuthenticatedUploadImage({
   src,
@@ -131,21 +132,37 @@ export function AuthenticatedUploadImage({
       return;
     }
 
+    // Also try bare /uploads path (no query) via auth fetch — covers stale signatures.
+    const upload = splitUploadUrl(raw);
+    const authFallbackCandidates: string[] = [];
+    if (upload) {
+      const bareRel = upload.pathname;
+      const bareAbs = `${API_BASE_URL}${upload.pathname}`;
+      authFallbackCandidates.push(bareRel, bareAbs);
+    }
+
     setStatus('loading');
     setDisplayUrl(null);
 
-    const preferNativeImg = candidates.some((u) => isSignedUploadUrl(u));
-
     (async () => {
+      // 1) Native img for signed candidates (no auth header needed when sig is valid)
       for (const url of candidates) {
+        if (!isSignedUploadUrl(url)) continue;
         try {
-          if (preferNativeImg || isSignedUploadUrl(url)) {
-            const okUrl = await loadImageViaElement(url);
-            if (cancelled) return;
-            setDisplayUrl(okUrl);
-            setStatus('ok');
-            return;
-          }
+          const okUrl = await loadImageViaElement(url);
+          if (cancelled) return;
+          setDisplayUrl(okUrl);
+          setStatus('ok');
+          return;
+        } catch {
+          /* try next / fall through to auth */
+        }
+      }
+
+      // 2) Authenticated blob fetch (Bearer + cookies) — signed or bare path
+      const authCandidates = [...new Set([...candidates, ...authFallbackCandidates])];
+      for (const url of authCandidates) {
+        try {
           const blobUrl = await fetchImageBlobUrl(url);
           if (cancelled) {
             URL.revokeObjectURL(blobUrl);
@@ -156,9 +173,10 @@ export function AuthenticatedUploadImage({
           setStatus('ok');
           return;
         } catch {
-          /* try next candidate */
+          /* try next */
         }
       }
+
       if (!cancelled) {
         setDisplayUrl(null);
         setStatus('error');
