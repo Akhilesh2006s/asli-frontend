@@ -85,7 +85,21 @@ export default function StudentTimetableView({
                 src={imageUrl}
                 alt={photo?.label ? `${photo.label} timetable` : 'Class timetable'}
                 className="mx-auto max-h-[min(75vh,900px)] w-full object-contain"
+                onError={(e) => {
+                  const el = e.currentTarget;
+                  el.style.display = 'none';
+                  const fallback = el.nextElementSibling as HTMLElement | null;
+                  if (fallback) fallback.hidden = false;
+                }}
               />
+              <div
+                hidden
+                className="flex flex-col items-center justify-center gap-2 px-4 py-12 text-center"
+              >
+                <ImageOff className="h-8 w-8 text-sky-300" />
+                <p className="text-sm font-medium text-slate-700">Timetable image could not load</p>
+                <p className="text-xs text-slate-500">Refresh the page, or ask admin to re-upload.</p>
+              </div>
             </motion.div>
           ) : (
             <div className="flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-sky-200 bg-sky-50/50 px-4 py-12 text-center">

@@ -234,6 +234,7 @@ export function resolveTimetablePhotoUrl(imageUrl?: string | null): string {
   const raw = String(imageUrl || '').trim();
   if (!raw) return '';
   if (raw.startsWith('http://') || raw.startsWith('https://')) return raw;
+  // Preserve signed ?exp=&sig= query when present
   if (raw.startsWith('/')) return `${API_BASE_URL}${raw}`;
   return `${API_BASE_URL}/${raw}`;
 }
