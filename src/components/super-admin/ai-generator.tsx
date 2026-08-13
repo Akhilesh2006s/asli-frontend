@@ -1235,7 +1235,7 @@ export default function SuperAdminAiGenerator() {
               </SelectContent>
             </Select>
           </div>
-          <div>
+          <div className="col-span-2 md:col-span-2 lg:col-span-2">
             <Label>Topic</Label>
             <Select value={topic} onValueChange={handleTopicChange} disabled={!classNumber || !subject || loadingTopics}>
               <SelectTrigger>
@@ -1262,7 +1262,7 @@ export default function SuperAdminAiGenerator() {
               </p>
             ) : null}
           </div>
-          <div>
+          <div className="col-span-2 md:col-span-2 lg:col-span-2">
             <Label>Sub Topic</Label>
             <Select value={subTopic} onValueChange={setSubTopic} disabled={!topic || loadingSubtopics}>
               <SelectTrigger>
