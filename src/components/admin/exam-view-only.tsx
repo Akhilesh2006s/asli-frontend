@@ -17,6 +17,8 @@ import {
   type ExamClassCard,
 } from '@/lib/exam-classes';
 import { downloadSchoolPerformanceAnalysisExcel } from '@/lib/school-performance-analysis-excel';
+import { Trophy } from 'lucide-react';
+import { AdminPageHero, AdminFooterBanner } from '@/components/admin/ui/AdminUiKit';
 import {
   buildClassQuestionBreakdown,
   buildExamAnalyticsHandoffReport,
@@ -941,14 +943,18 @@ export default function ExamViewOnly() {
   }
 
   return (
-    <div className="space-y-3 sm:space-y-4 lg:space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h2 className="text-xl sm:text-2xl font-bold">Exams (View Only)</h2>
-          <p className="text-gray-600 mt-1">
-            View exams Super Admin assigned to your school. Each class is shown as its own card.
-          </p>
-        </div>
+    <div className="space-y-4 lg:space-y-5">
+      <AdminPageHero
+        title="Exams"
+        highlight="(View Only)"
+        subtitle="View exams Super Admin assigned to your school. Each class is shown as its own card."
+        icon={<Eye className="h-10 w-10 lg:h-11 lg:w-11" />}
+      />
+
+      <div className="flex flex-col gap-4 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:p-5">
+        <p className="text-sm font-semibold text-slate-700">
+          {filteredExams.length} exam{filteredExams.length === 1 ? '' : 's'} shown
+        </p>
         <div className="flex flex-wrap items-center gap-2">
           <Label className="text-xs sm:text-sm text-gray-600 whitespace-nowrap">Class</Label>
           <Select value={listClassFilter} onValueChange={setListClassFilter}>
@@ -1069,6 +1075,12 @@ export default function ExamViewOnly() {
           })}
         </div>
       )}
+
+      <AdminFooterBanner
+        title="Great preparation leads to great performance!"
+        subtitle="Keep learning. Keep growing. Keep shining."
+        icon={<Trophy className="h-6 w-6" />}
+      />
     </div>
   );
 }

@@ -425,13 +425,6 @@ export default function AdminLearningPaths() {
     <div className="space-y-3 sm:space-y-4 lg:space-y-6">
       <div className="rounded-2xl border border-sky-100 bg-gradient-to-r from-sky-50 via-white to-teal-50 p-5 sm:p-6">
         <div className="flex flex-col gap-5">
-          <div className="flex flex-col gap-2">
-            <h2 className="text-xl sm:text-2xl sm:text-3xl font-bold text-gray-900">Learning Paths</h2>
-            <p className="text-gray-600">
-              Redesigned by class structure: quickly view every class and its subjects.
-            </p>
-          </div>
-
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <Card className="border-sky-100 shadow-none">
               <CardContent className="p-4 flex items-center justify-between">

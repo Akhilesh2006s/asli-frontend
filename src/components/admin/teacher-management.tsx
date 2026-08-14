@@ -42,6 +42,9 @@ import {
   EyeOff
 } from 'lucide-react';
 import { AdminTeacherDailyDialog } from '@/components/admin/AdminTeacherDailyDialog';
+import { Trophy } from 'lucide-react';
+import { AdminPageHero, AdminStatGrid, AdminFooterBanner, adminBtn } from '@/components/admin/ui/AdminUiKit';
+import { cn } from '@/lib/utils';
 import { Checkbox } from '@/components/ui/checkbox';
 import { formatSeatUsage, seatUsageHint, useAccountSeats } from '@/hooks/use-account-seats';
 import { useToast } from '@/hooks/use-toast';
@@ -1194,110 +1197,58 @@ Jane Smith,jane.smith@school.edu,TeacherPass2,1234567891,Science,MSc in Chemistr
   const totalSubjects = teachers.reduce((total, teacher) => total + (teacher.subjects?.length ?? 0), 0);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-orange-100 to-teal-50 overflow-x-hidden">
-      <div className="space-y-3 sm:space-y-4 lg:space-y-6 p-3 sm:space-y-8 sm:p-4 lg:p-6">
-        {/* Hero Section with Vibrant Stats */}
-        <div className="relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-r from-orange-600 via-orange-400 to-teal-500 opacity-20 rounded-3xl"></div>
-          <div className="relative bg-white/80 backdrop-blur-xl rounded-2xl p-4 sm:rounded-3xl sm:p-6 lg:p-8 shadow-2xl border border-white/20">
-            <div className="flex items-center justify-between mb-6 sm:mb-8">
-              <div>
-                <h1 className="text-2xl sm:text-3xl sm:text-4xl lg:text-5xl leading-tight font-bold bg-gradient-to-r from-orange-600 via-orange-400 to-teal-500 bg-clip-text text-transparent break-words">
-                  Teacher Management
-                </h1>
-                <p className="text-gray-700 mt-2 sm:mt-3 text-sm sm:text-base lg:text-xl font-medium">Manage teachers and their subject assignments with style</p>
-              </div>
-              <div className="hidden lg:block">
-                <div className="w-24 h-24 bg-gradient-to-r from-orange-500 to-orange-400 rounded-full flex items-center justify-center shadow-xl">
-                  <Users className="w-12 h-12 text-white" />
-                </div>
-              </div>
-            </div>
+    <div className="min-h-0 w-full overflow-x-hidden">
+      <div className="space-y-4 lg:space-y-5">
+        <AdminPageHero
+          title="Teacher"
+          highlight="Management"
+          subtitle="Manage teachers and their subject assignments with ease."
+          icon={<Users className="h-10 w-10 lg:h-11 lg:w-11" />}
+        />
 
-            {/* Vibrant Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:p-4 lg:p-6">
-              <motion.div 
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 }}
-                className="group relative overflow-hidden bg-gradient-to-r from-orange-300 to-orange-400 text-white border-0 shadow-lg rounded-2xl p-3 sm:p-4 lg:p-6 hover:shadow-2xl transition-all duration-300"
-              >
-                <div className="relative z-10">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="p-4 bg-white/20 rounded-2xl backdrop-blur-sm">
-                      <Users className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-white" />
-                    </div>
-                    <div className="text-right">
-                      <p className="text-white/90 text-xs sm:text-sm font-medium">Total Teachers</p>
-                      <p className="text-2xl sm:text-3xl sm:text-4xl font-bold text-white">
-                        {formatSeatUsage(totalTeachers, seats.licensedTeachers)}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center text-white/80 text-xs sm:text-sm">
-                    <GraduationCap className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
-                    <span>
-                      {seats.licensedTeachers > 0
-                        ? seatUsageHint(totalTeachers, seats.licensedTeachers)
-                        : 'Faculty members'}
-                    </span>
-                  </div>
-                </div>
-              </motion.div>
-
-              <motion.div 
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
-                className="group relative overflow-hidden bg-gradient-to-br from-sky-300 to-sky-400 text-white border-0 shadow-lg rounded-2xl p-3 sm:p-4 lg:p-6 hover:shadow-2xl transition-all duration-300"
-              >
-                <div className="relative z-10">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="p-4 bg-white/20 rounded-2xl backdrop-blur-sm">
-                      <CheckCircle className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-white" />
-                    </div>
-                    <div className="text-right">
-                      <p className="text-white/90 text-xs sm:text-sm font-medium">Active Teachers</p>
-                      <p className="text-2xl sm:text-3xl sm:text-4xl font-bold text-white">{activeTeachers}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center text-white/80 text-xs sm:text-sm">
-                    <div className="w-3 h-3 bg-white rounded-full mr-2 animate-pulse"></div>
-                    <span>Currently teaching</span>
-                  </div>
-                </div>
-              </motion.div>
-
-              <motion.div 
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 }}
-                className="group relative overflow-hidden bg-gradient-to-br from-teal-400 to-teal-500 text-white border-0 shadow-lg rounded-2xl p-3 sm:p-4 lg:p-6 hover:shadow-2xl transition-all duration-300"
-              >
-                <div className="relative z-10">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="p-4 bg-white/20 rounded-2xl backdrop-blur-sm">
-                      <BookOpen className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-white" />
-                    </div>
-                    <div className="text-right">
-                      <p className="text-white/90 text-xs sm:text-sm font-medium">Total Subjects</p>
-                      <p className="text-2xl sm:text-3xl sm:text-4xl font-bold text-white">{totalSubjects}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center text-white/80 text-xs sm:text-sm">
-                    <BookOpen className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
-                    <span>Subject assignments</span>
-                  </div>
-                </div>
-              </motion.div>
-            </div>
-          </div>
-        </div>
+        <AdminStatGrid
+          stats={[
+            {
+              label: 'Total Teachers',
+              value: formatSeatUsage(totalTeachers, seats.licensedTeachers),
+              icon: <Users className="h-5 w-5" />,
+              tone: 'orange',
+              footLabel:
+                seats.licensedTeachers > 0
+                  ? seatUsageHint(totalTeachers, seats.licensedTeachers)
+                  : 'Faculty members',
+            },
+            {
+              label: 'Active Teachers',
+              value: activeTeachers,
+              icon: <CheckCircle className="h-5 w-5" />,
+              tone: 'blue',
+              footLabel: 'Currently teaching',
+            },
+            {
+              label: 'Total Subjects',
+              value: totalSubjects,
+              icon: <BookOpen className="h-5 w-5" />,
+              tone: 'green',
+              footLabel: 'Subject assignments',
+            },
+            {
+              label: 'Assigned Classes',
+              value: teachers.reduce(
+                (total, teacher) => total + (teacher.assignedClasses?.length ?? 0),
+                0,
+              ),
+              icon: <GraduationCap className="h-5 w-5" />,
+              tone: 'purple',
+              footLabel: 'Across all teachers',
+            },
+          ]}
+        />
 
         {/* Action Bar */}
         {/* Wraps rather than overflowing: when "Delete selected" appears it used
             to push the Add Teacher group outside the bar. */}
-        <div className="flex flex-col sm:flex-row flex-wrap gap-4 items-center justify-between bg-white/70 backdrop-blur-xl rounded-2xl p-4 sm:p-6 shadow-xl border border-white/20">
+        <div className="flex flex-col sm:flex-row flex-wrap gap-4 items-center justify-between rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm sm:p-5">
           <div className="flex min-w-0 flex-col sm:flex-row flex-wrap gap-4 items-center">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-orange-600 w-4 h-4 sm:w-5 sm:h-5" />
@@ -1308,7 +1259,7 @@ Jane Smith,jane.smith@school.edu,TeacherPass2,1234567891,Science,MSc in Chemistr
                 className="pl-10 w-full sm:w-64 border-orange-200 focus:border-orange-400 bg-white/80 rounded-xl"
               />
             </div>
-            <Button variant="outline" className="border-orange-200 text-orange-700 hover:bg-orange-50 rounded-xl">
+            <Button variant="outline" className={adminBtn.secondary}>
               <Filter className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
               Filter
             </Button>
@@ -1343,14 +1294,14 @@ Jane Smith,jane.smith@school.edu,TeacherPass2,1234567891,Science,MSc in Chemistr
           <div className="flex shrink-0 flex-wrap gap-3">
             <Dialog open={isUploadDialogOpen} onOpenChange={setIsUploadDialogOpen}>
               <DialogTrigger asChild>
-                <Button variant="outline" className="border-orange-200 text-orange-700 hover:bg-orange-50 rounded-xl">
+                <Button variant="outline" className={adminBtn.secondary}>
                   <Upload className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                   Upload CSV
                 </Button>
               </DialogTrigger>
               <DialogContent className="max-w-md bg-white/95 border-orange-200 backdrop-blur-xl">
                 <DialogHeader>
-                  <DialogTitle className="text-lg sm:text-xl font-bold bg-gradient-to-r from-orange-600 to-orange-400 bg-clip-text text-transparent">
+                  <DialogTitle className="text-lg sm:text-xl font-bold bg-gradient-to-r from-indigo-blue-600 to-violet-600 bg-clip-text text-transparent">
                     Upload Teachers CSV
                   </DialogTitle>
                   <DialogDescription className="text-gray-600 text-xs sm:text-sm">
@@ -1370,7 +1321,7 @@ Jane Smith,jane.smith@school.edu,TeacherPass2,1234567891,Science,MSc in Chemistr
                       type="button"
                       variant="outline"
                       onClick={downloadTemplate}
-                      className="w-full sm:w-auto shrink-0 border-orange-200 text-orange-700 hover:bg-orange-50"
+                      className={cn('w-full shrink-0 sm:w-auto', adminBtn.secondary)}
                     >
                       <Download className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                       Download
@@ -1433,7 +1384,7 @@ Jane Smith,jane.smith@school.edu,TeacherPass2,1234567891,Science,MSc in Chemistr
                       }
                     }}
                     disabled={!selectedFile || isUploading}
-                    className="bg-gradient-to-r from-orange-600 to-orange-400 hover:from-orange-700 hover:to-orange-600 text-white disabled:opacity-50 rounded-xl"
+                    className={cn(adminBtn.primary, 'disabled:opacity-50')}
                   >
                     {isUploading ? (
                       <>
@@ -1458,14 +1409,14 @@ Jane Smith,jane.smith@school.edu,TeacherPass2,1234567891,Science,MSc in Chemistr
               }}
             >
               <DialogTrigger asChild>
-                <Button className="bg-gradient-to-r from-orange-600 to-orange-400 hover:from-orange-700 hover:to-orange-600 text-white rounded-xl px-4 sm:px-6 lg:px-8 py-3 shadow-xl hover:shadow-2xl transition-all duration-300">
+                <Button className={adminBtn.primary}>
                   <Plus className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
                   Add Teacher
                 </Button>
               </DialogTrigger>
             <DialogContent className="max-w-2xl max-h-[90vh] bg-white/95 border-orange-200 backdrop-blur-xl flex flex-col">
               <DialogHeader className="flex-shrink-0">
-                <DialogTitle className="text-lg sm:text-xl font-bold bg-gradient-to-r from-orange-600 to-orange-400 bg-clip-text text-transparent">Add New Teacher</DialogTitle>
+                <DialogTitle className="text-lg sm:text-xl font-bold bg-gradient-to-r from-indigo-blue-600 to-violet-600 bg-clip-text text-transparent">Add New Teacher</DialogTitle>
                 <DialogDescription className="text-gray-600 text-xs sm:text-sm">
                   Create a new teacher account and assign subjects.
                 </DialogDescription>
@@ -1595,7 +1546,7 @@ Jane Smith,jane.smith@school.edu,TeacherPass2,1234567891,Science,MSc in Chemistr
                             key={subjectId}
                             className={`cursor-pointer transition-all duration-200 hover:shadow-md ${
                               isSelected
-                                ? 'bg-gradient-to-r from-orange-500 to-orange-400 text-white border-orange-500 shadow-lg'
+                                ? 'bg-gradient-to-r from-indigo-blue-600 to-violet-600 text-white border-indigo-blue-600 shadow-lg'
                                 : 'bg-white border-gray-200 hover:border-purple-300'
                             }`}
                             onClick={() => {
@@ -1674,7 +1625,7 @@ Jane Smith,jane.smith@school.edu,TeacherPass2,1234567891,Science,MSc in Chemistr
                 <Button type="button" variant="outline" onClick={() => setIsAddDialogOpen(false)} className="rounded-xl">
                   Cancel
                 </Button>
-                <Button type="submit" form="add-teacher-form" className="bg-gradient-to-r from-orange-600 to-orange-400 hover:from-orange-700 hover:to-orange-600 rounded-xl">
+                <Button type="submit" form="add-teacher-form" className={adminBtn.primary}>
                   Add Teacher
                 </Button>
               </div>
@@ -1813,7 +1764,7 @@ Jane Smith,jane.smith@school.edu,TeacherPass2,1234567891,Science,MSc in Chemistr
                       <Button 
                         size="sm" 
                         variant="outline" 
-                        className="border-orange-200 text-orange-700 hover:bg-orange-50 rounded-xl"
+                        className={adminBtn.secondary}
                         onClick={() => openAssignClassDialog(teacher)}
                         title="Assign Class"
                       >
@@ -1863,11 +1814,17 @@ Jane Smith,jane.smith@school.edu,TeacherPass2,1234567891,Science,MSc in Chemistr
           </div>
         )}
 
+        <AdminFooterBanner
+          title="Great teachers build great futures."
+          subtitle="Empower. Inspire. Educate."
+          icon={<Trophy className="h-6 w-6" />}
+        />
+
         {/* Subject Assignment Dialog */}
         <Dialog open={isAssignDialogOpen} onOpenChange={setIsAssignDialogOpen}>
           <DialogContent className="max-w-2xl bg-white/95 border-orange-200 backdrop-blur-xl">
             <DialogHeader>
-              <DialogTitle className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-orange-600 to-orange-400 bg-clip-text text-transparent">
+              <DialogTitle className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-indigo-blue-600 to-violet-600 bg-clip-text text-transparent">
                 Assign Subjects to {assigningTeacher?.fullName}
               </DialogTitle>
               <DialogDescription className="text-gray-600 text-base sm:text-lg">
@@ -1916,7 +1873,7 @@ Jane Smith,jane.smith@school.edu,TeacherPass2,1234567891,Science,MSc in Chemistr
                 <Button type="button" variant="outline" onClick={() => setIsAssignDialogOpen(false)} className="rounded-xl">
                   Cancel
                 </Button>
-                <Button type="submit" className="bg-gradient-to-r from-orange-600 to-orange-400 hover:from-orange-700 hover:to-orange-600 rounded-xl">
+                <Button type="submit" className={adminBtn.primary}>
                   Assign Subjects
                 </Button>
               </div>
@@ -2027,7 +1984,7 @@ Jane Smith,jane.smith@school.edu,TeacherPass2,1234567891,Science,MSc in Chemistr
                 </Button>
                 <Button
                   type="submit"
-                  className="bg-gradient-to-r from-orange-600 to-orange-400 hover:from-orange-700 hover:to-orange-600 rounded-xl"
+                  className={adminBtn.primary}
                   disabled={(assigningClassTeacher?.subjects ?? []).length === 0}
                 >
                   Save assignments

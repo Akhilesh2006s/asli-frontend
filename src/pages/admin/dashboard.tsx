@@ -5,6 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import AdminShell from '@/components/layout/AdminShell';
+import PortalPageHero from '@/components/layout/PortalPageHero';
 import StatCard from '@/components/dashboard/StatCard';
 import { API_BASE_URL } from '@/lib/api-config';
 import { formatSeatUsage } from '@/hooks/use-account-seats';
@@ -328,7 +329,7 @@ const AdminDashboard = () => {
             },
             results: {
               title: 'Offline Results',
-              subtitle: 'Upload offline score CSVs and assign candidates to students.',
+              subtitle: 'View offline test scores and student mappings for your school.',
             },
             'learning-paths': {
               title: 'Learning Paths',
@@ -352,26 +353,22 @@ const AdminDashboard = () => {
               subtitle: 'School operations assistant for admin workflows.',
             },
           };
+          // These sections render their own hero header, so skip the page header
+          // to avoid stacking two titles.
+          const sectionsWithOwnHero = new Set([
+            'students',
+            'classes',
+            'teachers',
+            'subjects',
+            'exams',
+            'eduott',
+            'vidya-ai',
+          ]);
+          if (sectionsWithOwnHero.has(activeTab)) return null;
+
           const meta = pageMeta[activeTab] || pageMeta.overview;
           return (
-            <div className="mb-6 flex flex-col gap-4 sm:mb-8 sm:flex-row sm:items-end sm:justify-between">
-              <div className="min-w-0">
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-indigo-blue-600">
-                  Admin Portal
-                </p>
-                <h1 className="mt-1 font-display text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
-                  {meta.title}
-                </h1>
-                <p className="mt-1 max-w-2xl text-sm leading-relaxed text-slate-600 sm:text-base">
-                  {meta.subtitle}
-                </p>
-                {userData ? (
-                  <p className="mt-2 text-sm font-medium text-slate-700">
-                    Welcome, {userData.fullName || 'Admin'}
-                  </p>
-                ) : null}
-              </div>
-            </div>
+            <PortalPageHero portal="admin" title={meta.title} subtitle={meta.subtitle} />
           );
         })()}
 
@@ -539,7 +536,7 @@ const AdminDashboard = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.7 }}
-                onClick={() => setActiveTab('students')}
+                onClick={() => selectTab('students')}
                 className="relative overflow-hidden bg-gradient-to-br from-sky-300 to-sky-400 text-white border-0 shadow-lg rounded-responsive p-responsive hover:shadow-xl transition-all duration-300 cursor-pointer hover:scale-105"
               >
                 <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
@@ -561,7 +558,7 @@ const AdminDashboard = () => {
                       These are the students specifically assigned to your admin account
                     </div>
                     <div className="text-white/90 text-xs font-medium mt-2 flex items-center gap-1">
-                      Click to view details â†’
+                      Click to view details →
                     </div>
                   </div>
                 </div>
@@ -571,7 +568,7 @@ const AdminDashboard = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.8 }}
-                onClick={() => setActiveTab('teachers')}
+                onClick={() => selectTab('teachers')}
                 className="relative overflow-hidden bg-gradient-to-br from-emerald-600 to-emerald-700 rounded-3xl p-4 sm:p-6 lg:p-8 shadow-xl cursor-pointer hover:scale-105 transition-all duration-300"
               >
                 <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
@@ -593,7 +590,7 @@ const AdminDashboard = () => {
                       These are the teachers specifically assigned to your admin account
                     </div>
                     <div className="text-white/90 text-xs font-medium mt-2 flex items-center gap-1">
-                      Click to view details â†’
+                      Click to view details →
                     </div>
                   </div>
                 </div>
@@ -663,17 +660,17 @@ const AdminDashboard = () => {
                 transition={{ delay: 0.5 }}
                 className="space-y-5"
               >
-                <div className="rounded-2xl border border-indigo-blue-100 bg-gradient-to-br from-indigo-blue-50 via-white to-sky-50 p-5 shadow-sm sm:p-6">
+                <div className="overflow-hidden rounded-3xl border border-indigo-300/30 bg-gradient-to-br from-[#2563eb] via-[#4f46e5] to-[#7c3aed] p-5 text-white shadow-[0_18px_42px_-26px_rgba(79,70,229,0.65)] sm:p-6">
                   <div className="mb-2 flex items-center gap-3">
-                    <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-indigo-blue-600 text-white shadow-sm">
+                    <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/15 text-white shadow-sm ring-1 ring-white/20">
                       <Sparkles className="h-5 w-5" />
                     </div>
-                    <Badge className="bg-indigo-blue-100 text-indigo-blue-800 hover:bg-indigo-blue-100">
+                    <Badge className="border-white/20 bg-white/15 text-white hover:bg-white/15">
                       School Operations
                     </Badge>
                   </div>
-                  <h2 className="font-display text-xl font-bold text-slate-900 sm:text-2xl">School AI Assistant</h2>
-                  <p className="mt-1 text-sm text-slate-600 sm:text-base">
+                  <h2 className="font-display text-xl font-bold sm:text-2xl">School AI Assistant</h2>
+                  <p className="mt-1 text-sm text-white/80 sm:text-base">
                     Manage students, teachers, and academic workflows with Vidya.
                   </p>
                 </div>

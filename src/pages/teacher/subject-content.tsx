@@ -212,7 +212,7 @@ export default function TeacherSubjectContent() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="w-full px-4 sm:px-6 lg:px-8 py-8">
           <div className="text-center py-12">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4" />
             <p className="text-gray-600">Loading subject content...</p>
@@ -224,7 +224,7 @@ export default function TeacherSubjectContent() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
+      <div className="w-full px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
         {/* Back link */}
         <div className="mb-6">
           <Button

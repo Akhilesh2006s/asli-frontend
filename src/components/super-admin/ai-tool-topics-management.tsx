@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { useConfirm } from '@/hooks/use-confirm';
-import { Edit, Plus, Search, Trash2, X } from 'lucide-react';
+import { Edit, Link2, Plus, Search, Trash2, X } from 'lucide-react';
 import { notifyCurriculumTaxonomyChanged } from '@/lib/curriculum-taxonomy-refresh';
 import { formatIitCategoryLabel } from '@/lib/products';
 import { sortChapterWiseLabels } from '@/lib/curriculum-chapter-sort';
@@ -44,6 +44,26 @@ const defaultForm = {
 };
 
 type DialogMode = 'create' | 'edit' | 'addSubTopic';
+
+/** One category reusing another category's topics + generated content. */
+type CategoryShare = {
+  _id?: string;
+  board: string;
+  classLabel: string;
+  subject: string;
+  targetCategory: string;
+  sourceCategory: string;
+};
+
+function categoryDisplayName(code: string, options: ProductCategoryOption[]) {
+  const match = options.find((c) => c.code === code);
+  if (match?.label) return match.label;
+  return formatIitCategoryLabel(code) || 'General';
+}
+
+function shareScopeLabel(share: Pick<CategoryShare, 'classLabel' | 'subject'>) {
+  return share.subject ? `${share.classLabel} · ${share.subject}` : `${share.classLabel} · all subjects`;
+}
 
 function authHeaders() {
   const token =
@@ -132,6 +152,12 @@ export default function AiToolTopicsManagement() {
   const [dialogCategoryOptions, setDialogCategoryOptions] = useState<ProductCategoryOption[]>([
     { code: '', label: 'General' },
   ]);
+  const [borrowedShares, setBorrowedShares] = useState<CategoryShare[]>([]);
+  const [outgoingShares, setOutgoingShares] = useState<CategoryShare[]>([]);
+  const [shareDialogOpen, setShareDialogOpen] = useState(false);
+  const [shareTargets, setShareTargets] = useState<string[]>([]);
+  const [shareWholeClass, setShareWholeClass] = useState(false);
+  const [savingShare, setSavingShare] = useState(false);
 
   const reloadData = async () => {
     await Promise.all([fetchRows(), loadBoards(), loadBoardHierarchy(selectedBoard, selectedCategory)]);
@@ -285,8 +311,149 @@ export default function AiToolTopicsManagement() {
         : [{ code: '', label: 'General' }];
       setCategoryOptions(cats.length ? cats : [{ code: '', label: 'General' }]);
       setHierarchyTree(productCategory !== null ? json?.data?.tree || {} : null);
+      setBorrowedShares(Array.isArray(json?.data?.shares) ? json.data.shares : []);
     } catch {
       setHierarchyTree(null);
+      setBorrowedShares([]);
+    }
+  };
+
+  const loadOutgoingShares = async (board: string, sourceCategory: string | null) => {
+    if (!board || sourceCategory === null) {
+      setOutgoingShares([]);
+      return;
+    }
+    try {
+      const params = new URLSearchParams({ board, sourceCategory });
+      const response = await fetch(
+        `${API_BASE_URL}/api/super-admin/ai-tool-topics/category-shares?${params.toString()}`,
+        { headers: authHeaders() },
+      );
+      if (!response.ok) {
+        setOutgoingShares([]);
+        return;
+      }
+      const json = await response.json();
+      setOutgoingShares(Array.isArray(json?.data) ? json.data : []);
+    } catch {
+      setOutgoingShares([]);
+    }
+  };
+
+  const shareableCategories = useMemo(
+    () => categoryOptions.filter((cat) => cat.code && cat.code !== selectedCategory),
+    [categoryOptions, selectedCategory],
+  );
+
+  const sharesForCurrentScope = useMemo(() => {
+    if (!selectedClass) return outgoingShares;
+    return outgoingShares.filter((share) => {
+      const sameClass =
+        String(share.classLabel || '').replace(/\D/g, '') === selectedClass.replace(/\D/g, '');
+      if (!sameClass) return false;
+      if (!share.subject) return true;
+      return !selectedSubject || share.subject.toLowerCase() === selectedSubject.toLowerCase();
+    });
+  }, [outgoingShares, selectedClass, selectedSubject]);
+
+  const openShareDialog = () => {
+    if (!selectedBoard || selectedCategory === null || !selectedClass) {
+      toast({
+        title: 'Select a class first',
+        description: 'Pick the board, category and class whose content should be shared.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    setShareWholeClass(!selectedSubject);
+    setShareTargets(sharesForCurrentScope.map((share) => share.targetCategory));
+    setShareDialogOpen(true);
+  };
+
+  const toggleShareTarget = (code: string) => {
+    setShareTargets((prev) =>
+      prev.includes(code) ? prev.filter((c) => c !== code) : [...prev, code],
+    );
+  };
+
+  const saveCategoryShare = async () => {
+    if (!shareTargets.length) {
+      toast({
+        title: 'Pick a category',
+        description: 'Select at least one category that should use this content.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    setSavingShare(true);
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/api/super-admin/ai-tool-topics/category-shares`,
+        {
+          method: 'POST',
+          headers: authHeaders(),
+          body: JSON.stringify({
+            board: selectedBoard,
+            classLabel: selectedClass,
+            subject: shareWholeClass ? '' : selectedSubject,
+            sourceCategory: selectedCategory ?? '',
+            targetCategories: shareTargets,
+          }),
+        },
+      );
+      const json = await response.json();
+      if (!response.ok || !json?.success) {
+        throw new Error(json?.message || 'Failed to save share');
+      }
+      toast({ title: 'Content shared', description: json.message });
+      setShareDialogOpen(false);
+      await loadOutgoingShares(selectedBoard, selectedCategory);
+      notifyCurriculumTaxonomyChanged();
+    } catch (error) {
+      toast({
+        title: 'Share failed',
+        description: error instanceof Error ? error.message : 'Request failed',
+        variant: 'destructive',
+      });
+    } finally {
+      setSavingShare(false);
+    }
+  };
+
+  const removeCategoryShare = async (share: CategoryShare) => {
+    if (!share._id) return;
+    const ok = await confirm({
+      title: 'Remove shared content?',
+      description: `${categoryDisplayName(
+        share.targetCategory,
+        categoryOptions,
+      )} will stop using ${categoryDisplayName(
+        share.sourceCategory,
+        categoryOptions,
+      )} content for ${shareScopeLabel(share)}.`,
+      confirmLabel: 'Remove',
+      destructive: true,
+    });
+    if (!ok) return;
+
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/api/super-admin/ai-tool-topics/category-shares/${share._id}`,
+        { method: 'DELETE', headers: authHeaders() },
+      );
+      const json = await response.json();
+      if (!response.ok || !json?.success) {
+        throw new Error(json?.message || 'Failed to remove share');
+      }
+      toast({ title: 'Share removed', description: json.message });
+      await loadOutgoingShares(selectedBoard, selectedCategory);
+      notifyCurriculumTaxonomyChanged();
+    } catch (error) {
+      toast({
+        title: 'Remove failed',
+        description: error instanceof Error ? error.message : 'Request failed',
+        variant: 'destructive',
+      });
     }
   };
 
@@ -418,6 +585,7 @@ export default function AiToolTopicsManagement() {
 
   useEffect(() => {
     void loadBoardHierarchy(selectedBoard, selectedCategory);
+    void loadOutgoingShares(selectedBoard, selectedCategory);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedBoard, selectedCategory]);
 
@@ -706,6 +874,16 @@ export default function AiToolTopicsManagement() {
                 <Plus className="mr-2 h-4 w-4 shrink-0" />
                 Add Sub Topic
               </Button>
+              <Button
+                type="button"
+                variant="outline"
+                disabled={!selectedClass}
+                onClick={openShareDialog}
+                className="w-full sm:w-auto"
+              >
+                <Link2 className="mr-2 h-4 w-4 shrink-0" />
+                Share Content
+              </Button>
             </div>
           </div>
 
@@ -773,6 +951,50 @@ export default function AiToolTopicsManagement() {
                       </Button>
                     );
                   })}
+                </div>
+              </div>
+            ) : null}
+
+            {borrowedShares.length > 0 ? (
+              <div className="mb-4 rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-xs text-sky-900 sm:text-sm">
+                <p className="font-semibold">Shared content</p>
+                <ul className="mt-1 space-y-0.5">
+                  {borrowedShares.map((share, index) => (
+                    <li key={`${share.classLabel}-${share.subject}-${index}`}>
+                      {shareScopeLabel(share)} uses{' '}
+                      <span className="font-semibold">
+                        {categoryDisplayName(share.sourceCategory, categoryOptions)}
+                      </span>{' '}
+                      topics and AI tool content.
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+
+            {sharesForCurrentScope.length > 0 ? (
+              <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
+                <p className="text-xs font-semibold text-emerald-900 sm:text-sm">
+                  Categories using this content
+                </p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {sharesForCurrentScope.map((share) => (
+                    <span
+                      key={share._id}
+                      className="inline-flex items-center gap-1.5 rounded-full border border-emerald-300 bg-white px-2.5 py-1 text-xs font-medium text-emerald-900"
+                    >
+                      {categoryDisplayName(share.targetCategory, categoryOptions)}
+                      <span className="text-emerald-600">· {shareScopeLabel(share)}</span>
+                      <button
+                        type="button"
+                        onClick={() => void removeCategoryShare(share)}
+                        className="text-emerald-600 hover:text-emerald-900"
+                        aria-label="Remove share"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    </span>
+                  ))}
                 </div>
               </div>
             ) : null}
@@ -1213,6 +1435,94 @@ export default function AiToolTopicsManagement() {
             </Button>
             <Button type="button" onClick={() => void save()} disabled={submitting}>
               {editingId ? 'Update' : dialogMode === 'addSubTopic' ? 'Add Sub Topics' : 'Create'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={shareDialogOpen} onOpenChange={setShareDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Share this content with other categories</DialogTitle>
+            <DialogDescription>
+              Selected categories will show the same topics and AI tool content instead of keeping
+              their own copy. Edit once here and every linked category stays in sync.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm">
+              <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Source</p>
+              <p className="mt-0.5 font-semibold text-slate-900">
+                {selectedBoard} · {categoryDisplayName(selectedCategory ?? '', categoryOptions)} ·{' '}
+                {selectedClass}
+                {!shareWholeClass && selectedSubject ? ` · ${selectedSubject}` : ' · all subjects'}
+              </p>
+            </div>
+
+            {selectedSubject ? (
+              <label className="flex items-start gap-2 text-sm text-slate-700">
+                <input
+                  type="checkbox"
+                  className="mt-1 h-4 w-4 rounded border-slate-300"
+                  checked={shareWholeClass}
+                  onChange={(e) => setShareWholeClass(e.target.checked)}
+                />
+                <span>
+                  Share every subject in {selectedClass}
+                  <span className="block text-xs text-slate-500">
+                    Leave unchecked to share only {selectedSubject}.
+                  </span>
+                </span>
+              </label>
+            ) : null}
+
+            <div>
+              <Label className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                Categories that will use this content
+              </Label>
+              {shareableCategories.length === 0 ? (
+                <p className="mt-2 rounded-lg border border-dashed border-slate-200 bg-slate-50 px-3 py-3 text-xs text-slate-500">
+                  No other categories are available for this board.
+                </p>
+              ) : (
+                <div className="mt-2 space-y-2">
+                  {shareableCategories.map((cat) => (
+                    <label
+                      key={cat.code}
+                      className="flex cursor-pointer items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm hover:border-orange-300 hover:bg-orange-50/40"
+                    >
+                      <input
+                        type="checkbox"
+                        className="h-4 w-4 rounded border-slate-300"
+                        checked={shareTargets.includes(cat.code)}
+                        onChange={() => toggleShareTarget(cat.code)}
+                      />
+                      <span className="font-medium text-slate-800">
+                        {cat.label || formatIitCategoryLabel(cat.code)}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setShareDialogOpen(false)}
+              disabled={savingShare}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              onClick={() => void saveCategoryShare()}
+              disabled={savingShare || shareableCategories.length === 0}
+            >
+              {savingShare ? 'Saving…' : 'Share content'}
             </Button>
           </DialogFooter>
         </DialogContent>

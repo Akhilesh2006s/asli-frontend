@@ -3,6 +3,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { API_BASE_URL } from '@/lib/api-config';
 import { getAuthToken, getUser as getStoredUser, getTeacherDisplayName, setUser as persistUser } from '@/lib/auth-utils';
 import TeacherShell from '@/components/layout/TeacherShell';
+import PortalPageHero from '@/components/layout/PortalPageHero';
 import { DashboardScrollPanel } from '@/components/layout/DashboardScrollPanel';
 import StatCard from '@/components/dashboard/StatCard';
 import { WeeklyDigestCard } from '@/components/weekly-digest-card';
@@ -2254,42 +2255,28 @@ const TeacherDashboard = () => {
             dashboardSubTab === 'classes' ||
             dashboardSubTab === 'students' ||
             dashboardSubTab === 'reports';
-          // Vidya AI has its own unified hero card — skip the separate page title.
-          if (dashboardSubTab === 'vidya-ai') return null;
-          const teacherName = getTeacherDisplayName(teacherUser || getStoredUser());
+          // Overview and Vidya AI already render their own hero cards.
+          if (dashboardSubTab === 'ai-classes' || dashboardSubTab === 'vidya-ai') return null;
           return (
-            <div className="mb-6 flex flex-col gap-4 sm:mb-8 sm:flex-row sm:items-end sm:justify-between">
-              <div className="min-w-0">
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-indigo-blue-600">
-                  Teacher Portal
-                </p>
-                <h1 className="mt-1 font-display text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
-                  {meta.title}
-                </h1>
-                <p className="mt-1 max-w-2xl text-sm leading-relaxed text-slate-600 sm:text-base">
-                  {meta.subtitle}
-                </p>
-                {teacherName ? (
-                  <p className="mt-2 text-sm font-medium text-slate-700">
-                    Welcome, {teacherName}
-                  </p>
-                ) : null}
-              </div>
-              {showRefresh ? (
+            <PortalPageHero
+              portal="teacher"
+              title={meta.title}
+              subtitle={meta.subtitle}
+              actions={showRefresh ? (
                 <Button
                   onClick={() => {
                     fetchTeacherData();
                   }}
                   variant="outline"
                   size="sm"
-                  className="shrink-0 border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                  className="shrink-0 border-white/25 bg-white/15 text-white backdrop-blur-sm hover:bg-white/25 hover:text-white"
                   disabled={isLoading}
                 >
                   <RefreshCw className={'mr-2 h-4 w-4' + (isLoading ? ' animate-spin' : '')} />
                   Refresh
                 </Button>
-              ) : null}
-            </div>
+              ) : undefined}
+            />
           );
         })()}
 
@@ -2505,18 +2492,18 @@ const TeacherDashboard = () => {
               <motion.div
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="overflow-hidden rounded-3xl border border-sky-200/70 bg-gradient-to-br from-sky-50 via-white to-teal-50/80 p-5 shadow-sm sm:p-7 lg:p-8"
+                className="overflow-hidden rounded-3xl border border-violet-300/30 bg-gradient-to-br from-[#4f46e5] via-[#6550df] to-[#7c3aed] p-5 text-white shadow-[0_18px_42px_-26px_rgba(79,70,229,0.65)] sm:p-7 lg:p-8"
               >
                 <div className="flex items-center gap-3 sm:gap-5">
                   <div className="min-w-0 flex-1">
-                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-sky-700">
-                      Teacher Portal
+                    <p className="inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-xs font-bold uppercase tracking-[0.12em] text-white ring-1 ring-white/20">
+                      {isIndividualTeacher ? 'AI Studio' : 'Vidya AI'}
                     </p>
-                    <h1 className="mt-2 font-display text-3xl font-extrabold tracking-tight text-slate-900 sm:text-4xl">
+                    <h1 className="mt-3 font-display text-3xl font-extrabold tracking-tight sm:text-4xl">
                       {isIndividualTeacher ? 'AI Studio' : 'Vidya'}{' '}
-                      <span className="text-sky-600">AI</span>
+                      <span className="text-violet-200">AI</span>
                     </h1>
-                    <p className="mt-2 max-w-xl text-sm leading-relaxed text-slate-600 sm:text-base">
+                    <p className="mt-2 max-w-xl text-sm leading-relaxed text-white/80 sm:text-base">
                       Generate lesson materials, worksheets, and teaching aids — curriculum-ready
                       classroom support in one place.
                     </p>
@@ -2745,39 +2732,22 @@ const TeacherDashboard = () => {
                   <div className="pointer-events-none absolute -bottom-20 left-1/4 h-48 w-48 rounded-full bg-violet-200/35 blur-3xl" aria-hidden="true" />
 
                   <div className="relative z-[1] space-y-4 sm:space-y-6">
-                    <div className="max-w-2xl">
-                      <p className="inline-flex items-center gap-2 rounded-full bg-white/70 px-3 py-1 text-xs font-bold uppercase tracking-[0.12em] text-indigo-blue-700">
-                        {dashboardSubTab === 'reports' ? (
-                          <>
-                            <BarChart3 className="h-3.5 w-3.5" aria-hidden="true" />
-                            Reports
-                          </>
-                        ) : (
-                          <>
-                            <Users className="h-3.5 w-3.5" aria-hidden="true" />
-                            Students
-                          </>
-                        )}
-                      </p>
-                      <h2 className="mt-3 font-display text-2xl font-extrabold tracking-tight text-slate-900 sm:text-3xl">
-                        {dashboardSubTab === 'reports' ? (
-                          <>
-                            Student analysis.
-                            <span className="text-violet-600"> Clear next steps.</span>
-                          </>
-                        ) : (
-                          <>
-                            Know every learner.
-                            <span className="text-violet-600"> Guide every step.</span>
-                          </>
-                        )}
-                      </h2>
-                      <p className="mt-2 text-sm leading-relaxed text-slate-600 sm:text-base">
-                        {dashboardSubTab === 'reports'
-                          ? 'Exam results, usage, homework, remarks, and data-driven improvement analysis for your students.'
-                          : 'Roster, progress, homework submissions, and daily diary for your classes.'}
-                      </p>
-                    </div>
+                    {/* Reports view already shows its heading in the page hero above. */}
+                    {dashboardSubTab === 'students' ? (
+                      <div className="max-w-2xl">
+                        <p className="inline-flex items-center gap-2 rounded-full bg-white/70 px-3 py-1 text-xs font-bold uppercase tracking-[0.12em] text-indigo-blue-700">
+                          <Users className="h-3.5 w-3.5" aria-hidden="true" />
+                          Students
+                        </p>
+                        <h2 className="mt-3 font-display text-2xl font-extrabold tracking-tight text-slate-900 sm:text-3xl">
+                          Know every learner.
+                          <span className="text-violet-600"> Guide every step.</span>
+                        </h2>
+                        <p className="mt-2 text-sm leading-relaxed text-slate-600 sm:text-base">
+                          Roster, progress, homework submissions, and daily diary for your classes.
+                        </p>
+                      </div>
+                    ) : null}
 
                   {/* Students Sub-Tabs — hidden on dedicated Reports view */}
                   {dashboardSubTab === 'students' ? (

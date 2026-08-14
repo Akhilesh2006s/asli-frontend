@@ -41,6 +41,8 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import { StudentRiskAnalysisModal } from './StudentRiskAnalysisModal';
+import { Trophy } from 'lucide-react';
+import { AdminPageHero, AdminStatGrid, AdminFooterBanner, adminBtn } from './ui/AdminUiKit';
 
 const STUDENT_FORM_FIELD_CLASS =
   'border border-sky-300 bg-sky-50 text-sky-950 shadow-sm placeholder:text-sky-500 focus-visible:border-sky-500 focus-visible:ring-2 focus-visible:ring-sky-400/35';
@@ -882,138 +884,59 @@ const UserManagement = () => {
   );
 
   return (
-    <div className="min-h-0 w-full overflow-x-hidden bg-gradient-to-br from-orange-50 via-orange-100 to-teal-50">
-      <div className="space-y-3 sm:space-y-4 lg:space-y-6 p-3 sm:p-4 lg:space-y-8 lg:p-6">
-        {/* Hero Section with Vibrant Student Stats */}
-        <div className="relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-r from-blue-600 via-cyan-600 to-teal-500 opacity-20 rounded-3xl"></div>
-          <div className="relative rounded-2xl border border-white/20 bg-white/80 p-4 shadow-2xl backdrop-blur-xl sm:rounded-3xl sm:p-6 lg:p-8">
-            <div className="mb-6 flex items-center justify-between gap-3 sm:mb-8">
-              <div>
-                <h1 className="bg-gradient-to-r from-blue-600 via-cyan-600 to-teal-500 bg-clip-text text-2xl sm:text-3xl font-bold text-transparent sm:text-4xl lg:text-5xl">
-                  Student Management
-                </h1>
-                <p className="mt-2 text-xs sm:text-sm font-medium text-gray-700 sm:mt-3 sm:text-base lg:text-xl">Manage students and their academic progress with style</p>
-              </div>
-              <div className="hidden lg:block">
-                <div className="w-24 h-24 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full flex items-center justify-center shadow-xl">
-                  <Users className="w-12 h-12 text-white" />
-                </div>
-              </div>
-            </div>
-        
-            {/* Enhanced Stats Grid */}
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 lg:gap-3 sm:p-4 lg:p-6">
-              <motion.div 
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 }}
-                className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-400 to-blue-500 p-4 shadow-lg transition-all duration-300 hover:shadow-xl sm:p-5 lg:p-6"
-              >
-                <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
-                <div className="relative z-10">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="p-3 bg-white/20 rounded-xl shadow-lg">
-                      <Users className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-white" />
-                    </div>
-                    <div className="text-right">
-                      <p className="text-white/90 text-xs sm:text-sm font-medium">Total Students</p>
-                      <p className="text-2xl sm:text-3xl font-bold text-white">
-                        {formatSeatUsage(students.length, seats.licensedStudents)}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center text-white/80 text-xs sm:text-sm">
-                    <TrendingUp className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
-                    <span>
-                      {seats.licensedStudents > 0
-                        ? seatUsageHint(students.length, seats.licensedStudents)
-                        : 'Enrolled students'}
-                    </span>
-                  </div>
-                </div>
-              </motion.div>
-              
-              <motion.div 
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
-                className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-600 to-emerald-700 p-4 shadow-lg transition-all duration-300 hover:shadow-xl sm:p-5 lg:p-6"
-              >
-                <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
-                <div className="relative z-10">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="p-3 bg-white/20 rounded-xl shadow-lg">
-                      <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-white" />
-                    </div>
-                    <div className="text-right">
-                      <p className="text-white/90 text-xs sm:text-sm font-medium">Active Students</p>
-                      <p className="text-2xl sm:text-3xl font-bold text-white">{students.filter(s => s.status === 'active').length}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center text-white/80 text-xs sm:text-sm">
-                    <div className="w-2 h-2 bg-white rounded-full mr-2 animate-pulse"></div>
-                    <span>Online now</span>
-                  </div>
-                </div>
-              </motion.div>
-              
-              <motion.div 
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 }}
-                className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-orange-600 to-orange-700 p-4 shadow-lg transition-all duration-300 hover:shadow-xl sm:p-5 lg:p-6"
-              >
-                <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
-                <div className="relative z-10">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="p-3 bg-white/20 rounded-xl shadow-lg">
-                      <GraduationCap className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-white" />
-                    </div>
-                    <div className="text-right">
-                      <p className="text-white/90 text-xs sm:text-sm font-medium">Active Classes</p>
-                      <p className="text-2xl sm:text-3xl font-bold text-white">{new Set(students.map(s => s.classNumber)).size}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center text-white/80 text-xs sm:text-sm">
-                    <BookOpen className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
-                    <span>Classes running</span>
-                  </div>
-                </div>
-              </motion.div>
-              
-              <motion.div 
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4 }}
-                className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-sky-600 to-sky-700 p-4 shadow-lg transition-all duration-300 hover:shadow-xl sm:p-5 lg:p-6"
-              >
-                <div className="absolute inset-0 bg-white/10 backdrop-blur-sm"></div>
-                <div className="relative z-10">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="p-3 bg-white/20 rounded-xl shadow-lg">
-                      <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-white" />
-                    </div>
-                    <div className="text-right">
-                      <p className="text-white/90 text-xs sm:text-sm font-medium">New This Month</p>
-                      <p className="text-2xl sm:text-3xl font-bold text-white">12</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center text-white/80 text-xs sm:text-sm">
-                    <span>+25% growth</span>
-                  </div>
-                </div>
-              </motion.div>
-          </div>
-        </div>
-      </div>
+    <div className="min-h-0 w-full overflow-x-hidden">
+      <div className="space-y-4 lg:space-y-5">
+        <AdminPageHero
+          title="Student"
+          highlight="Management"
+          subtitle="Manage students and their academic progress with ease."
+          icon={<Users className="h-10 w-10 lg:h-11 lg:w-11" />}
+        />
+
+        <AdminStatGrid
+          stats={[
+            {
+              label: 'Total Students',
+              value: formatSeatUsage(students.length, seats.licensedStudents),
+              icon: <Users className="h-5 w-5" />,
+              tone: 'blue',
+              footLabel:
+                seats.licensedStudents > 0
+                  ? seatUsageHint(students.length, seats.licensedStudents)
+                  : 'Enrolled students',
+              footValue: students.length,
+            },
+            {
+              label: 'Active Students',
+              value: students.filter((s) => s.status === 'active').length,
+              icon: <CheckCircle className="h-5 w-5" />,
+              tone: 'green',
+              footLabel: 'Currently active',
+            },
+            {
+              label: 'Active Classes',
+              value: new Set(students.map((s) => s.classNumber)).size,
+              icon: <GraduationCap className="h-5 w-5" />,
+              tone: 'orange',
+              footLabel: 'Classes running',
+              footValue: new Set(students.map((s) => s.classNumber)).size,
+            },
+            {
+              label: 'Sections',
+              value: new Set(students.map((s) => `${s.classNumber}-${s.section || ''}`)).size,
+              icon: <TrendingUp className="h-5 w-5" />,
+              tone: 'purple',
+              footLabel: 'Across all classes',
+            },
+          ]}
+        />
 
         {/* Enhanced Action Bar */}
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5 }}
-          className="rounded-2xl border border-white/20 bg-white/80 p-4 shadow-xl backdrop-blur-xl sm:rounded-3xl sm:p-6"
+          className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm sm:p-5"
         >
           <div className="space-y-4">
             <div className="flex flex-col xl:flex-row xl:items-center gap-4">
@@ -1068,7 +991,7 @@ const UserManagement = () => {
                   type="button"
                   size="sm"
                   variant={studentViewMode === 'all' ? 'default' : 'ghost'}
-                  className={studentViewMode === 'all' ? 'rounded-lg bg-gradient-to-r from-sky-500 to-cyan-500 text-xs text-white sm:text-sm' : 'rounded-lg text-xs text-sky-700 sm:text-sm'}
+                  className={studentViewMode === 'all' ? adminBtn.toggleActive : adminBtn.toggleIdle}
                   onClick={() => setStudentViewMode('all')}
                 >
                   All Students
@@ -1077,7 +1000,7 @@ const UserManagement = () => {
                   type="button"
                   size="sm"
                   variant={studentViewMode === 'class-wise' ? 'default' : 'ghost'}
-                  className={studentViewMode === 'class-wise' ? 'rounded-lg bg-gradient-to-r from-sky-500 to-cyan-500 text-xs text-white sm:text-sm' : 'rounded-lg text-xs text-sky-700 sm:text-sm'}
+                  className={studentViewMode === 'class-wise' ? adminBtn.toggleActive : adminBtn.toggleIdle}
                   onClick={() => setStudentViewMode('class-wise')}
                 >
                   Class-wise View
@@ -1086,7 +1009,7 @@ const UserManagement = () => {
                   type="button"
                   size="sm"
                   variant={studentViewMode === 'section-wise' ? 'default' : 'ghost'}
-                  className={studentViewMode === 'section-wise' ? 'rounded-lg bg-gradient-to-r from-sky-500 to-cyan-500 text-xs text-white sm:text-sm' : 'rounded-lg text-xs text-sky-700 sm:text-sm'}
+                  className={studentViewMode === 'section-wise' ? adminBtn.toggleActive : adminBtn.toggleIdle}
                   onClick={() => setStudentViewMode('section-wise')}
                 >
                   Section-wise View
@@ -1095,7 +1018,8 @@ const UserManagement = () => {
 
               <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                 <Button
-                  className="rounded-xl bg-gradient-to-r from-orange-500 to-orange-400 px-4 text-white shadow-lg hover:from-orange-600 hover:to-orange-500 sm:px-6"
+                  variant="outline"
+                  className={adminBtn.secondary}
                   onClick={handleExportStudents}
                 >
                   <Download className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
@@ -1103,9 +1027,7 @@ const UserManagement = () => {
                 </Button>
             <Dialog open={isUploadDialogOpen} onOpenChange={setIsUploadDialogOpen}>
               <DialogTrigger asChild>
-                <Button 
-                  className="rounded-xl bg-gradient-to-r from-green-500 to-emerald-500 px-4 text-white shadow-lg hover:from-green-600 hover:to-emerald-600 sm:px-6"
-                >
+                <Button variant="outline" className={adminBtn.secondary}>
                   <Upload className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                   Upload CSV
                 </Button>
@@ -1192,7 +1114,7 @@ const UserManagement = () => {
                         }
                       }}
                       disabled={!selectedFile || isUploading}
-                      className="bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700 text-white disabled:opacity-50"
+                      className={cn(adminBtn.primary, 'disabled:opacity-50')}
                     >
                       {isUploading ? (
                         <>
@@ -1215,7 +1137,7 @@ const UserManagement = () => {
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
           <DialogTrigger asChild>
             <Button 
-              className="rounded-xl bg-gradient-to-r from-orange-500 to-teal-500 px-4 text-white shadow-lg transition-all duration-300 hover:from-orange-600 hover:to-teal-600 hover:shadow-xl sm:px-8"
+              className={adminBtn.primary}
             >
               <UserPlus className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
               Add New Student
@@ -1353,12 +1275,9 @@ const UserManagement = () => {
                       >
                     Cancel
                   </Button>
-                      <Button 
-                        type="submit"
-                        className="bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700 rounded-xl backdrop-blur-sm"
-                      >
-                  Add Student
-                </Button>
+                      <Button type="submit" className={adminBtn.primary}>
+                    Add Student
+              </Button>
                   </div>
                 </form>
               </DialogContent>
@@ -1367,11 +1286,7 @@ const UserManagement = () => {
             {/* Delete All Students Button */}
             <Dialog open={isDeleteAllDialogOpen} onOpenChange={setIsDeleteAllDialogOpen}>
               <DialogTrigger asChild>
-                <Button 
-                  size="default"
-                  variant="destructive"
-                  className="rounded-xl bg-gradient-to-r from-red-500 to-red-600 px-4 text-white backdrop-blur-sm hover:from-red-600 hover:to-red-700 sm:px-6"
-                >
+                <Button size="default" variant="outline" className={adminBtn.danger}>
                   <Trash2 className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                   Delete All Students
                 </Button>
@@ -1461,17 +1376,25 @@ const UserManagement = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.6 }}
-          className="overflow-hidden rounded-2xl border border-sky-200 bg-white/60 shadow-lg backdrop-blur-xl"
+          className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm"
         >
-          <div className="p-3 sm:p-4 lg:p-6 border-b border-sky-200">
+          <div className="border-b border-slate-200/80 p-3 sm:p-4 lg:p-5">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <h3 className="text-xl sm:text-2xl font-bold text-sky-900">Students Directory</h3>
-                <p className="text-sky-700 mt-1">{filteredStudents.length} students found</p>
+              <div className="flex items-center gap-3">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-blue-600 to-violet-600 text-white shadow-md">
+                  <Users className="h-5 w-5" />
+                </span>
+                <div>
+                  <h3 className="text-lg font-bold text-slate-900 sm:text-xl">Students Directory</h3>
+                  <p className="mt-0.5 text-sm text-slate-500">
+                    {filteredStudents.length} students found
+                  </p>
+                </div>
               </div>
               <div className="flex items-center space-x-3">
-                <Button 
-                  className="rounded-xl bg-gradient-to-r from-sky-500 to-blue-600 px-4 text-white backdrop-blur-sm hover:from-sky-600 hover:to-blue-700 sm:px-6"
+                <Button
+                  variant="outline"
+                  className={adminBtn.secondary}
                   onClick={handleExportStudents}
                 >
                 <Download className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
@@ -1599,7 +1522,7 @@ const UserManagement = () => {
               <p className="text-sky-700 mb-6">Try adjusting your search criteria or add new students</p>
               <Button 
                 onClick={() => setIsAddDialogOpen(true)}
-                className="bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700 text-white rounded-xl px-3 sm:px-4 lg:px-6 backdrop-blur-sm"
+                className={adminBtn.primary}
               >
                 <UserPlus className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                 Add First Student
@@ -1607,6 +1530,12 @@ const UserManagement = () => {
         </div>
           )}
         </motion.div>
+
+        <AdminFooterBanner
+          title="Every student. Every step. Every success."
+          subtitle="Together we build a brighter future."
+          icon={<Trophy className="h-6 w-6" />}
+        />
       </div>
 
       {/* Assign Class Dialog */}
@@ -1788,10 +1717,7 @@ const UserManagement = () => {
               >
                 Cancel
               </Button>
-              <Button
-                type="submit"
-                className="bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700 text-white"
-              >
+              <Button type="submit" className={adminBtn.primary}>
                 Update Student
               </Button>
             </div>

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Upload, AlertTriangle, Search, Link2, CheckCircle2 } from 'lucide-react';
+import { Upload, AlertTriangle, Search, Link2, CheckCircle2, Building2, GraduationCap, Info } from 'lucide-react';
 import { getAuthToken } from '@/lib/auth-utils';
 import { API_BASE_URL } from '@/lib/api-config';
 import { useToast } from '@/hooks/use-toast';
@@ -81,6 +81,49 @@ type StudentOption = {
   section?: string;
 };
 
+type SchoolOption = {
+  id: string;
+  schoolName: string;
+  place?: string;
+};
+
+type ClassFilterOption = {
+  classNumber: string;
+  section: string;
+  label: string;
+  count: number;
+};
+
+export type OmrResultsManagementProps = {
+  variant?: 'school-admin' | 'super-admin';
+};
+
+function buildOmrApiUrl(
+  apiPrefix: string,
+  path: string,
+  schoolAdminId?: string,
+  query?: Record<string, string | undefined>,
+) {
+  const url = new URL(`${API_BASE_URL}${apiPrefix}${path}`);
+  if (schoolAdminId) url.searchParams.set('adminId', schoolAdminId);
+  if (query) {
+    for (const [key, value] of Object.entries(query)) {
+      if (value) url.searchParams.set(key, value);
+    }
+  }
+  return url.toString();
+}
+
+function encodeClassFilter(classNumber: string, section: string) {
+  return `${classNumber}::${section}`;
+}
+
+function decodeClassFilter(value: string): { classNumber: string; section: string } | null {
+  if (!value || value === 'all') return null;
+  const [classNumber = '', section = ''] = value.split('::');
+  return { classNumber, section };
+}
+
 function authHeaders(json = false): HeadersInit {
   const token = getAuthToken();
   return {
@@ -103,14 +146,24 @@ const TH =
 const TD = 'whitespace-nowrap border-b border-slate-100 px-2.5 py-2 text-sm text-slate-800 tabular-nums';
 const TD_TEXT = 'whitespace-nowrap border-b border-slate-100 px-2.5 py-2 text-sm text-slate-800';
 
-export default function OmrResultsManagement() {
+export default function OmrResultsManagement({ variant = 'school-admin' }: OmrResultsManagementProps) {
+  const isSuperAdmin = variant === 'super-admin';
+  const readOnly = !isSuperAdmin;
+  const apiPrefix = isSuperAdmin ? '/api/super-admin' : '/api/admin';
+
   const { toast } = useToast();
+  const [schools, setSchools] = useState<SchoolOption[]>([]);
+  const [selectedSchoolId, setSelectedSchoolId] = useState('');
+  const [schoolSearch, setSchoolSearch] = useState('');
+  const [classFilter, setClassFilter] = useState('all');
+  const [classOptions, setClassOptions] = useState<ClassFilterOption[]>([]);
   const [batches, setBatches] = useState<OmrBatch[]>([]);
   const [selectedBatchId, setSelectedBatchId] = useState<string | null>(null);
   const [rows, setRows] = useState<OmrRow[]>([]);
   const [batchMeta, setBatchMeta] = useState<OmrBatch | null>(null);
   const [students, setStudents] = useState<StudentOption[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(variant !== 'super-admin');
+  const [schoolsLoading, setSchoolsLoading] = useState(isSuperAdmin);
   const [uploading, setUploading] = useState(false);
   const [savingAssign, setSavingAssign] = useState(false);
   const [uploadOpen, setUploadOpen] = useState(false);
@@ -122,36 +175,78 @@ export default function OmrResultsManagement() {
   const [assignSearch, setAssignSearch] = useState('');
 
   const loadBatches = useCallback(async () => {
-    const res = await fetch(`${API_BASE_URL}/api/admin/omr-results/batches`, {
-      headers: authHeaders(),
-    });
+    if (isSuperAdmin && !selectedSchoolId) {
+      setBatches([]);
+      return [] as OmrBatch[];
+    }
+    const res = await fetch(
+      buildOmrApiUrl(apiPrefix, '/omr-results/batches', isSuperAdmin ? selectedSchoolId : undefined),
+      { headers: authHeaders() },
+    );
     const data = await res.json();
     if (!res.ok || !data.success) throw new Error(data.message || 'Failed to load batches');
     const list = Array.isArray(data.data) ? data.data : [];
     setBatches(list);
     return list as OmrBatch[];
-  }, []);
+  }, [apiPrefix, isSuperAdmin, selectedSchoolId]);
 
-  const loadBatchDetail = useCallback(async (batchId: string) => {
-    const res = await fetch(`${API_BASE_URL}/api/admin/omr-results/batches/${batchId}`, {
-      headers: authHeaders(),
-    });
-    const data = await res.json();
-    if (!res.ok || !data.success) throw new Error(data.message || 'Failed to load batch');
-    setBatchMeta(data.data.batch);
-    const list: OmrRow[] = Array.isArray(data.data.rows) ? data.data.rows : [];
-    setRows(list);
-    const drafts: Record<string, string> = {};
-    for (const row of list) {
-      drafts[row._id] = row.userId || row.suggestedUserId || '';
+  const loadBatchDetail = useCallback(
+    async (batchId: string) => {
+      const res = await fetch(
+        buildOmrApiUrl(
+          apiPrefix,
+          `/omr-results/batches/${batchId}`,
+          isSuperAdmin ? selectedSchoolId : undefined,
+        ),
+        { headers: authHeaders() },
+      );
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.message || 'Failed to load batch');
+      setBatchMeta(data.data.batch);
+      const list: OmrRow[] = Array.isArray(data.data.rows) ? data.data.rows : [];
+      setRows(list);
+      const drafts: Record<string, string> = {};
+      for (const row of list) {
+        drafts[row._id] = row.userId || row.suggestedUserId || '';
+      }
+      setAssignDrafts(drafts);
+    },
+    [apiPrefix, isSuperAdmin, selectedSchoolId],
+  );
+
+  const loadClassOptions = useCallback(async () => {
+    if (!isSuperAdmin || !selectedSchoolId) {
+      setClassOptions([]);
+      return;
     }
-    setAssignDrafts(drafts);
-  }, []);
+    const res = await fetch(
+      buildOmrApiUrl(apiPrefix, '/omr-results/class-options', selectedSchoolId),
+      { headers: authHeaders() },
+    );
+    const data = await res.json();
+    if (!res.ok || !data.success) throw new Error(data.message || 'Failed to load classes');
+    setClassOptions(Array.isArray(data.data) ? data.data : []);
+  }, [apiPrefix, isSuperAdmin, selectedSchoolId]);
 
   const loadStudents = useCallback(async () => {
-    const res = await fetch(`${API_BASE_URL}/api/admin/students`, { headers: authHeaders() });
+    if (isSuperAdmin && !selectedSchoolId) {
+      setStudents([]);
+      return;
+    }
+
+    const classParts = decodeClassFilter(classFilter);
+    const res = isSuperAdmin
+      ? await fetch(
+          buildOmrApiUrl(apiPrefix, '/omr-results/students', selectedSchoolId, {
+            classNumber: classParts?.classNumber,
+            section: classParts?.section,
+          }),
+          { headers: authHeaders() },
+        )
+      : await fetch(`${API_BASE_URL}/api/admin/students`, { headers: authHeaders() });
+
     const data = await res.json();
-    const raw = data?.data || data?.students || data || [];
+    const raw = isSuperAdmin ? data?.data : data?.data || data?.students || data || [];
     const seen = new Set<string>();
     const list = (Array.isArray(raw) ? raw : [])
       .map((s: any) => ({
@@ -172,13 +267,59 @@ export default function OmrResultsManagement() {
         }),
       );
     setStudents(list);
+  }, [apiPrefix, classFilter, isSuperAdmin, selectedSchoolId]);
+
+  const loadSchools = useCallback(async () => {
+    const res = await fetch(`${API_BASE_URL}/api/super-admin/admins`, { headers: authHeaders() });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'Failed to load schools');
+    const rows = Array.isArray(data) ? data : Array.isArray(data?.data) ? data.data : [];
+    const list = rows
+      .map((row: any) => ({
+        id: String(row.id || row.adminUserId || ''),
+        schoolName: String(row.schoolName || row.name || 'Unnamed school').trim(),
+        place: String(row.place || row.state || row.schoolDetails?.city || '').trim(),
+      }))
+      .filter((s: SchoolOption) => Boolean(s.id && s.schoolName))
+      .sort((a: SchoolOption, b: SchoolOption) =>
+        a.schoolName.localeCompare(b.schoolName, undefined, { sensitivity: 'base' }),
+      );
+    setSchools(list);
   }, []);
 
   useEffect(() => {
+    if (!isSuperAdmin) return;
+    setSchoolsLoading(true);
+    loadSchools()
+      .catch((err) => {
+        toast({
+          title: 'Could not load schools',
+          description: err instanceof Error ? err.message : 'Request failed',
+          variant: 'destructive',
+        });
+      })
+      .finally(() => setSchoolsLoading(false));
+  }, [isSuperAdmin, loadSchools, toast]);
+
+  useEffect(() => {
+    if (isSuperAdmin && !selectedSchoolId) {
+      setBatches([]);
+      setSelectedBatchId(null);
+      setRows([]);
+      setBatchMeta(null);
+      setStudents([]);
+      setClassOptions([]);
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
-    Promise.all([loadBatches(), loadStudents()])
+    Promise.all([loadBatches(), isSuperAdmin ? loadClassOptions() : Promise.resolve()])
       .then(([list]) => {
-        if (list?.[0]?._id) setSelectedBatchId(list[0]._id);
+        setSelectedBatchId((prev) => {
+          if (prev && list?.some((b) => b._id === prev)) return prev;
+          return list?.[0]?._id || null;
+        });
       })
       .catch((err) => {
         toast({
@@ -188,7 +329,18 @@ export default function OmrResultsManagement() {
         });
       })
       .finally(() => setLoading(false));
-  }, [loadBatches, loadStudents, toast]);
+  }, [isSuperAdmin, selectedSchoolId, loadBatches, loadClassOptions, toast]);
+
+  useEffect(() => {
+    if (isSuperAdmin && !selectedSchoolId) return;
+    loadStudents().catch((err) => {
+      toast({
+        title: 'Could not load students',
+        description: err instanceof Error ? err.message : 'Request failed',
+        variant: 'destructive',
+      });
+    });
+  }, [isSuperAdmin, selectedSchoolId, classFilter, loadStudents, toast]);
 
   useEffect(() => {
     if (!selectedBatchId) {
@@ -282,13 +434,35 @@ export default function OmrResultsManagement() {
     closeAssignDialog();
   };
 
+  const filteredSchools = useMemo(() => {
+    const q = schoolSearch.trim().toLowerCase();
+    if (!q) return schools;
+    return schools.filter((s) =>
+      `${s.schoolName} ${s.place || ''}`.toLowerCase().includes(q),
+    );
+  }, [schoolSearch, schools]);
+
+  const selectedSchool = useMemo(
+    () => schools.find((s) => s.id === selectedSchoolId) || null,
+    [schools, selectedSchoolId],
+  );
+
   const handleUpload = async () => {
     if (!file) return;
+    if (isSuperAdmin && !selectedSchoolId) {
+      toast({
+        title: 'Select a school first',
+        description: 'Choose which school this offline score list belongs to.',
+        variant: 'destructive',
+      });
+      return;
+    }
     setUploading(true);
     try {
       const formData = new FormData();
       formData.append('file', file);
-      const res = await fetch(`${API_BASE_URL}/api/admin/omr-results/upload`, {
+      if (isSuperAdmin) formData.append('adminId', selectedSchoolId);
+      const res = await fetch(`${API_BASE_URL}${apiPrefix}/omr-results/upload`, {
         method: 'POST',
         headers: authHeaders(),
         body: formData,
@@ -337,11 +511,18 @@ export default function OmrResultsManagement() {
     setSavingAssign(true);
     try {
       const res = await fetch(
-        `${API_BASE_URL}/api/admin/omr-results/batches/${selectedBatchId}/assign`,
+        buildOmrApiUrl(
+          apiPrefix,
+          `/omr-results/batches/${selectedBatchId}/assign`,
+          isSuperAdmin ? selectedSchoolId : undefined,
+        ),
         {
           method: 'POST',
           headers: authHeaders(true),
-          body: JSON.stringify({ assignments }),
+          body: JSON.stringify({
+            assignments,
+            ...(isSuperAdmin ? { adminId: selectedSchoolId } : {}),
+          }),
         },
       );
       const data = await res.json();
@@ -369,8 +550,145 @@ export default function OmrResultsManagement() {
     );
   }
 
+  if (loading) {
+    return (
+      <div className="space-y-3">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="h-16 animate-pulse rounded-xl bg-slate-100" />
+        ))}
+      </div>
+    );
+  }
+
+  if (isSuperAdmin && !selectedSchoolId) {
+    return (
+      <div className="space-y-4">
+        <Card className="rounded-2xl border-indigo-100 bg-gradient-to-br from-indigo-50 via-white to-violet-50 shadow-none">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-lg text-slate-900">
+              <Building2 className="h-5 w-5 text-indigo-600" />
+              Upload offline results for a school
+            </CardTitle>
+            <p className="text-sm text-slate-600">
+              Pick the school, upload the CSV from offline scanning, then map candidates to students.
+            </p>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <Input
+                value={schoolSearch}
+                onChange={(e) => setSchoolSearch(e.target.value)}
+                placeholder="Search school by name or place…"
+                className="h-11 rounded-xl border-slate-200 pl-9"
+              />
+            </div>
+            <div className="max-h-72 overflow-y-auto rounded-xl border border-slate-200 bg-white">
+              {schoolsLoading ? (
+                <p className="px-4 py-10 text-center text-sm text-slate-500">Loading schools…</p>
+              ) : filteredSchools.length === 0 ? (
+                <p className="px-4 py-10 text-center text-sm text-slate-500">No schools match</p>
+              ) : (
+                <ul className="divide-y divide-slate-100">
+                  {filteredSchools.map((school) => (
+                    <li key={school.id}>
+                      <button
+                        type="button"
+                        className="flex w-full items-start gap-3 px-4 py-3 text-left hover:bg-indigo-50/70"
+                        onClick={() => {
+                          setSelectedSchoolId(school.id);
+                          setSelectedBatchId(null);
+                          setClassFilter('all');
+                        }}
+                      >
+                        <Building2 className="mt-0.5 h-4 w-4 shrink-0 text-indigo-500" />
+                        <span className="min-w-0">
+                          <span className="block font-medium text-slate-900">{school.schoolName}</span>
+                          {school.place ? (
+                            <span className="block text-xs text-slate-500">{school.place}</span>
+                          ) : null}
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
+      {readOnly ? (
+        <div className="flex items-start gap-3 rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900">
+          <Info className="mt-0.5 h-4 w-4 shrink-0" />
+          <p>
+            Offline results are uploaded by the platform team. You can view scores and student
+            mappings here — contact support if a new test needs to be added.
+          </p>
+        </div>
+      ) : (
+        <Card className="rounded-2xl border-indigo-100 bg-gradient-to-br from-indigo-50/80 via-white to-violet-50/60 shadow-none">
+          <CardContent className="grid gap-4 p-4 lg:grid-cols-[1.2fr_1fr_auto] lg:items-end">
+            <div className="space-y-2">
+              <Label className="text-slate-600">School</Label>
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge className="bg-indigo-100 text-indigo-900 hover:bg-indigo-100">
+                  {selectedSchool?.schoolName || 'Selected school'}
+                </Badge>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 rounded-lg text-slate-600"
+                  onClick={() => {
+                    setSelectedSchoolId('');
+                    setSelectedBatchId(null);
+                    setRows([]);
+                    setBatchMeta(null);
+                  }}
+                >
+                  Change school
+                </Button>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label className="flex items-center gap-1.5 text-slate-600">
+                <GraduationCap className="h-4 w-4" />
+                Class filter (optional)
+              </Label>
+              <Select value={classFilter} onValueChange={setClassFilter}>
+                <SelectTrigger className="h-11 rounded-xl border-slate-200 bg-white">
+                  <SelectValue placeholder="All classes" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All classes</SelectItem>
+                  {classOptions.map((c) => {
+                    const value = encodeClassFilter(c.classNumber, c.section);
+                    return (
+                      <SelectItem key={value} value={value}>
+                        {c.label || value} · {c.count} students
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
+            </div>
+            <Button
+              type="button"
+              className="h-11 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700"
+              onClick={() => setUploadOpen(true)}
+            >
+              <Upload className="mr-2 h-4 w-4" />
+              Upload CSV
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
       <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
         <div className="space-y-2 min-w-0 flex-1">
           <Label className="text-slate-600">Uploaded test</Label>
@@ -404,24 +722,28 @@ export default function OmrResultsManagement() {
           )}
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            className="rounded-xl border-slate-200"
-            onClick={() => setUploadOpen(true)}
-          >
-            <Upload className="mr-2 h-4 w-4" />
-            Upload CSV
-          </Button>
-          <Button
-            type="button"
-            className="rounded-xl bg-slate-900 text-white hover:bg-slate-800"
-            disabled={!selectedBatchId || savingAssign}
-            onClick={() => void handleSaveAssignments()}
-          >
-            <Link2 className="mr-2 h-4 w-4" />
-            {savingAssign ? 'Saving…' : 'Save assignments'}
-          </Button>
+          {!readOnly ? (
+            <>
+              <Button
+                type="button"
+                variant="outline"
+                className="rounded-xl border-slate-200 lg:hidden"
+                onClick={() => setUploadOpen(true)}
+              >
+                <Upload className="mr-2 h-4 w-4" />
+                Upload CSV
+              </Button>
+              <Button
+                type="button"
+                className="rounded-xl bg-slate-900 text-white hover:bg-slate-800"
+                disabled={!selectedBatchId || savingAssign}
+                onClick={() => void handleSaveAssignments()}
+              >
+                <Link2 className="mr-2 h-4 w-4" />
+                {savingAssign ? 'Saving…' : 'Save assignments'}
+              </Button>
+            </>
+          ) : null}
         </div>
       </div>
 
@@ -535,14 +857,18 @@ export default function OmrResultsManagement() {
                     <th className={TH}>Final Rank</th>
                     <th className={TH}>Group Rank</th>
                     <th className={TH}>Percentage</th>
-                    <th
-                      className={cn(
-                        TH,
-                        'right-0 z-20 min-w-[220px] shadow-[-1px_0_0_0_#e2e8f0]',
-                      )}
-                    >
-                      Assign student
-                    </th>
+                    {!readOnly ? (
+                      <th
+                        className={cn(
+                          TH,
+                          'right-0 z-20 min-w-[220px] shadow-[-1px_0_0_0_#e2e8f0]',
+                        )}
+                      >
+                        Assign student
+                      </th>
+                    ) : (
+                      <th className={TH}>Student</th>
+                    )}
                   </tr>
                 </thead>
                 <tbody>
@@ -597,28 +923,42 @@ export default function OmrResultsManagement() {
                         <td className={cn(TD, 'font-semibold')}>{n(row.finalRank)}</td>
                         <td className={TD}>{n(row.groupRank)}</td>
                         <td className={cn(TD, 'font-semibold')}>{n(row.percentage)}</td>
-                        <td
-                          className={cn(
-                            'sticky right-0 z-[1] border-b border-slate-100 bg-white px-2 py-1.5 shadow-[-1px_0_0_0_#e2e8f0]',
-                          )}
-                        >
-                          {(() => {
-                            const assignedId = resolveAssignValue(row._id);
-                            const assigned = assignedId ? studentById.get(assignedId) : null;
-                            return (
-                              <Button
-                                type="button"
-                                variant="outline"
-                                className="h-9 min-w-[200px] max-w-[260px] justify-start rounded-lg border-slate-200 px-2.5 text-left text-xs font-normal"
-                                onClick={() => openAssignDialog(row._id)}
-                              >
-                                <span className="truncate">
-                                  {assigned ? formatStudentLabel(assigned) : 'Search student…'}
-                                </span>
-                              </Button>
-                            );
-                          })()}
-                        </td>
+                        {!readOnly ? (
+                          <td
+                            className={cn(
+                              'sticky right-0 z-[1] border-b border-slate-100 bg-white px-2 py-1.5 shadow-[-1px_0_0_0_#e2e8f0]',
+                            )}
+                          >
+                            {(() => {
+                              const assignedId = resolveAssignValue(row._id);
+                              const assigned = assignedId ? studentById.get(assignedId) : null;
+                              return (
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  className="h-9 min-w-[200px] max-w-[260px] justify-start rounded-lg border-slate-200 px-2.5 text-left text-xs font-normal"
+                                  onClick={() => openAssignDialog(row._id)}
+                                >
+                                  <span className="truncate">
+                                    {assigned ? formatStudentLabel(assigned) : 'Search student…'}
+                                  </span>
+                                </Button>
+                              );
+                            })()}
+                          </td>
+                        ) : (
+                          <td className={TD_TEXT}>
+                            {row.student
+                              ? formatStudentLabel({
+                                  _id: row.student._id,
+                                  fullName: row.student.fullName,
+                                  email: row.student.email,
+                                  classNumber: row.student.classNumber,
+                                  section: row.student.section,
+                                })
+                              : '—'}
+                          </td>
+                        )}
                       </tr>
                     );
                   })}
@@ -636,12 +976,14 @@ export default function OmrResultsManagement() {
         </CardContent>
       </Card>
 
-      <Dialog
-        open={!!assignRowId}
-        onOpenChange={(open) => {
-          if (!open) closeAssignDialog();
-        }}
-      >
+      {!readOnly ? (
+        <>
+          <Dialog
+            open={!!assignRowId}
+            onOpenChange={(open) => {
+              if (!open) closeAssignDialog();
+            }}
+          >
         <DialogContent className="max-w-md rounded-2xl">
           <DialogHeader>
             <DialogTitle>Assign student</DialogTitle>
@@ -727,50 +1069,53 @@ export default function OmrResultsManagement() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={uploadOpen} onOpenChange={setUploadOpen}>
-        <DialogContent className="max-w-md rounded-2xl">
-          <DialogHeader>
-            <DialogTitle>Upload Offline Score List</DialogTitle>
-            <DialogDescription>
-              CSV columns should match the Offline Export (Candidate ID, subject R/W/L/Mk, ranks,
-              percentage). Then assign each candidate to a student in the table.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-3">
-            <Label htmlFor="omr-csv">Score List CSV / Excel</Label>
-            <Input
-              id="omr-csv"
-              type="file"
-              accept=".csv,.xlsx,.xls"
-              className="rounded-xl border-slate-200"
-              onChange={(e) => setFile(e.target.files?.[0] || null)}
-            />
-            {file ? (
-              <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800">
-                {file.name}
-              </p>
-            ) : null}
-          </div>
-          <DialogFooter className="gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              className="rounded-xl"
-              onClick={() => setUploadOpen(false)}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              className="rounded-xl bg-slate-900 text-white"
-              disabled={!file || uploading}
-              onClick={() => void handleUpload()}
-            >
-              {uploading ? 'Uploading…' : 'Import scores'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          <Dialog open={uploadOpen} onOpenChange={setUploadOpen}>
+            <DialogContent className="max-w-md rounded-2xl">
+              <DialogHeader>
+                <DialogTitle>Upload Offline Score List</DialogTitle>
+                <DialogDescription>
+                  {selectedSchool
+                    ? `Import scores for ${selectedSchool.schoolName}. CSV columns should match the offline export.`
+                    : 'CSV columns should match the Offline Export. Then assign each candidate to a student in the table.'}
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-3">
+                <Label htmlFor="omr-csv">Score List CSV / Excel</Label>
+                <Input
+                  id="omr-csv"
+                  type="file"
+                  accept=".csv,.xlsx,.xls"
+                  className="rounded-xl border-slate-200"
+                  onChange={(e) => setFile(e.target.files?.[0] || null)}
+                />
+                {file ? (
+                  <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800">
+                    {file.name}
+                  </p>
+                ) : null}
+              </div>
+              <DialogFooter className="gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="rounded-xl"
+                  onClick={() => setUploadOpen(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  className="rounded-xl bg-slate-900 text-white"
+                  disabled={!file || uploading}
+                  onClick={() => void handleUpload()}
+                >
+                  {uploading ? 'Uploading…' : 'Import scores'}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </>
+      ) : null}
     </div>
   );
 }

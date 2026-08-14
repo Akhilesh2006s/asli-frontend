@@ -68,7 +68,7 @@ export default function TeacherOmrResultsPage() {
 
   return (
     <TeacherShell>
-      <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
+      <div className="w-full">
         <div className="mb-6">
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-orange-600">
             Offline Results

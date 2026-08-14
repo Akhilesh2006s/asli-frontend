@@ -337,20 +337,36 @@ export function WeeklyDigestCard({ apiBase }: { apiBase: "/api/teacher" | "/api/
             <SectionTitle icon={LogIn} title="Your activity" />
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               <MetricTile label="Logins this week" value={n(m.loginCount)} hint="Days you opened the app" />
-              <MetricTile label="Sessions" value={n(m.sessions)} />
-              <MetricTile label="Time on platform" value={m.totalTimeLabel || `${n(m.minutes)} min`} />
-              <MetricTile label="Last active" value={m.lastActiveDate || "—"} />
-              <MetricTile label="Status (14 days)" value={String(m.status || "—")} />
-              <MetricTile label="Active days (14d)" value={n(m.activeDays)} />
-              <MetricTile label="Classes assigned" value={n(m.classesAssigned)} />
-              <MetricTile label="Students in classes" value={n(m.studentsInClasses)} />
+              <MetricTile label="Sessions" value={n(m.sessions)} hint="Times you started using it" />
+              <MetricTile
+                label="Time on platform"
+                value={m.totalTimeLabel || `${n(m.minutes)} min`}
+                hint="Total time spent this week"
+              />
+              <MetricTile label="Last active" value={m.lastActiveDate || "—"} hint="Your most recent visit" />
+              <MetricTile
+                label="Status (14 days)"
+                value={String(m.status || "—")}
+                hint="Active if used in last 14 days"
+              />
+              <MetricTile label="Active days (14d)" value={n(m.activeDays)} hint="Days used in last 2 weeks" />
+              <MetricTile label="Classes assigned" value={n(m.classesAssigned)} hint="Classes you teach" />
+              <MetricTile
+                label="Students in classes"
+                value={n(m.studentsInClasses)}
+                hint="Learners across your classes"
+              />
             </div>
 
             <SectionTitle icon={Sparkles} title="Teaching with AI" />
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              <MetricTile label="AI resources created" value={n(m.generationsCreated)} />
-              <MetricTile label="Vidya AI asks" value={n(m.aiDoubts)} />
-              <MetricTile label="Tool opens" value={n(m.aiToolUses)} />
+              <MetricTile
+                label="AI resources created"
+                value={n(m.generationsCreated)}
+                hint="Worksheets, notes & more you made"
+              />
+              <MetricTile label="Vidya AI asks" value={n(m.aiDoubts)} hint="Questions you asked Vidya AI" />
+              <MetricTile label="Tool opens" value={n(m.aiToolUses)} hint="Times you opened an AI tool" />
             </div>
             {(Array.isArray(m.toolsUsed) ? m.toolsUsed : []).length > 0 ? (
               <ul className="space-y-1.5 rounded-xl border border-slate-100 bg-white px-3 py-2">
@@ -379,9 +395,21 @@ export function WeeklyDigestCard({ apiBase }: { apiBase: "/api/teacher" | "/api/
 
             <SectionTitle icon={Users} title="Your school this week" />
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              <MetricTile label="Students accessed" value={n(m.schoolStudentsAccessed)} />
-              <MetricTile label="School sessions" value={n(m.schoolSessions)} />
-              <MetricTile label="Teachers active" value={n(m.schoolTeachersActive)} />
+              <MetricTile
+                label="Students accessed"
+                value={n(m.schoolStudentsAccessed)}
+                hint="Students who used the app"
+              />
+              <MetricTile
+                label="School sessions"
+                value={n(m.schoolSessions)}
+                hint="Total sessions across your school"
+              />
+              <MetricTile
+                label="Teachers active"
+                value={n(m.schoolTeachersActive)}
+                hint="Colleagues active this week"
+              />
             </div>
 
             {(digest.highlights || []).length > 0 ? (
@@ -437,17 +465,22 @@ export function WeeklyDigestCard({ apiBase }: { apiBase: "/api/teacher" | "/api/
             <SectionTitle icon={LogIn} title="Adoption" />
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               <MetricTile label="Logins this week" value={n(m.loginCount)} hint="Days you opened the app" />
-              <MetricTile label="Last active" value={m.lastActiveDate || "—"} />
-              <MetricTile label="First activation" value={m.activationDate || "—"} />
+              <MetricTile label="Last active" value={m.lastActiveDate || "—"} hint="Your most recent visit" />
+              <MetricTile label="First activation" value={m.activationDate || "—"} hint="When you started learning" />
             </div>
 
             <SectionTitle icon={Clock} title="Engagement" />
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              <MetricTile label="Learning sessions" value={n(m.sessions)} />
-              <MetricTile label="Total time" value={m.totalTimeLabel || `${n(m.minutes)} min`} />
+              <MetricTile label="Learning sessions" value={n(m.sessions)} hint="Times you started studying" />
+              <MetricTile
+                label="Total time"
+                value={m.totalTimeLabel || `${n(m.minutes)} min`}
+                hint="Time spent learning this week"
+              />
               <MetricTile
                 label="Avg session"
                 value={n(m.avgSessionMinutes) > 0 ? `${n(m.avgSessionMinutes)} min` : "—"}
+                hint="Typical length of a session"
               />
             </div>
 
@@ -468,9 +501,13 @@ export function WeeklyDigestCard({ apiBase }: { apiBase: "/api/teacher" | "/api/
               <>
             <SectionTitle icon={BookOpen} title="Learning behaviour" />
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              <MetricTile label="Topics practised" value={n(m.topicsPractised)} />
-              <MetricTile label="Repeated topics" value={n(m.topicsRepeated)} />
-              <MetricTile label="Repeat practice" value={`${n(m.repeatPracticePct)}%`} />
+              <MetricTile label="Topics practised" value={n(m.topicsPractised)} hint="Different topics you studied" />
+              <MetricTile label="Repeated topics" value={n(m.topicsRepeated)} hint="Topics you revised again" />
+              <MetricTile
+                label="Repeat practice"
+                value={`${n(m.repeatPracticePct)}%`}
+                hint="Share of study spent revising"
+              />
             </div>
 
             <SectionTitle icon={Brain} title="AI usage" />
@@ -480,10 +517,15 @@ export function WeeklyDigestCard({ apiBase }: { apiBase: "/api/teacher" | "/api/
                 value={n(m.aiExplanations)}
                 hint={`Vidya ${n(m.aiDoubts)} · Tools ${n(m.aiToolUses)}`}
               />
-              <MetricTile label="Practice / quizzes" value={n(m.practiceAttempts) + n(m.iqAttempts)} />
+              <MetricTile
+                label="Practice / quizzes"
+                value={n(m.practiceAttempts) + n(m.iqAttempts)}
+                hint="Practice sets & quizzes attempted"
+              />
               <MetricTile
                 label="Accuracy"
                 value={n(m.practiceAttempts) > 0 ? `${n(m.practiceAccuracy)}%` : "—"}
+                hint="Correct answers in practice"
               />
             </div>
 
@@ -546,14 +588,16 @@ export function WeeklyDigestCard({ apiBase }: { apiBase: "/api/teacher" | "/api/
 
             <SectionTitle icon={ClipboardList} title="Exams" />
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              <MetricTile label="Exams written" value={n(m.examAttempts)} />
+              <MetricTile label="Exams written" value={n(m.examAttempts)} hint="Exams you took this week" />
               <MetricTile
                 label="Average score"
                 value={n(m.examAttempts) > 0 ? `${n(m.avgExamPct)}%` : "—"}
+                hint="Mean across all your exams"
               />
               <MetricTile
                 label="Best score"
                 value={n(m.examAttempts) > 0 ? `${n(m.bestExamPct)}%` : "—"}
+                hint="Your top exam result"
               />
             </div>
             {exams.length > 0 ? (
@@ -576,14 +620,16 @@ export function WeeklyDigestCard({ apiBase }: { apiBase: "/api/teacher" | "/api/
 
             <SectionTitle icon={ScanLine} title="Offline Results" />
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              <MetricTile label="Offline Tests" value={n(m.omrAttempts)} />
+              <MetricTile label="Offline Tests" value={n(m.omrAttempts)} hint="OMR tests scored this week" />
               <MetricTile
                 label="Average score"
                 value={n(m.omrAttempts) > 0 ? `${n(m.omrAvgPct)}%` : "—"}
+                hint="Mean across offline tests"
               />
               <MetricTile
                 label="Best score"
                 value={n(m.omrAttempts) > 0 ? `${n(m.omrBestPct)}%` : "—"}
+                hint="Your top offline result"
               />
             </div>
             {n(m.omrBestRank) > 0 ? (
@@ -626,14 +672,19 @@ export function WeeklyDigestCard({ apiBase }: { apiBase: "/api/teacher" | "/api/
                     : undefined
                 }
               />
-              <MetricTile label="Videos watched" value={n(m.videosWatched)} />
-              <MetricTile label="Chapters updated" value={n(m.chaptersCompleted)} />
+              <MetricTile label="Videos watched" value={n(m.videosWatched)} hint="Lesson videos you viewed" />
+              <MetricTile label="Chapters updated" value={n(m.chaptersCompleted)} hint="Chapters you progressed in" />
               <MetricTile
                 label="Current streak"
                 value={n(m.streak) > 0 ? `${n(m.streak)} days` : "0"}
+                hint="Days in a row you studied"
               />
-              <MetricTile label="Mastery" value={`${n(m.masteryPct)}%`} />
-              <MetricTile label="Homework submitted" value={n(m.homeworkSubmissions)} />
+              <MetricTile label="Mastery" value={`${n(m.masteryPct)}%`} hint="How well you've grasped topics" />
+              <MetricTile
+                label="Homework submitted"
+                value={n(m.homeworkSubmissions)}
+                hint="Assignments you turned in"
+              />
             </div>
 
             {(digest.highlights || []).length > 0 ? (

@@ -38,6 +38,9 @@ import {
   Brain
 } from 'lucide-react';
 import { StudentRiskAnalysisModal } from './StudentRiskAnalysisModal';
+import { Trophy } from 'lucide-react';
+import { AdminPageHero, AdminStatGrid, AdminFooterBanner, adminBtn } from './ui/AdminUiKit';
+import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
 import { formatSeatUsage, useAccountSeats } from '@/hooks/use-account-seats';
 
@@ -841,128 +844,56 @@ const ClassDashboard = () => {
   const schoolSubjectCount = subjects.length > 0 ? subjects.length : classSubjects.length;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50">
-      <div className="space-y-4 sm:space-y-6 lg:space-y-8 p-3 sm:p-4 lg:p-6">
-        {/* Hero Section with Vibrant Class Stats */}
-        <div className="relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-r from-purple-600 via-pink-600 to-red-500 opacity-20 rounded-3xl"></div>
-          <div className="relative bg-white/80 backdrop-blur-xl rounded-3xl p-4 sm:p-6 lg:p-8 shadow-2xl border border-white/20">
-            <div className="flex items-center justify-between mb-8">
-              <div>
-                <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold bg-gradient-to-r from-sky-500 to-sky-600 bg-clip-text text-transparent">
-                  Class Management
-                </h1>
-                <p className="text-gray-700 mt-3 text-lg sm:text-xl font-medium">Organize and manage your classes and students with style</p>
-              </div>
-              <div className="hidden lg:block">
-                <div className="w-24 h-24 bg-gradient-to-r from-sky-400 to-sky-500 rounded-full flex items-center justify-center shadow-xl">
-                  <GraduationCap className="w-12 h-12 text-white" />
-                </div>
-              </div>
-            </div>
-            
-            {/* Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
-              <motion.div 
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 }}
-                className="group relative overflow-hidden bg-gradient-to-r from-orange-300 to-orange-400 text-white border-0 shadow-lg rounded-2xl p-3 sm:p-4 lg:p-6 hover:shadow-xl transition-all duration-300"
-              >
-                <div className="relative z-10">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="p-3 bg-white/20 rounded-xl shadow-lg">
-                      <GraduationCap className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-white" />
-                    </div>
-                    <div className="text-right">
-                      <p className="text-white/90 text-xs sm:text-sm font-medium">Total Classes</p>
-                      <p className="text-2xl sm:text-3xl font-bold text-white">{classes.length}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center text-white/80 text-xs sm:text-sm">
-                    <BookOpen className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
-                    <span>Active classes</span>
-                  </div>
-                </div>
-              </motion.div>
-              
-              <motion.div 
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
-                className="group relative overflow-hidden bg-gradient-to-br from-sky-300 to-sky-400 text-white border-0 shadow-lg rounded-2xl p-3 sm:p-4 lg:p-6 hover:shadow-xl transition-all duration-300"
-              >
-                <div className="relative z-10">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="p-3 bg-white/20 rounded-xl shadow-lg">
-                      <Users className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-white" />
-                    </div>
-                    <div className="text-right">
-                      <p className="text-white/90 text-xs sm:text-sm font-medium">Total Students</p>
-                      <p className="text-2xl sm:text-3xl font-bold text-white">{classes.reduce((total, cls) => total + cls.studentCount, 0)}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center text-white/80 text-xs sm:text-sm">
-                    <Users className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
-                    <span>Enrolled students</span>
-                  </div>
-                </div>
-              </motion.div>
-              
-              <motion.div 
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 }}
-                className="group relative overflow-hidden bg-gradient-to-br from-teal-400 to-teal-500 text-white border-0 shadow-lg rounded-2xl p-3 sm:p-4 lg:p-6 hover:shadow-xl transition-all duration-300"
-              >
-                <div className="relative z-10">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="p-3 bg-white/20 rounded-xl shadow-lg">
-                      <BarChart3 className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-white" />
-                    </div>
-                    <div className="text-right">
-                      <p className="text-white/90 text-xs sm:text-sm font-medium">Avg. Class Size</p>
-                      <p className="text-2xl sm:text-3xl font-bold text-white">
-                        {classes.length > 0 ? Math.round(classes.reduce((total, cls) => total + cls.studentCount, 0) / classes.length) : 0}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center text-white/80 text-xs sm:text-sm">
-                    <TrendingUp className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
-                    <span>Students per class</span>
-                  </div>
-                </div>
-              </motion.div>
-              
-              <motion.div 
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4 }}
-                className="group relative overflow-hidden bg-gradient-to-r from-orange-300 to-orange-400 text-white border-0 shadow-lg rounded-2xl p-3 sm:p-4 lg:p-6 hover:shadow-xl transition-all duration-300"
-              >
-                <div className="relative z-10">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="p-3 bg-white/20 rounded-xl shadow-lg">
-                      <Target className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-white" />
-                    </div>
-                    <div className="text-right">
-                      <p className="text-white/90 text-xs sm:text-sm font-medium">Subjects</p>
-                      <p className="text-2xl sm:text-3xl font-bold text-white">{schoolSubjectCount}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center text-white/80 text-xs sm:text-sm">
-                    <BookOpen className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
-                    <span>Different subjects</span>
-                  </div>
-                </div>
-              </motion.div>
-            </div>
-          </div>
-        </div>
+    <div className="min-h-0 w-full overflow-x-hidden">
+      <div className="space-y-4 lg:space-y-5">
+        <AdminPageHero
+          title="Class"
+          highlight="Management"
+          subtitle="Organize and manage your classes and students with ease."
+          icon={<GraduationCap className="h-10 w-10 lg:h-11 lg:w-11" />}
+        />
+
+        <AdminStatGrid
+          stats={[
+            {
+              label: 'Total Classes',
+              value: classes.length,
+              icon: <GraduationCap className="h-5 w-5" />,
+              tone: 'orange',
+              footLabel: 'Active classes',
+            },
+            {
+              label: 'Total Students',
+              value: classes.reduce((total, cls) => total + cls.studentCount, 0),
+              icon: <Users className="h-5 w-5" />,
+              tone: 'blue',
+              footLabel: 'Enrolled students',
+            },
+            {
+              label: 'Avg. Class Size',
+              value:
+                classes.length > 0
+                  ? Math.round(
+                      classes.reduce((total, cls) => total + cls.studentCount, 0) / classes.length,
+                    )
+                  : 0,
+              icon: <BarChart3 className="h-5 w-5" />,
+              tone: 'green',
+              footLabel: 'Students per class',
+            },
+            {
+              label: 'Subjects',
+              value: schoolSubjectCount,
+              icon: <Target className="h-5 w-5" />,
+              tone: 'purple',
+              footLabel: 'Different subjects',
+            },
+          ]}
+        />
 
         {/* Tabs */}
-        <Tabs defaultValue="classes" className="w-full space-y-3 sm:space-y-4 lg:space-y-6">
-          <TabsList className="flex h-auto min-h-[3.25rem] w-full flex-wrap justify-start gap-1.5 bg-white/80 backdrop-blur-xl border border-white/20 rounded-3xl p-3 sm:p-4 shadow-xl sm:w-full">
+        <Tabs defaultValue="classes" className="w-full space-y-3 sm:space-y-4 lg:space-y-5">
+          <TabsList className="flex h-auto min-h-[3rem] w-full flex-wrap justify-start gap-1.5 rounded-2xl border border-slate-200/80 bg-white p-2 shadow-sm sm:w-full">
             <TabsTrigger
               value="classes"
               className="rounded-2xl px-4 py-2.5 text-sm font-semibold sm:px-6 sm:py-3 sm:text-base data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-pink-500 data-[state=active]:text-white"
@@ -1013,8 +944,8 @@ const ClassDashboard = () => {
                     <AlertDialog open={isDeleteAllDialogOpen} onOpenChange={setIsDeleteAllDialogOpen}>
                       <AlertDialogTrigger asChild>
                         <Button 
-                          variant="destructive"
-                          className="flex-1 sm:flex-none bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white rounded-xl"
+                          variant="outline"
+                          className={cn('flex-1 sm:flex-none', adminBtn.danger)}
                         >
                           <Trash2 className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
                           Delete All
@@ -1199,7 +1130,7 @@ const ClassDashboard = () => {
                         <Button
                           size="sm"
                           variant="outline"
-                          className="border-sky-200 text-sky-700 hover:bg-sky-50 text-xs"
+                          className={cn('text-xs', adminBtn.secondary)}
                           onClick={() => handleTeachersDropdownToggle(classItem.id)}
                         >
                           {expandedTeachersClassId === classItem.id ? (
@@ -1263,7 +1194,7 @@ const ClassDashboard = () => {
                       <Button
                         size="sm"
                         variant="outline"
-                        className="border-sky-200 text-sky-700 hover:bg-sky-50 text-xs"
+                        className={cn('text-xs', adminBtn.secondary)}
                         onClick={() => handleClassCardClick(classItem.id)}
                       >
                         {isExpanded ? (
@@ -1338,7 +1269,7 @@ const ClassDashboard = () => {
                     <Button
                       size="sm"
                       variant="outline"
-                      className="border-sky-200 text-sky-700 hover:bg-sky-50"
+                      className={adminBtn.secondary}
                       onClick={(e) => {
                         e.stopPropagation();
                         openEditClassDialog(classItem);
@@ -1350,7 +1281,7 @@ const ClassDashboard = () => {
                     <Button 
                       size="sm" 
                       variant="outline" 
-                      className="border-red-200 text-red-700 hover:bg-red-50"
+                      className={adminBtn.danger}
                       onClick={(e) => {
                         e.stopPropagation();
                         setPendingDeleteClassId(classItem.id);
@@ -1571,7 +1502,7 @@ const ClassDashboard = () => {
                   <Button
                     onClick={handlePromoteClasses}
                     disabled={isPromoting || selectedClassesForPromotion.size === 0}
-                    className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white"
+                    className={adminBtn.primary}
                   >
                     {isPromoting ? (
                       <>
@@ -1590,6 +1521,12 @@ const ClassDashboard = () => {
             </Card>
           </TabsContent>
         </Tabs>
+
+        <AdminFooterBanner
+          title="Strong classes build strong learners."
+          subtitle="Keep creating engaging classrooms where every student can thrive."
+          icon={<Trophy className="h-6 w-6" />}
+        />
 
         {/* Add Class Dialog */}
         <Dialog
@@ -1694,7 +1631,7 @@ const ClassDashboard = () => {
                 >
                   Cancel
                 </Button>
-                <Button type="submit" className="bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700 text-white">
+                <Button type="submit" className={adminBtn.primary}>
                   Create Class
                 </Button>
               </div>
@@ -1814,7 +1751,7 @@ const ClassDashboard = () => {
                 <Button
                   type="submit"
                   disabled={isSavingClass}
-                  className="bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700 text-white"
+                  className={adminBtn.primary}
                 >
                   {isSavingClass ? 'Saving...' : 'Save Changes'}
                 </Button>

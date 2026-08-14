@@ -28,6 +28,7 @@ import {
 import type { TimetableEntry, TimetableFilters, SessionType } from '@/types/timetable';
 import { SESSION_TYPE_COLORS, STATUS_COLORS, COLOR_PRESETS } from '@/types/timetable';
 import { cn } from '@/lib/utils';
+import { adminBtn } from '@/components/admin/ui/AdminUiKit';
 import { WeeklyTimetableGrid } from '@/components/timetable/WeeklyTimetableGrid';
 import {
   colorTagForSubject,
@@ -776,7 +777,7 @@ export default function TimetableManagement() {
           </DialogTrigger>
           <DialogContent className="max-w-lg bg-white/95 border-orange-200 backdrop-blur-xl">
             <DialogHeader>
-              <DialogTitle className="text-lg sm:text-xl font-bold bg-gradient-to-r from-orange-600 to-orange-400 bg-clip-text text-transparent">
+              <DialogTitle className="text-lg sm:text-xl font-bold bg-gradient-to-r from-indigo-blue-600 to-violet-600 bg-clip-text text-transparent">
                 Upload Timetable
               </DialogTitle>
               <DialogDescription className="text-gray-600 text-xs sm:text-sm space-y-2">
@@ -886,7 +887,7 @@ export default function TimetableManagement() {
               <Button
                 type="button"
                 disabled={!csvFile || importCsv.isPending}
-                className="bg-gradient-to-r from-orange-600 to-orange-400 hover:from-orange-700 hover:to-orange-600 text-white rounded-xl"
+                className={adminBtn.primary}
                 onClick={async () => {
                   if (!csvFile) return;
                   try {
@@ -933,7 +934,7 @@ export default function TimetableManagement() {
         </Dialog>
         <Button
           type="button"
-          className="bg-gradient-to-r from-orange-600 to-orange-400 hover:from-orange-700 hover:to-orange-600 text-white rounded-xl px-4 sm:px-6 py-3 shadow-xl hover:shadow-2xl transition-all duration-300 w-full sm:w-auto"
+          className={cn('w-full sm:w-auto', adminBtn.primary)}
           onClick={() => openAdd()}
         >
           <Plus className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
@@ -967,7 +968,7 @@ export default function TimetableManagement() {
                   className={cn(
                     'rounded-xl text-xs',
                     viewMode === v
-                      ? 'bg-gradient-to-r from-orange-600 to-orange-400 hover:from-orange-700 hover:to-orange-600 border-0 shadow-sm'
+                      ? 'bg-gradient-to-r from-indigo-blue-600 to-violet-600 hover:from-indigo-blue-700 hover:to-violet-700 border-0 text-white shadow-sm'
                       : 'border-orange-200 text-orange-800 hover:bg-orange-50'
                   )}
                   onClick={() => setViewMode(v)}
@@ -1018,7 +1019,7 @@ export default function TimetableManagement() {
                 <div className="text-center py-16 text-gray-500">
                   <CalendarDays className="h-12 w-12 mx-auto mb-3 text-gray-300" />
                   <p className="font-medium">No timetable entries</p>
-                  <Button className="mt-4 rounded-xl bg-gradient-to-r from-orange-600 to-orange-400 hover:from-orange-700 hover:to-orange-600" onClick={() => openAdd()}>Add first entry</Button>
+                  <Button className={cn('mt-4', adminBtn.primary)} onClick={() => openAdd()}>Add first entry</Button>
                 </div>
               ) : (
                 <>
@@ -1273,7 +1274,7 @@ export default function TimetableManagement() {
             </Button>
             <Button
               type="button"
-              className="rounded-xl bg-gradient-to-r from-orange-600 to-orange-400"
+              className={adminBtn.primary}
               disabled={remapPeriodsMut.isPending}
               onClick={() => void savePeriodTimes()}
             >

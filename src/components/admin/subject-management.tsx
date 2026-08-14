@@ -13,6 +13,9 @@ import { API_BASE_URL } from '@/lib/api-config';
 import { useToast } from '@/hooks/use-toast';
 import { getAuthToken } from '@/lib/auth-utils';
 import { formatSubjectWithIitCategory } from '@/lib/subject-names';
+import { Trophy } from 'lucide-react';
+import { AdminPageHero, AdminStatGrid, AdminFooterBanner, adminBtn } from '@/components/admin/ui/AdminUiKit';
+import { cn } from '@/lib/utils';
 import { 
   BookOpen, 
   Search, 
@@ -365,102 +368,50 @@ const SubjectManagement = () => {
     : 0;
 
   return (
-    <div className="min-h-0 w-full overflow-x-hidden bg-gradient-to-br from-orange-50 via-orange-100 to-teal-50">
-      <div className="space-y-3 sm:space-y-4 lg:space-y-6 p-3 sm:space-y-8 sm:p-4 lg:p-6">
-        {/* Hero Section with Vibrant Subject Stats */}
-        <div className="relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-r from-orange-600 via-orange-400 to-teal-500 opacity-20 rounded-3xl"></div>
-          <div className="relative bg-white/80 backdrop-blur-xl rounded-2xl p-4 sm:rounded-3xl sm:p-6 lg:p-8 shadow-2xl border border-white/20">
-            <div className="flex items-center justify-between mb-6 sm:mb-8">
-              <div>
-                <h1 className="text-2xl sm:text-3xl sm:text-4xl lg:text-5xl leading-tight font-bold bg-gradient-to-r from-orange-600 via-orange-400 to-teal-500 bg-clip-text text-transparent break-words">
-                  Subject Management
-                </h1>
-                <p className="text-gray-700 mt-2 sm:mt-3 text-sm sm:text-base lg:text-xl font-medium">Manage subjects and their assignments with style</p>
-              </div>
-              <div className="hidden lg:block">
-                <div className="w-24 h-24 bg-gradient-to-r from-orange-500 to-orange-400 rounded-full flex items-center justify-center shadow-xl">
-                  <BookOpen className="w-12 h-12 text-white" />
-                </div>
-              </div>
-            </div>
+    <div className="min-h-0 w-full overflow-x-hidden">
+      <div className="space-y-4 lg:space-y-5">
+        <AdminPageHero
+          title="Subject"
+          highlight="Management"
+          subtitle="Manage subjects and their assignments with ease."
+          icon={<BookOpen className="h-10 w-10 lg:h-11 lg:w-11" />}
+        />
 
-            {/* Vibrant Subject Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:p-4 lg:p-6">
-              <motion.div 
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 }}
-                className="group relative overflow-hidden bg-gradient-to-r from-orange-300 to-orange-400 text-white border-0 shadow-lg rounded-2xl p-3 sm:p-4 lg:p-6 hover:shadow-2xl transition-all duration-300"
-              >
-                <div className="relative z-10">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="p-4 bg-white/20 rounded-2xl backdrop-blur-sm">
-                      <BookOpen className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-white" />
-                    </div>
-                    <div className="text-right">
-                      <p className="text-white/90 text-xs sm:text-sm font-medium">Total Subjects</p>
-                      <p className="text-2xl sm:text-3xl sm:text-4xl font-bold text-white">{totalSubjects}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center text-white/80 text-xs sm:text-sm">
-                    <BookOpen className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
-                    <span>Available courses</span>
-                  </div>
-                </div>
-              </motion.div>
-
-              <motion.div 
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
-                className="group relative overflow-hidden bg-gradient-to-br from-sky-300 to-sky-400 text-white border-0 shadow-lg rounded-2xl p-3 sm:p-4 lg:p-6 hover:shadow-2xl transition-all duration-300"
-              >
-                <div className="relative z-10">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="p-4 bg-white/20 rounded-2xl backdrop-blur-sm">
-                      <CheckCircle className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-white" />
-                    </div>
-                    <div className="text-right">
-                      <p className="text-white/90 text-xs sm:text-sm font-medium">Active Subjects</p>
-                      <p className="text-2xl sm:text-3xl sm:text-4xl font-bold text-white">{activeSubjects}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center text-white/80 text-xs sm:text-sm">
-                    <div className="w-3 h-3 bg-white rounded-full mr-2 animate-pulse"></div>
-                    <span>Currently offered</span>
-                  </div>
-                </div>
-              </motion.div>
-
-              <motion.div 
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 }}
-                className="group relative overflow-hidden bg-gradient-to-br from-teal-400 to-teal-500 text-white border-0 shadow-lg rounded-2xl p-3 sm:p-4 lg:p-6 hover:shadow-2xl transition-all duration-300"
-              >
-                <div className="relative z-10">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="p-4 bg-white/20 rounded-2xl backdrop-blur-sm">
-                      <Users className="w-6 h-6 sm:w-7 sm:h-7 lg:w-8 lg:h-8 text-white" />
-                    </div>
-                    <div className="text-right">
-                      <p className="text-white/90 text-xs sm:text-sm font-medium">Assigned Subjects</p>
-                      <p className="text-2xl sm:text-3xl sm:text-4xl font-bold text-white">{assignedSubjects}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center text-white/80 text-xs sm:text-sm">
-                    <Users className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
-                    <span>With teachers</span>
-                  </div>
-                </div>
-              </motion.div>
-            </div>
-          </div>
-        </div>
+        <AdminStatGrid
+          stats={[
+            {
+              label: 'Total Subjects',
+              value: totalSubjects,
+              icon: <BookOpen className="h-5 w-5" />,
+              tone: 'orange',
+              footLabel: 'All available subjects',
+            },
+            {
+              label: 'Active Subjects',
+              value: activeSubjects,
+              icon: <CheckCircle className="h-5 w-5" />,
+              tone: 'blue',
+              footLabel: 'Currently active',
+            },
+            {
+              label: 'Assigned Subjects',
+              value: assignedSubjects,
+              icon: <Users className="h-5 w-5" />,
+              tone: 'green',
+              footLabel: 'With teachers',
+            },
+            {
+              label: 'Unassigned',
+              value: Math.max(totalSubjects - assignedSubjects, 0),
+              icon: <BookOpen className="h-5 w-5" />,
+              tone: 'purple',
+              footLabel: 'Awaiting a teacher',
+            },
+          ]}
+        />
 
         {/* Action Bar with Filters */}
-        <div className="bg-white/40 backdrop-blur-xl rounded-2xl p-3 sm:p-4 lg:p-6 shadow-lg border border-sky-200">
+        <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm sm:p-5">
           <div className="flex flex-col gap-4">
             <p className="text-sm text-sky-800">
               Subjects are created by Super Admin. You can view them and assign teachers / classes —
@@ -488,9 +439,9 @@ const SubjectManagement = () => {
               
               {/* Teacher Filter */}
               <div className="relative">
-                <div className="absolute -inset-[2px] bg-gradient-to-r from-teal-400 to-teal-500 rounded-md"></div>
+                <div className="absolute -inset-[2px] bg-gradient-to-r from-indigo-blue-500 to-violet-500 rounded-md"></div>
                 <Select value={filterByTeacher} onValueChange={setFilterByTeacher}>
-                  <SelectTrigger className="w-full sm:w-48 relative z-10 border-0 bg-white focus:ring-2 focus:ring-teal-500 focus:ring-offset-0">
+                  <SelectTrigger className="w-full sm:w-48 relative z-10 border-0 bg-white focus:ring-2 focus:ring-indigo-blue-500 focus:ring-offset-0">
                     <SelectValue placeholder="All Teachers" />
                   </SelectTrigger>
                   <SelectContent>
@@ -508,9 +459,9 @@ const SubjectManagement = () => {
 
               {/* Status Filter */}
               <div className="relative">
-                <div className="absolute -inset-[2px] bg-gradient-to-r from-green-400 to-green-500 rounded-md"></div>
+                <div className="absolute -inset-[2px] bg-gradient-to-r from-indigo-blue-500 to-violet-500 rounded-md"></div>
                 <Select value={filterByStatus} onValueChange={setFilterByStatus}>
-                  <SelectTrigger className="w-full sm:w-40 relative z-10 border-0 bg-white focus:ring-2 focus:ring-green-500 focus:ring-offset-0">
+                  <SelectTrigger className="w-full sm:w-40 relative z-10 border-0 bg-white focus:ring-2 focus:ring-indigo-blue-500 focus:ring-offset-0">
                     <SelectValue placeholder="All Status" />
                   </SelectTrigger>
                   <SelectContent>
@@ -523,9 +474,9 @@ const SubjectManagement = () => {
 
               {/* Subject filter — view one subject's data at a time */}
               <div className="relative">
-                <div className="absolute -inset-[2px] bg-gradient-to-r from-sky-400 to-sky-500 rounded-md"></div>
+                <div className="absolute -inset-[2px] bg-gradient-to-r from-indigo-blue-500 to-violet-500 rounded-md"></div>
                 <Select value={filterBySubject} onValueChange={setFilterBySubject}>
-                  <SelectTrigger className="w-full sm:w-48 relative z-10 border-0 bg-white focus:ring-2 focus:ring-sky-500 focus:ring-offset-0">
+                  <SelectTrigger className="w-full sm:w-48 relative z-10 border-0 bg-white focus:ring-2 focus:ring-indigo-blue-500 focus:ring-offset-0">
                     <SelectValue placeholder="All Subjects" />
                   </SelectTrigger>
                   <SelectContent className="max-h-64">
@@ -554,7 +505,7 @@ const SubjectManagement = () => {
               {(filterByTeacher !== 'all' || filterByStatus !== 'all' || filterBySubject !== 'all') && (
                 <Button
                   variant="outline"
-                  className="border-sky-200 text-sky-700 hover:bg-sky-50"
+                  className={adminBtn.secondary}
                   onClick={() => {
                     setFilterByTeacher('all');
                     setFilterByStatus('all');
@@ -651,7 +602,7 @@ const SubjectManagement = () => {
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
-                      <Button size="icon" variant="outline" className="h-9 w-9 sm:h-10 sm:w-10 border-sky-200 text-sky-700 hover:bg-sky-50 shrink-0" onClick={() => handleViewSubject(subject)} title="View">
+                      <Button size="icon" variant="outline" className={cn('h-9 w-9 shrink-0 sm:h-10 sm:w-10', adminBtn.secondary)} onClick={() => handleViewSubject(subject)} title="View">
                         <Eye className="w-4 h-4 sm:w-5 sm:h-5" />
                       </Button>
                       <Button 
@@ -685,6 +636,12 @@ const SubjectManagement = () => {
             <p className="text-sky-600">Try adjusting your search. Subjects are created by Super Admin.</p>
           </div>
         )}
+
+        <AdminFooterBanner
+          title="Well-organized subjects create better learning journeys."
+          subtitle="Keep your subject assignments updated for a smarter academic experience."
+          icon={<Trophy className="h-6 w-6" />}
+        />
       </div>
 
       {/* Assign teachers & classes — admin cannot edit/delete subject metadata */}

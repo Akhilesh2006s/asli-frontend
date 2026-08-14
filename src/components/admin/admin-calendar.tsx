@@ -474,12 +474,7 @@ export default function AdminCalendar() {
 
   return (
     <div className="space-y-3 sm:space-y-4 lg:space-y-6">
-      {/* Header */}
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h2 className="text-xl sm:text-2xl sm:text-3xl font-bold text-gray-900">Calendar</h2>
-          <p className="text-sm sm:text-base text-gray-600 mt-1">Manage and view your events</p>
-        </div>
+      <div className="flex justify-end">
         <Button onClick={goToToday} variant="outline" className="shrink-0">
           Today
         </Button>

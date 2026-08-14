@@ -57,6 +57,7 @@ const SubscriptionManagement = lazy(() => import("@/components/super-admin/subsc
 const ProductsManagement = lazy(() => import("@/components/super-admin/products-management"));
 const BoardsManagement = lazy(() => import("@/components/super-admin/boards-management"));
 const TrialMembersManagement = lazy(() => import("@/components/super-admin/trial-members-management"));
+const OmrResultsManagement = lazy(() => import("@/components/admin/omr-results-management"));
 
 const lazySectionFallback = (
   <div className="rounded-xl border border-orange-100 bg-white p-4 sm:p-6 lg:p-8 shadow-sm">
@@ -1339,6 +1340,12 @@ export default function SuperAdminDashboard() {
         return (
           <Suspense fallback={lazySectionFallback}>
             <ExamManagement />
+          </Suspense>
+        );
+      case 'offline-results':
+        return (
+          <Suspense fallback={lazySectionFallback}>
+            <OmrResultsManagement variant="super-admin" />
           </Suspense>
         );
       case 'iq-rank-boost':

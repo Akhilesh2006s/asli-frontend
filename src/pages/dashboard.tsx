@@ -32,7 +32,7 @@ import {
   nextChapterCompletedDates,
   type ChapterCompletedDates,
 } from "@/lib/video-chapter-schedule";
-import { StudentTeacherDiaryFeed } from "@/components/student/StudentTeacherDiaryFeed";
+import { DashboardNavCard } from '@/components/student/DashboardNavCard';
 import { WeeklyDigestCard } from "@/components/weekly-digest-card";
 import { 
   CheckCircle, 
@@ -43,6 +43,7 @@ import {
   Calendar,
   Download,
   Users,
+  Backpack,
   Star,
   Clock,
   Award,
@@ -104,6 +105,7 @@ import { buildTimetableCalendarEntries } from '@/lib/timetable-calendar-entries'
 import { useTimetableEntries } from '@/hooks/useTimetable';
 import { format, startOfMonth, endOfMonth, startOfWeek, addDays, parseISO } from 'date-fns';
 import { getUser as getStoredUser, getStudentDisplayName, getAuthToken } from '@/lib/auth-utils';
+import { isIndividualAccount } from '@/lib/individual-signup';
 import StudentShell from '@/components/layout/StudentShell';
 import StatCard from '@/components/dashboard/StatCard';
 import { fetchAuthUser, peekCachedAuthUser } from '@/lib/auth-session';
@@ -2147,8 +2149,21 @@ export default function Dashboard() {
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-7 gap-2 mb-2">
-                  {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => (
-                    <p key={day} className="text-xs font-semibold text-gray-500 text-center">{day}</p>
+                  {[
+                    { day: 'Mon', cls: 'bg-sky-50 text-sky-600' },
+                    { day: 'Tue', cls: 'bg-violet-50 text-violet-600' },
+                    { day: 'Wed', cls: 'bg-amber-50 text-amber-600' },
+                    { day: 'Thu', cls: 'bg-rose-50 text-rose-600' },
+                    { day: 'Fri', cls: 'bg-emerald-50 text-emerald-600' },
+                    { day: 'Sat', cls: 'bg-orange-50 text-orange-600' },
+                    { day: 'Sun', cls: 'bg-fuchsia-50 text-fuchsia-600' },
+                  ].map(({ day, cls }) => (
+                    <div
+                      key={day}
+                      className={`rounded-full py-1 text-center text-[11px] font-bold sm:text-xs ${cls}`}
+                    >
+                      {day}
+                    </div>
                   ))}
                 </div>
                 <div className="grid grid-cols-7 gap-2">
@@ -2163,6 +2178,13 @@ export default function Dashboard() {
                     const itemCount = dayEntries.length;
                     const isToday = formatDateKey(new Date()) === dayKey;
                     const isPopoverOpen = openCalendarDayKey === dayKey;
+                    const weekday = day.getDay();
+                    const weekendClass =
+                      weekday === 6
+                        ? 'text-sky-600'
+                        : weekday === 0
+                        ? 'text-fuchsia-600'
+                        : 'text-gray-700';
 
                     return (
                       <Popover
@@ -2184,12 +2206,12 @@ export default function Dashboard() {
                               setSelectedCalendarDate(day);
                               setOpenCalendarDayKey(dayKey);
                             }}
-                            className={`h-12 w-full rounded-lg border text-xs sm:text-sm transition-colors relative ${
+                            className={`h-12 w-full rounded-lg border text-xs font-semibold sm:text-sm transition-colors relative ${
                               isSelected
                                 ? 'bg-indigo-600 text-white border-indigo-600'
                                 : isToday
                                 ? 'bg-indigo-50 text-indigo-700 border-indigo-200'
-                                : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
+                                : `bg-white border-gray-200 hover:bg-gray-50 ${weekendClass}`
                             }`}
                           >
                             {day.getDate()}
@@ -2314,6 +2336,21 @@ export default function Dashboard() {
                       </Popover>
                     );
                   })}
+                </div>
+
+                <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-gray-100 pt-3 text-xs font-medium text-gray-600">
+                  <span className="inline-flex items-center gap-1.5">
+                    <span className="h-2.5 w-2.5 rounded-full bg-sky-500" />
+                    Quiz
+                  </span>
+                  <span className="inline-flex items-center gap-1.5">
+                    <span className="h-2.5 w-2.5 rounded-full bg-orange-500" />
+                    Exam
+                  </span>
+                  <span className="inline-flex items-center gap-1.5">
+                    <span className="h-2.5 w-2.5 rounded-full ring-2 ring-indigo-500 ring-offset-1" />
+                    Today
+                  </span>
                 </div>
               </CardContent>
             </Card>
@@ -2529,86 +2566,25 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Teachers report + Homework side by side */}
-        <div className="mb-responsive relative z-10 grid grid-cols-1 gap-4 lg:grid-cols-2 lg:items-stretch">
-          <StudentTeacherDiaryFeed />
-
-          <Card className="h-full bg-white rounded-xl shadow-md">
-            <CardHeader>
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-orange-400 rounded-lg flex items-center justify-center">
-                  <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
-                </div>
-                <CardTitle className="text-lg sm:text-xl font-bold text-gray-900">
-                  My Homework
-                </CardTitle>
-              </div>
-            </CardHeader>
-            <CardContent className="max-h-[28rem] overflow-y-auto">
-              {assignedHomework.length > 0 ? (
-                <div className="space-y-2">
-                  <h4 className="text-xs sm:text-sm font-semibold text-gray-700 mb-3">
-                    Assigned Homework ({assignedHomework.length})
-                  </h4>
-                  {assignedHomework.slice(0, 10).map((homework: any) => {
-                    const homeworkId = String(homework._id || homework.id || '');
-                    const submitted = homeworkSubmissionByHomeworkId.has(homeworkId);
-
-                    return (
-                      <div
-                        key={homeworkId}
-                        className={`flex items-center justify-between gap-3 rounded-lg border px-3 py-2 ${
-                          submitted ? 'bg-emerald-50 border-emerald-200' : 'bg-orange-50 border-orange-200'
-                        }`}
-                      >
-                        <div className="min-w-0">
-                          <p className="text-xs sm:text-sm font-medium text-gray-900 truncate">
-                            {homework.title || 'Untitled Homework'}
-                          </p>
-                          <p className="text-xs text-gray-600 truncate">
-                            {getSubjectName(homework)}
-                            {homework.deadline
-                              ? ` • Due ${new Date(homework.deadline).toLocaleDateString('en-US', {
-                                  month: 'short',
-                                  day: 'numeric',
-                                  year: 'numeric',
-                                })}`
-                              : ''}
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-2 flex-shrink-0">
-                          <Badge
-                            className={
-                              submitted
-                                ? 'bg-emerald-100 text-emerald-700'
-                                : 'bg-orange-100 text-orange-700'
-                            }
-                          >
-                            {submitted ? 'Submitted' : 'Pending'}
-                          </Badge>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleOpenHomeworkSubmit(homework)}
-                          >
-                            {submitted ? 'Update' : 'Submit'}
-                          </Button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : isLoadingSubmissions ? (
-                <div className="text-center py-4 sm:py-6 lg:py-8">
-                  <div className="animate-spin rounded-full h-6 w-6 sm:h-7 sm:w-7 lg:h-8 lg:w-8 border-b-2 border-orange-600 mx-auto mb-2"></div>
-                  <p className="text-gray-600 text-xs sm:text-sm">Loading homework...</p>
-                </div>
-              ) : (
-                <p className="py-6 text-center text-sm text-slate-500">No homework assigned yet.</p>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+        {/* Teachers report + Homework — school-only; hidden for B2C/individual students */}
+        {!isIndividualAccount(user) && (
+          <div className="mb-responsive relative z-10 grid grid-cols-1 gap-4 lg:grid-cols-2">
+            <DashboardNavCard
+              href="/student/teachers-report"
+              title="Teachers Report"
+              description="Daily class updates from teachers."
+              tone="purple"
+              icon={<Users className="h-7 w-7 sm:h-8 sm:w-8" />}
+            />
+            <DashboardNavCard
+              href="/student/homework"
+              title="My Homework"
+              description="View and manage your assignments."
+              tone="orange"
+              icon={<Backpack className="h-7 w-7 sm:h-8 sm:w-8" />}
+            />
+          </div>
+        )}
 
         {/* Teacher Remarks Section */}
         {remarks.length > 0 && (
@@ -2794,8 +2770,8 @@ export default function Dashboard() {
                   <Progress value={overallProgress} className="h-3 [&>div]:bg-gradient-to-r [&>div]:from-orange-400 [&>div]:via-blue-500 [&>div]:to-teal-500" />
                 </div>
 
-                {/* Subject Progress — boxes */}
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {/* Subject Progress — boxes (all subjects on one row on desktop) */}
+                <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
                   {subjectProgress.length > 0 ? subjectProgress.map((subject, idx) => {
                     const meta = getSubjectProgressIconMeta(subject.name || '');
                     return (
@@ -3106,17 +3082,19 @@ export default function Dashboard() {
                     Start Quiz
                   </Button>
                 )}
-                {!selectedScheduleItem.isQuiz && selectedScheduleItem.type === 'Homework' && (
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      setIsPreviewOpen(false);
-                      handleOpenHomeworkSubmit(selectedScheduleItem);
-                    }}
-                  >
-                    Submit Homework
-                  </Button>
-                )}
+                {!selectedScheduleItem.isQuiz &&
+                  selectedScheduleItem.type === 'Homework' &&
+                  !isIndividualAccount(user) && (
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setIsPreviewOpen(false);
+                        setLocation('/student/homework');
+                      }}
+                    >
+                      Submit Homework
+                    </Button>
+                  )}
               </DialogFooter>
             </>
           )}

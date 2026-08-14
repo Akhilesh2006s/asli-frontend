@@ -389,7 +389,7 @@
 }
 
 .asli-page-container {
-  @apply mx-auto w-full max-w-6xl space-y-8 lg:space-y-10 xl:max-w-7xl;
+  @apply w-full max-w-none space-y-8 lg:space-y-10;
 }
 
 .asli-page-hero {
@@ -433,52 +433,33 @@
 }
 
 /**
- * Portal main column — keep a laptop-like content width on big monitors
- * so Learning Paths / Dashboard don't stretch edge-to-edge.
+ * Portal main column — fills the width next to the sidebar so dashboards use
+ * the whole viewport instead of sitting in a narrow centered column.
  */
 .app-shell-content {
-  @apply relative z-10 mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8;
-}
-
-@media (min-width: 1280px) {
-  .app-shell-content {
-    max-width: 72rem; /* ~1152px — matches a typical laptop content column */
-  }
+  @apply relative z-10 w-full max-w-none px-4 py-5 sm:px-5 sm:py-6 lg:px-6;
 }
 
 @media (min-width: 1536px) {
   .app-shell-content {
-    padding-inline: 2.5rem;
-  }
-}
-
-@media (min-width: 1920px) {
-  .app-shell-content {
-    padding-inline: 3.5rem;
+    padding-inline: 1.75rem;
   }
 }
 
 @media (min-width: 2560px) {
-  .asli-page-container,
-  .container-responsive,
-  .app-shell-content {
-    max-width: 72rem; /* keep capped — do not stretch to 1800px */
-  }
-
   .asli-page-shell {
     padding-inline: 4rem;
     padding-block: 3rem;
   }
 
   .app-shell-content {
-    padding-inline: 5rem;
+    padding-inline: 2.5rem;
   }
 }
 
 @media (min-width: 3840px) {
   .app-shell-content {
-    max-width: 80rem; /* slight bump only; still large side gutters on 4K */
-    padding-inline: 8rem;
+    padding-inline: 4rem;
   }
 }
 

@@ -56,7 +56,7 @@ import {
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { API_BASE_URL } from "@/lib/api-config";
-import { getUser, getAuthToken, getStudentDisplayName, getTeacherDisplayName } from '@/lib/auth-utils';
+import { getUser, getAuthToken } from '@/lib/auth-utils';
 import PdfPreviewPanel from "@/components/shared/PdfPreviewPanel";
 import VidyaAIFloatingAssistant from "@/components/student/VidyaAIFloatingAssistant";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -234,11 +234,6 @@ export default function LearningPaths() {
   const resourceCount = scopedLibraryContent.length;
   const subjectCount = subjects.length;
   const [libraryEpoch, setLibraryEpoch] = useState(0);
-
-  const welcomeName = useMemo(() => {
-    if (!user) return '';
-    return isTeacher ? getTeacherDisplayName(user) : getStudentDisplayName(user);
-  }, [user, isTeacher]);
 
   const refreshLibrary = useCallback(() => {
     setLibraryEpoch((n) => n + 1);
@@ -568,44 +563,6 @@ export default function LearningPaths() {
         
         {!isMobile && !isTeacher && <VidyaAIFloatingAssistant />}
 
-        {/* Page title — Teacher Portal style */}
-        <div className="mb-6 flex flex-col gap-4 sm:mb-8 sm:flex-row sm:items-end sm:justify-between">
-          <div className="min-w-0">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-indigo-blue-600">
-              {isTeacher ? 'Teacher Portal' : 'Student Portal'}
-            </p>
-            <h1 className="mt-1 font-display text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
-              Learning Paths
-            </h1>
-            <p className="mt-1 max-w-2xl text-sm leading-relaxed text-slate-600 sm:text-base">
-              {isTeacher
-                ? 'Browse curriculum content for your assigned subjects.'
-                : 'Explore curated curriculum content for your subjects and learn at your own pace.'}
-            </p>
-            {(welcomeName || isLoadingUser) ? (
-              <p className="mt-2 text-sm font-medium text-slate-700">
-                Welcome, {isLoadingUser && !welcomeName ? '…' : welcomeName}
-              </p>
-            ) : null}
-          </div>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="shrink-0 border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
-            onClick={refreshLibrary}
-            disabled={isLoadingSubjects || isLoadingContentCounts}
-          >
-            <RefreshCw
-              className={
-                'mr-2 h-4 w-4' +
-                (isLoadingSubjects || isLoadingContentCounts ? ' animate-spin' : '')
-              }
-            />
-            Refresh
-          </Button>
-        </div>
-
         {/* Blue hero — books on the right, glow kept subtle */}
         <div className="mb-8">
           <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#2f5bff] via-[#3558e8] to-[#2a3fd4] p-5 text-white shadow-[0_18px_40px_-24px_rgba(37,99,235,0.45)] sm:p-7 lg:p-8">
@@ -623,6 +580,22 @@ export default function LearningPaths() {
               strokeWidth={1.4}
               aria-hidden="true"
             />
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="absolute right-4 top-4 z-10 border-white/25 bg-white/15 text-white backdrop-blur-sm hover:bg-white/25 hover:text-white sm:right-6 sm:top-6"
+              onClick={refreshLibrary}
+              disabled={isLoadingSubjects || isLoadingContentCounts}
+            >
+              <RefreshCw
+                className={
+                  'mr-2 h-4 w-4' +
+                  (isLoadingSubjects || isLoadingContentCounts ? ' animate-spin' : '')
+                }
+              />
+              Refresh
+            </Button>
 
             <div className="relative z-[1] grid items-center gap-5 lg:grid-cols-[minmax(0,1.2fr)_minmax(200px,0.75fr)] lg:gap-6">
               <div className="min-w-0 space-y-4 sm:space-y-5">
@@ -904,7 +877,7 @@ export default function LearningPaths() {
 
         {/* My Quizzes Tab */}
         {activeTab === 'quizzes' && (
-        <div className="mb-8 max-w-7xl mx-auto">
+        <div className="mb-8 w-full">
           <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-6">My Quizzes</h2>
           {isLoadingQuizzes ? (
             <div className="flex flex-col items-center justify-center py-20 bg-white rounded-2xl border border-gray-200">

@@ -226,8 +226,8 @@ export function QuizReviewQuestionCard({
       <div className="grid gap-0 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
         <div className="p-5 sm:p-6">
           <div className="mb-3 flex flex-wrap items-center gap-2">
-            <span className="text-xs font-bold uppercase tracking-wide text-slate-400">
-              Q{index + 1}
+            <span className="text-sm font-bold text-slate-700">
+              Question {index + 1}
             </span>
             {isCorrect ? (
               <span className="rounded-full bg-emerald-500 px-2.5 py-1 text-xs font-bold text-white">

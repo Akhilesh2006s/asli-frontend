@@ -359,7 +359,7 @@ export default function SubjectContent() {
   if (loading) {
     return (
       <StudentShell>
-        <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        <div className="w-full">
           <div className="mb-6 h-10 w-48 animate-pulse rounded-xl bg-slate-200/80" />
           <div className="mb-8 h-28 animate-pulse rounded-2xl bg-slate-200/70" />
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -378,7 +378,7 @@ export default function SubjectContent() {
   if (!subject) {
     return (
       <StudentShell>
-        <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
+        <div className="w-full">
           <div className="text-center">
             <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4">Subject not found</h1>
             <Link href="/learning-paths">
@@ -400,7 +400,7 @@ export default function SubjectContent() {
 
   return (
     <StudentShell>
-      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8  pb-8 relative">
+      <div className="relative w-full pb-8">
         
         {!isMobile && <VidyaAIFloatingAssistant />}
         

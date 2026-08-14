@@ -7,6 +7,7 @@ import {
 } from "@/components/background/InteractiveBackground";
 import { studentNav } from "@/lib/app-nav";
 import { getSchoolBranding } from "@/lib/school-branding";
+import { isIndividualAccount } from "@/lib/individual-signup";
 import { API_BASE_URL } from "@/lib/api-config";
 import {
   clearAuthData,
@@ -84,6 +85,12 @@ export function StudentShell({
 
   const branding = getSchoolBranding(user);
 
+  // B2C / individual students have no school, so hide school-only features
+  // (Offline Results + Timetable) from the sidebar.
+  const nav = isIndividualAccount(user)
+    ? studentNav.filter((item) => item.id !== "results" && item.id !== "timetable")
+    : studentNav;
+
   const handleLogout = async () => {
     try {
       const token = getAuthToken();
@@ -106,7 +113,7 @@ export function StudentShell({
 
   return (
     <AppShell
-      nav={studentNav}
+      nav={nav}
       orgName={branding?.schoolName || "AsliLearn AI"}
       orgSubtitle="Student Portal"
       orgLogoUrl={branding?.schoolLogo || undefined}

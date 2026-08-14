@@ -26,6 +26,7 @@ export type SuperAdminView =
   | 'edu-ott-live'
   | 'products'
   | 'trial-members'
+  | 'offline-results'
   | 'audit-logs'
   | 'impact-reports';
 
@@ -56,6 +57,7 @@ export const SUPER_ADMIN_VIEWS: SuperAdminView[] = [
   'edu-ott-live',
   'products',
   'trial-members',
+  'offline-results',
   'audit-logs',
   'impact-reports',
 ];

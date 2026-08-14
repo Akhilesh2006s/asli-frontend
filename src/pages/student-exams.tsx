@@ -28,6 +28,9 @@ import {
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLocation } from 'wouter';
 import AnimatedExam from '@/components/animated-exam';
+import ExamInstructionsScreen, {
+  type ExamInstructionsExam,
+} from '@/components/exam/ExamInstructionsScreen';
 import ExamResults from '@/components/exam-results';
 import StudentRanking from '@/components/student/student-ranking';
 import VidyaAIFloatingAssistant from '@/components/student/VidyaAIFloatingAssistant';
@@ -177,6 +180,9 @@ export default function StudentExams() {
   const [currentExam, setCurrentExam] = useState<Exam | null>(null);
   const [examResult, setExamResult] = useState<ExamResult | null>(null);
   const [isTakingExam, setIsTakingExam] = useState(false);
+  const [pendingInstructionsExam, setPendingInstructionsExam] = useState<
+    (Exam & { questions?: any[] }) | null
+  >(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
   const [user, setUser] = useState<any>(null);
@@ -667,6 +673,8 @@ export default function StudentExams() {
       return;
     }
 
+    let hydratedQuestionsForInstructions: any[] = [];
+
     try {
       setStartingExamId(exam._id);
       const token = getAuthToken();
@@ -702,6 +710,7 @@ export default function StudentExams() {
         await queryClient.refetchQueries({ queryKey: ['/api/student/exams', effectiveStudentId] });
         return;
       }
+      hydratedQuestionsForInstructions = hydratedQuestions;
     } catch (error) {
       console.error('Failed to validate exam before start:', error);
       toast({
@@ -714,10 +723,42 @@ export default function StudentExams() {
       setStartingExamId(null);
     }
     
-    // Reset all states when starting a new exam
     setExamResult(null);
     setCurrentExam(exam);
+
+    const skipInstructions = canResumeExam(exam) || needsForceSubmitDraft(exam);
+    if (skipInstructions) {
+      setPendingInstructionsExam(null);
+      setIsTakingExam(true);
+      return;
+    }
+
+    setPendingInstructionsExam({ ...exam, questions: hydratedQuestionsForInstructions });
+    setIsTakingExam(false);
+  };
+
+  /** Called from the instructions screen — enters fullscreen then starts the attempt. */
+  const handleBeginExamFromInstructions = async () => {
+    try {
+      const el = document.documentElement as HTMLElement & {
+        webkitRequestFullscreen?: () => Promise<void>;
+        mozRequestFullScreen?: () => Promise<void>;
+        msRequestFullscreen?: () => Promise<void>;
+      };
+      if (el.requestFullscreen) await el.requestFullscreen();
+      else if (el.webkitRequestFullscreen) await el.webkitRequestFullscreen();
+      else if (el.mozRequestFullScreen) await el.mozRequestFullScreen();
+      else if (el.msRequestFullscreen) await el.msRequestFullscreen();
+    } catch {
+      // Fullscreen can be blocked; the exam still runs.
+    }
+    setPendingInstructionsExam(null);
     setIsTakingExam(true);
+  };
+
+  const handleCancelInstructions = () => {
+    setPendingInstructionsExam(null);
+    setCurrentExam(null);
   };
 
   const scrollToExamCard = (examId: string) => {
@@ -790,6 +831,7 @@ export default function StudentExams() {
   const finishExamAfterSubmit = async (result: ExamResult) => {
     await exitFullscreenIfActive();
     setExamResult(result);
+    setPendingInstructionsExam(null);
     setIsTakingExam(false);
     setActiveTab('attempted');
 
@@ -808,6 +850,7 @@ export default function StudentExams() {
   const handleExitExam = () => {
     exitFullscreenIfActive();
     setCurrentExam(null);
+    setPendingInstructionsExam(null);
     setIsTakingExam(false);
     void queryClient.invalidateQueries({ queryKey: ['/api/student/exams'] });
   };
@@ -841,12 +884,14 @@ export default function StudentExams() {
       return;
     }
     setExamResult(null);
-    setIsTakingExam(true);
+    setPendingInstructionsExam(currentExam);
+    setIsTakingExam(false);
   };
 
   const handleBackToExams = () => {
     setCurrentExam(null);
     setExamResult(null);
+    setPendingInstructionsExam(null);
     setIsTakingExam(false);
     
     // Refresh exam results to show the newly completed exam
@@ -903,6 +948,21 @@ export default function StudentExams() {
     isLoadingAuth,
     isAuthenticated
   });
+
+  if (pendingInstructionsExam && !isTakingExam) {
+    return (
+      <ExamInstructionsScreen
+        exam={pendingInstructionsExam as ExamInstructionsExam}
+        questionCount={
+          pendingInstructionsExam.questions?.length ||
+          pendingInstructionsExam.totalQuestions ||
+          0
+        }
+        onStart={() => void handleBeginExamFromInstructions()}
+        onBack={handleCancelInstructions}
+      />
+    );
+  }
 
   if (isTakingExam && currentExam) {
     console.log('Rendering AnimatedExam component');
@@ -1033,7 +1093,7 @@ export default function StudentExams() {
 
   return (
     <StudentShell contentClassName="app-shell-content">
-      <div className="relative mx-auto w-full max-w-7xl px-4 pb-8 sm:px-6 lg:px-8">
+      <div className="relative w-full pb-8">
         
         {!isMobile && <VidyaAIFloatingAssistant />}
         

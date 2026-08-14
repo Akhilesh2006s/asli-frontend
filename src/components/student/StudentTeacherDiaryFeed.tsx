@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
-import { BookMarked, Loader2 } from 'lucide-react';
+import { Users, Loader2 } from 'lucide-react';
 import { API_BASE_URL } from '@/lib/api-config';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { getAuthToken } from '@/lib/auth-utils';
@@ -83,14 +83,14 @@ export function StudentTeacherDiaryFeed() {
     <Card className="h-full border-indigo-100 bg-gradient-to-br from-white to-indigo-50/30 shadow-sm">
       <CardHeader className="pb-2">
         <CardTitle className="flex items-center gap-2 text-base sm:text-lg font-bold text-gray-900">
-          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-600 text-white">
-            <BookMarked className="h-3 w-3 sm:h-4 sm:w-4" />
+          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-violet-600 text-white">
+            <Users className="h-3 w-3 sm:h-4 sm:w-4" />
           </span>
-          Teachers report
+          Teachers Report
         </CardTitle>
         <p className="text-xs sm:text-sm text-gray-600">Daily class updates from teachers at your school.</p>
       </CardHeader>
-      <CardContent className="space-y-3 max-h-[28rem] overflow-y-auto">
+      <CardContent className="space-y-3">
         {entries.length === 0 ? (
           <p className="py-6 text-center text-sm text-slate-500">No teacher updates yet.</p>
         ) : (

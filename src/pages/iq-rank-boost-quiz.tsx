@@ -13,6 +13,10 @@ import {
   Sparkles,
   ListChecks,
   Target,
+  Star,
+  BookOpen,
+  CalendarCheck,
+  RotateCw,
 } from 'lucide-react';
 import StudentShell from '@/components/layout/StudentShell';
 import { API_BASE_URL } from '@/lib/api-config';
@@ -375,76 +379,179 @@ export default function IQRankBoostQuiz() {
   }
 
   if (!hasStarted && !isSubmitted) {
+    const startTips = [
+      {
+        text: 'Pick an answer for each question — you can jump around anytime',
+        icon: Target,
+        tile: 'bg-gradient-to-br from-indigo-500 to-violet-600',
+      },
+      {
+        text: 'Submit to see score, explanations, and your streak',
+        icon: Trophy,
+        tile: 'bg-gradient-to-br from-pink-500 to-rose-500',
+      },
+      {
+        text: isDailyQuiz
+          ? 'Come back tomorrow for a fresh daily set — don’t break the streak'
+          : 'Retake later from Quiz if you want a better score',
+        icon: RotateCw,
+        tile: 'bg-gradient-to-br from-amber-400 to-orange-500',
+      },
+    ];
+
     return (
       <StudentShell>
         <div className="mx-auto max-w-2xl px-4 py-6 pb-20">
-          <div className="overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-600 via-violet-600 to-fuchsia-500 shadow-lg shadow-indigo-200/40">
-            <div className="border-b border-white/15 px-5 py-5 sm:px-7">
-              <div className="mb-2 flex items-center gap-2 text-lime-200">
-                <Sparkles className="h-4 w-4" />
-                <span className="text-xs font-bold uppercase tracking-[0.14em]">Ready to start</span>
-              </div>
-              <h1 className="text-2xl font-extrabold tracking-tight text-white sm:text-3xl">
+          <motion.div
+            initial={reduceMotion ? false : { opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+            className="overflow-hidden rounded-[1.75rem] bg-white shadow-[0_24px_60px_-30px_rgba(79,70,229,0.55)]"
+          >
+            {/* Purple hero */}
+            <div className="relative overflow-hidden bg-gradient-to-br from-[#5b4be8] via-[#6d4ae8] to-[#8b5cf6] px-5 pb-6 pt-6 sm:px-7 sm:pt-7">
+              {!reduceMotion ? (
+                <>
+                  <motion.div
+                    className="pointer-events-none absolute -right-6 top-2 h-36 w-36 rounded-full bg-white/10 blur-2xl"
+                    animate={{ y: [0, -10, 0] }}
+                    transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
+                  />
+                  <motion.div
+                    className="pointer-events-none absolute -left-10 bottom-0 h-32 w-32 rounded-full bg-fuchsia-300/15 blur-2xl"
+                    animate={{ y: [0, 12, 0] }}
+                    transition={{ duration: 7, repeat: Infinity, ease: 'easeInOut' }}
+                  />
+                </>
+              ) : null}
+
+              <motion.div
+                initial={reduceMotion ? false : { scale: 0.85, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ delay: 0.1, type: 'spring', stiffness: 300, damping: 18 }}
+                className="relative mb-3 inline-flex items-center gap-2 rounded-full bg-white/15 py-1.5 pl-1.5 pr-4 ring-1 ring-white/25"
+              >
+                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-amber-400 text-white">
+                  <Star className="h-3.5 w-3.5 fill-current" />
+                </span>
+                <span className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-white">
+                  Ready to start
+                </span>
+              </motion.div>
+
+              <h1 className="relative text-2xl font-extrabold tracking-tight text-white sm:text-4xl">
                 {quizTitle}
               </h1>
-              {subjectName ? <p className="mt-2 text-sm text-white/80">{subjectName}</p> : null}
+              {subjectName ? (
+                <p className="relative mt-1.5 text-sm font-medium text-white/75">{subjectName}</p>
+              ) : null}
+
+              {/* Stat chips */}
+              <div className="relative mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
+                {[
+                  {
+                    icon: ListChecks,
+                    label: 'Questions',
+                    value: questions.length,
+                    card: 'bg-white/95',
+                    tile: 'bg-gradient-to-br from-violet-500 to-purple-600',
+                  },
+                  {
+                    icon: BookOpen,
+                    label: 'Subject',
+                    value: subjectName || 'General',
+                    card: 'bg-sky-50/95',
+                    tile: 'bg-gradient-to-br from-sky-500 to-blue-600',
+                  },
+                  {
+                    icon: CalendarCheck,
+                    label: 'Mode',
+                    value: isDailyQuiz ? 'Daily' : 'Practice',
+                    card: 'bg-emerald-50/95',
+                    tile: 'bg-gradient-to-br from-emerald-500 to-teal-600',
+                  },
+                ].map((stat, index) => (
+                  <motion.div
+                    key={stat.label}
+                    initial={reduceMotion ? false : { opacity: 0, y: 16 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.18 + index * 0.08, duration: 0.35 }}
+                    className={cn(
+                      'flex items-center gap-3 rounded-2xl px-3.5 py-3 shadow-lg shadow-indigo-900/10',
+                      stat.card,
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        'flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-white shadow-md',
+                        stat.tile,
+                      )}
+                    >
+                      <stat.icon className="h-5 w-5" />
+                    </span>
+                    <div className="min-w-0">
+                      <p className="truncate text-base font-extrabold leading-tight text-slate-900">
+                        {stat.value}
+                      </p>
+                      <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500">
+                        {stat.label}
+                      </p>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-3 px-5 py-5 sm:px-7">
-              {[
-                { icon: ListChecks, label: 'Questions', value: questions.length },
-                { icon: Target, label: 'Subject', value: subjectName || 'General' },
-                { icon: Trophy, label: 'Mode', value: isDailyQuiz ? 'Daily' : 'Practice' },
-              ].map((stat) => (
-                <div
-                  key={stat.label}
-                  className="rounded-2xl border border-white/20 bg-white/15 px-3 py-3 text-white backdrop-blur-sm"
+            {/* White body */}
+            <div className="space-y-2.5 px-5 py-6 sm:px-7">
+              {startTips.map((tip, index) => (
+                <motion.div
+                  key={tip.text}
+                  initial={reduceMotion ? false : { opacity: 0, x: -18 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.35 + index * 0.09, duration: 0.35 }}
+                  className="flex items-center gap-3 rounded-2xl border border-slate-100 bg-white px-3.5 py-3 shadow-sm"
                 >
-                  <stat.icon className="mb-1.5 h-4 w-4 text-lime-200" />
-                  <p className="truncate text-sm font-bold sm:text-base">{stat.value}</p>
-                  <p className="text-[11px] font-medium uppercase tracking-wide text-white/70">
-                    {stat.label}
-                  </p>
-                </div>
+                  <span
+                    className={cn(
+                      'flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-white shadow-sm',
+                      tip.tile,
+                    )}
+                  >
+                    <tip.icon className="h-4 w-4" />
+                  </span>
+                  <span className="text-sm font-medium text-slate-700">{tip.text}</span>
+                </motion.div>
               ))}
-            </div>
 
-            <div className="space-y-2 px-5 pb-2 sm:px-7">
-              {[
-                'Pick an answer for each question — you can jump around anytime',
-                'Submit to see score, explanations, and your streak',
-                isDailyQuiz
-                  ? 'Come back tomorrow for a fresh daily set — don’t break the streak'
-                  : 'Retake later from Quiz if you want a better score',
-              ].map((tip) => (
-                <div
-                  key={tip}
-                  className="flex items-start gap-2 rounded-xl bg-white/12 px-3 py-2 text-sm text-white/90 ring-1 ring-white/15"
+              <div className="flex flex-col gap-3 pt-3 sm:flex-row">
+                <Link href={backHref} className="sm:flex-1">
+                  <Button
+                    variant="ghost"
+                    className="h-12 w-full rounded-full bg-violet-50 font-bold text-violet-700 hover:bg-violet-100"
+                  >
+                    <ArrowLeft className="mr-2 h-4 w-4" />
+                    Back
+                  </Button>
+                </Link>
+                <motion.div
+                  className="sm:flex-[1.5]"
+                  whileHover={reduceMotion ? undefined : { scale: 1.02 }}
+                  whileTap={reduceMotion ? undefined : { scale: 0.98 }}
                 >
-                  <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-lime-300" />
-                  <span>{tip}</span>
-                </div>
-              ))}
+                  <Button
+                    className="quiz-start-btn h-12 w-full rounded-full bg-gradient-to-r from-[#7c3aed] via-[#6366f1] to-[#3b82f6] pl-6 pr-2 text-base font-bold text-white shadow-lg shadow-indigo-300/50 hover:opacity-95"
+                    onClick={() => setHasStarted(true)}
+                  >
+                    <span className="flex-1 text-center">Let&apos;s Start</span>
+                    <span className="ml-2 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/25">
+                      <ArrowRight className="h-5 w-5" />
+                    </span>
+                  </Button>
+                </motion.div>
+              </div>
             </div>
-
-            <div className="flex flex-col gap-2 px-5 py-5 sm:flex-row sm:px-7">
-              <Link href={backHref} className="sm:flex-1">
-                <Button variant="outline" className="w-full rounded-full border-white/30 bg-white/10 text-white hover:bg-white/20">
-                  <ArrowLeft className="mr-2 h-4 w-4" />
-                  Back
-                </Button>
-              </Link>
-              <Button
-                className="w-full rounded-full bg-white py-6 text-indigo-700 shadow-md hover:bg-indigo-50 sm:flex-[1.4]"
-                onClick={() => setHasStarted(true)}
-              >
-                Let's Start
-                <span className="ml-2 flex h-7 w-7 items-center justify-center rounded-full bg-indigo-600 text-white">
-                  →
-                </span>
-              </Button>
-            </div>
-          </div>
+          </motion.div>
         </div>
       </StudentShell>
     );
@@ -454,45 +561,125 @@ export default function IQRankBoostQuiz() {
     return (
       <StudentShell>
         <div className="mx-auto max-w-5xl space-y-6 px-4 py-6 pb-20">
-          <div className="overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-600 via-violet-600 to-fuchsia-500 p-6 text-white shadow-lg sm:p-8">
-            <div className="mb-4 flex items-center justify-between gap-3">
-              <div>
-                <p className="text-sm text-white/80">Quiz complete</p>
-                <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{quizTitle}</h1>
-                {subjectName ? <p className="mt-1 text-sm text-white/80">{subjectName}</p> : null}
-              </div>
-              <Trophy className="h-10 w-10 text-lime-200" />
-            </div>
-            <div className="mb-6 flex items-end gap-2">
-              <span className="text-5xl font-black tabular-nums sm:text-6xl">{results.score}%</span>
-              <span className="mb-2 text-sm text-white/80">score</span>
-            </div>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-              {[
-                { label: 'Total', value: results.total },
-                { label: 'Correct', value: results.correct },
-                { label: 'Wrong', value: results.incorrect },
-                { label: 'Skipped', value: results.unattempted },
-              ].map((stat) => (
-                <div key={stat.label} className="rounded-2xl bg-white/15 px-3 py-3 backdrop-blur-sm">
-                  <div className="text-xl font-bold tabular-nums">{stat.value}</div>
-                  <div className="text-xs text-white/80">{stat.label}</div>
+          <motion.div
+            initial={reduceMotion ? false : { opacity: 0, y: 18 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+            className="overflow-hidden rounded-[1.75rem] bg-white shadow-[0_24px_60px_-30px_rgba(79,70,229,0.55)]"
+          >
+            <div className="relative overflow-hidden bg-gradient-to-br from-[#5b4be8] via-[#6d4ae8] to-[#8b5cf6] px-5 pb-6 pt-6 text-white sm:px-7 sm:pt-7">
+              {!reduceMotion ? (
+                <motion.div
+                  className="pointer-events-none absolute -right-6 top-2 h-36 w-36 rounded-full bg-white/10 blur-2xl"
+                  animate={{ y: [0, -10, 0] }}
+                  transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
+                />
+              ) : null}
+
+              <div className="relative mb-4 flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="mb-2 inline-flex items-center gap-2 rounded-full bg-white/15 py-1.5 pl-1.5 pr-4 ring-1 ring-white/25">
+                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-amber-400 text-white">
+                      <Star className="h-3.5 w-3.5 fill-current" />
+                    </span>
+                    <span className="text-[11px] font-extrabold uppercase tracking-[0.14em]">
+                      Quiz complete
+                    </span>
+                  </div>
+                  <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">{quizTitle}</h1>
+                  {subjectName ? (
+                    <p className="mt-1 text-sm font-medium text-white/75">{subjectName}</p>
+                  ) : null}
                 </div>
-              ))}
+                <motion.span
+                  animate={reduceMotion ? undefined : { rotate: [0, -8, 8, 0] }}
+                  transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
+                  className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-amber-300 to-orange-500 text-white shadow-lg"
+                >
+                  <Trophy className="h-7 w-7" />
+                </motion.span>
+              </div>
+
+              <div className="relative mb-5 flex items-end gap-2">
+                <motion.span
+                  initial={reduceMotion ? false : { scale: 0.6, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ delay: 0.15, type: 'spring', stiffness: 260, damping: 16 }}
+                  className="text-5xl font-black tabular-nums sm:text-6xl"
+                >
+                  {results.score}%
+                </motion.span>
+                <span className="mb-2 text-sm font-medium text-white/75">score</span>
+              </div>
+
+              <div className="relative grid grid-cols-2 gap-3 sm:grid-cols-4">
+                {[
+                  {
+                    label: 'Total',
+                    value: results.total,
+                    card: 'bg-white/95',
+                    tile: 'bg-gradient-to-br from-violet-500 to-purple-600',
+                  },
+                  {
+                    label: 'Correct',
+                    value: results.correct,
+                    card: 'bg-emerald-50/95',
+                    tile: 'bg-gradient-to-br from-emerald-500 to-teal-600',
+                  },
+                  {
+                    label: 'Wrong',
+                    value: results.incorrect,
+                    card: 'bg-rose-50/95',
+                    tile: 'bg-gradient-to-br from-rose-500 to-pink-600',
+                  },
+                  {
+                    label: 'Skipped',
+                    value: results.unattempted,
+                    card: 'bg-sky-50/95',
+                    tile: 'bg-gradient-to-br from-sky-500 to-blue-600',
+                  },
+                ].map((stat, index) => (
+                  <motion.div
+                    key={stat.label}
+                    initial={reduceMotion ? false : { opacity: 0, y: 16 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2 + index * 0.07, duration: 0.35 }}
+                    className={cn(
+                      'rounded-2xl px-3.5 py-3 shadow-lg shadow-indigo-900/10',
+                      stat.card,
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        'mb-1.5 flex h-2 w-8 rounded-full',
+                        stat.tile,
+                      )}
+                    />
+                    <div className="text-xl font-extrabold tabular-nums text-slate-900">
+                      {stat.value}
+                    </div>
+                    <div className="text-[10px] font-bold uppercase tracking-wide text-slate-500">
+                      {stat.label}
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
             </div>
-            <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:items-center">
+
+            <div className="flex flex-col gap-3 px-5 py-5 sm:flex-row sm:items-center sm:px-7">
               <Link href={backHref}>
-                <Button className="rounded-full bg-white text-indigo-700 hover:bg-indigo-50">
+                <Button className="quiz-start-btn h-12 rounded-full bg-gradient-to-r from-[#7c3aed] via-[#6366f1] to-[#3b82f6] px-6 font-bold text-white shadow-lg shadow-indigo-300/50 hover:opacity-95">
+                  <ArrowLeft className="mr-2 h-4 w-4" />
                   Back to quizzes
                 </Button>
               </Link>
               {lockedUntilTomorrow || isDailyQuiz ? (
-                <p className="text-sm text-white/90">
+                <p className="text-sm font-medium text-slate-600">
                   Streak saved. Next daily quiz unlocks tomorrow — come back and keep it going.
                 </p>
               ) : null}
             </div>
-          </div>
+          </motion.div>
 
           <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_16.5rem]">
             <div>
@@ -549,17 +736,21 @@ export default function IQRankBoostQuiz() {
         <motion.div
           initial={reduceMotion ? false : { opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
-          className="relative mb-5 overflow-hidden rounded-3xl bg-gradient-to-br from-[#3b5bff] via-[#4f46e5] to-[#7c3aed] p-5 text-white shadow-[0_20px_40px_-24px_rgba(79,70,229,0.65)] sm:p-6"
+          className="relative mb-5 overflow-hidden rounded-3xl bg-gradient-to-br from-[#5b4be8] via-[#6d4ae8] to-[#8b5cf6] p-5 text-white shadow-[0_20px_40px_-24px_rgba(79,70,229,0.65)] sm:p-6"
         >
           <div className="mb-4 flex items-start justify-between gap-3">
             <div className="min-w-0">
               <motion.div
-                className="mb-1 flex items-center gap-2 text-lime-200"
-                animate={reduceMotion ? undefined : { opacity: [0.7, 1, 0.7] }}
+                className="mb-2 inline-flex items-center gap-2 rounded-full bg-white/15 py-1 pl-1 pr-3 ring-1 ring-white/25"
+                animate={reduceMotion ? undefined : { opacity: [0.85, 1, 0.85] }}
                 transition={{ duration: 2.2, repeat: Infinity }}
               >
-                <Sparkles className="h-4 w-4 shrink-0" />
-                <span className="text-xs font-semibold uppercase tracking-wide">In progress</span>
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-amber-400 text-white">
+                  <Sparkles className="h-3 w-3" />
+                </span>
+                <span className="text-[10px] font-extrabold uppercase tracking-[0.14em]">
+                  In progress
+                </span>
               </motion.div>
               <h1 className="truncate text-xl font-bold sm:text-2xl">{quizTitle}</h1>
               {subjectName ? <p className="mt-1 text-sm text-white/80">{subjectName}</p> : null}

@@ -38,6 +38,8 @@ const StudentToolPage = lazy(() => import("./pages/student/tools/[toolType]"));
 const StudentExams = lazy(() => import("./pages/student-exams"));
 const StudentOmrResults = lazy(() => import("./pages/student-omr-results"));
 const StudentTimetable = lazy(() => import("./pages/student-timetable"));
+const StudentTeachersReport = lazy(() => import("./pages/student-teachers-report"));
+const StudentHomework = lazy(() => import("./pages/student-homework"));
 const AsliPrepContentPage = lazy(() => import("./pages/asli-prep-content"));
 const SubjectContent = lazy(() => import("./pages/subject-content"));
 const EduOTT = lazy(() => import("./pages/edu-ott"));
@@ -132,6 +134,8 @@ function Router() {
         <Route path="/student-exams" component={() => <Guarded Guard={StudentRoute} Page={StudentExams} />} />
         <Route path="/student/results" component={() => <Guarded Guard={StudentRoute} Page={StudentOmrResults} />} />
         <Route path="/student/timetable" component={() => <Guarded Guard={StudentRoute} Page={StudentTimetable} />} />
+        <Route path="/student/teachers-report" component={() => <Guarded Guard={StudentRoute} Page={StudentTeachersReport} />} />
+        <Route path="/student/homework" component={() => <Guarded Guard={StudentRoute} Page={StudentHomework} />} />
         <Route path="/asli-prep-content" component={() => <Guarded Guard={StudentRoute} Page={AsliPrepContentPage} />} />
         <Route path="/edu-ott" component={() => <Guarded Guard={ProtectedRoute} Page={EduOTTWithFilters} />} />
         <Route path="/iq-rank-boost-subjects" component={() => <Guarded Guard={StudentRoute} Page={IQRankBoostSubjects} />} />

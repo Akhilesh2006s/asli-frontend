@@ -10,6 +10,7 @@ import {
   CalendarDays,
 } from 'lucide-react';
 import StudentShell from '@/components/layout/StudentShell';
+import { SchoolOnlyGuard } from '@/components/student/SchoolOnlyGuard';
 import { getAuthToken } from '@/lib/auth-utils';
 import { API_BASE_URL } from '@/lib/api-config';
 import { Button } from '@/components/ui/button';
@@ -156,6 +157,7 @@ export default function StudentOmrResultsPage() {
   const scorePct = Math.min(100, Math.max(0, Number(selected?.percentage) || 0));
 
   return (
+    <SchoolOnlyGuard>
     <StudentShell>
       <div className="mx-auto w-full max-w-4xl space-y-5">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -425,5 +427,6 @@ export default function StudentOmrResultsPage() {
         )}
       </div>
     </StudentShell>
+    </SchoolOnlyGuard>
   );
 }
