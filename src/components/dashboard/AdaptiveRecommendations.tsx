@@ -568,7 +568,7 @@ export default function AdaptiveRecommendations(_props: AdaptiveRecommendationsP
                     reset.
                   </DialogDescription>
                 </DialogHeader>
-                <div className="flex min-h-0 flex-1 touch-manipulation flex-col overflow-hidden rounded-lg border bg-stone-100">
+                <div className="flex min-h-0 flex-1 touch-manipulation flex-col overflow-hidden bg-[#d6d3d1]">
                   {previewItem.displayType?.toLowerCase() === 'pdf' ||
                   previewItem.fileUrl?.toLowerCase().includes('.pdf') ? (
                     <PdfPreviewPanel

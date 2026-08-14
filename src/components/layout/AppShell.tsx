@@ -20,8 +20,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
@@ -604,12 +602,7 @@ export function AppShell({
                   <ChevronDown className="hidden h-4 w-4 text-muted-foreground sm:block" aria-hidden="true" />
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuLabel>
-                  <span className="block text-sm font-semibold">{user.name}</span>
-                  <span className="block text-xs font-normal text-muted-foreground">{user.role}</span>
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator />
+              <DropdownMenuContent align="end" className="min-w-[9.5rem]">
                 <DropdownMenuItem onSelect={() => onLogout?.()}>
                   <LogOut className="mr-2 h-4 w-4" aria-hidden="true" />
                   Log out

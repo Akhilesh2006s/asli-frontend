@@ -39,8 +39,9 @@ interface PdfPreviewPanelProps {
   allowFullscreen?: boolean;
 }
 
-/** ~A4 width at screen density — keeps PDF pages readable like a book page. */
-const A4_PAGE_MAX_WIDTH_PX = 794;
+/** Comfortable reading width — expands further in fullscreen / large desktops. */
+const A4_PAGE_MAX_WIDTH_PX = 920;
+const A4_PAGE_MAX_WIDTH_FULLSCREEN_PX = 1200;
 
 function isPdfBuffer(buffer: ArrayBuffer): boolean {
   if (buffer.byteLength < 5) return false;
@@ -983,18 +984,19 @@ export default function PdfPreviewPanel({
   }
 
   const bookShellClass = isBookLayout
-    ? 'mx-auto flex h-full min-h-0 w-full max-w-[min(100%,820px)] flex-1 flex-col'
+    ? 'mx-auto flex h-full min-h-0 w-full max-w-full flex-1 flex-col'
     : 'flex h-full min-h-0 w-full flex-1 flex-col';
   const readingSurfaceClass = isBookLayout
-    ? 'rounded-lg border border-stone-300/80 bg-stone-100 shadow-inner'
+    ? 'bg-transparent'
     : 'rounded-lg border bg-slate-100';
 
-  /** Reading column width — in book mode also cap by viewport height so page 1 matches fullscreen vs modal. */
+  /** Reading column width — use more of the screen in fullscreen; no artificial white card. */
   const bookPageWidth = (() => {
     const rawW = Math.floor(containerSize.width > 40 ? containerSize.width : 320);
-    let w = Math.max(280, Math.min(A4_PAGE_MAX_WIDTH_PX, rawW));
+    const maxW = isFullscreen ? A4_PAGE_MAX_WIDTH_FULLSCREEN_PX : A4_PAGE_MAX_WIDTH_PX;
+    let w = Math.max(280, Math.min(maxW, rawW));
     if (isBookLayout && containerSize.height > 120) {
-      const maxWFromHeight = Math.floor((containerSize.height - 48) / 1.414);
+      const maxWFromHeight = Math.floor((containerSize.height - 24) / 1.414);
       if (maxWFromHeight >= 280) w = Math.min(w, maxWFromHeight);
     }
     return w;
@@ -1008,9 +1010,9 @@ export default function PdfPreviewPanel({
         tabIndex={0}
         role="region"
         aria-label={title ? `${title} textbook reader` : 'Textbook reader'}
-        className={`flex h-full min-h-0 flex-1 flex-col bg-stone-100 outline-none ${className}`}
+        className={`flex h-full min-h-0 flex-1 flex-col bg-[#d6d3d1] outline-none ${className}`}
       >
-        <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 border-b border-stone-200/80 bg-white px-3 py-2.5 sm:px-4">
+        <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 border-b border-stone-300/60 bg-stone-100/95 px-3 py-2.5 backdrop-blur-sm sm:px-4">
           {allowFullscreen ? (
             <Button type="button" variant="outline" size="sm" onClick={() => void toggleFullscreen()}>
               {isFullscreen ? (
@@ -1029,22 +1031,20 @@ export default function PdfPreviewPanel({
           ) : null}
         </div>
         <div
-          className={`flex min-h-0 flex-1 justify-center overflow-hidden p-3 sm:p-5 ${
-            isBookLayout ? 'bg-stone-400/40' : ''
+          className={`flex min-h-0 flex-1 justify-center overflow-hidden ${
+            isBookLayout ? 'bg-[#d6d3d1] p-2 sm:p-3' : 'p-3 sm:p-5'
           }`}
         >
           <div
             className={`${bookShellClass} overflow-hidden ${
-              isBookLayout
-                ? 'rounded-xl border border-stone-300/70 bg-white shadow-xl ring-1 ring-black/5'
-                : readingSurfaceClass
+              isBookLayout ? 'bg-transparent' : readingSurfaceClass
             }`}
           >
             <iframe
               key={iframeSrc}
               title={title || 'PDF Preview'}
               src={iframeSrc}
-              className="h-full min-h-[min(70dvh,900px)] w-full flex-1 border-0 bg-white"
+              className="h-full min-h-[min(70dvh,900px)] w-full flex-1 border-0 bg-transparent"
             />
           </div>
         </div>
@@ -1064,13 +1064,13 @@ export default function PdfPreviewPanel({
       tabIndex={0}
       role="region"
       aria-label={title ? `${title} textbook reader` : 'Textbook reader'}
-      className={`flex h-full min-h-0 flex-1 flex-col bg-stone-100 outline-none ${className}`}
+      className={`flex h-full min-h-0 flex-1 flex-col bg-[#d6d3d1] outline-none ${className}`}
     >
-      <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-stone-200/80 bg-white px-3 py-2.5 sm:px-4">
-        <p className="text-xs font-medium text-stone-500 sm:text-sm">
+      <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-stone-300/60 bg-stone-100/95 px-3 py-2.5 backdrop-blur-sm sm:px-4">
+        <p className="text-xs font-medium text-stone-600 sm:text-sm">
           {useIframeFallback
             ? 'Use the scrollbar to move through pages'
-            : '↑↓ change pages · Ctrl+scroll or +/− zoom · drag to pan'}
+            : '↑↓ pages · Ctrl+scroll or +/− zoom (expands on screen) · drag to pan'}
         </p>
         <div className="flex flex-wrap items-center gap-2">
           {!useIframeFallback ? (
@@ -1127,13 +1127,13 @@ export default function PdfPreviewPanel({
 
       <div
         className={`flex min-h-0 flex-1 justify-center touch-manipulation ${
-          isBookLayout ? 'overflow-hidden bg-stone-400/40 p-3 sm:p-5' : 'overflow-hidden'
+          isBookLayout ? 'overflow-hidden bg-[#d6d3d1]' : 'overflow-hidden'
         }`}
       >
         <div
           className={`${bookShellClass} touch-manipulation ${
             isBookLayout
-              ? 'overflow-hidden rounded-2xl border border-stone-300/50 bg-gradient-to-b from-stone-100 to-stone-200/90 shadow-xl ring-1 ring-black/5'
+              ? 'min-h-0 overflow-hidden bg-transparent'
               : `overflow-hidden ${readingSurfaceClass}`
           }`}
         >
@@ -1186,7 +1186,7 @@ export default function PdfPreviewPanel({
       </div>
 
       {!useIframeFallback && readerPageCount > 0 ? (
-        <div className="flex shrink-0 flex-wrap items-center justify-center gap-2 border-t border-stone-200/80 bg-white px-3 py-2.5 sm:gap-3 sm:py-3">
+        <div className="flex shrink-0 flex-wrap items-center justify-center gap-2 border-t border-stone-300/50 bg-stone-100/95 px-3 py-2.5 backdrop-blur-sm sm:gap-3 sm:py-3">
           <Button
             type="button"
             variant="outline"

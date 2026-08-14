@@ -181,7 +181,7 @@ type PdfMobilePageProps = {
   viewportHeight?: number;
   fillViewport?: boolean;
   forceRender?: boolean;
-  onZoomChange: (pageNum: number, zoomed: boolean) => void;
+  onZoomChange: (pageNum: number, zoomed: boolean, scale?: number) => void;
   registerZoomHandle?: (pageNum: number, handle: PdfPagePinchFrameHandle | null) => void;
 };
 
@@ -204,6 +204,8 @@ function PdfMobilePage({
   const [shouldRender, setShouldRender] = useState(pageNum === 1 || forceRender);
   const [layoutReady, setLayoutReady] = useState(false);
   const [dims, setDims] = useState({ w: 0, h: 0 });
+  const [pageZoomed, setPageZoomed] = useState(false);
+  const [zoomScale, setZoomScale] = useState(1);
 
   const pageHeight = dims.h > 0 ? dims.h : defaultMinHeight;
   const pageWidth = dims.w > 0 ? dims.w : Math.max(containerWidth - 8, 280);
@@ -214,7 +216,12 @@ function PdfMobilePage({
   const layoutKey = `${containerWidth}|${maxPageHeight ?? 0}`;
 
   const handlePageZoom = useCallback(
-    (zoomed: boolean) => onZoomChange(pageNum, zoomed),
+    (zoomed: boolean, scale?: number) => {
+      const nextScale = zoomed ? Math.max(1, scale ?? pinchRef.current?.getScale() ?? 1) : 1;
+      setPageZoomed(zoomed);
+      setZoomScale(nextScale);
+      onZoomChange(pageNum, zoomed, nextScale);
+    },
     [onZoomChange, pageNum],
   );
 
@@ -312,17 +319,25 @@ function PdfMobilePage({
     };
   }, [layoutReady, pdf, pageNum, layoutKey, maxPageHeight, containerWidth]);
 
+  // When zoomed, grow the slot so the page can expand onto the screen (not clip in a fixed box).
+  const scaledH = Math.ceil(baseHeight * zoomScale);
+  const scaledW = Math.ceil(baseWidth * zoomScale);
   const slotStyle =
-    fillViewport && viewportHeight > 0
-      ? { height: `${viewportHeight}px`, minHeight: `${viewportHeight}px` }
-      : { minHeight: `${pageHeight + 24}px` };
+    pageZoomed
+      ? {
+          minHeight: `${Math.max(scaledH + 24, viewportHeight || 0)}px`,
+          minWidth: `${Math.max(scaledW + 24, containerWidth)}px`,
+        }
+      : fillViewport && viewportHeight > 0
+        ? { height: `${viewportHeight}px`, minHeight: `${viewportHeight}px` }
+        : { minHeight: `${pageHeight + 24}px` };
 
   return (
     <div
       ref={slotRef}
       data-page={pageNum}
-      className={`pdf-page-slot flex w-full shrink-0 snap-start snap-always justify-center px-2 py-2 sm:px-3 sm:py-3${
-        fillViewport ? ' items-center' : ''
+      className={`pdf-page-slot flex shrink-0 snap-start snap-always justify-center px-1 py-2 sm:px-2 sm:py-3${
+        pageZoomed ? ' w-max min-w-full items-start' : ` w-full${fillViewport ? ' items-center' : ''}`
       }`}
       style={slotStyle}
     >
@@ -399,6 +414,7 @@ const PdfMobileScrollViewer = forwardRef<PdfMobileScrollViewerHandle, PdfMobileS
   const zoomHandlesRef = useRef(new Map<number, PdfPagePinchFrameHandle>());
   const restoredRef = useRef(false);
   const [scrollLocked, setScrollLocked] = useState(false);
+  const [anyZoomed, setAnyZoomed] = useState(false);
   const [viewportHeight, setViewportHeight] = useState(0);
   const [currentPage, setCurrentPage] = useState(() =>
     storageKey ? readStoredPdfPage(storageKey) : 1,
@@ -430,10 +446,12 @@ const PdfMobileScrollViewer = forwardRef<PdfMobileScrollViewerHandle, PdfMobileS
     return () => ro.disconnect();
   }, [totalPages, pdf]);
 
-  const handleZoomChange = useCallback((pageNum: number, zoomed: boolean) => {
+  const handleZoomChange = useCallback((pageNum: number, zoomed: boolean, _scale?: number) => {
     if (zoomed) zoomedPagesRef.current.add(pageNum);
     else zoomedPagesRef.current.delete(pageNum);
-    setScrollLocked(zoomedPagesRef.current.size > 0);
+    setAnyZoomed(zoomedPagesRef.current.size > 0);
+    // Keep parent scroll enabled while zoomed so the enlarged page can fill / pan the screen.
+    setScrollLocked(false);
   }, []);
 
   const persistPage = useCallback(
@@ -587,12 +605,15 @@ const PdfMobileScrollViewer = forwardRef<PdfMobileScrollViewerHandle, PdfMobileS
     <div className={`relative h-full w-full ${className}`}>
       <div
         ref={scrollRef}
-        className={`pdf-book-scroll hide-scrollbar h-full w-full touch-manipulation overscroll-y-contain snap-y snap-mandatory ${
+        className={`pdf-book-scroll hide-scrollbar h-full w-full touch-manipulation overscroll-y-contain ${
           scrollLocked
             ? 'overflow-hidden'
-            : 'overflow-y-auto overflow-x-hidden'
+            : 'overflow-y-auto overflow-x-auto'
         }`}
-        style={{ WebkitOverflowScrolling: 'touch' }}
+        style={{
+          WebkitOverflowScrolling: 'touch',
+          scrollSnapType: scrollLocked || anyZoomed ? undefined : 'y mandatory',
+        }}
       >
         {Array.from({ length: totalPages }, (_, index) => {
           const pageNum = index + 1;

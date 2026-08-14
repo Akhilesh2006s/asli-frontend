@@ -287,13 +287,14 @@ export default function EduOTT() {
   const [subjectLibrary, setSubjectLibrary] = useState<LibraryRow[]>([]);
   const [subjectLibraryLoading, setSubjectLibraryLoading] = useState(false);
 
-  /** Unfiltered catalog for global class/subject dropdown options */
+  /** Unfiltered catalog for dropdowns + default lists (avoids a duplicate round-trip). */
   useEffect(() => {
     let cancelled = false;
     async function loadCatalog() {
-      const token = getAuthToken();
-
       try {
+        setLoading(true);
+        setLoadingSessions(true);
+
         const [vRes, sRes] = await Promise.all([
           fetch(`${API_BASE_URL}${apiRoot()}/asli-prep-content?type=Video&surface=eduott`, {
             headers: authHeaders(),
@@ -303,10 +304,12 @@ export default function EduOTT() {
 
         if (cancelled) return;
 
+        let mappedVideos: Video[] = [];
         if (vRes.ok) {
           const data = await vRes.json();
           const list = data.data || data || [];
-          setVideoCatalog(list.map(mapContentToVideo));
+          mappedVideos = list.map(mapContentToVideo);
+          setVideoCatalog(mappedVideos);
           if (!list.length && data?.message) {
             setVideosEmptyMessage(String(data.message));
           }
@@ -314,17 +317,34 @@ export default function EduOTT() {
           setVideoCatalog([]);
         }
 
+        let mappedSessions: LiveSession[] = [];
         if (sRes.ok) {
           const data = await sRes.json();
           const list = data.data || data || [];
-          setSessionCatalog(list.map(mapStreamToSession));
+          mappedSessions = list.map(mapStreamToSession);
+          setSessionCatalog(mappedSessions);
         } else {
           setSessionCatalog([]);
         }
+
+        // Seed visible lists from catalog when no class/subject filter is active.
+        if (!selectedClass && !selectedSubject) {
+          setVideos(mappedVideos);
+          setLiveSessions(mappedSessions);
+        }
+        setHasLoadedVideos(true);
+        setHasLoadedSessions(true);
       } catch {
         if (!cancelled) {
           setVideoCatalog([]);
           setSessionCatalog([]);
+          setHasLoadedVideos(true);
+          setHasLoadedSessions(true);
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+          setLoadingSessions(false);
         }
       }
     }
@@ -332,6 +352,7 @@ export default function EduOTT() {
     return () => {
       cancelled = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- catalog once; filtered loads are separate
   }, []);
 
   useEffect(() => {
@@ -339,6 +360,16 @@ export default function EduOTT() {
       setLoading(false);
       return;
     }
+
+    // No filters → reuse catalog (catalog effect owns the initial fetch).
+    if (!selectedClass && !selectedSubject) {
+      if (hasLoadedVideos) {
+        setVideos(videoCatalog);
+        setLoading(false);
+      }
+      return;
+    }
+
     let cancelled = false;
 
     async function fetchVideos() {
@@ -348,7 +379,6 @@ export default function EduOTT() {
         } else {
           setIsRefreshingVideos(true);
         }
-        const token = getAuthToken();
 
         const response = await fetch(
           buildVideosUrl(selectedClass, selectedSubject),
@@ -384,13 +414,22 @@ export default function EduOTT() {
     return () => {
       cancelled = true;
     };
-  }, [activeTab, selectedClass, selectedSubject, listEpoch]);
+  }, [activeTab, selectedClass, selectedSubject, listEpoch, videoCatalog, hasLoadedVideos]);
 
   useEffect(() => {
     if (activeTab !== 'live-sessions') {
       setLoadingSessions(false);
       return;
     }
+
+    if (!selectedClass && !selectedSubject) {
+      if (hasLoadedSessions) {
+        setLiveSessions(sessionCatalog);
+        setLoadingSessions(false);
+      }
+      return;
+    }
+
     let cancelled = false;
 
     async function fetchLiveSessions() {
@@ -400,7 +439,6 @@ export default function EduOTT() {
         } else {
           setIsRefreshingSessions(true);
         }
-        const token = getAuthToken();
 
         const response = await fetch(
           buildStreamsUrl(selectedClass, selectedSubject),
@@ -432,7 +470,7 @@ export default function EduOTT() {
     return () => {
       cancelled = true;
     };
-  }, [activeTab, selectedClass, selectedSubject, listEpoch]);
+  }, [activeTab, selectedClass, selectedSubject, listEpoch, sessionCatalog, hasLoadedSessions]);
 
   const globalClassOptions = useMemo(() => {
     const set = new Set<string>();
@@ -514,9 +552,17 @@ export default function EduOTT() {
     (async () => {
       setSubjectLibraryLoading(true);
       try {
-        const res = await fetch(`${API_BASE_URL}${apiRoot()}/asli-prep-content`, {
-          headers: authHeaders(),
-        });
+        const params = new URLSearchParams({ surface: 'eduott' });
+        if (subjectFocus.classLabel) params.set('class', subjectFocus.classLabel);
+        if (subjectFocus.subjectIds[0]) {
+          params.set('subject', subjectFocus.subjectIds[0]);
+        } else if (subjectFocus.subject) {
+          params.set('subject', subjectFocus.subject);
+        }
+        const res = await fetch(
+          `${API_BASE_URL}${apiRoot()}/asli-prep-content?${params.toString()}`,
+          { headers: authHeaders() },
+        );
         if (!res.ok || cancelled) return;
         const data = await res.json();
         const list: LibraryRow[] = Array.isArray(data?.data)
@@ -1071,7 +1117,9 @@ export default function EduOTT() {
                 t.includes('workbook') ||
                 t.includes('notes') ||
                 t.includes('material');
-              return isPdf ? 'h-[min(94dvh,1100px)] p-0 sm:rounded-2xl' : 'p-4 sm:p-6';
+              return isPdf
+                ? 'h-[min(96dvh,1200px)] w-[min(98vw,1280px)] max-w-[1280px] border-0 bg-[#d6d3d1] p-0 shadow-2xl sm:rounded-xl'
+                : 'p-4 sm:p-6';
             })(),
           )}
         >
@@ -1116,13 +1164,13 @@ export default function EduOTT() {
               if (isPdf) {
                 return (
                   <>
-                    <DialogHeader className="shrink-0 border-b px-4 py-3 sm:px-6">
+                    <DialogHeader className="shrink-0 border-b border-stone-300/60 bg-stone-100/95 px-4 py-3 sm:px-6">
                       <DialogTitle className="pr-8 text-base sm:text-lg">{previewMaterial.title}</DialogTitle>
                       <DialogDescription className="text-xs sm:text-sm">
-                        Read in app — scroll to turn pages
+                        Zoom expands on screen · drag to pan · ↑↓ pages
                       </DialogDescription>
                     </DialogHeader>
-                    <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-stone-100">
+                    <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-[#d6d3d1]">
                       <PdfPreviewPanel
                         fileUrl={url}
                         title={previewMaterial.title}

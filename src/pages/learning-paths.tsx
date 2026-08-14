@@ -33,6 +33,7 @@ import {
   ExternalLink,
   Video,
   Loader2,
+  Search,
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import {
@@ -127,8 +128,8 @@ export default function LearningPaths() {
   const isMobile = useIsMobile();
   const isTeacher = isTeacherPortalUser();
   const Shell = isTeacher ? TeacherShell : StudentShell;
-  const [user, setUser] = useState<any>(null);
-  const [isLoadingUser, setIsLoadingUser] = useState(true);
+  const [user, setUser] = useState<any>(() => getUser());
+  const [isLoadingUser, setIsLoadingUser] = useState(() => !getUser());
   const [subjects, setSubjects] = useState<any[]>([]);
   const [isLoadingSubjects, setIsLoadingSubjects] = useState(true);
   /**
@@ -173,6 +174,8 @@ export default function LearningPaths() {
   const [filteredContent, setFilteredContent] = useState<any[]>([]);
   const [isLoadingFilteredContent, setIsLoadingFilteredContent] = useState(false);
   const [allLibraryContent, setAllLibraryContent] = useState<any[]>([]);
+  const [headerSearch, setHeaderSearch] = useState('');
+  const searchQuery = headerSearch.trim().toLowerCase();
   const allowedLibrarySubjectIds = useMemo(() => {
     const ids = new Set<string>();
     for (const subject of subjects) {
@@ -225,6 +228,18 @@ export default function LearningPaths() {
     }
     return counts;
   }, [scopedLibraryContent]);
+
+  const resourceCount = scopedLibraryContent.length;
+  const subjectCount = subjects.length;
+
+  const visibleSubjects = useMemo(() => {
+    if (!searchQuery) return subjects;
+    return subjects.filter((subject: any) => {
+      const name = learningPathDisplayName(subject.name || '').toLowerCase();
+      const raw = String(subject.name || '').toLowerCase();
+      return name.includes(searchQuery) || raw.includes(searchQuery);
+    });
+  }, [subjects, searchQuery]);
 
   const [previewContent, setPreviewContent] = useState<any | null>(() => readStoredPreview());
   const [isPreviewOpen, setIsPreviewOpen] = useState(() => Boolean(readStoredPreview()));
@@ -356,13 +371,12 @@ export default function LearningPaths() {
     fetchUser();
   }, []);
 
-  // Fetch subjects and their content
+  // Fetch subjects (library content supplies card counts — no per-subject N+1).
   useEffect(() => {
     const fetchSubjects = async () => {
       try {
         setIsLoadingSubjects(true);
         
-        // Fetch subjects from student endpoint (gets board-specific subjects)
         const token = getAuthToken();
         const subjectsResponse = await fetch(`${API_BASE_URL}${apiRoot()}/subjects`, {
           headers: {
@@ -376,9 +390,6 @@ export default function LearningPaths() {
           if (contentType && contentType.includes('application/json')) {
             const subjectsData = await subjectsResponse.json();
             
-            console.log('📥 API Response:', subjectsData);
-            
-            // Handle all possible response formats
             let subjectsArray = [];
             
             if (subjectsData.subjects && Array.isArray(subjectsData.subjects)) {
@@ -393,22 +404,12 @@ export default function LearningPaths() {
               subjectsArray = subjectsData.data;
             }
             
-            console.log(`📚 Extracted ${subjectsArray.length} subjects`);
-            if (subjectsArray.length > 0) {
-              console.log('First subject:', {
-                name: subjectsArray[0].name,
-                teachers: subjectsArray[0].teachers,
-                teacherCount: subjectsArray[0].teacherCount
-              });
-            }
-            
             if (!Array.isArray(subjectsArray) || subjectsArray.length === 0) {
               setSubjects([]);
               setIsLoadingSubjects(false);
               return;
             }
 
-            // Show subjects immediately to avoid UI blank while enrichment calls run.
             const baseSubjects = subjectsArray.map((subject: any) => ({
               ...subject,
               videos: [],
@@ -423,99 +424,6 @@ export default function LearningPaths() {
               }),
             );
             setSubjects(uniqueBaseSubjects);
-            setIsLoadingSubjects(false);
-            
-            // Fetch content for each subject - use Promise.allSettled to ensure all subjects are included
-            const subjectsWithContentResults = await Promise.allSettled(
-              subjectsArray.map(async (subject: any) => {
-                try {
-                  const subjectId = subject._id || subject.id || subject.name;
-                  
-                  // Fetch videos for this subject (from teacher-created content)
-                  let videos = [];
-                  try {
-                    const videosResponse = await fetch(`${API_BASE_URL}${apiRoot()}/videos?subject=${encodeURIComponent(subjectId)}`, {
-                      headers: {
-                        'Authorization': `Bearer ${getAuthToken()}`,
-                        'Content-Type': 'application/json',
-                      }
-                    });
-                    
-                    if (videosResponse.ok) {
-                      const videosData = await videosResponse.json();
-                      videos = videosData.data || videosData.videos || videosData || [];
-                      if (!Array.isArray(videos)) videos = [];
-                    }
-                  } catch (videoError) {
-                    videos = [];
-                  }
-
-                  // Fetch assessments/quizzes for this subject (from teacher-created content)
-                  let assessments = [];
-                  try {
-                    const assessmentsResponse = await fetch(`${API_BASE_URL}${apiRoot()}/assessments?subject=${encodeURIComponent(subjectId)}`, {
-                      headers: {
-                        'Authorization': `Bearer ${getAuthToken()}`,
-                        'Content-Type': 'application/json',
-                      }
-                    });
-                    
-                    if (assessmentsResponse.ok) {
-                      const assessmentsData = await assessmentsResponse.json();
-                      assessments = assessmentsData.data || assessmentsData.assessments || assessmentsData.quizzes || assessmentsData || [];
-                      if (!Array.isArray(assessments)) assessments = [];
-                    }
-                  } catch (assessmentError) {
-                    assessments = [];
-                  }
-
-                  const totalContent = videos.length + assessments.length;
-
-                  return {
-                    ...subject,
-                    videos: videos,
-                    quizzes: assessments,
-                    assessments: assessments,
-                    totalContent: totalContent
-                  };
-                } catch (error) {
-                  return {
-                    ...subject,
-                    videos: [],
-                    quizzes: [],
-                    assessments: [],
-                    totalContent: 0
-                  };
-                }
-              })
-            );
-            
-            // Extract all subjects (both fulfilled and rejected)
-            const subjectsWithContent = subjectsWithContentResults.map((result, index) => {
-              if (result.status === 'fulfilled') {
-                return result.value;
-              } else {
-                const subject = subjectsArray[index];
-                return {
-                  ...subject,
-                  videos: [],
-                  quizzes: [],
-                  assessments: [],
-                  totalContent: 0
-                };
-              }
-            });
-            
-            // Filter out any undefined/null subjects and ensure unique
-            const validSubjects = subjectsWithContent.filter((s: any) => s && (s.name || s._id || s.id));
-            const uniqueSubjects = prepareStudentLearningPathSubjects(
-              validSubjects.filter((subject, index, self) => {
-                const subjectId = subject._id || subject.id;
-                return index === self.findIndex((s: any) => (s._id || s.id) === subjectId);
-              }),
-            );
-            
-            setSubjects(uniqueSubjects);
           } else {
             console.warn('⚠️ Subjects response is not JSON');
             setSubjects([]);
@@ -570,15 +478,12 @@ export default function LearningPaths() {
     fetchQuizzes();
   }, [isTeacher]);
 
-  // Fetch content type counts
+  // Fetch Digital Library once — seed AsliPrep flags from local user so we don't wait on /auth/me.
   useEffect(() => {
-    console.log('Fetching content counts for Digital Library');
     const fetchContentCounts = async () => {
       try {
         setIsLoadingContentCounts(true);
         const token = getAuthToken();
-        
-        // Fetch all content to count by type
         const response = await fetch(`${API_BASE_URL}${apiRoot()}/asli-prep-content?surface=learning-path`, {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -589,10 +494,14 @@ export default function LearningPaths() {
         if (response.ok) {
           const data = await response.json();
           const rawContent = data.data || data || [];
+          const exclusive =
+            typeof data?.meta?.isAsliPrepExclusive === 'boolean'
+              ? data.meta.isAsliPrepExclusive
+              : resolveIsAsliPrepExclusive(user ?? getUser());
           const allContent = filterVideosForLearningPath(
             filterContentsBySchoolProgram(
               Array.isArray(rawContent) ? rawContent : [],
-              resolveIsAsliPrepExclusive(user),
+              exclusive,
             ),
           );
           setAllLibraryContent(allContent);
@@ -608,7 +517,9 @@ export default function LearningPaths() {
     };
 
     fetchContentCounts();
-  }, [user?.isAsliPrepExclusive, user?.assignedAdmin?.isAsliPrepExclusive]);
+    // Intentionally once on mount — program meta comes from the API response.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Update filtered content from already-fetched library content
   useEffect(() => {
@@ -624,10 +535,20 @@ export default function LearningPaths() {
     }
 
     setIsLoadingFilteredContent(true);
-    const filtered = scopedLibraryContent.filter((content: any) => content.type === selectedContentType);
+    let filtered = scopedLibraryContent.filter((content: any) => content.type === selectedContentType);
+    if (searchQuery) {
+      filtered = filtered.filter((content: any) => {
+        const title = String(content.title || '').toLowerCase();
+        const subjectName =
+          typeof content.subject === 'object'
+            ? String(content.subject?.name || '').toLowerCase()
+            : String(content.subject || '').toLowerCase();
+        return title.includes(searchQuery) || subjectName.includes(searchQuery);
+      });
+    }
     setFilteredContent(filtered);
     setIsLoadingFilteredContent(false);
-  }, [selectedContentType, scopedLibraryContent, isLoadingContentCounts]);
+  }, [selectedContentType, scopedLibraryContent, isLoadingContentCounts, searchQuery]);
 
   return (
     <Shell>
@@ -636,27 +557,87 @@ export default function LearningPaths() {
         {!isMobile && !isTeacher && <VidyaAIFloatingAssistant />}
         
         
-        {/* Header Section */}
+        {/* Header banner — Scholar art + search */}
         <div className="mb-8">
-          <div className="gradient-primary rounded-2xl p-5 sm:p-8 text-white relative overflow-hidden">
-            <div className="relative z-10">
-              <h1 className="mb-2 break-words text-2xl font-bold sm:text-3xl">
-                {isTeacher
-                  ? 'Learning Paths'
-                  : `Learning Paths for ${isLoadingUser ? '...' : getStudentDisplayName(user)}`}
-              </h1>
-              <p className="text-blue-100 mb-6">
-                {isTeacher
-                  ? 'Browse curriculum content for your assigned subjects'
-                  : 'Choose your learning journey and master your subjects with our structured courses'}
-              </p>
+          <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#2f5bff] via-[#3558e8] to-[#1e2a8a] text-white shadow-[0_20px_50px_-28px_rgba(30,58,138,0.65)]">
+            <div className="pointer-events-none absolute -right-10 top-1/2 h-[140%] w-[55%] -translate-y-1/2 rounded-full bg-white/5 blur-2xl" />
+            <div className="pointer-events-none absolute right-[18%] top-6 text-white/25">
+              <BookOpen className="h-7 w-7" strokeWidth={1.25} />
             </div>
-            
-            {/* Decorative elements */}
-            <div className="absolute top-0 right-0 w-64 h-64 opacity-10">
-              <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
-                <path fill="currentColor" d="M47.1,-78.5C58.9,-69.2,64.3,-50.4,73.2,-32.8C82.1,-15.1,94.5,1.4,94.4,17.9C94.3,34.4,81.7,50.9,66.3,63.2C50.9,75.5,32.7,83.6,13.8,87.1C-5.1,90.6,-24.7,89.5,-41.6,82.1C-58.5,74.7,-72.7,61,-79.8,44.8C-86.9,28.6,-86.9,9.9,-83.2,-6.8C-79.5,-23.5,-72.1,-38.2,-61.3,-49.6C-50.5,-61,-36.3,-69.1,-21.4,-75.8C-6.5,-82.5,9.1,-87.8,25.2,-84.9C41.3,-82,57.9,-70,47.1,-78.5Z" transform="translate(100 100)"/>
-              </svg>
+            <div className="pointer-events-none absolute right-8 top-8 text-white/20">
+              <Zap className="h-6 w-6" strokeWidth={1.25} />
+            </div>
+
+            <div className="relative z-10 grid items-center gap-6 px-5 py-6 sm:px-8 sm:py-8 lg:grid-cols-[minmax(0,1.15fr)_minmax(220px,0.85fr)] lg:gap-8 lg:px-10 lg:py-9">
+              <div className="min-w-0">
+                <p className="mb-2 text-sm font-medium text-white/90 sm:text-base">
+                  Welcome back{!isTeacher && !isLoadingUser ? `, ${getStudentDisplayName(user).split(' ')[0]}` : ''}! 👋
+                </p>
+                <h1 className="mb-2 break-words text-3xl font-bold tracking-tight sm:text-4xl lg:text-[2.65rem] lg:leading-tight">
+                  Learning <span className="text-[#7dd3fc]">Paths</span>
+                </h1>
+                <p className="mb-5 max-w-xl text-sm leading-relaxed text-blue-100 sm:text-base">
+                  {isTeacher
+                    ? 'Browse curriculum content for your assigned subjects and explore curated study materials.'
+                    : 'Explore curated curriculum content for your subjects and learn at your own pace.'}
+                </p>
+
+                <label className="relative mb-6 block max-w-xl">
+                  <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 sm:h-5 sm:w-5" />
+                  <input
+                    type="search"
+                    value={headerSearch}
+                    onChange={(e) => setHeaderSearch(e.target.value)}
+                    placeholder="Search for subjects, topics or content..."
+                    className="h-12 w-full rounded-full border-0 bg-white pl-11 pr-4 text-sm text-slate-800 shadow-md outline-none ring-0 placeholder:text-slate-400 focus:ring-2 focus:ring-sky-300 sm:h-[3.25rem] sm:text-base"
+                    aria-label="Search learning paths"
+                  />
+                </label>
+
+                <div className="flex flex-wrap gap-x-6 gap-y-3 sm:gap-x-8">
+                  <div className="flex items-center gap-2.5">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/15 ring-1 ring-white/20">
+                      <BookOpen className="h-4 w-4 text-white" />
+                    </span>
+                    <div>
+                      <p className="text-sm font-semibold leading-tight sm:text-[0.95rem]">
+                        {isLoadingSubjects ? '…' : subjectCount} Subjects
+                      </p>
+                      <p className="text-[11px] text-blue-100/90 sm:text-xs">Explore different topics</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2.5">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/15 ring-1 ring-white/20">
+                      <FileText className="h-4 w-4 text-white" />
+                    </span>
+                    <div>
+                      <p className="text-sm font-semibold leading-tight sm:text-[0.95rem]">
+                        {isLoadingContentCounts ? '…' : `${resourceCount}+`} Resources
+                      </p>
+                      <p className="text-[11px] text-blue-100/90 sm:text-xs">Curated study materials</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2.5">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/15 ring-1 ring-white/20">
+                      <Target className="h-4 w-4 text-white" />
+                    </span>
+                    <div>
+                      <p className="text-sm font-semibold leading-tight sm:text-[0.95rem]">Your Progress</p>
+                      <p className="text-[11px] text-blue-100/90 sm:text-xs">Track &amp; achieve goals</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="relative mx-auto flex w-full max-w-[280px] items-center justify-center sm:max-w-[320px] lg:mx-0 lg:max-w-none lg:justify-end">
+                <div className="pointer-events-none absolute inset-0 scale-110 rounded-full bg-[#4c7cff]/25 blur-3xl" />
+                <img
+                  src="/Scholar.jpg"
+                  alt=""
+                  className="relative z-10 h-auto w-full max-h-[220px] object-contain drop-shadow-2xl sm:max-h-[260px] lg:max-h-[300px]"
+                  draggable={false}
+                />
+              </div>
             </div>
           </div>
         </div>
@@ -699,18 +680,22 @@ export default function LearningPaths() {
                 <Loader2 className="w-10 h-10 text-sky-500 animate-spin mb-3" aria-hidden />
                 <p className="text-sm text-gray-600 font-medium">Loading subjects...</p>
               </div>
-            ) : subjects.length === 0 ? (
+            ) : visibleSubjects.length === 0 ? (
               <div className="col-span-full text-center py-12">
                 <BookOpen className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                <h3 className="text-base sm:text-lg font-semibold text-gray-600 mb-2">No Subjects Available</h3>
+                <h3 className="text-base sm:text-lg font-semibold text-gray-600 mb-2">
+                  {searchQuery ? 'No matching subjects' : 'No Subjects Available'}
+                </h3>
                 <p className="text-gray-500 max-w-md mx-auto">
-                  {isTeacher
-                    ? 'We could not match curriculum subjects for your class yet. Confirm Class 6–12 and board on signup, or ask your school admin to assign subjects.'
-                    : 'Check back later for new learning content.'}
+                  {searchQuery
+                    ? `Nothing matched “${headerSearch.trim()}”. Try another subject name.`
+                    : isTeacher
+                      ? 'We could not match curriculum subjects for your class yet. Confirm Class 6–12 and board on signup, or ask your school admin to assign subjects.'
+                      : 'Check back later for new learning content.'}
                 </p>
               </div>
             ) : (
-              subjects.map((subject: any) => {
+              visibleSubjects.map((subject: any) => {
                 const displayName = learningPathDisplayName(subject.name || '');
                 const name = String(displayName || subject.name || '').toLowerCase();
                 const theme =
@@ -944,10 +929,6 @@ export default function LearningPaths() {
                       )}
 
         {/* Digital Library - Browse by Type - Always Visible */}
-        {(() => {
-          console.log('Digital Library section rendering - visible on page');
-          return null;
-        })()}
         <div className="mb-8 rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6">
           <div className="mb-5 flex items-center gap-3">
             <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-blue-500 to-violet-600 shadow-sm">
@@ -1150,8 +1131,8 @@ export default function LearningPaths() {
           else setIsPreviewOpen(true);
         }}
       >
-        <DialogContent className="flex h-[min(96dvh,1120px)] max-h-[96dvh] w-[min(96vw,920px)] max-w-[920px] flex-col overflow-hidden rounded-2xl bg-stone-100 p-0">
-          <DialogHeader className="shrink-0 space-y-1 border-b border-stone-200 bg-white px-5 pb-4 pt-5 sm:px-7 sm:pb-5 sm:pt-6">
+        <DialogContent className="flex h-[min(96dvh,1200px)] max-h-[96dvh] w-[min(98vw,1280px)] max-w-[1280px] flex-col overflow-hidden rounded-xl border-0 bg-[#d6d3d1] p-0 shadow-2xl">
+          <DialogHeader className="shrink-0 space-y-1 border-b border-stone-300/60 bg-stone-100/95 px-5 pb-4 pt-5 sm:px-7 sm:pb-5 sm:pt-6">
             <DialogTitle className="pr-12 text-left text-lg font-bold leading-snug text-slate-900 sm:text-xl md:text-2xl">
               {previewContent?.title || "Content Preview"}
             </DialogTitle>

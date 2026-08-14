@@ -392,11 +392,11 @@ export default function AsliPrepContent() {
           if (!open) setPreviewContent(null);
         }}
       >
-        <DialogContent className="flex h-[min(96dvh,1120px)] max-h-[98dvh] w-[min(96vw,860px)] max-w-[860px] flex-col overflow-hidden rounded-2xl bg-white p-0">
-          <DialogHeader className="px-4 sm:px-6 lg:px-8 pt-5 pb-3 border-b border-gray-200">
-            <DialogTitle className="pl-2 pt-1">{previewContent?.title || 'Content Preview'}</DialogTitle>
+        <DialogContent className="flex h-[min(96dvh,1200px)] max-h-[98dvh] w-[min(98vw,1280px)] max-w-[1280px] flex-col overflow-hidden rounded-xl border-0 bg-[#d6d3d1] p-0 shadow-2xl">
+          <DialogHeader className="shrink-0 border-b border-stone-300/60 bg-stone-100/95 px-4 py-3 sm:px-6">
+            <DialogTitle className="pl-1 pt-0.5 text-base sm:text-lg">{previewContent?.title || 'Content Preview'}</DialogTitle>
           </DialogHeader>
-          <div className="flex-1 min-h-0 overflow-hidden px-3 py-3 sm:px-4 sm:py-4">
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-[#d6d3d1]">
           {(() => {
             const fileUrl = extractDirectFileUrl(getNormalizedContentUrl(previewContent?.fileUrl));
             const lower = fileUrl.toLowerCase();
@@ -406,11 +406,11 @@ export default function AsliPrepContent() {
             const isVideo = /\.(mp4|webm|ogg|mov|avi|mkv)$/.test(lower) || previewContent?.type === 'Video';
             const youtubeEmbedUrl = getYouTubeEmbedUrl(fileUrl);
 
-            if (!fileUrl) return <p className="text-xs sm:text-sm text-gray-500">No preview URL available.</p>;
+            if (!fileUrl) return <p className="p-4 text-xs sm:text-sm text-gray-500">No preview URL available.</p>;
 
             if (youtubeEmbedUrl) {
               return (
-                <div className="w-full aspect-video rounded-lg overflow-hidden bg-gray-100">
+                <div className="m-3 w-auto aspect-video overflow-hidden rounded-lg bg-gray-100 sm:m-4">
                   <iframe
                     className="w-full h-full border-0"
                     src={youtubeEmbedUrl}
@@ -435,25 +435,25 @@ export default function AsliPrepContent() {
 
             if (isImage) {
               return (
-                <div className="w-full max-h-[70vh] overflow-auto rounded-lg bg-gray-100 p-2">
+                <div className="m-3 max-h-[70vh] w-auto overflow-auto rounded-lg bg-gray-100 p-2 sm:m-4">
                   <img src={fileUrl} alt={previewContent?.title || 'Preview'} className="mx-auto max-h-[66vh] object-contain" draggable={false} />
                 </div>
               );
             }
 
             if (isAudio) {
-              return <audio src={fileUrl} controls className="w-full" />;
+              return <audio src={fileUrl} controls className="m-4 w-[calc(100%-2rem)]" />;
             }
 
             if (isVideo) {
               return (
-                <div className="w-full aspect-video rounded-lg overflow-hidden bg-gray-100">
+                <div className="m-3 aspect-video w-auto overflow-hidden rounded-lg bg-gray-100 sm:m-4">
                   <video src={fileUrl} controls className="w-full h-full" />
                 </div>
               );
             }
 
-            return <p className="text-xs sm:text-sm text-gray-500">Preview not available for this file type.</p>;
+            return <p className="p-4 text-xs sm:text-sm text-gray-500">Preview not available for this file type.</p>;
           })()}
           </div>
         </DialogContent>

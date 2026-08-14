@@ -2923,7 +2923,7 @@ export default function Dashboard() {
                           Content Preview
                         </p>
 
-                        <div className="flex min-h-[min(48dvh,520px)] flex-1 flex-col overflow-hidden rounded-lg bg-gray-50">
+                        <div className="flex min-h-[min(48dvh,520px)] flex-1 flex-col overflow-hidden rounded-lg bg-[#d6d3d1]">
                         {(() => {
                           // Ensure fileUrl is properly formatted
                           let fileUrl = selectedScheduleItem.fileUrl || '';
