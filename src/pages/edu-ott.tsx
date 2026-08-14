@@ -657,7 +657,7 @@ export default function EduOTT() {
   return (
     <Shell>
       <div className="asli-app-bg relative min-h-screen w-full overflow-x-hidden px-4 pb-10 sm:px-6  lg:px-8">
-        <div className="mx-auto max-w-7xl">
+        <div className="w-full">
         {!isMobile && !isTeacher && <VidyaAIFloatingAssistant />}
 
         <EduOTTStage

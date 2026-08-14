@@ -16,7 +16,7 @@ import {
 /** Teacher-portal chrome. Mirrors StudentShell but with the teacher nav. */
 export function TeacherShell({
   children,
-  contentClassName = "w-full px-4 py-6 sm:px-6 sm:py-8 lg:px-8",
+  contentClassName = "app-shell-content",
 }: {
   children: ReactNode;
   contentClassName?: string;

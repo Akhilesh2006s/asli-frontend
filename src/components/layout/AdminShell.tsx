@@ -15,7 +15,7 @@ import {
 /** School-admin chrome — same AppShell pattern as TeacherShell / StudentShell. */
 export function AdminShell({
   children,
-  contentClassName = "w-full px-4 py-6 sm:px-6 sm:py-8 lg:px-8",
+  contentClassName = "app-shell-content",
 }: {
   children: ReactNode;
   contentClassName?: string;

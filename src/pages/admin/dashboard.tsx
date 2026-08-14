@@ -278,8 +278,8 @@ const AdminDashboard = () => {
   // Show loading state while checking authentication
   if (isLoading) {
     return (
-      <AdminShell contentClassName="teacher-playful-dashboard">
-        <div className="mx-auto flex min-h-[50vh] w-full max-w-7xl items-center justify-center px-4 py-16">
+      <AdminShell contentClassName="app-shell-content teacher-playful-dashboard">
+        <div className="mx-auto flex min-h-[50vh] w-full items-center justify-center py-16">
           <div className="text-center">
             <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-blue-600 text-white">
               <Activity className="h-5 w-5 animate-spin" aria-hidden="true" />
@@ -298,8 +298,8 @@ const AdminDashboard = () => {
   }
 
   return (
-    <AdminShell contentClassName="teacher-playful-dashboard">
-      <div className="relative z-10 mx-auto w-full max-w-7xl px-4 py-4 pb-8 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
+    <AdminShell contentClassName="app-shell-content teacher-playful-dashboard">
+      <div className="relative z-10 w-full space-y-4 pb-4 sm:space-y-6 sm:pb-6 lg:space-y-8 lg:pb-8">
         {(() => {
           const pageMeta: Record<string, { title: string; subtitle: string }> = {
             overview: {

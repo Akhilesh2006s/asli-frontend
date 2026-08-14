@@ -34,6 +34,8 @@ import {
   Video,
   Loader2,
   Search,
+  RefreshCw,
+  GraduationCap,
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import {
@@ -51,14 +53,13 @@ import {
   getLibraryContentSubjectId,
 } from "@/lib/library-content-labels";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { API_BASE_URL } from "@/lib/api-config";
-import { getUser, getAuthToken } from '@/lib/auth-utils';
+import { getUser, getAuthToken, getStudentDisplayName, getTeacherDisplayName } from '@/lib/auth-utils';
 import PdfPreviewPanel from "@/components/shared/PdfPreviewPanel";
 import VidyaAIFloatingAssistant from "@/components/student/VidyaAIFloatingAssistant";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import DriveViewer from "@/components/drive-viewer";
-import { getStudentDisplayName } from "@/lib/auth-utils";
 import {
   learningPathDisplayName,
   normalizeSubjectDisplayKey,
@@ -231,6 +232,16 @@ export default function LearningPaths() {
 
   const resourceCount = scopedLibraryContent.length;
   const subjectCount = subjects.length;
+  const [libraryEpoch, setLibraryEpoch] = useState(0);
+
+  const welcomeName = useMemo(() => {
+    if (!user) return '';
+    return isTeacher ? getTeacherDisplayName(user) : getStudentDisplayName(user);
+  }, [user, isTeacher]);
+
+  const refreshLibrary = useCallback(() => {
+    setLibraryEpoch((n) => n + 1);
+  }, []);
 
   const visibleSubjects = useMemo(() => {
     if (!searchQuery) return subjects;
@@ -441,7 +452,7 @@ export default function LearningPaths() {
     };
 
     fetchSubjects();
-  }, []);
+  }, [libraryEpoch]);
 
   // Fetch assigned quizzes (students only — teachers create quizzes elsewhere)
   useEffect(() => {
@@ -517,9 +528,9 @@ export default function LearningPaths() {
     };
 
     fetchContentCounts();
-    // Intentionally once on mount — program meta comes from the API response.
+    // Intentionally keyed by libraryEpoch — program meta comes from the API response.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [libraryEpoch]);
 
   // Update filtered content from already-fetched library content
   useEffect(() => {
@@ -552,89 +563,134 @@ export default function LearningPaths() {
 
   return (
     <Shell>
-      <div className="relative mx-auto w-full max-w-7xl">
+      <div className="relative w-full">
         
         {!isMobile && !isTeacher && <VidyaAIFloatingAssistant />}
-        
-        
-        {/* Header banner — Scholar art + search */}
+
+        {/* Page title — Teacher Portal style */}
+        <div className="mb-6 flex flex-col gap-4 sm:mb-8 sm:flex-row sm:items-end sm:justify-between">
+          <div className="min-w-0">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-indigo-blue-600">
+              {isTeacher ? 'Teacher Portal' : 'Student Portal'}
+            </p>
+            <h1 className="mt-1 font-display text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+              Learning Paths
+            </h1>
+            <p className="mt-1 max-w-2xl text-sm leading-relaxed text-slate-600 sm:text-base">
+              {isTeacher
+                ? 'Browse curriculum content for your assigned subjects.'
+                : 'Explore curated curriculum content for your subjects and learn at your own pace.'}
+            </p>
+            {(welcomeName || isLoadingUser) ? (
+              <p className="mt-2 text-sm font-medium text-slate-700">
+                Welcome, {isLoadingUser && !welcomeName ? '…' : welcomeName}
+              </p>
+            ) : null}
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="shrink-0 border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+            onClick={refreshLibrary}
+            disabled={isLoadingSubjects || isLoadingContentCounts}
+          >
+            <RefreshCw
+              className={
+                'mr-2 h-4 w-4' +
+                (isLoadingSubjects || isLoadingContentCounts ? ' animate-spin' : '')
+              }
+            />
+            Refresh
+          </Button>
+        </div>
+
+        {/* Soft hero card — matches portal page banners */}
         <div className="mb-8">
-          <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#2f5bff] via-[#3558e8] to-[#1e2a8a] text-white shadow-[0_20px_50px_-28px_rgba(30,58,138,0.65)]">
-            <div className="pointer-events-none absolute -right-10 top-1/2 h-[140%] w-[55%] -translate-y-1/2 rounded-full bg-white/5 blur-2xl" />
-            <div className="pointer-events-none absolute right-[18%] top-6 text-white/25">
-              <BookOpen className="h-7 w-7" strokeWidth={1.25} />
-            </div>
-            <div className="pointer-events-none absolute right-8 top-8 text-white/20">
-              <Zap className="h-6 w-6" strokeWidth={1.25} />
-            </div>
+          <div className="relative overflow-hidden rounded-3xl border border-indigo-blue-100/70 bg-gradient-to-br from-sky-100 via-indigo-blue-50 to-violet-100 p-4 shadow-sm sm:p-6 lg:p-7">
+            <div
+              className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-white/50 blur-3xl"
+              aria-hidden="true"
+            />
+            <div
+              className="pointer-events-none absolute -bottom-20 left-1/4 h-48 w-48 rounded-full bg-violet-200/35 blur-3xl"
+              aria-hidden="true"
+            />
 
-            <div className="relative z-10 grid items-center gap-6 px-5 py-6 sm:px-8 sm:py-8 lg:grid-cols-[minmax(0,1.15fr)_minmax(220px,0.85fr)] lg:gap-8 lg:px-10 lg:py-9">
-              <div className="min-w-0">
-                <p className="mb-2 text-sm font-medium text-white/90 sm:text-base">
-                  Welcome back{!isTeacher && !isLoadingUser ? `, ${getStudentDisplayName(user).split(' ')[0]}` : ''}! 👋
-                </p>
-                <h1 className="mb-2 break-words text-3xl font-bold tracking-tight sm:text-4xl lg:text-[2.65rem] lg:leading-tight">
-                  Learning <span className="text-[#7dd3fc]">Paths</span>
-                </h1>
-                <p className="mb-5 max-w-xl text-sm leading-relaxed text-blue-100 sm:text-base">
-                  {isTeacher
-                    ? 'Browse curriculum content for your assigned subjects and explore curated study materials.'
-                    : 'Explore curated curriculum content for your subjects and learn at your own pace.'}
-                </p>
+            <div className="relative z-[1] grid items-center gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(200px,0.8fr)] lg:gap-8">
+              <div className="min-w-0 space-y-4 sm:space-y-5">
+                <div>
+                  <p className="inline-flex items-center gap-2 rounded-full bg-white/70 px-3 py-1 text-xs font-bold uppercase tracking-[0.12em] text-indigo-blue-700">
+                    <GraduationCap className="h-3.5 w-3.5" />
+                    Learning Paths
+                  </p>
+                  <h2 className="mt-3 font-display text-2xl font-extrabold tracking-tight text-slate-900 sm:text-3xl">
+                    Learn with clarity.
+                    <span className="text-violet-600"> Grow every day.</span>
+                  </h2>
+                  <p className="mt-2 max-w-xl text-sm leading-relaxed text-slate-600 sm:text-base">
+                    {isTeacher
+                      ? 'Subjects, textbooks, videos, and study materials for the classes you teach — all in one place.'
+                      : 'Subjects, textbooks, videos, and practice materials curated for your class — ready when you are.'}
+                  </p>
+                </div>
 
-                <label className="relative mb-6 block max-w-xl">
-                  <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 sm:h-5 sm:w-5" />
+                <label className="relative block max-w-xl">
+                  <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                   <input
                     type="search"
                     value={headerSearch}
                     onChange={(e) => setHeaderSearch(e.target.value)}
                     placeholder="Search for subjects, topics or content..."
-                    className="h-12 w-full rounded-full border-0 bg-white pl-11 pr-4 text-sm text-slate-800 shadow-md outline-none ring-0 placeholder:text-slate-400 focus:ring-2 focus:ring-sky-300 sm:h-[3.25rem] sm:text-base"
+                    className="h-12 w-full rounded-2xl border border-white/80 bg-white pl-11 pr-4 text-sm text-slate-800 shadow-sm outline-none placeholder:text-slate-400 focus:ring-2 focus:ring-indigo-blue-300"
                     aria-label="Search learning paths"
                   />
                 </label>
 
-                <div className="flex flex-wrap gap-x-6 gap-y-3 sm:gap-x-8">
-                  <div className="flex items-center gap-2.5">
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/15 ring-1 ring-white/20">
-                      <BookOpen className="h-4 w-4 text-white" />
+                <div className="grid gap-2.5 sm:grid-cols-3">
+                  <div className="flex items-center gap-2.5 rounded-2xl border border-white/80 bg-white/95 px-3 py-2.5 shadow-sm">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
+                      <BookOpen className="h-4 w-4" />
                     </span>
-                    <div>
-                      <p className="text-sm font-semibold leading-tight sm:text-[0.95rem]">
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-slate-900">
                         {isLoadingSubjects ? '…' : subjectCount} Subjects
                       </p>
-                      <p className="text-[11px] text-blue-100/90 sm:text-xs">Explore different topics</p>
+                      <p className="text-[11px] text-slate-500">Explore topics</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2.5">
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/15 ring-1 ring-white/20">
-                      <FileText className="h-4 w-4 text-white" />
+                  <div className="flex items-center gap-2.5 rounded-2xl border border-white/80 bg-white/95 px-3 py-2.5 shadow-sm">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-sky-50 text-sky-600">
+                      <FileText className="h-4 w-4" />
                     </span>
-                    <div>
-                      <p className="text-sm font-semibold leading-tight sm:text-[0.95rem]">
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-slate-900">
                         {isLoadingContentCounts ? '…' : `${resourceCount}+`} Resources
                       </p>
-                      <p className="text-[11px] text-blue-100/90 sm:text-xs">Curated study materials</p>
+                      <p className="text-[11px] text-slate-500">Study materials</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2.5">
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/15 ring-1 ring-white/20">
-                      <Target className="h-4 w-4 text-white" />
+                  <div className="flex items-center gap-2.5 rounded-2xl border border-white/80 bg-white/95 px-3 py-2.5 shadow-sm">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-violet-50 text-violet-600">
+                      <Target className="h-4 w-4" />
                     </span>
-                    <div>
-                      <p className="text-sm font-semibold leading-tight sm:text-[0.95rem]">Your Progress</p>
-                      <p className="text-[11px] text-blue-100/90 sm:text-xs">Track &amp; achieve goals</p>
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-slate-900">Your Progress</p>
+                      <p className="text-[11px] text-slate-500">Track &amp; achieve</p>
                     </div>
                   </div>
                 </div>
               </div>
 
-              <div className="relative mx-auto flex w-full max-w-[280px] items-center justify-center sm:max-w-[320px] lg:mx-0 lg:max-w-none lg:justify-end">
-                <div className="pointer-events-none absolute inset-0 scale-110 rounded-full bg-[#4c7cff]/25 blur-3xl" />
+              <div className="relative mx-auto flex w-full max-w-[260px] items-center justify-center sm:max-w-[300px] lg:mx-0 lg:max-w-none lg:justify-end">
+                <div
+                  className="pointer-events-none absolute inset-4 rounded-full bg-indigo-blue-200/40 blur-2xl"
+                  aria-hidden="true"
+                />
                 <img
-                  src="/Scholar.jpg"
+                  src="/Scholar.png"
                   alt=""
-                  className="relative z-10 h-auto w-full max-h-[220px] object-contain drop-shadow-2xl sm:max-h-[260px] lg:max-h-[300px]"
+                  className="relative z-10 h-auto w-full max-h-[210px] object-contain drop-shadow-xl sm:max-h-[250px] lg:max-h-[280px]"
                   draggable={false}
                 />
               </div>

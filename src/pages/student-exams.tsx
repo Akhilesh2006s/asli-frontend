@@ -1032,7 +1032,7 @@ export default function StudentExams() {
   }
 
   return (
-    <StudentShell contentClassName="w-full py-4 sm:py-6 lg:py-8">
+    <StudentShell contentClassName="app-shell-content">
       <div className="relative mx-auto w-full max-w-7xl px-4 pb-8 sm:px-6 lg:px-8">
         
         {!isMobile && <VidyaAIFloatingAssistant />}

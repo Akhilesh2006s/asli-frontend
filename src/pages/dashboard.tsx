@@ -1962,7 +1962,7 @@ export default function Dashboard() {
   return (
     <StudentShell>
       <div>
-        <div className="relative mx-auto max-w-7xl">
+        <div className="relative w-full">
 
         {/* Welcome Section */}
         <div className="relative z-10 mb-6">
