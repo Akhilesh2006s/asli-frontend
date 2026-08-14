@@ -705,7 +705,6 @@ export default function EduOTT() {
               <div className="space-y-10">
                 {subjectGroups.map((group) => {
                   const preview = group.videos.slice(0, PREVIEW_VIDEO_COUNT);
-                  const remaining = Math.max(0, group.videos.length - PREVIEW_VIDEO_COUNT);
                   const trackLabel = group.productCategories[0]
                     ? formatSubjectWithIitCategory(group.subject, group.productCategories[0])
                     : `${group.subject} IIT`;
@@ -726,11 +725,10 @@ export default function EduOTT() {
                         </div>
                         <Button
                           type="button"
-                          variant="outline"
-                          className="shrink-0 gap-1.5 rounded-xl border-teal-green-200 bg-white text-teal-green-800 hover:bg-teal-green-50"
+                          className="shrink-0 gap-1.5 rounded-xl bg-gradient-to-r from-teal-green-500 to-indigo-blue-600 text-white shadow-glow hover:opacity-95"
                           onClick={() => openSubjectMore(group)}
                         >
-                          More
+                          View full library
                           <ChevronRight className="h-4 w-4" />
                         </Button>
                       </div>
@@ -764,31 +762,6 @@ export default function EduOTT() {
                           );
                         })}
                       </div>
-
-                      {remaining > 0 ? (
-                        <div className="flex justify-center sm:justify-start">
-                          <Button
-                            type="button"
-                            className="gap-2 rounded-xl bg-gradient-to-r from-teal-green-500 to-indigo-blue-600 text-white shadow-glow"
-                            onClick={() => openSubjectMore(group)}
-                          >
-                            More — view all {group.videos.length} videos & materials
-                            <ChevronRight className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      ) : (
-                        <div className="flex justify-center sm:justify-start">
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            className="gap-1.5 text-teal-green-800 hover:bg-teal-green-50"
-                            onClick={() => openSubjectMore(group)}
-                          >
-                            View materials & full library
-                            <ChevronRight className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      )}
                     </section>
                   );
                 })}

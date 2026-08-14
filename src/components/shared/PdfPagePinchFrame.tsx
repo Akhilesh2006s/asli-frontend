@@ -1,9 +1,25 @@
-import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import {
+  forwardRef,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
 
 const MIN_SCALE = 1;
 const MAX_SCALE = 4;
 const ZOOM_EPSILON = 1.02;
+const ZOOM_STEP = 0.2;
 const DOUBLE_TAP_MS = 320;
+
+export type PdfPagePinchFrameHandle = {
+  zoomIn: () => void;
+  zoomOut: () => void;
+  resetZoom: () => void;
+  getScale: () => number;
+};
 
 type Props = {
   pageWidth: number;
@@ -19,13 +35,11 @@ function touchDistance(touches: TouchList): number {
   );
 }
 
-/** Fixed-size viewport; pinch zooms content with CSS transform (never stretches the canvas). */
-export default function PdfPagePinchFrame({
-  pageWidth,
-  pageHeight,
-  onZoomChange,
-  children,
-}: Props) {
+/** Fixed-size viewport; pinch / Ctrl+wheel / buttons zoom content with CSS transform. */
+const PdfPagePinchFrame = forwardRef<PdfPagePinchFrameHandle, Props>(function PdfPagePinchFrame(
+  { pageWidth, pageHeight, onZoomChange, children },
+  ref,
+) {
   const frameRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(MIN_SCALE);
   const scaleRef = useRef(MIN_SCALE);
@@ -36,12 +50,15 @@ export default function PdfPagePinchFrame({
   const scaledWidth = Math.max(1, Math.round(pageWidth * scale));
   const scaledHeight = Math.max(1, Math.round(pageHeight * scale));
 
-  const applyScale = useCallback((next: number) => {
-    const clamped = Math.min(MAX_SCALE, Math.max(MIN_SCALE, next));
-    scaleRef.current = clamped;
-    setScale(clamped);
-    onZoomChange(clamped > ZOOM_EPSILON);
-  }, [onZoomChange]);
+  const applyScale = useCallback(
+    (next: number) => {
+      const clamped = Math.min(MAX_SCALE, Math.max(MIN_SCALE, next));
+      scaleRef.current = clamped;
+      setScale(clamped);
+      onZoomChange(clamped > ZOOM_EPSILON);
+    },
+    [onZoomChange],
+  );
 
   const resetZoom = useCallback(() => {
     const frame = frameRef.current;
@@ -51,6 +68,27 @@ export default function PdfPagePinchFrame({
       frame.scrollTop = 0;
     }
   }, [applyScale]);
+
+  const zoomIn = useCallback(() => {
+    applyScale(scaleRef.current + ZOOM_STEP);
+  }, [applyScale]);
+
+  const zoomOut = useCallback(() => {
+    const next = scaleRef.current - ZOOM_STEP;
+    if (next <= ZOOM_EPSILON) resetZoom();
+    else applyScale(next);
+  }, [applyScale, resetZoom]);
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      zoomIn,
+      zoomOut,
+      resetZoom,
+      getScale: () => scaleRef.current,
+    }),
+    [zoomIn, zoomOut, resetZoom],
+  );
 
   useEffect(() => {
     applyScale(MIN_SCALE);
@@ -104,16 +142,38 @@ export default function PdfPagePinchFrame({
       }
     };
 
+    /** Desktop: Ctrl/Cmd + scroll (also trackpad pinch in Chromium). */
+    const onWheel = (event: WheelEvent) => {
+      if (!(event.ctrlKey || event.metaKey)) return;
+      event.preventDefault();
+      event.stopPropagation();
+      const delta = -event.deltaY;
+      const factor = delta > 0 ? 1 + ZOOM_STEP * 0.5 : 1 - ZOOM_STEP * 0.5;
+      const next = scaleRef.current * factor;
+      if (next <= ZOOM_EPSILON) resetZoom();
+      else applyScale(next);
+    };
+
+    const onDblClick = (event: MouseEvent) => {
+      event.preventDefault();
+      if (scaleRef.current > ZOOM_EPSILON) resetZoom();
+      else applyScale(2);
+    };
+
     frame.addEventListener('touchstart', onTouchStart, { passive: false });
     frame.addEventListener('touchmove', onTouchMove, { passive: false });
     frame.addEventListener('touchend', onTouchEnd, { passive: true });
     frame.addEventListener('touchcancel', onTouchEnd, { passive: true });
+    frame.addEventListener('wheel', onWheel, { passive: false });
+    frame.addEventListener('dblclick', onDblClick);
 
     return () => {
       frame.removeEventListener('touchstart', onTouchStart);
       frame.removeEventListener('touchmove', onTouchMove);
       frame.removeEventListener('touchend', onTouchEnd);
       frame.removeEventListener('touchcancel', onTouchEnd);
+      frame.removeEventListener('wheel', onWheel);
+      frame.removeEventListener('dblclick', onDblClick);
     };
   }, [applyScale, onZoomChange, resetZoom]);
 
@@ -130,8 +190,10 @@ export default function PdfPagePinchFrame({
         overflow: zoomed ? 'auto' : 'hidden',
         WebkitOverflowScrolling: 'touch',
         touchAction: zoomed ? 'none' : 'manipulation',
+        cursor: zoomed ? 'grab' : 'zoom-in',
       }}
-      aria-label="PDF page — pinch to zoom"
+      aria-label="PDF page — pinch or Ctrl+scroll to zoom"
+      title="Ctrl+scroll or double-click to zoom · pinch on touch"
     >
       <div
         className="pdf-page-pinch-content"
@@ -155,4 +217,6 @@ export default function PdfPagePinchFrame({
       </div>
     </div>
   );
-}
+});
+
+export default PdfPagePinchFrame;

@@ -323,6 +323,14 @@ function SidebarBody({
   onUpgrade?: () => void;
   onNavigate?: () => void;
 }) {
+  const [, setLocation] = useLocation();
+
+  const goHome = () => {
+    onNavigate?.();
+    // Always navigate — including when already on dashboard with another ?tab=
+    setLocation(homeHref);
+  };
+
   return (
     <div className="app-shell-sidebar-crazy relative flex h-full flex-col overflow-hidden border-r border-white/60 text-slate-800 shadow-[6px_0_32px_-10px_rgba(99,102,241,0.25)]">
       <SidebarAtmosphere />
@@ -336,10 +344,13 @@ function SidebarBody({
       >
         <Link
           href={homeHref}
-          onClick={onNavigate}
+          onClick={(e) => {
+            e.preventDefault();
+            goHome();
+          }}
           className="sidebar-brand-card mx-3 mt-3 flex items-center gap-3 rounded-2xl border border-white/90 bg-white/80 px-3 py-3 shadow-lg shadow-sky-200/40 backdrop-blur-xl transition-all hover:-translate-y-1 hover:border-sky-200 hover:bg-white hover:shadow-xl hover:shadow-orange-200/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-400/50"
-          aria-label="Go to home"
-          title="Home"
+          aria-label="Go to overview"
+          title="Overview"
         >
           <div className="relative shrink-0">
             <span className="sidebar-logo-orbit absolute inset-[-6px] rounded-2xl" aria-hidden="true" />
@@ -414,7 +425,7 @@ export function AppShell({
   onSearch,
   children,
 }: AppShellProps) {
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
   const search = useSearch();
   const activeId = resolveActiveNavId(location, search.startsWith("?") ? search : `?${search}`, nav);
 
@@ -519,8 +530,12 @@ export function AppShell({
           {/* School identity — left of the topbar */}
           <Link
             href={homeHref}
+            onClick={(e) => {
+              e.preventDefault();
+              setLocation(homeHref);
+            }}
             className="flex min-w-0 flex-1 items-center gap-3 overflow-hidden pr-2 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            aria-label="Go to dashboard home"
+            aria-label="Go to overview"
           >
             <span className="relative isolate z-0 flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-border bg-indigo-blue-50 sm:h-11 sm:w-11">
               {orgLogoUrl && !logoFailed ? (

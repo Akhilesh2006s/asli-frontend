@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import * as pdfjs from 'pdfjs-dist';
 import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
-import { ChevronLeft, ChevronRight, ExternalLink, Loader2, Maximize2, Minimize2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ExternalLink, Loader2, Maximize2, Minimize2, ZoomIn, ZoomOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { getAuthToken } from '@/lib/auth-utils';
 import {
   getEmbeddedPdfIframeSrc,
@@ -412,6 +413,7 @@ export default function PdfPreviewPanel({
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [readerPage, setReaderPage] = useState(1);
   const [readerPageCount, setReaderPageCount] = useState(0);
+  const [pageJumpDraft, setPageJumpDraft] = useState('1');
   const pdfDocRef = useRef<pdfjs.PDFDocumentProxy | null>(null);
   const renderingPagesRef = useRef<Set<number>>(new Set());
   /** Survives the slot rebuild that fullscreen toggling causes. */
@@ -647,12 +649,29 @@ export default function PdfPreviewPanel({
   }, [isFullscreen, useCanvasRendering, updateContainerSize]);
 
   useEffect(() => {
+    setPageJumpDraft(String(readerPage));
+  }, [readerPage]);
+
+  useEffect(() => {
     setTotalPages(0);
     setUseIframeFallback(false);
     setPdfError(null);
     setReaderPage(1);
     setReaderPageCount(0);
+    setPageJumpDraft('1');
   }, [fileUrl, title]);
+
+  const submitPageJump = useCallback(() => {
+    const max = Math.max(1, readerPageCount || totalPages || 1);
+    const parsed = Number.parseInt(pageJumpDraft.replace(/[^\d]/g, ''), 10);
+    if (!Number.isFinite(parsed)) {
+      setPageJumpDraft(String(readerPage));
+      return;
+    }
+    const next = Math.min(Math.max(1, parsed), max);
+    setPageJumpDraft(String(next));
+    jumpReaderPage(next);
+  }, [pageJumpDraft, readerPage, readerPageCount, totalPages, jumpReaderPage]);
 
   const destroyPdfDoc = useCallback(async () => {
     if (!pdfDocRef.current) return;
@@ -1051,9 +1070,42 @@ export default function PdfPreviewPanel({
         <p className="text-xs font-medium text-stone-500 sm:text-sm">
           {useIframeFallback
             ? 'Use the scrollbar to move through pages'
-            : '↑↓ scroll inside the book · pinch to zoom'}
+            : '↑↓ scroll pages · Ctrl+scroll or +/− to zoom · pinch on touch'}
         </p>
         <div className="flex flex-wrap items-center gap-2">
+          {!useIframeFallback ? (
+            <>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => mobileViewerRef.current?.zoomOut()}
+                aria-label="Zoom out"
+                title="Zoom out"
+              >
+                <ZoomOut className="h-4 w-4" />
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => mobileViewerRef.current?.zoomIn()}
+                aria-label="Zoom in"
+                title="Zoom in"
+              >
+                <ZoomIn className="h-4 w-4" />
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="hidden sm:inline-flex"
+                onClick={() => mobileViewerRef.current?.resetZoom()}
+              >
+                Reset zoom
+              </Button>
+            </>
+          ) : null}
           {allowFullscreen ? (
             <Button type="button" variant="outline" size="sm" onClick={() => void toggleFullscreen()}>
               {isFullscreen ? (
@@ -1134,7 +1186,7 @@ export default function PdfPreviewPanel({
       </div>
 
       {!useIframeFallback && readerPageCount > 0 ? (
-        <div className="flex shrink-0 items-center justify-center gap-3 border-t border-stone-200/80 bg-white px-3 py-2.5 sm:gap-4 sm:py-3">
+        <div className="flex shrink-0 flex-wrap items-center justify-center gap-2 border-t border-stone-200/80 bg-white px-3 py-2.5 sm:gap-3 sm:py-3">
           <Button
             type="button"
             variant="outline"
@@ -1146,9 +1198,32 @@ export default function PdfPreviewPanel({
           >
             <ChevronLeft className="h-5 w-5" />
           </Button>
-          <p className="min-w-[8rem] text-center text-sm font-semibold tabular-nums text-stone-800 sm:min-w-[10rem] sm:text-base">
-            Page {readerPage} of {readerPageCount}
-          </p>
+          <form
+            className="flex items-center gap-1.5 sm:gap-2"
+            onSubmit={(e) => {
+              e.preventDefault();
+              submitPageJump();
+            }}
+          >
+            <span className="text-sm font-semibold text-stone-700">Page</span>
+            <Input
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              value={pageJumpDraft}
+              onChange={(e) => setPageJumpDraft(e.target.value.replace(/[^\d]/g, ''))}
+              onBlur={submitPageJump}
+              onFocus={(e) => e.currentTarget.select()}
+              className="h-10 w-14 rounded-xl text-center text-sm font-semibold tabular-nums sm:h-11 sm:w-16"
+              aria-label="Go to page number"
+            />
+            <span className="text-sm font-semibold tabular-nums text-stone-700">
+              of {readerPageCount}
+            </span>
+            <Button type="submit" variant="outline" size="sm" className="h-10 rounded-xl px-3 sm:h-11">
+              Go
+            </Button>
+          </form>
           <Button
             type="button"
             variant="outline"

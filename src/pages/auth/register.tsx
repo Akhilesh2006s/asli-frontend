@@ -174,7 +174,7 @@ const Register = () => {
   }
 
   return (
-    <div className="relative min-h-screen bg-gradient-to-br from-sky-50 via-white to-orange-50 px-4 py-8 sm:py-12">
+    <div className="relative min-h-screen bg-gradient-to-br from-sky-50 via-white to-orange-50 px-4 py-8 sm:py-12 2xl:py-16 board:px-10 board:py-20">
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
         <div className="absolute left-10 top-20 h-72 w-72 rounded-full bg-sky-300/20 blur-3xl" />
         <div className="absolute bottom-20 right-10 h-96 w-96 rounded-full bg-orange-300/20 blur-3xl" />
@@ -183,23 +183,23 @@ const Register = () => {
       <motion.div
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
-        className="relative z-10 mx-auto w-full max-w-3xl"
+        className="relative z-10 mx-auto w-full max-w-3xl 2xl:max-w-4xl board:max-w-5xl"
       >
-        <Card className="border-white/40 bg-white/90 shadow-xl backdrop-blur-sm">
-          <CardHeader className="space-y-3 px-5 text-center sm:px-8">
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-r from-orange-500 to-sky-500">
-              <Sparkles className="h-7 w-7 text-white" />
+        <Card className="border-white/40 bg-white/90 shadow-xl backdrop-blur-sm board:shadow-2xl">
+          <CardHeader className="space-y-3 px-5 text-center sm:px-8 board:space-y-4 board:px-12 board:pt-10">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-r from-orange-500 to-sky-500 board:h-16 board:w-16">
+              <Sparkles className="h-7 w-7 text-white board:h-8 board:w-8" />
             </div>
-            <CardTitle className="text-2xl font-bold text-slate-900">
+            <CardTitle className="text-2xl font-bold text-slate-900 board:text-4xl">
               Individual signup
             </CardTitle>
-            <p className="text-sm text-slate-600 sm:text-base">
+            <p className="text-sm text-slate-600 sm:text-base board:text-lg">
               Teachers and students — start a free {INDIVIDUAL_TRIAL_DAYS}-day trial. We store your
               profile so we can match products, class, and subjects.
             </p>
           </CardHeader>
 
-          <CardContent className="space-y-5 px-5 pb-8 sm:px-8">
+          <CardContent className="space-y-5 px-5 pb-8 sm:px-8 board:space-y-6 board:px-12 board:pb-12">
             {error && (
               <Alert variant="destructive">
                 <AlertDescription>{error}</AlertDescription>

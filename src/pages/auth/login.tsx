@@ -267,7 +267,7 @@ const Login = () => {
   };
 
   return (
-    <div className="asli-app-bg relative flex min-h-screen w-full items-center justify-center overflow-hidden p-4 sm:p-6 lg:p-10">
+    <div className="asli-app-bg relative flex min-h-screen w-full items-center justify-center overflow-hidden p-4 sm:p-6 lg:p-10 2xl:p-12 board:p-16">
       {/* Animated Gradient Background */}
       <div className="absolute inset-0 bg-gradient-to-br from-[#e8f4f6] via-[#d5e8ec] to-[#c5dde3]">
         <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmMWY1ZjkiIGZpbGwtb3BhY2l0eT0iMC40Ij48Y2lyY2xlIGN4PSIzMCIgY3k9IjMwIiByPSIyIi8+PC9nPjwvZz48L3N2Zz4=')] opacity-20"></div>
@@ -362,14 +362,14 @@ const Login = () => {
             initial={{ opacity: 0, y: 20, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             transition={{ duration: 0.6, type: "spring" }}
-            className="relative z-10 w-full max-w-6xl"
+            className="relative z-10 w-full max-w-6xl 2xl:max-w-7xl board:max-w-[1600px] uhd:max-w-[1800px]"
           >
-            <Card className="relative grid min-h-[680px] overflow-hidden border-white/60 bg-white/95 p-0 shadow-[0_30px_90px_-30px_rgba(6,36,51,0.4)] backdrop-blur-xl lg:grid-cols-[1.05fr_0.95fr]">
+            <Card className="relative grid min-h-[680px] overflow-hidden border-white/60 bg-white/95 p-0 shadow-[0_30px_90px_-30px_rgba(6,36,51,0.4)] backdrop-blur-xl lg:grid-cols-[1.05fr_0.95fr] 2xl:min-h-[min(820px,82vh)] board:min-h-[min(920px,86vh)] board:grid-cols-[1.2fr_0.8fr]">
               {/* Decorative gradient overlay */}
               <div className="absolute left-0 right-0 top-0 z-20 h-1.5 bg-gradient-to-r from-teal-green-400 via-indigo-blue-500 to-amber-400" />
 
               {/* Brand / visual panel */}
-              <aside className="relative hidden min-h-full overflow-hidden bg-ink p-10 text-white lg:row-span-2 lg:flex lg:flex-col lg:justify-between xl:p-14">
+              <aside className="relative hidden min-h-full overflow-hidden bg-ink p-10 text-white lg:row-span-2 lg:flex lg:flex-col lg:justify-between xl:p-14 2xl:p-16 board:p-20">
                 <img
                   src="https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&w=1400&q=85"
                   alt=""
@@ -403,21 +403,21 @@ const Login = () => {
                   </Link>
                 </div>
 
-                <div className="relative z-10 max-w-xl">
-                  <p className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-base font-semibold text-teal-green-100 backdrop-blur-md">
-                    <Sparkles className="h-5 w-5" />
+                <div className="relative z-10 max-w-xl board:max-w-2xl">
+                  <p className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-base font-semibold text-teal-green-100 backdrop-blur-md board:text-lg">
+                    <Sparkles className="h-5 w-5 board:h-6 board:w-6" />
                     AI-powered education
                   </p>
-                  <h1 className="font-display text-5xl font-bold leading-[1.08] tracking-tight text-white xl:text-6xl">
+                  <h1 className="font-display text-5xl font-bold leading-[1.08] tracking-tight text-white xl:text-6xl board:text-7xl">
                     Your classroom,
                     <br />
                     powered by AI.
                   </h1>
-                  <p className="mt-6 max-w-lg text-xl leading-relaxed text-white/75">
+                  <p className="mt-6 max-w-lg text-xl leading-relaxed text-white/75 board:max-w-xl board:text-2xl">
                     Teach smarter, learn faster, and bring every lesson to life with one intelligent platform.
                   </p>
 
-                  <div className="mt-9 grid gap-3 sm:grid-cols-2">
+                  <div className="mt-9 grid gap-3 sm:grid-cols-2 board:mt-12 board:gap-4">
                     {[
                       "Vidya AI tutor",
                       "Teacher AI studio",
@@ -426,7 +426,7 @@ const Login = () => {
                     ].map((feature) => (
                       <div
                         key={feature}
-                        className="flex items-center gap-3 rounded-2xl border border-white/15 bg-white/10 px-4 py-3 text-base font-semibold text-white/90 backdrop-blur-md"
+                        className="flex items-center gap-3 rounded-2xl border border-white/15 bg-white/10 px-4 py-3 text-base font-semibold text-white/90 backdrop-blur-md board:px-5 board:py-4 board:text-lg"
                       >
                         <span className="flex h-7 w-7 items-center justify-center rounded-full bg-teal-green-300 text-ink">
                           ✓
@@ -442,7 +442,7 @@ const Login = () => {
                 </p>
               </aside>
               
-              <CardHeader className="space-y-4 px-6 pb-4 pt-9 text-left sm:px-10 sm:pt-12 lg:col-start-2 lg:px-12 xl:px-14">
+              <CardHeader className="space-y-4 px-6 pb-4 pt-9 text-left sm:px-10 sm:pt-12 lg:col-start-2 lg:px-12 xl:px-14 2xl:px-16 board:px-20 board:pt-16">
                 <motion.div
                   initial={{ scale: 0.8, opacity: 0, rotate: -180 }}
                   animate={{ scale: 1, opacity: 1, rotate: 0 }}
@@ -461,19 +461,19 @@ const Login = () => {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.4 }}
                 >
-                  <p className="mb-2 text-base font-bold uppercase tracking-[0.15em] text-teal-green-700">
+                  <p className="mb-2 text-base font-bold uppercase tracking-[0.15em] text-teal-green-700 board:text-lg">
                     Welcome back
                   </p>
-                  <CardTitle className="font-display text-3xl font-bold text-[#0b1f2a] sm:text-4xl">
+                  <CardTitle className="font-display text-3xl font-bold text-[#0b1f2a] sm:text-4xl board:text-5xl">
                     Sign in to AsliLearn
                   </CardTitle>
-                  <p className="mt-3 text-lg leading-relaxed text-[#4b6470]">
+                  <p className="mt-3 text-lg leading-relaxed text-[#4b6470] board:text-xl">
                     Continue to your personalized learning workspace.
                   </p>
                 </motion.div>
               </CardHeader>
               
-              <CardContent className="space-y-6 px-6 pb-9 sm:px-10 sm:pb-12 lg:col-start-2 lg:px-12 xl:px-14">
+              <CardContent className="space-y-6 px-6 pb-9 sm:px-10 sm:pb-12 lg:col-start-2 lg:px-12 xl:px-14 2xl:px-16 board:space-y-8 board:px-20 board:pb-16">
                 {error && (
                   <motion.div
                     initial={{ opacity: 0, y: -10, scale: 0.95 }}
@@ -510,7 +510,7 @@ const Login = () => {
                           value={formData.email}
                           onChange={handleChange}
                           placeholder="Email or student ID (e.g. 1724)"
-                          className="h-14 border-ink/10 bg-white pl-12 pr-4 text-base transition-all duration-200 focus:border-teal-green-500 focus:ring-teal-green-200"
+                          className="h-14 border-ink/10 bg-white pl-12 pr-4 text-base transition-all duration-200 focus:border-teal-green-500 focus:ring-teal-green-200 board:h-16 board:text-lg"
                           required
                         />
                       </div>
@@ -538,7 +538,7 @@ const Login = () => {
                           value={formData.password}
                           onChange={handleChange}
                           placeholder="Enter your password"
-                          className="h-14 border-ink/10 bg-white pl-12 pr-12 text-base transition-all duration-200 focus:border-teal-green-500 focus:ring-teal-green-200"
+                          className="h-14 border-ink/10 bg-white pl-12 pr-12 text-base transition-all duration-200 focus:border-teal-green-500 focus:ring-teal-green-200 board:h-16 board:text-lg"
                           required
                         />
                         <button
@@ -588,7 +588,7 @@ const Login = () => {
                     <Button
                       type="submit"
                       aria-label={isLoading ? 'Signing in' : 'Sign in'}
-                      className="group relative h-14 w-full overflow-hidden bg-gradient-to-r from-teal-green-600 to-indigo-blue-600 text-lg font-semibold text-white shadow-elevated transition-all duration-300 hover:shadow-glow-lg"
+                      className="group relative h-14 w-full overflow-hidden bg-gradient-to-r from-teal-green-600 to-indigo-blue-600 text-lg font-semibold text-white shadow-elevated transition-all duration-300 hover:shadow-glow-lg board:h-16 board:text-xl"
                       disabled={isLoading}
                     >
                       <span className="relative z-10 flex items-center justify-center gap-2">

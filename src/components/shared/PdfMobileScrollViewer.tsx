@@ -9,7 +9,9 @@ import {
 } from 'react';
 import type * as pdfjs from 'pdfjs-dist';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import PdfPagePinchFrame from '@/components/shared/PdfPagePinchFrame';
+import PdfPagePinchFrame, {
+  type PdfPagePinchFrameHandle,
+} from '@/components/shared/PdfPagePinchFrame';
 import { Button } from '@/components/ui/button';
 
 function isIosOrIpadosBrowser(): boolean {
@@ -177,6 +179,7 @@ type PdfMobilePageProps = {
   fillViewport?: boolean;
   forceRender?: boolean;
   onZoomChange: (pageNum: number, zoomed: boolean) => void;
+  registerZoomHandle?: (pageNum: number, handle: PdfPagePinchFrameHandle | null) => void;
 };
 
 function PdfMobilePage({
@@ -189,9 +192,11 @@ function PdfMobilePage({
   fillViewport = false,
   forceRender = false,
   onZoomChange,
+  registerZoomHandle,
 }: PdfMobilePageProps) {
   const slotRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const pinchRef = useRef<PdfPagePinchFrameHandle | null>(null);
   const renderedRef = useRef(false);
   const [shouldRender, setShouldRender] = useState(pageNum === 1 || forceRender);
   const [layoutReady, setLayoutReady] = useState(false);
@@ -233,9 +238,17 @@ function PdfMobilePage({
   useEffect(() => {
     return () => {
       onZoomChange(pageNum, false);
+      registerZoomHandle?.(pageNum, null);
     };
-  }, [onZoomChange, pageNum]);
+  }, [onZoomChange, pageNum, registerZoomHandle]);
 
+  const setPinchRef = useCallback(
+    (handle: PdfPagePinchFrameHandle | null) => {
+      pinchRef.current = handle;
+      registerZoomHandle?.(pageNum, handle);
+    },
+    [pageNum, registerZoomHandle],
+  );
   useEffect(() => {
     if (!shouldRender) return;
     let cancelled = false;
@@ -312,6 +325,7 @@ function PdfMobilePage({
     >
       {layoutReady ? (
         <PdfPagePinchFrame
+          ref={setPinchRef}
           pageWidth={baseWidth}
           pageHeight={baseHeight}
           onZoomChange={handlePageZoom}
@@ -337,6 +351,10 @@ export type PdfMobileScrollViewerHandle = {
   /** Jump scroll position within the canvas. */
   scrollTo: (opts: { top?: number; left?: number; behavior?: ScrollBehavior }) => void;
   getScrollElement: () => HTMLDivElement | null;
+  zoomIn: () => void;
+  zoomOut: () => void;
+  resetZoom: () => void;
+  getZoomScale: () => number;
 };
 
 type PdfMobileScrollViewerProps = {
@@ -375,12 +393,29 @@ const PdfMobileScrollViewer = forwardRef<PdfMobileScrollViewerHandle, PdfMobileS
   ) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const zoomedPagesRef = useRef(new Set<number>());
+  const zoomHandlesRef = useRef(new Map<number, PdfPagePinchFrameHandle>());
   const restoredRef = useRef(false);
   const [scrollLocked, setScrollLocked] = useState(false);
   const [viewportHeight, setViewportHeight] = useState(0);
   const [currentPage, setCurrentPage] = useState(() =>
     storageKey ? readStoredPdfPage(storageKey) : 1,
   );
+
+  const registerZoomHandle = useCallback(
+    (pageNum: number, handle: PdfPagePinchFrameHandle | null) => {
+      if (handle) zoomHandlesRef.current.set(pageNum, handle);
+      else zoomHandlesRef.current.delete(pageNum);
+    },
+    [],
+  );
+
+  const getActiveZoomHandle = useCallback(() => {
+    return (
+      zoomHandlesRef.current.get(currentPage) ||
+      zoomHandlesRef.current.values().next().value ||
+      null
+    );
+  }, [currentPage]);
 
   useEffect(() => {
     const host = scrollRef.current;
@@ -451,8 +486,24 @@ const PdfMobileScrollViewer = forwardRef<PdfMobileScrollViewerHandle, PdfMobileS
   useEffect(() => {
     const host = scrollRef.current;
     if (!host) return;
-    let tick = 0;
-    const onScroll = () => {
+
+    const onWheel = (event: WheelEvent) => {
+      if (!(event.ctrlKey || event.metaKey)) return;
+      event.preventDefault();
+      event.stopPropagation();
+      const handle =
+        zoomHandlesRef.current.get(currentPage) ||
+        zoomHandlesRef.current.values().next().value ||
+        null;
+      if (!handle) return;
+      if (event.deltaY < 0) handle.zoomIn();
+      else handle.zoomOut();
+    };
+
+    host.addEventListener('wheel', onWheel, { passive: false });
+    return () => host.removeEventListener('wheel', onWheel);
+  }, [currentPage, totalPages, pdf]);
+
       window.clearTimeout(tick);
       tick = window.setTimeout(() => {
         const slots = Array.from(host.querySelectorAll<HTMLElement>('[data-page]'));
@@ -521,8 +572,12 @@ const PdfMobileScrollViewer = forwardRef<PdfMobileScrollViewerHandle, PdfMobileS
         });
       },
       getScrollElement: () => scrollRef.current,
+      zoomIn: () => getActiveZoomHandle()?.zoomIn(),
+      zoomOut: () => getActiveZoomHandle()?.zoomOut(),
+      resetZoom: () => getActiveZoomHandle()?.resetZoom(),
+      getZoomScale: () => getActiveZoomHandle()?.getScale() ?? 1,
     }),
-    [goToPage, currentPage],
+    [goToPage, currentPage, getActiveZoomHandle],
   );
 
   return (
@@ -554,6 +609,7 @@ const PdfMobileScrollViewer = forwardRef<PdfMobileScrollViewerHandle, PdfMobileS
               fillViewport={fillViewport}
               forceRender={forceRender}
               onZoomChange={handleZoomChange}
+              registerZoomHandle={registerZoomHandle}
             />
           );
         })}

@@ -358,6 +358,7 @@ const TeacherDashboard = () => {
     const q = raw.startsWith('?') ? raw.slice(1) : raw;
     const tab = new URLSearchParams(q).get('tab');
     if (!tab) return;
+    // Brand logo / home uses ?tab=overview
     if (tab === 'overview' || tab === 'ai-classes') {
       setDashboardSubTab('ai-classes');
       return;

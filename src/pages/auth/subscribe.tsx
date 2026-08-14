@@ -69,19 +69,19 @@ export default function SubscribePage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-100 via-white to-orange-50 p-4">
-      <Card className="w-full max-w-lg border-slate-200 shadow-lg">
-        <CardHeader className="space-y-2 text-center">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-orange-100 text-orange-700">
-            <CreditCard className="h-6 w-6" />
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-100 via-white to-orange-50 p-4 2xl:p-8 board:p-12">
+      <Card className="w-full max-w-lg border-slate-200 shadow-lg 2xl:max-w-xl board:max-w-2xl board:shadow-2xl">
+        <CardHeader className="space-y-2 text-center board:space-y-3 board:px-10 board:pt-10">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-orange-100 text-orange-700 board:h-14 board:w-14">
+            <CreditCard className="h-6 w-6 board:h-7 board:w-7" />
           </div>
-          <CardTitle className="text-xl">Your free trial has ended</CardTitle>
-          <p className="text-sm text-slate-600">
+          <CardTitle className="text-xl board:text-3xl">Your free trial has ended</CardTitle>
+          <p className="text-sm text-slate-600 board:text-base">
             Hi {user?.fullName || 'there'} — your {INDIVIDUAL_TRIAL_DAYS}-day ASLILEARN trial is over.
             Subscribe to keep using your individual {user?.role || 'account'}.
           </p>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4 board:space-y-5 board:px-10 board:pb-10">
           <div className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950">
             <Clock className="mt-0.5 h-4 w-4 shrink-0" />
             <div>

@@ -152,6 +152,11 @@ const AdminDashboard = () => {
     const tab = new URLSearchParams(q).get('tab');
     if (tab && VALID_ADMIN_TABS.has(tab)) {
       setActiveTab(tab);
+      return;
+    }
+    // Brand / home may land on /admin/dashboard with no tab query
+    if (!tab) {
+      setActiveTab('overview');
     }
   }, [search]);
 
