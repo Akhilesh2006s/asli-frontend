@@ -109,6 +109,7 @@ import StatCard from '@/components/dashboard/StatCard';
 import { fetchAuthUser, peekCachedAuthUser } from '@/lib/auth-session';
 import VidyaAIFloatingAssistant from '@/components/student/VidyaAIFloatingAssistant';
 import { fetchDashboardBootstrap } from '@/lib/dashboard-bootstrap';
+import { consecutiveDailyStreak, streakCheer } from '@/lib/quiz-play-stats';
 import {
   getTodayStudyTime,
   getWeeklyStudyTime,
@@ -2317,26 +2318,28 @@ export default function Dashboard() {
               </CardContent>
             </Card>
 
-            <Card className="quiz-panel-shell overflow-hidden rounded-2xl border-sky-100">
-              <CardHeader className="border-b border-sky-100/80 bg-gradient-to-r from-sky-50/90 via-white to-teal-50/80 pb-3">
+            <Card className="quiz-panel-shell overflow-hidden rounded-2xl border-indigo-100">
+              <CardHeader className="border-b border-indigo-100/80 bg-gradient-to-r from-indigo-600 via-violet-600 to-fuchsia-500 pb-3 text-white">
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2.5">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-sky-100 text-sky-600 shadow-sm ring-1 ring-sky-200/70">
-                      <TargetIcon className="h-4 w-4" />
+                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/15 text-white shadow-sm ring-1 ring-white/20">
+                      <Flame className="h-4 w-4" />
                     </div>
                     <div className="min-w-0">
-                      <CardTitle className="text-base font-semibold text-slate-800 sm:text-lg">
+                      <CardTitle className="text-base font-semibold text-white sm:text-lg">
                         Quiz
                       </CardTitle>
-                      <p className="text-xs text-slate-500 sm:text-sm">
-                        Start a quiz · see your previous %
+                      <p className="text-xs text-white/80 sm:text-sm">
+                        {dailyQuizStatus
+                          ? `${consecutiveDailyStreak(dailyQuizStatus)}-day streak · ${streakCheer(consecutiveDailyStreak(dailyQuizStatus))}`
+                          : 'Play daily · keep your streak'}
                       </p>
                     </div>
                   </div>
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-8 shrink-0 rounded-lg px-2 text-xs font-semibold text-sky-700 hover:bg-sky-50"
+                    className="h-8 shrink-0 rounded-lg px-2 text-xs font-semibold text-white hover:bg-white/15"
                     onClick={() => setLocation('/iq-rank-boost-subjects')}
                   >
                     View all
@@ -2436,7 +2439,7 @@ export default function Dashboard() {
                           ) : (
                             <Button
                               size="sm"
-                              className="quiz-start-btn w-full rounded-lg bg-gradient-to-r from-sky-400 to-teal-400 text-white shadow-sm transition-transform duration-200 hover:scale-[1.02] hover:from-sky-500 hover:to-teal-500 active:scale-[0.98]"
+                              className="quiz-start-btn w-full rounded-lg bg-indigo-600 text-white shadow-sm transition-transform duration-200 hover:scale-[1.02] hover:bg-indigo-700 active:scale-[0.98]"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 openQuizFromPanel(entry);

@@ -691,9 +691,24 @@
   transition: border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
 }
 
+.quiz-option-pop:active {
+  animation: quiz-option-pop 0.32s ease;
+}
+
+@keyframes quiz-option-pop {
+  0% { transform: scale(1); }
+  45% { transform: scale(0.985); }
+  100% { transform: scale(1); }
+}
+
+.quiz-play-stage {
+  perspective: 1200px;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .quiz-panel-item,
-  .quiz-start-btn::after {
+  .quiz-start-btn::after,
+  .quiz-option-pop:active {
     animation: none !important;
     transition: none !important;
   }

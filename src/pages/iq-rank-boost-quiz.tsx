@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRoute, Link } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -11,7 +11,6 @@ import {
   Trophy,
   AlertCircle,
   Sparkles,
-  Play,
   ListChecks,
   Target,
 } from 'lucide-react';
@@ -21,6 +20,12 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
+import { consecutiveDailyStreak } from '@/lib/quiz-play-stats';
+import {
+  QuizReviewHeader,
+  QuizReviewQuestionCard,
+  QuizReviewSidebar,
+} from '@/components/quiz/QuizPlayChrome';
 
 interface Question {
   _id: string;
@@ -59,6 +64,8 @@ export default function IQRankBoostQuiz() {
   const [navDirection, setNavDirection] = useState(1);
   const [isDailyQuiz, setIsDailyQuiz] = useState(false);
   const [lockedUntilTomorrow, setLockedUntilTomorrow] = useState(false);
+  const [playStreak, setPlayStreak] = useState(0);
+  const [nextUnlockLabel, setNextUnlockLabel] = useState('tomorrow at midnight (IST)');
 
   useEffect(() => {
     if (params?.quizId) {
@@ -106,6 +113,22 @@ export default function IQRankBoostQuiz() {
         quiz?.activityType === 'daily' ||
         Boolean(dailyMeta);
       setIsDailyQuiz(dailyBank);
+
+      try {
+        const statusRes = await fetch(`${API_BASE_URL}/api/student/daily-quiz-status`, {
+          headers: { Authorization: `Bearer ${token}` },
+          credentials: 'include',
+        });
+        if (statusRes.ok) {
+          const statusJson = await statusRes.json();
+          setPlayStreak(consecutiveDailyStreak(statusJson?.data));
+          if (statusJson?.data?.nextUnlockDateKey) {
+            setNextUnlockLabel(statusJson.data.nextUnlockDateKey);
+          }
+        }
+      } catch {
+        /* streak is optional chrome */
+      }
       const shuffled = dailyBank
         ? fetchedQuestions
         : [...fetchedQuestions].sort(() => Math.random() - 0.5);
@@ -139,6 +162,10 @@ export default function IQRankBoostQuiz() {
           if (statusRes.ok) {
             const statusJson = await statusRes.json();
             const today = statusJson?.data?.today;
+            setPlayStreak(consecutiveDailyStreak(statusJson?.data));
+            if (statusJson?.data?.nextUnlockDateKey) {
+              setNextUnlockLabel(statusJson.data.nextUnlockDateKey);
+            }
             if (today?.completed) {
               const t = Number(today.totalQuestions) || total;
               const c = Number(today.correctCount) || 0;
@@ -187,6 +214,14 @@ export default function IQRankBoostQuiz() {
     if (isSubmitted) return;
     setAnswers((prev) => ({ ...prev, [questionId]: selectedOption }));
   };
+
+  const jumpToQuestion = useCallback(
+    (index: number) => {
+      setNavDirection(index > currentQuestionIndex ? 1 : -1);
+      setCurrentQuestionIndex(index);
+    },
+    [currentQuestionIndex],
+  );
 
   const handleSubmit = async () => {
     if (questions.length === 0 || isSubmitted) return;
@@ -253,6 +288,7 @@ export default function IQRankBoostQuiz() {
       }
       if (data?.daily?.lockedUntilTomorrow || isDailyQuiz) {
         setLockedUntilTomorrow(true);
+        setPlayStreak((s) => Math.max(1, s + 1));
       }
       toast({
         title: 'Result saved',
@@ -274,13 +310,35 @@ export default function IQRankBoostQuiz() {
   const progress = questions.length > 0 ? ((currentQuestionIndex + 1) / questions.length) * 100 : 0;
   const answeredCount = Object.keys(answers).length;
   const unansweredCount = Math.max(0, questions.length - answeredCount);
+  const canGoPrev = currentQuestionIndex > 0;
+  const canGoNext = currentQuestionIndex < questions.length - 1;
 
-  const scoreTone = useMemo(() => {
-    const s = results?.score ?? 0;
-    if (s >= 80) return 'from-emerald-500 to-teal-600';
-    if (s >= 50) return 'from-sky-500 to-teal-600';
-    return 'from-slate-500 to-sky-600';
-  }, [results?.score]);
+  const goPrev = useCallback(() => {
+    setNavDirection(-1);
+    setCurrentQuestionIndex((i) => Math.max(0, i - 1));
+  }, []);
+
+  const goNext = useCallback(() => {
+    setNavDirection(1);
+    setCurrentQuestionIndex((i) => Math.min(questions.length - 1, i + 1));
+  }, [questions.length]);
+
+  useEffect(() => {
+    if (!hasStarted || isSubmitted || isLoading || questions.length === 0) return;
+    const onKey = (event: KeyboardEvent) => {
+      const tag = (event.target as HTMLElement | null)?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+      if (event.key === 'ArrowLeft') {
+        event.preventDefault();
+        goPrev();
+      } else if (event.key === 'ArrowRight') {
+        event.preventDefault();
+        if (canGoNext) goNext();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [hasStarted, isSubmitted, isLoading, questions.length, canGoNext, goPrev, goNext]);
 
   if (isLoading) {
     return (
@@ -320,31 +378,31 @@ export default function IQRankBoostQuiz() {
     return (
       <StudentShell>
         <div className="mx-auto max-w-2xl px-4 py-6 pb-20">
-          <div className="overflow-hidden rounded-3xl border border-sky-100 bg-gradient-to-br from-sky-50 via-white to-indigo-50 shadow-lg shadow-sky-100/50">
-            <div className="border-b border-sky-100/80 bg-white/70 px-5 py-5 sm:px-7">
-              <div className="mb-2 flex items-center gap-2 text-sky-700">
+          <div className="overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-600 via-violet-600 to-fuchsia-500 shadow-lg shadow-indigo-200/40">
+            <div className="border-b border-white/15 px-5 py-5 sm:px-7">
+              <div className="mb-2 flex items-center gap-2 text-lime-200">
                 <Sparkles className="h-4 w-4" />
                 <span className="text-xs font-bold uppercase tracking-[0.14em]">Ready to start</span>
               </div>
-              <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 sm:text-3xl">
+              <h1 className="text-2xl font-extrabold tracking-tight text-white sm:text-3xl">
                 {quizTitle}
               </h1>
-              {subjectName ? <p className="mt-2 text-sm text-slate-600">{subjectName}</p> : null}
+              {subjectName ? <p className="mt-2 text-sm text-white/80">{subjectName}</p> : null}
             </div>
 
             <div className="grid grid-cols-3 gap-3 px-5 py-5 sm:px-7">
               {[
                 { icon: ListChecks, label: 'Questions', value: questions.length },
                 { icon: Target, label: 'Subject', value: subjectName || 'General' },
-                { icon: Trophy, label: 'Mode', value: 'Practice' },
+                { icon: Trophy, label: 'Mode', value: isDailyQuiz ? 'Daily' : 'Practice' },
               ].map((stat) => (
                 <div
                   key={stat.label}
-                  className="rounded-2xl border border-white bg-white/90 px-3 py-3 shadow-sm"
+                  className="rounded-2xl border border-white/20 bg-white/15 px-3 py-3 text-white backdrop-blur-sm"
                 >
-                  <stat.icon className="mb-1.5 h-4 w-4 text-sky-600" />
-                  <p className="truncate text-sm font-bold text-slate-900 sm:text-base">{stat.value}</p>
-                  <p className="text-[11px] font-medium uppercase tracking-wide text-slate-500">
+                  <stat.icon className="mb-1.5 h-4 w-4 text-lime-200" />
+                  <p className="truncate text-sm font-bold sm:text-base">{stat.value}</p>
+                  <p className="text-[11px] font-medium uppercase tracking-wide text-white/70">
                     {stat.label}
                   </p>
                 </div>
@@ -354,14 +412,16 @@ export default function IQRankBoostQuiz() {
             <div className="space-y-2 px-5 pb-2 sm:px-7">
               {[
                 'Pick an answer for each question — you can jump around anytime',
-                'Submit when ready to see score and explanations',
-                'Retake later from the Quiz section if you want a better score',
+                'Submit to see score, explanations, and your streak',
+                isDailyQuiz
+                  ? 'Come back tomorrow for a fresh daily set — don’t break the streak'
+                  : 'Retake later from Quiz if you want a better score',
               ].map((tip) => (
                 <div
                   key={tip}
-                  className="flex items-start gap-2 rounded-xl bg-white/80 px-3 py-2 text-sm text-slate-600 ring-1 ring-sky-100"
+                  className="flex items-start gap-2 rounded-xl bg-white/12 px-3 py-2 text-sm text-white/90 ring-1 ring-white/15"
                 >
-                  <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-teal-600" />
+                  <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-lime-300" />
                   <span>{tip}</span>
                 </div>
               ))}
@@ -369,17 +429,19 @@ export default function IQRankBoostQuiz() {
 
             <div className="flex flex-col gap-2 px-5 py-5 sm:flex-row sm:px-7">
               <Link href={backHref} className="sm:flex-1">
-                <Button variant="outline" className="w-full rounded-xl">
+                <Button variant="outline" className="w-full rounded-full border-white/30 bg-white/10 text-white hover:bg-white/20">
                   <ArrowLeft className="mr-2 h-4 w-4" />
                   Back
                 </Button>
               </Link>
               <Button
-                className="w-full rounded-xl bg-gradient-to-r from-sky-500 to-teal-500 text-white shadow-md hover:from-sky-600 hover:to-teal-600 sm:flex-[1.4]"
+                className="w-full rounded-full bg-white py-6 text-indigo-700 shadow-md hover:bg-indigo-50 sm:flex-[1.4]"
                 onClick={() => setHasStarted(true)}
               >
-                <Play className="mr-2 h-4 w-4" />
-                Start quiz
+                Let's Start
+                <span className="ml-2 flex h-7 w-7 items-center justify-center rounded-full bg-indigo-600 text-white">
+                  →
+                </span>
               </Button>
             </div>
           </div>
@@ -391,15 +453,15 @@ export default function IQRankBoostQuiz() {
   if (isSubmitted && results) {
     return (
       <StudentShell>
-        <div className="mx-auto max-w-3xl space-y-6 px-4 py-6 pb-20">
-          <div className={cn('overflow-hidden rounded-3xl bg-gradient-to-br p-6 text-white shadow-lg sm:p-8', scoreTone)}>
+        <div className="mx-auto max-w-5xl space-y-6 px-4 py-6 pb-20">
+          <div className="overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-600 via-violet-600 to-fuchsia-500 p-6 text-white shadow-lg sm:p-8">
             <div className="mb-4 flex items-center justify-between gap-3">
               <div>
                 <p className="text-sm text-white/80">Quiz complete</p>
                 <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{quizTitle}</h1>
                 {subjectName ? <p className="mt-1 text-sm text-white/80">{subjectName}</p> : null}
               </div>
-              <Trophy className="h-10 w-10 text-white/90" />
+              <Trophy className="h-10 w-10 text-lime-200" />
             </div>
             <div className="mb-6 flex items-end gap-2">
               <span className="text-5xl font-black tabular-nums sm:text-6xl">{results.score}%</span>
@@ -420,79 +482,46 @@ export default function IQRankBoostQuiz() {
             </div>
             <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:items-center">
               <Link href={backHref}>
-                <Button className="rounded-xl bg-white text-slate-900 hover:bg-white/90">
+                <Button className="rounded-full bg-white text-indigo-700 hover:bg-indigo-50">
                   Back to quizzes
                 </Button>
               </Link>
               {lockedUntilTomorrow || isDailyQuiz ? (
                 <p className="text-sm text-white/90">
-                  Today’s set is saved. Next daily quiz unlocks tomorrow.
+                  Streak saved. Next daily quiz unlocks tomorrow — come back and keep it going.
                 </p>
               ) : null}
             </div>
           </div>
 
-          <div className="space-y-3">
-            <h2 className="text-lg font-bold text-ink">Review</h2>
-            {questions.map((question, index) => {
-              const userAnswer = answers[question._id];
-              const isCorrect = userAnswer === question.correctAnswer;
-              const isAnswered = Boolean(userAnswer);
-              return (
-                <div
-                  key={question._id}
-                  className={cn(
-                    'rounded-2xl border bg-white p-4 shadow-sm',
-                    isCorrect
-                      ? 'border-emerald-200'
-                      : isAnswered
-                        ? 'border-rose-200'
-                        : 'border-slate-200',
-                  )}
-                >
-                  <div className="mb-3 flex flex-wrap items-center gap-2">
-                    <span className="text-sm font-semibold text-slate-500">Q{index + 1}</span>
-                    {isCorrect ? (
-                      <Badge className="bg-emerald-500 hover:bg-emerald-500">Correct</Badge>
-                    ) : isAnswered ? (
-                      <Badge variant="destructive">Incorrect</Badge>
-                    ) : (
-                      <Badge variant="outline">Skipped</Badge>
-                    )}
-                  </div>
-                  <p className="mb-3 font-medium text-slate-900">{question.questionText}</p>
-                  <div className="space-y-2">
-                    {question.options.map((option, optIndex) => {
-                      const letter = String.fromCharCode(65 + optIndex);
-                      const selected = userAnswer === option.text;
-                      const correctOpt = option.isCorrect;
-                      return (
-                        <div
-                          key={optIndex}
-                          className={cn(
-                            'rounded-xl border px-3 py-2.5 text-sm',
-                            correctOpt
-                              ? 'border-emerald-300 bg-emerald-50'
-                              : selected
-                                ? 'border-rose-300 bg-rose-50'
-                                : 'border-slate-100 bg-slate-50',
-                          )}
-                        >
-                          <span className="mr-2 font-semibold">{letter}.</span>
-                          {option.text}
-                        </div>
-                      );
-                    })}
-                  </div>
-                  {question.explanation ? (
-                    <div className="mt-3 rounded-xl bg-sky-50 px-3 py-2 text-sm text-sky-900">
-                      <span className="font-semibold">Why: </span>
-                      {question.explanation}
-                    </div>
-                  ) : null}
-                </div>
-              );
-            })}
+          <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_16.5rem]">
+            <div>
+              <QuizReviewHeader />
+              <div className="space-y-3">
+                {questions.map((question, index) => {
+                  const userAnswer = answers[question._id];
+                  const isCorrect = userAnswer === question.correctAnswer;
+                  const isAnswered = Boolean(userAnswer);
+                  return (
+                    <QuizReviewQuestionCard
+                      key={question._id}
+                      index={index}
+                      questionText={question.questionText}
+                      options={question.options}
+                      userAnswer={userAnswer}
+                      isCorrect={isCorrect}
+                      isAnswered={isAnswered}
+                      explanation={question.explanation}
+                    />
+                  );
+                })}
+              </div>
+            </div>
+            <QuizReviewSidebar
+              streak={Math.max(playStreak, lockedUntilTomorrow || isDailyQuiz ? 1 : 0)}
+              locked={lockedUntilTomorrow || isDailyQuiz}
+              nextUnlockLabel={nextUnlockLabel}
+            />
           </div>
         </div>
       </StudentShell>
@@ -501,26 +530,49 @@ export default function IQRankBoostQuiz() {
 
   return (
     <StudentShell>
-      <div className="mx-auto max-w-3xl px-4 py-5 pb-24">
-        <div className="mb-5 overflow-hidden rounded-3xl border border-sky-100 bg-gradient-to-br from-sky-50 via-white to-teal-50 p-5 shadow-sm sm:p-6">
+      <div className="quiz-play-stage relative mx-auto max-w-4xl px-4 py-5 pb-24">
+        {!reduceMotion ? (
+          <>
+            <motion.div
+              className="pointer-events-none absolute -left-8 top-24 h-40 w-40 rounded-full bg-indigo-300/25 blur-3xl"
+              animate={{ x: [0, 18, 0], y: [0, -12, 0] }}
+              transition={{ duration: 9, repeat: Infinity, ease: 'easeInOut' }}
+            />
+            <motion.div
+              className="pointer-events-none absolute -right-6 top-48 h-36 w-36 rounded-full bg-violet-300/25 blur-3xl"
+              animate={{ x: [0, -14, 0], y: [0, 10, 0] }}
+              transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
+            />
+          </>
+        ) : null}
+
+        <motion.div
+          initial={reduceMotion ? false : { opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="relative mb-5 overflow-hidden rounded-3xl bg-gradient-to-br from-[#3b5bff] via-[#4f46e5] to-[#7c3aed] p-5 text-white shadow-[0_20px_40px_-24px_rgba(79,70,229,0.65)] sm:p-6"
+        >
           <div className="mb-4 flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <div className="mb-1 flex items-center gap-2 text-sky-700">
+              <motion.div
+                className="mb-1 flex items-center gap-2 text-lime-200"
+                animate={reduceMotion ? undefined : { opacity: [0.7, 1, 0.7] }}
+                transition={{ duration: 2.2, repeat: Infinity }}
+              >
                 <Sparkles className="h-4 w-4 shrink-0" />
                 <span className="text-xs font-semibold uppercase tracking-wide">In progress</span>
-              </div>
-              <h1 className="truncate text-xl font-bold text-ink sm:text-2xl">{quizTitle}</h1>
-              {subjectName ? <p className="mt-1 text-sm text-slate-600">{subjectName}</p> : null}
+              </motion.div>
+              <h1 className="truncate text-xl font-bold sm:text-2xl">{quizTitle}</h1>
+              {subjectName ? <p className="mt-1 text-sm text-white/80">{subjectName}</p> : null}
             </div>
             <Link href={backHref}>
-              <Button variant="ghost" size="sm" className="shrink-0 rounded-xl">
+              <Button variant="ghost" size="sm" className="shrink-0 rounded-xl text-white hover:bg-white/15">
                 <ArrowLeft className="mr-1 h-4 w-4" />
                 Exit
               </Button>
             </Link>
           </div>
 
-          <div className="mb-2 flex items-center justify-between text-xs font-medium text-slate-600 sm:text-sm">
+          <div className="mb-2 flex items-center justify-between text-xs font-medium text-white/80 sm:text-sm">
             <span>
               Question {currentQuestionIndex + 1} of {questions.length}
             </span>
@@ -529,170 +581,181 @@ export default function IQRankBoostQuiz() {
               {unansweredCount > 0 ? ` · ${unansweredCount} left` : ''}
             </span>
           </div>
-          <div className="h-2.5 overflow-hidden rounded-full bg-sky-100">
+          <div className="h-3 overflow-hidden rounded-full bg-white/20">
             <motion.div
-              className="h-full rounded-full bg-gradient-to-r from-sky-500 to-teal-500"
+              className="h-full rounded-full bg-[#c6f34a]"
               initial={false}
               animate={{ width: `${progress}%` }}
-              transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+              transition={{ type: 'spring', stiffness: 120, damping: 18 }}
             />
           </div>
-        </div>
+        </motion.div>
 
         <AnimatePresence mode="wait" custom={navDirection}>
-          <motion.div
+          <motion.article
             key={currentQuestion._id || currentQuestionIndex}
             custom={navDirection}
             initial={
               reduceMotion
                 ? false
-                : { opacity: 0, x: navDirection > 0 ? 28 : -28, scale: 0.98 }
+                : { opacity: 0, x: navDirection > 0 ? 72 : -72, rotateY: navDirection > 0 ? 4 : -4 }
             }
-            animate={{ opacity: 1, x: 0, scale: 1 }}
+            animate={{ opacity: 1, x: 0, rotateY: 0 }}
             exit={
               reduceMotion
                 ? undefined
-                : { opacity: 0, x: navDirection > 0 ? -20 : 20, scale: 0.98 }
+                : { opacity: 0, x: navDirection > 0 ? -56 : 56, scale: 0.96 }
             }
-            transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-            className="mb-5 rounded-3xl border border-sky-100/80 bg-white p-5 shadow-sm shadow-sky-100/40 sm:p-6"
+            transition={{ type: 'spring', stiffness: 280, damping: 28 }}
+            className="relative overflow-hidden rounded-[1.75rem] border border-indigo-100 bg-white shadow-[0_20px_50px_-28px_rgba(79,70,229,0.5)]"
           >
-            <div className="mb-4 flex items-center justify-between gap-2">
-              <span className="rounded-full bg-gradient-to-r from-sky-500 to-teal-500 px-3 py-1 text-xs font-semibold text-white shadow-sm">
-                Q{currentQuestionIndex + 1}
-              </span>
-              <Badge variant="outline" className="capitalize border-sky-200 text-sky-700">
-                {currentQuestion.difficulty || 'mixed'}
-              </Badge>
-            </div>
-            <p className="mb-5 text-base font-semibold leading-relaxed text-slate-900 sm:text-lg">
-              {currentQuestion.questionText}
-            </p>
+            <div className="pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full bg-indigo-100/40 blur-2xl" />
 
-            <div className="space-y-3">
-              {currentQuestion.options.map((option, index) => {
-                const letter = String.fromCharCode(65 + index);
-                const selected = answers[currentQuestion._id] === option.text;
-                return (
-                  <motion.button
-                    key={index}
-                    type="button"
-                    onClick={() => handleAnswerSelect(currentQuestion._id, option.text)}
-                    whileHover={reduceMotion ? undefined : { scale: 1.01, x: 2 }}
-                    whileTap={reduceMotion ? undefined : { scale: 0.985 }}
-                    className={cn(
-                      'quiz-option-btn flex w-full items-start gap-3 rounded-2xl border-2 px-4 py-3.5 text-left transition-colors',
-                      selected
-                        ? 'border-sky-500 bg-sky-50 shadow-md shadow-sky-100'
-                        : 'border-slate-200 bg-white hover:border-sky-300 hover:bg-sky-50/50',
-                    )}
-                  >
-                    <motion.span
-                      layout
+            <div className="relative p-5 sm:p-7">
+              <div className="mb-4 flex items-center justify-between gap-2">
+                <motion.span
+                  key={`q-${currentQuestionIndex}`}
+                  initial={reduceMotion ? false : { scale: 0.6, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ type: 'spring', stiffness: 400, damping: 16 }}
+                  className="rounded-full bg-indigo-600 px-3.5 py-1 text-xs font-bold text-white shadow-md shadow-indigo-300/50"
+                >
+                  Q{currentQuestionIndex + 1}
+                </motion.span>
+                <Badge variant="outline" className="capitalize border-violet-200 bg-violet-50 text-violet-700">
+                  {currentQuestion.difficulty || 'mixed'}
+                </Badge>
+              </div>
+              <motion.p
+                key={`text-${currentQuestionIndex}`}
+                initial={reduceMotion ? false : { opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.06, duration: 0.28 }}
+                className="mb-6 text-lg font-bold leading-relaxed text-slate-900 sm:text-xl"
+              >
+                {currentQuestion.questionText}
+              </motion.p>
+
+              <div className="grid gap-3">
+                {currentQuestion.options.map((option, optIndex) => {
+                  const letter = String.fromCharCode(65 + optIndex);
+                  const selected = answers[currentQuestion._id] === option.text;
+                  return (
+                    <motion.button
+                      key={`${currentQuestion._id}-${optIndex}`}
+                      type="button"
+                      initial={reduceMotion ? false : { opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.08 + optIndex * 0.07, type: 'spring', stiffness: 320, damping: 24 }}
+                      onClick={() => handleAnswerSelect(currentQuestion._id, option.text)}
+                      whileHover={reduceMotion ? undefined : { scale: 1.02, x: 6 }}
+                      whileTap={reduceMotion ? undefined : { scale: 0.97 }}
                       className={cn(
-                        'mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold',
+                        'quiz-option-btn quiz-option-pop flex w-full items-start gap-3 rounded-2xl border-2 px-4 py-4 text-left',
                         selected
-                          ? 'bg-gradient-to-br from-sky-500 to-teal-500 text-white shadow-sm'
-                          : 'bg-slate-100 text-slate-600',
+                          ? 'border-indigo-500 bg-gradient-to-r from-indigo-50 via-violet-50 to-indigo-50 shadow-lg shadow-indigo-100/80 ring-2 ring-indigo-200/60'
+                          : 'border-slate-200 bg-slate-50/70 hover:border-indigo-300 hover:bg-white hover:shadow-md',
                       )}
                     >
-                      {letter}
-                    </motion.span>
-                    <span className="pt-1 text-sm font-medium text-slate-800 sm:text-base">
-                      {option.text}
-                    </span>
-                    <AnimatePresence mode="wait">
-                      {selected ? (
-                        <motion.span
-                          key="check"
-                          initial={reduceMotion ? false : { scale: 0.6, opacity: 0 }}
-                          animate={{ scale: 1, opacity: 1 }}
-                          exit={{ scale: 0.6, opacity: 0 }}
-                          className="ml-auto mt-1"
-                        >
-                          <CheckCircle2 className="h-5 w-5 shrink-0 text-sky-600" />
-                        </motion.span>
-                      ) : (
-                        <motion.span key="empty" className="ml-auto mt-1">
-                          <Circle className="h-5 w-5 shrink-0 text-slate-200" />
-                        </motion.span>
-                      )}
-                    </AnimatePresence>
-                  </motion.button>
-                );
-              })}
-            </div>
-          </motion.div>
-        </AnimatePresence>
+                      <motion.span
+                        layout
+                        animate={selected && !reduceMotion ? { scale: [1, 1.15, 1] } : {}}
+                        transition={{ duration: 0.35 }}
+                        className={cn(
+                          'mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-sm font-black',
+                          selected
+                            ? 'bg-indigo-600 text-white shadow-md shadow-indigo-300/40'
+                            : 'bg-white text-indigo-600 ring-1 ring-indigo-100',
+                        )}
+                      >
+                        {letter}
+                      </motion.span>
+                      <span className="pt-1.5 text-sm font-semibold text-slate-800 sm:text-base">
+                        {option.text}
+                      </span>
+                      <AnimatePresence mode="wait">
+                        {selected ? (
+                          <motion.span
+                            key="check"
+                            initial={reduceMotion ? false : { scale: 0, rotate: -90 }}
+                            animate={{ scale: 1, rotate: 0 }}
+                            exit={{ scale: 0 }}
+                            className="ml-auto mt-1.5"
+                          >
+                            <CheckCircle2 className="h-6 w-6 shrink-0 text-indigo-600" />
+                          </motion.span>
+                        ) : (
+                          <motion.span key="empty" className="ml-auto mt-1.5">
+                            <Circle className="h-6 w-6 shrink-0 text-slate-200" />
+                          </motion.span>
+                        )}
+                      </AnimatePresence>
+                    </motion.button>
+                  );
+                })}
+              </div>
 
-        <div className="mb-5 flex items-center justify-between gap-3">
-          <Button
-            variant="outline"
-            className="rounded-xl"
-            onClick={() => {
-              setNavDirection(-1);
-              setCurrentQuestionIndex((i) => Math.max(0, i - 1));
-            }}
-            disabled={currentQuestionIndex === 0}
-          >
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Previous
-          </Button>
+              <div className="mt-7 flex flex-col gap-4 border-t border-indigo-100 pt-5 sm:flex-row sm:items-center sm:justify-between">
+                <motion.div whileTap={reduceMotion ? undefined : { scale: 0.96 }}>
+                  <Button
+                    variant="outline"
+                    className="h-12 w-full rounded-full border-indigo-200 bg-white px-6 text-indigo-700 hover:bg-indigo-50 sm:w-auto"
+                    onClick={goPrev}
+                    disabled={!canGoPrev}
+                  >
+                    <ArrowLeft className="mr-2 h-5 w-5" />
+                    Previous
+                  </Button>
+                </motion.div>
 
-          {currentQuestionIndex < questions.length - 1 ? (
-            <Button
-              className="rounded-xl bg-gradient-to-r from-sky-500 to-teal-500 text-white hover:from-sky-600 hover:to-teal-600"
-              onClick={() => {
-                setNavDirection(1);
-                setCurrentQuestionIndex((i) => Math.min(questions.length - 1, i + 1));
-              }}
-            >
-              Next
-              <ArrowRight className="ml-2 h-4 w-4" />
-            </Button>
-          ) : (
-            <Button
-              className="quiz-start-btn rounded-xl bg-gradient-to-r from-sky-500 to-teal-500 text-white hover:from-sky-600 hover:to-teal-600"
-              onClick={() => void handleSubmit()}
-            >
-              Submit quiz
-            </Button>
-          )}
-        </div>
+                <div className="flex flex-wrap items-center justify-center gap-1.5 px-1">
+                  {questions.map((question, index) => {
+                    const isAnswered = Boolean(answers[question._id]);
+                    const isCurrent = index === currentQuestionIndex;
+                    return (
+                      <motion.button
+                        key={question._id}
+                        type="button"
+                        layout
+                        whileHover={reduceMotion ? undefined : { scale: 1.15 }}
+                        whileTap={reduceMotion ? undefined : { scale: 0.9 }}
+                        onClick={() => jumpToQuestion(index)}
+                        className={cn(
+                          'h-2.5 rounded-full transition-all',
+                          isCurrent
+                            ? 'w-8 bg-indigo-600'
+                            : isAnswered
+                              ? 'w-2.5 bg-emerald-400'
+                              : 'w-2.5 bg-slate-200 hover:bg-indigo-300',
+                        )}
+                        aria-label={`Go to question ${index + 1}`}
+                      />
+                    );
+                  })}
+                </div>
 
-        <div className="rounded-2xl border border-sky-100 bg-white p-4 shadow-sm">
-          <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
-            Jump to question
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {questions.map((question, index) => {
-              const isAnswered = Boolean(answers[question._id]);
-              const isCurrent = index === currentQuestionIndex;
-              return (
-                <motion.button
-                  key={question._id}
-                  type="button"
-                  whileHover={reduceMotion ? undefined : { scale: 1.08 }}
-                  whileTap={reduceMotion ? undefined : { scale: 0.94 }}
-                  onClick={() => {
-                    setNavDirection(index > currentQuestionIndex ? 1 : -1);
-                    setCurrentQuestionIndex(index);
-                  }}
-                  className={cn(
-                    'flex h-9 w-9 items-center justify-center rounded-xl text-sm font-semibold transition-colors',
-                    isCurrent
-                      ? 'bg-gradient-to-br from-sky-500 to-teal-500 text-white shadow-sm'
-                      : isAnswered
-                        ? 'bg-emerald-100 text-emerald-800 ring-1 ring-emerald-200'
-                        : 'bg-slate-100 text-slate-600 hover:bg-sky-100 hover:text-sky-700',
+                <motion.div whileTap={reduceMotion ? undefined : { scale: 0.96 }}>
+                  {canGoNext ? (
+                    <Button
+                      className="quiz-start-btn h-12 w-full rounded-full bg-indigo-600 px-6 text-white shadow-md shadow-indigo-200 hover:bg-indigo-700 sm:w-auto"
+                      onClick={goNext}
+                    >
+                      Next
+                      <ArrowRight className="ml-2 h-5 w-5" />
+                    </Button>
+                  ) : (
+                    <Button
+                      className="quiz-start-btn h-12 w-full rounded-full bg-violet-600 px-6 text-white shadow-md shadow-violet-200 hover:bg-violet-700 sm:w-auto"
+                      onClick={() => void handleSubmit()}
+                    >
+                      Submit quiz
+                    </Button>
                   )}
-                >
-                  {index + 1}
-                </motion.button>
-              );
-            })}
-          </div>
-        </div>
+                </motion.div>
+              </div>
+            </div>
+          </motion.article>
+        </AnimatePresence>
       </div>
     </StudentShell>
   );

@@ -1,6 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import {
   Dialog,
   DialogContent,
@@ -27,8 +26,15 @@ import { API_BASE_URL } from '@/lib/api-config';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getAuthToken } from '@/lib/auth-utils';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
-import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
+import { computeQuizPlayStats } from '@/lib/quiz-play-stats';
+import {
+  QuizPlayHero,
+  QuizPlayStatCards,
+  QuizReviewHeader,
+  QuizReviewQuestionCard,
+  QuizReviewSidebar,
+} from '@/components/quiz/QuizPlayChrome';
 
 interface Quiz {
   _id: string;
@@ -330,6 +336,22 @@ export default function IQRankBoostSubjects() {
 
   let quizOrdinal = 0;
 
+  const playStats = useMemo(() => {
+    const extra = Array.from(quizResultsMap.values()).map((row) => Number(row.score) || 0);
+    return computeQuizPlayStats(dailyStatus, extra);
+  }, [dailyStatus, quizResultsMap]);
+
+  const firstPlayableQuizId = useMemo(() => {
+    for (const subject of subjects) {
+      for (const quiz of subject.quizzes) {
+        const daily = isDailyQuiz(quiz);
+        if (daily && dailyStatus?.lockedUntilTomorrow) continue;
+        return String(quiz._id);
+      }
+    }
+    return '';
+  }, [subjects, dailyStatus?.lockedUntilTomorrow]);
+
   return (
     <StudentShell>
       <div className="mx-auto min-h-screen w-full max-w-5xl px-4 pb-20 sm:px-6 lg:px-8">
@@ -343,43 +365,34 @@ export default function IQRankBoostSubjects() {
             <Button
               variant="ghost"
               size="sm"
-              className="mb-4 rounded-xl text-slate-600 transition-colors hover:bg-sky-50 hover:text-sky-700"
+              className="mb-4 rounded-xl text-slate-600 transition-colors hover:bg-violet-50 hover:text-violet-700"
             >
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back to Dashboard
             </Button>
           </Link>
 
-          <div className="quiz-hero-shell relative overflow-hidden rounded-3xl border border-sky-100 bg-gradient-to-br from-sky-50 via-white to-teal-50 p-5 shadow-sm sm:p-6">
-            <motion.div
-              className="pointer-events-none absolute -right-8 -top-10 h-36 w-36 rounded-full bg-sky-300/30 blur-3xl"
-              animate={reduceMotion ? undefined : { x: [0, 12, 0], y: [0, 8, 0] }}
-              transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
-            />
-            <motion.div
-              className="pointer-events-none absolute -bottom-12 left-8 h-32 w-32 rounded-full bg-teal-300/25 blur-3xl"
-              animate={reduceMotion ? undefined : { x: [0, -10, 0], y: [0, -6, 0] }}
-              transition={{ duration: 9, repeat: Infinity, ease: 'easeInOut' }}
-            />
-            <div className="relative flex items-center gap-3">
-              <motion.div
-                className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-500 to-teal-500 shadow-md shadow-sky-200/50"
-                whileHover={reduceMotion ? undefined : { scale: 1.08, rotate: -4 }}
-                whileTap={reduceMotion ? undefined : { scale: 0.96 }}
-              >
-                <Trophy className="h-6 w-6 text-white" />
-              </motion.div>
-              <div>
-                <h1 className="text-xl font-extrabold tracking-tight text-slate-900 sm:text-2xl lg:text-3xl">
-                  Quiz
-                </h1>
-                <p className="text-sm text-slate-600">
-                  {studentClass
-                    ? `Practice quizzes for Class ${studentClass} — start when you're ready`
-                    : 'Practice quizzes to boost your score — start when you are ready'}
-                </p>
-              </div>
-            </div>
+          <QuizPlayHero
+            subtitle={
+              studentClass
+                ? `Class ${studentClass} quizzes — play daily to keep your streak alive.`
+                : 'Play daily to keep your streak, earn XP, and come back tomorrow.'
+            }
+            startLabel={dailyStatus?.lockedUntilTomorrow ? 'View today’s result' : "Let's Start"}
+            onStart={() => {
+              if (dailyStatus?.lockedUntilTomorrow && dailyStatus.today?.dateKey) {
+                void openPreviousResult(dailyStatus.today.dateKey);
+                return;
+              }
+              if (firstPlayableQuizId) {
+                setLocation(`/iq-rank-boost/quiz/${firstPlayableQuizId}`);
+                return;
+              }
+              document.getElementById('quiz-list')?.scrollIntoView({ behavior: 'smooth' });
+            }}
+          />
+          <div className="mt-4">
+            <QuizPlayStatCards stats={playStats} />
           </div>
         </motion.div>
 
@@ -407,7 +420,7 @@ export default function IQRankBoostSubjects() {
             </p>
           </motion.div>
         ) : (
-          <div className="space-y-8">
+          <div id="quiz-list" className="space-y-8">
             {subjects.map((subject, subjectIndex) => (
               <motion.section
                 key={subject._id}
@@ -490,7 +503,7 @@ export default function IQRankBoostSubjects() {
                         onHoverEnd={() => setHoveredQuizId(null)}
                       >
                         <div className="grid gap-0 md:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
-                          <div className="relative min-h-[210px] overflow-hidden bg-gradient-to-br from-teal-700 via-sky-600 to-cyan-600 p-5 sm:p-6">
+                          <div className="relative min-h-[210px] overflow-hidden bg-gradient-to-br from-indigo-600 via-violet-600 to-fuchsia-500 p-5 sm:p-6">
                             <motion.div
                               className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/15 blur-2xl"
                               animate={
@@ -525,7 +538,7 @@ export default function IQRankBoostSubjects() {
                                 </span>
                               </div>
                               <div>
-                                <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-teal-100">
+                                <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-lime-200">
                                   {typeof quiz.subject === 'object'
                                     ? quiz.subject?.name || 'Practice'
                                     : daily
@@ -623,7 +636,7 @@ export default function IQRankBoostSubjects() {
                                   whileTap={reduceMotion ? undefined : { scale: 0.98 }}
                                 >
                                   <Button
-                                    className="quiz-start-btn h-11 w-full rounded-xl bg-gradient-to-r from-sky-500 to-teal-500 text-sm font-semibold text-white shadow-sm shadow-sky-200/50 transition-all hover:from-sky-600 hover:to-teal-600 hover:shadow-md hover:shadow-teal-200/50"
+                                    className="quiz-start-btn h-11 w-full rounded-xl bg-gradient-to-r from-indigo-500 to-violet-500 text-sm font-semibold text-white shadow-sm shadow-indigo-200/50 transition-all hover:from-indigo-600 hover:to-violet-600 hover:shadow-md"
                                     onClick={() => setLocation(`/iq-rank-boost/quiz/${quiz._id}`)}
                                   >
                                     <Play className="mr-2 h-4 w-4" />
@@ -654,14 +667,14 @@ export default function IQRankBoostSubjects() {
 
                 {subject.isDaily ? (
                   <div className="grid gap-3 sm:grid-cols-2">
-                    <div className="rounded-2xl border border-dashed border-sky-200 bg-sky-50/40 p-4">
-                      <div className="mb-2 flex items-center gap-2 text-sky-700">
+                    <div className="rounded-2xl border border-dashed border-orange-200 bg-orange-50/70 p-4">
+                      <div className="mb-2 flex items-center gap-2 text-orange-700">
                         <Lock className="h-4 w-4" />
-                        <p className="text-sm font-semibold">Upcoming</p>
+                        <p className="text-sm font-semibold">Keep your streak</p>
                       </div>
                       <p className="text-sm text-slate-600">
                         Tomorrow’s daily quiz unlocks at midnight (IST). Complete today’s set to keep
-                        your streak going.
+                        your {playStats.streak}-day streak going.
                       </p>
                       <div className="mt-3 inline-flex items-center gap-2 rounded-xl bg-white px-3 py-2 text-xs font-semibold text-slate-600 ring-1 ring-sky-100">
                         <CalendarDays className="h-3.5 w-3.5 text-sky-600" />
@@ -721,112 +734,54 @@ export default function IQRankBoostSubjects() {
             }
           }}
         >
-          <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto rounded-2xl">
-            <DialogHeader>
-              <DialogTitle className="text-xl text-slate-900">
+          <DialogContent className="flex h-[min(94vh,940px)] max-h-[94vh] w-[min(96vw,1280px)] max-w-[min(96vw,1280px)] flex-col gap-0 overflow-hidden rounded-3xl p-0 sm:p-0 lg:max-w-[1280px]">
+            <DialogHeader className="shrink-0 px-6 pb-0 pt-6 sm:px-8 sm:pt-7">
+              <DialogTitle className="sr-only">
                 {review
                   ? `Daily quiz · ${formatDateKeyLabel(review.dateKey)}`
                   : 'Previous result'}
               </DialogTitle>
-              <DialogDescription>
-                {review
-                  ? 'Your saved answers and score for that day.'
-                  : 'Loading your saved review…'}
+              <DialogDescription className="sr-only">
+                Review saved answers, streak, and explanations.
               </DialogDescription>
             </DialogHeader>
 
             {reviewLoading ? (
-              <div className="flex items-center justify-center gap-2 py-12 text-slate-500">
+              <div className="flex flex-1 items-center justify-center gap-2 py-16 text-slate-500">
                 <Loader2 className="h-5 w-5 animate-spin" />
                 Loading review…
               </div>
             ) : review ? (
-              <div className="space-y-4">
-                <div className="overflow-hidden rounded-2xl bg-gradient-to-br from-sky-500 to-teal-600 p-5 text-white">
-                  <div className="flex items-end justify-between gap-3">
-                    <div>
-                      <p className="text-sm text-white/80">Score</p>
-                      <p className="text-4xl font-black tabular-nums">
-                        {review.score != null ? `${review.score}%` : '—'}
-                      </p>
-                    </div>
-                    <Trophy className="h-8 w-8 text-white/90" />
-                  </div>
-                  <div className="mt-4 grid grid-cols-3 gap-2 text-center">
-                    <div className="rounded-xl bg-white/15 px-2 py-2">
-                      <p className="text-lg font-bold tabular-nums">{review.correctCount}</p>
-                      <p className="text-[11px] text-white/80">Correct</p>
-                    </div>
-                    <div className="rounded-xl bg-white/15 px-2 py-2">
-                      <p className="text-lg font-bold tabular-nums">{review.incorrectCount}</p>
-                      <p className="text-[11px] text-white/80">Wrong</p>
-                    </div>
-                    <div className="rounded-xl bg-white/15 px-2 py-2">
-                      <p className="text-lg font-bold tabular-nums">{review.unattempted}</p>
-                      <p className="text-[11px] text-white/80">Skipped</p>
-                    </div>
+              <div className="grid min-h-0 flex-1 gap-6 overflow-hidden px-6 pb-6 sm:px-8 sm:pb-8 lg:grid-cols-[minmax(0,1fr)_19rem]">
+                <div className="min-h-0 overflow-y-auto pr-1">
+                  <QuizReviewHeader>
+                    Score {review.score != null ? `${review.score}%` : '—'} ·{' '}
+                    {formatDateKeyLabel(review.dateKey)}
+                  </QuizReviewHeader>
+                  <div className="space-y-4 pb-2">
+                    {review.questions.map((question, index) => (
+                      <QuizReviewQuestionCard
+                        key={question._id}
+                        index={index}
+                        questionText={question.questionText}
+                        options={question.options}
+                        userAnswer={question.userAnswer}
+                        isCorrect={question.isCorrect}
+                        isAnswered={question.isAnswered}
+                        explanation={question.explanation}
+                      />
+                    ))}
                   </div>
                 </div>
-
-                <div className="space-y-3">
-                  <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
-                    Review
-                  </h3>
-                  {review.questions.map((question, index) => (
-                    <div
-                      key={question._id}
-                      className={cn(
-                        'rounded-2xl border bg-white p-4 shadow-sm',
-                        question.isCorrect
-                          ? 'border-emerald-200'
-                          : question.isAnswered
-                            ? 'border-rose-200'
-                            : 'border-slate-200',
-                      )}
-                    >
-                      <div className="mb-2 flex flex-wrap items-center gap-2">
-                        <span className="text-sm font-semibold text-slate-500">Q{index + 1}</span>
-                        {question.isCorrect ? (
-                          <Badge className="bg-emerald-500 hover:bg-emerald-500">Correct</Badge>
-                        ) : question.isAnswered ? (
-                          <Badge variant="destructive">Incorrect</Badge>
-                        ) : (
-                          <Badge variant="outline">Skipped</Badge>
-                        )}
-                      </div>
-                      <p className="mb-3 font-medium text-slate-900">{question.questionText}</p>
-                      <div className="space-y-2">
-                        {question.options.map((option, optIndex) => {
-                          const letter = String.fromCharCode(65 + optIndex);
-                          const selected = question.userAnswer === option.text;
-                          const correctOpt = Boolean(option.isCorrect);
-                          return (
-                            <div
-                              key={optIndex}
-                              className={cn(
-                                'rounded-xl border px-3 py-2.5 text-sm',
-                                correctOpt
-                                  ? 'border-emerald-300 bg-emerald-50'
-                                  : selected
-                                    ? 'border-rose-300 bg-rose-50'
-                                    : 'border-slate-100 bg-slate-50',
-                              )}
-                            >
-                              <span className="mr-2 font-semibold">{letter}.</span>
-                              {option.text}
-                            </div>
-                          );
-                        })}
-                      </div>
-                      {question.explanation ? (
-                        <div className="mt-3 rounded-xl bg-sky-50 px-3 py-2 text-sm text-sky-900">
-                          <span className="font-semibold">Why: </span>
-                          {question.explanation}
-                        </div>
-                      ) : null}
-                    </div>
-                  ))}
-                </div>
+                <QuizReviewSidebar
+                  streak={playStats.streak}
+                  locked={Boolean(dailyStatus?.lockedUntilTomorrow)}
+                  nextUnlockLabel={
+                    dailyStatus?.nextUnlockDateKey
+                      ? formatDateKeyLabel(dailyStatus.nextUnlockDateKey)
+                      : 'tomorrow at midnight (IST)'
+                  }
+                />
               </div>
             ) : null}
           </DialogContent>
