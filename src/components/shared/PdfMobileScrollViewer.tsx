@@ -103,8 +103,8 @@ export function writeStoredPdfPage(fileUrl: string, page: number): void {
 }
 
 function getPageViewport(page: pdfjs.PDFPageProxy, scale: number) {
-  // Explicit dontFlip avoids mirrored/upside-down pages when scale !== 1 (pdf.js quirk).
-  return page.getViewport({ scale, dontFlip: false });
+  // Honor embedded page rotation so landscape / sideways pages render upright.
+  return page.getViewport({ scale, rotation: page.rotate ?? 0 });
 }
 
 async function measurePdfPageCssSize(
@@ -115,10 +115,12 @@ async function measurePdfPageCssSize(
 ): Promise<{ cssWidth: number; cssHeight: number } | null> {
   const page = await pdf.getPage(pageNum);
   const base = getPageViewport(page, 1);
-  const cssScale = getPageCssScale(containerWidth, base.width, base.height, maxHeight);
-  const cssWidth = Math.floor(base.width * cssScale);
-  const cssHeight = Math.floor(base.height * cssScale);
-  if (cssWidth < 1 || cssHeight < 1) return null;
+  // Small inset so page edges never kiss the frame (premium fit, no clip).
+  const fitWidth = Math.max(200, containerWidth - 8);
+  const fitHeight = maxHeight != null ? Math.max(120, maxHeight - 8) : undefined;
+  const cssScale = getPageCssScale(fitWidth, base.width, base.height, fitHeight);
+  const cssWidth = Math.max(1, Math.floor(base.width * cssScale));
+  const cssHeight = Math.max(1, Math.floor(base.height * cssScale));
   return { cssWidth, cssHeight };
 }
 
@@ -131,10 +133,11 @@ async function renderPdfPageCanvas(
 ): Promise<{ cssWidth: number; cssHeight: number } | null> {
   const page = await pdf.getPage(pageNum);
   const base = getPageViewport(page, 1);
-  const cssScale = getPageCssScale(containerWidth, base.width, base.height, maxHeight);
-  const cssWidth = Math.floor(base.width * cssScale);
-  const cssHeight = Math.floor(base.height * cssScale);
-  if (cssWidth < 1 || cssHeight < 1) return null;
+  const fitWidth = Math.max(200, containerWidth - 8);
+  const fitHeight = maxHeight != null ? Math.max(120, maxHeight - 8) : undefined;
+  const cssScale = getPageCssScale(fitWidth, base.width, base.height, fitHeight);
+  const cssWidth = Math.max(1, Math.floor(base.width * cssScale));
+  const cssHeight = Math.max(1, Math.floor(base.height * cssScale));
 
   const baseOutputScale = getSafeOutputScale(cssScale, base.width, base.height);
   const scaleAttempts = prefersDisableWorker()
@@ -318,7 +321,7 @@ function PdfMobilePage({
     <div
       ref={slotRef}
       data-page={pageNum}
-      className={`pdf-page-slot flex w-full shrink-0 snap-start snap-always justify-center px-3 py-3 sm:px-4 sm:py-4${
+      className={`pdf-page-slot flex w-full shrink-0 snap-start snap-always justify-center px-2 py-2 sm:px-3 sm:py-3${
         fillViewport ? ' items-center' : ''
       }`}
       style={slotStyle}
@@ -555,17 +558,12 @@ const PdfMobileScrollViewer = forwardRef<PdfMobileScrollViewerHandle, PdfMobileS
       scrollBy: (dx: number, dy: number) => {
         const host = scrollRef.current;
         if (!host) return;
-        // When a page is pinch-zoomed, prefer scrolling that page's frame.
-        const zoomedFrame = host.querySelector(
-          '.pdf-page-pinch-frame[data-pdf-zoomed="true"]',
-        ) as HTMLElement | null;
-        const target =
-          zoomedFrame &&
-          (zoomedFrame.scrollHeight > zoomedFrame.clientHeight + 1 ||
-            zoomedFrame.scrollWidth > zoomedFrame.clientWidth + 1)
-            ? zoomedFrame
-            : host;
-        target.scrollBy({ left: dx, top: dy, behavior: 'auto' });
+        const zoomHandle = getActiveZoomHandle();
+        if (zoomHandle && zoomHandle.getScale() > 1.02) {
+          zoomHandle.panBy(dx, dy);
+          return;
+        }
+        host.scrollBy({ left: dx, top: dy, behavior: 'auto' });
       },
       scrollTo: (opts) => {
         const host = scrollRef.current;
@@ -589,10 +587,10 @@ const PdfMobileScrollViewer = forwardRef<PdfMobileScrollViewerHandle, PdfMobileS
     <div className={`relative h-full w-full ${className}`}>
       <div
         ref={scrollRef}
-        className={`h-full w-full touch-manipulation overscroll-y-contain snap-y snap-mandatory ${
+        className={`pdf-book-scroll hide-scrollbar h-full w-full touch-manipulation overscroll-y-contain snap-y snap-mandatory ${
           scrollLocked
-            ? 'overflow-y-hidden overflow-x-hidden'
-            : 'overflow-y-auto overflow-x-auto'
+            ? 'overflow-hidden'
+            : 'overflow-y-auto overflow-x-hidden'
         }`}
         style={{ WebkitOverflowScrolling: 'touch' }}
       >

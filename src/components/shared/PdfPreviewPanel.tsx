@@ -1070,7 +1070,7 @@ export default function PdfPreviewPanel({
         <p className="text-xs font-medium text-stone-500 sm:text-sm">
           {useIframeFallback
             ? 'Use the scrollbar to move through pages'
-            : '↑↓ scroll pages · Ctrl+scroll or +/− to zoom · pinch on touch'}
+            : '↑↓ change pages · Ctrl+scroll or +/− zoom · drag to pan'}
         </p>
         <div className="flex flex-wrap items-center gap-2">
           {!useIframeFallback ? (
@@ -1133,13 +1133,13 @@ export default function PdfPreviewPanel({
         <div
           className={`${bookShellClass} touch-manipulation ${
             isBookLayout
-              ? 'overflow-hidden rounded-xl border border-stone-300/70 bg-stone-200/80 shadow-xl ring-1 ring-black/5'
+              ? 'overflow-hidden rounded-2xl border border-stone-300/50 bg-gradient-to-b from-stone-100 to-stone-200/90 shadow-xl ring-1 ring-black/5'
               : `overflow-hidden ${readingSurfaceClass}`
           }`}
         >
           <div
             ref={containerRef}
-            className="relative h-full min-h-0 flex-1 overflow-hidden touch-manipulation bg-stone-200/50"
+            className="relative h-full min-h-0 flex-1 overflow-hidden touch-manipulation bg-transparent"
           >
             {useIframeFallback ? (
               <iframe
