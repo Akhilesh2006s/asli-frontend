@@ -504,6 +504,11 @@ const PdfMobileScrollViewer = forwardRef<PdfMobileScrollViewerHandle, PdfMobileS
     return () => host.removeEventListener('wheel', onWheel);
   }, [currentPage, totalPages, pdf]);
 
+  useEffect(() => {
+    const host = scrollRef.current;
+    if (!host) return;
+    let tick = 0;
+    const onScroll = () => {
       window.clearTimeout(tick);
       tick = window.setTimeout(() => {
         const slots = Array.from(host.querySelectorAll<HTMLElement>('[data-page]'));
