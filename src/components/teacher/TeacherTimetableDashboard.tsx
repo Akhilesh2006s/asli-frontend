@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ImagePlus, Trash2, Upload, Camera, CheckCircle2 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -89,16 +89,13 @@ export default function TeacherTimetableDashboard() {
     <div className="space-y-4">
       <Card className="overflow-hidden border-sky-100 bg-gradient-to-br from-white via-sky-50/40 to-teal-50/30 shadow-sm">
         <CardHeader className="border-b border-sky-100/80 bg-white/70 pb-4">
-          <div className="flex items-start gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-sky-100 text-sky-700 ring-1 ring-sky-200">
-              <Camera className="h-5 w-5" />
+          <div className="flex items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-sky-100 text-sky-700 ring-1 ring-sky-200">
+              <Camera className="h-4 w-4" />
             </div>
-            <div>
-              <CardTitle className="text-xl font-bold text-slate-900">My Timetable</CardTitle>
-              <p className="mt-1 text-sm text-slate-600">
-                Upload one timetable photo for yourself — no class selection needed.
-              </p>
-            </div>
+            <p className="text-sm font-medium text-slate-600">
+              Upload one timetable photo for yourself — no class selection needed.
+            </p>
           </div>
         </CardHeader>
         <CardContent className="space-y-5 pt-5">

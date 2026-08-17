@@ -321,6 +321,14 @@ export function GenerationRecordsList({
                       {row.board}
                     </Badge>
                   ) : null}
+                  {row.productCategory ? (
+                    <Badge
+                      variant="outline"
+                      className="text-micro h-5 shrink-0 border-sky-200 bg-sky-50 text-sky-800"
+                    >
+                      {row.productCategory.charAt(0) + row.productCategory.slice(1).toLowerCase()}
+                    </Badge>
+                  ) : null}
                   {isBookGroundedRow(row) ? (
                     <Badge
                       variant="outline"

@@ -6,19 +6,21 @@ import {
 } from "@/components/ui/collapsible";
 import { Badge } from "@/components/ui/badge";
 import { ChevronDown, BookOpen, Loader2 } from "lucide-react";
-import { fetchBranch, type BranchItem } from "./api";
+import { fetchBranch, scopeParams, type BranchItem } from "./api";
 import { SubtopicSection } from "./SubtopicSection";
 
 function SubjectRow({
   toolName,
   classLabel,
   board,
+  productCategory,
   subject,
   label,
 }: {
   toolName: string;
   classLabel: string;
   board?: string;
+  productCategory?: string;
   subject: string;
   label: string;
 }) {
@@ -28,7 +30,7 @@ function SubjectRow({
 
   useEffect(() => {
     setTopics(null);
-  }, [board, toolName, classLabel, subject]);
+  }, [board, productCategory, toolName, classLabel, subject]);
 
   useEffect(() => {
     if (!open || topics !== null) return;
@@ -36,7 +38,7 @@ function SubjectRow({
       setLoading(true);
       try {
         const r = await fetchBranch({
-          ...(board ? { board } : {}),
+          ...scopeParams(board, productCategory),
           toolName,
           classLabel,
           subject,
@@ -46,7 +48,7 @@ function SubjectRow({
         setLoading(false);
       }
     })();
-  }, [open, topics, toolName, classLabel, subject, board]);
+  }, [open, topics, toolName, classLabel, subject, board, productCategory]);
 
   return (
     <Collapsible open={open} onOpenChange={setOpen} className="rounded-xl border border-slate-200/80 bg-white shadow-sm overflow-hidden">
@@ -80,6 +82,7 @@ function SubjectRow({
                 toolName={toolName}
                 classLabel={classLabel}
                 board={board}
+                productCategory={productCategory}
                 subject={subject}
                 topic={t.value}
                 topicLabel={t.value === "" ? "(None)" : t.value}
@@ -95,10 +98,12 @@ export function SubjectSection({
   toolName,
   classLabel,
   board,
+  productCategory,
 }: {
   toolName: string;
   classLabel: string;
   board?: string;
+  productCategory?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -106,20 +111,24 @@ export function SubjectSection({
 
   useEffect(() => {
     setSubjects(null);
-  }, [board, toolName, classLabel]);
+  }, [board, productCategory, toolName, classLabel]);
 
   useEffect(() => {
     if (!open || subjects !== null) return;
     (async () => {
       setLoading(true);
       try {
-        const r = await fetchBranch({ ...(board ? { board } : {}), toolName, classLabel });
+        const r = await fetchBranch({
+          ...scopeParams(board, productCategory),
+          toolName,
+          classLabel,
+        });
         setSubjects(r.data.items || []);
       } finally {
         setLoading(false);
       }
     })();
-  }, [open, subjects, toolName, classLabel, board]);
+  }, [open, subjects, toolName, classLabel, board, productCategory]);
 
   const classTitle = classLabel === "" ? "(No class label)" : classLabel;
 
@@ -156,6 +165,7 @@ export function SubjectSection({
                 toolName={toolName}
                 classLabel={classLabel}
                 board={board}
+                productCategory={productCategory}
                 subject={s.value}
                 label={s.value === "" ? "(None)" : s.value}
               />

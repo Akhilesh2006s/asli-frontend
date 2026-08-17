@@ -462,12 +462,17 @@ export default function CalendarView({
   const renderContentCard = (content: ContentItem, opts?: { iit?: boolean }) => {
     const Icon = getContentIcon(content.type);
     const isDone = markedDone.has(content._id);
-    const title = opts?.iit
+    // IIT rows keep the uploaded material name as the heading; the derived
+    // "<Subject> IIT <Track>" label is context and belongs in the subtitle.
+    const iitTrackLabel = opts?.iit
       ? formatIitLearningPathContentLabel(content, subjectName)
-      : getLibraryContentDisplayTitle(content);
+      : '';
+    const uploadedTitle = getLibraryContentDisplayTitle(content);
+    const hasUploadedTitle = Boolean(uploadedTitle) && uploadedTitle !== 'Untitled';
+    const title = opts?.iit && !hasUploadedTitle ? iitTrackLabel : uploadedTitle;
     const subtitleBits = opts?.iit
       ? [
-          content.title && content.title !== title ? content.title : null,
+          iitTrackLabel && iitTrackLabel !== title ? iitTrackLabel : null,
           content.chapter ? `Chapter ${content.chapter}` : null,
           content.type || null,
         ].filter(Boolean)

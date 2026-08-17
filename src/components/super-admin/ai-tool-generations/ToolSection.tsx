@@ -20,12 +20,14 @@ export function ToolSection({
   tool,
   displayName,
   board,
+  productCategory,
   gapSummary,
   gapLoading,
 }: {
   tool: BranchItem;
   displayName?: string;
   board?: string;
+  productCategory?: string;
   gapSummary?: ToolSectionGapSummary | null;
   gapLoading?: boolean;
 }) {
@@ -99,7 +101,12 @@ export function ToolSection({
         </CollapsibleTrigger>
         <CollapsibleContent>
           <div className="px-3 pb-3 sm:px-5 sm:pb-5 pt-0 border-t border-slate-100/80 bg-slate-50/40 space-y-4 overflow-x-hidden">
-            <ClassSection key={`${tool.value}:${board || "all"}`} toolName={tool.value} board={board} />
+            <ClassSection
+              key={`${tool.value}:${board || "all"}:${productCategory ?? "all"}`}
+              toolName={tool.value}
+              board={board}
+              productCategory={productCategory}
+            />
           </div>
         </CollapsibleContent>
       </Collapsible>

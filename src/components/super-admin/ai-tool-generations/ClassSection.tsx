@@ -6,10 +6,18 @@ import {
 } from "@/components/ui/collapsible";
 import { Badge } from "@/components/ui/badge";
 import { ChevronDown, GraduationCap, Loader2 } from "lucide-react";
-import { fetchBranch, type BranchItem } from "./api";
+import { fetchBranch, scopeParams, type BranchItem } from "./api";
 import { SubjectSection } from "./SubjectSection";
 
-export function ClassSection({ toolName, board }: { toolName: string; board?: string }) {
+export function ClassSection({
+  toolName,
+  board,
+  productCategory,
+}: {
+  toolName: string;
+  board?: string;
+  productCategory?: string;
+}) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -17,7 +25,7 @@ export function ClassSection({ toolName, board }: { toolName: string; board?: st
 
   useEffect(() => {
     setClasses(null);
-  }, [board, toolName]);
+  }, [board, productCategory, toolName]);
 
   useEffect(() => {
     if (!open || classes !== null) return;
@@ -25,7 +33,7 @@ export function ClassSection({ toolName, board }: { toolName: string; board?: st
       setLoading(true);
       setError(null);
       try {
-        const r = await fetchBranch({ ...(board ? { board } : {}), toolName });
+        const r = await fetchBranch({ ...scopeParams(board, productCategory), toolName });
         setClasses(r.data.items || []);
       } catch (e: unknown) {
         setClasses([]);
@@ -34,7 +42,7 @@ export function ClassSection({ toolName, board }: { toolName: string; board?: st
         setLoading(false);
       }
     })();
-  }, [open, classes, toolName, board]);
+  }, [open, classes, toolName, board, productCategory]);
 
   return (
     <Collapsible open={open} onOpenChange={setOpen} className="pt-2">
@@ -62,7 +70,13 @@ export function ClassSection({ toolName, board }: { toolName: string; board?: st
         )}
         {classes &&
           classes.map((c) => (
-            <SubjectSection key={`${c.value}:${c.count}`} toolName={toolName} classLabel={c.value} board={board} />
+            <SubjectSection
+              key={`${c.value}:${c.count}`}
+              toolName={toolName}
+              classLabel={c.value}
+              board={board}
+              productCategory={productCategory}
+            />
           ))}
       </CollapsibleContent>
     </Collapsible>

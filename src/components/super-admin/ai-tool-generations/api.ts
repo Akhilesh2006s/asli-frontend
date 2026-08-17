@@ -15,6 +15,17 @@ function authHeaders(): HeadersInit {
 }
 
 export type BranchItem = { value: string; count: number };
+
+/**
+ * Shared board / product-track scope for every hierarchy request.
+ * An empty `productCategory` means General, so it is only omitted when undefined.
+ */
+export function scopeParams(board?: string, productCategory?: string): Record<string, string> {
+  return {
+    ...(board ? { board } : {}),
+    ...(productCategory !== undefined ? { productCategory } : {}),
+  };
+}
 export type BranchResponse = {
   success: boolean;
   data: {
@@ -50,6 +61,23 @@ export async function fetchBootstrap(params: Record<string, string> = {}) {
       nextLevel: string;
       items: BranchItem[];
     };
+  }>;
+}
+
+/**
+ * Product tracks available for the category filter. Configured tracks come back
+ * even when they have no generations yet, so an empty track is still selectable.
+ */
+export async function fetchProductCategories(params: Record<string, string> = {}) {
+  const qs = new URLSearchParams(params);
+  const res = await fetch(
+    `${API_BASE_URL}/api/super-admin/ai-tool-generations/product-categories?${qs.toString()}`,
+    { headers: authHeaders() },
+  );
+  if (!res.ok) throw new Error(`Product categories fetch failed: ${res.status}`);
+  return res.json() as Promise<{
+    success: boolean;
+    data: { items: BranchItem[] };
   }>;
 }
 
@@ -124,6 +152,8 @@ export type RecordRow = {
   _id: string;
   sourceType?: string;
   board?: string;
+  /** IIT product track (ALPHA / BETA / …). Empty = General. */
+  productCategory?: string;
   toolName: string;
   toolDisplayName?: string;
   classLabel: string;

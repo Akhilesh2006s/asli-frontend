@@ -2518,13 +2518,13 @@ const TeacherDashboard = () => {
 
                 {/* Tabs for Teacher Tools and Chat */}
                 <div className="mt-5">
-                  <div className="inline-flex min-h-12 w-full gap-1 overflow-x-auto rounded-xl border border-sky-200/80 bg-white/80 p-1 backdrop-blur-sm sm:w-auto">
+                  <div className="inline-flex min-h-12 w-full gap-1 overflow-x-auto rounded-xl border border-white/70 bg-white/90 p-1 backdrop-blur-sm sm:w-auto">
                     <button
                       onClick={() => setVidyaAiTab('teacher-tools')}
                       className={`min-h-10 flex-1 whitespace-nowrap rounded-lg px-4 py-2 text-sm font-semibold transition-all ${
                         vidyaAiTab === 'teacher-tools'
-                          ? 'bg-sky-600 text-white shadow-md'
-                          : 'text-slate-600 hover:bg-sky-50 hover:text-sky-800'
+                          ? 'bg-violet-600 text-white shadow-md'
+                          : 'text-slate-600 hover:bg-violet-50 hover:text-violet-800'
                       }`}
                     >
                       <Wrench className="mr-2 inline h-5 w-5" />
@@ -2535,8 +2535,8 @@ const TeacherDashboard = () => {
                       onClick={() => setVidyaAiTab('chat')}
                       className={`min-h-10 flex-1 whitespace-nowrap rounded-lg px-4 py-2 text-sm font-semibold transition-all ${
                         vidyaAiTab === 'chat'
-                          ? 'bg-sky-600 text-white shadow-md'
-                          : 'text-slate-600 hover:bg-sky-50 hover:text-sky-800'
+                          ? 'bg-violet-600 text-white shadow-md'
+                          : 'text-slate-600 hover:bg-violet-50 hover:text-violet-800'
                       }`}
                     >
                       <MessageCircle className="mr-2 inline h-5 w-5" />
@@ -2546,9 +2546,10 @@ const TeacherDashboard = () => {
                   </div>
                 </div>
 
-                {/* Teacher Tools Content */}
+                {/* Teacher Tools Content — light surface so the dark tool copy stays readable
+                    against the violet hero gradient. */}
                 {vidyaAiTab === 'teacher-tools' && (
-                  <div className="mt-7 space-y-8 border-t border-sky-100/90 pt-7">
+                  <div className="mt-6 space-y-8 rounded-2xl border border-white/60 bg-slate-50/95 p-4 shadow-inner sm:mt-7 sm:p-6">
                     {isIndividualTeacher ? (
                       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                         {[
@@ -2586,7 +2587,7 @@ const TeacherDashboard = () => {
 
                 {/* Chat Content */}
                 {vidyaAiTab === 'chat' && vidyaChatEnabled && (
-                  <div className="mx-auto mt-7 max-w-4xl space-y-4 border-t border-sky-100/90 pt-7">
+                  <div className="mx-auto mt-6 max-w-4xl space-y-4 rounded-2xl border border-white/60 bg-slate-50/95 p-4 shadow-inner sm:mt-7 sm:p-6">
                     <div className={`rounded-2xl p-5 shadow-md border border-white/40 ${
                       teacherChatFocusTab === 'lesson-planning'
                         ? 'bg-gradient-to-r from-sky-300 via-sky-400 to-blue-400'
@@ -2732,22 +2733,8 @@ const TeacherDashboard = () => {
                   <div className="pointer-events-none absolute -bottom-20 left-1/4 h-48 w-48 rounded-full bg-violet-200/35 blur-3xl" aria-hidden="true" />
 
                   <div className="relative z-[1] space-y-4 sm:space-y-6">
-                    {/* Reports view already shows its heading in the page hero above. */}
-                    {dashboardSubTab === 'students' ? (
-                      <div className="max-w-2xl">
-                        <p className="inline-flex items-center gap-2 rounded-full bg-white/70 px-3 py-1 text-xs font-bold uppercase tracking-[0.12em] text-indigo-blue-700">
-                          <Users className="h-3.5 w-3.5" aria-hidden="true" />
-                          Students
-                        </p>
-                        <h2 className="mt-3 font-display text-2xl font-extrabold tracking-tight text-slate-900 sm:text-3xl">
-                          Know every learner.
-                          <span className="text-violet-600"> Guide every step.</span>
-                        </h2>
-                        <p className="mt-2 text-sm leading-relaxed text-slate-600 sm:text-base">
-                          Roster, progress, homework submissions, and daily diary for your classes.
-                        </p>
-                      </div>
-                    ) : null}
+                    {/* Heading intentionally omitted — the page hero above already
+                        carries the section title and description. */}
 
                   {/* Students Sub-Tabs — hidden on dedicated Reports view */}
                   {dashboardSubTab === 'students' ? (
@@ -3120,7 +3107,9 @@ const TeacherDashboard = () => {
                   {/* Track Progress / Reports — student analysis */}
                   {(dashboardSubTab === 'reports' || studentsSubTab === 'track-progress') && (
                     <div id="teacher-student-progress" className="space-y-4 sm:space-y-6">
-                      {/* Header */}
+                      {/* Header — hidden on the dedicated Reports tab, which already
+                          shows this title/description in the page hero above. */}
+                      {dashboardSubTab !== 'reports' ? (
                       <div className="bg-white/60 backdrop-blur-xl rounded-2xl p-4 sm:p-5 shadow-sm border border-white/20">
                         <div className="flex items-center gap-3">
                           <div className="w-11 h-11 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-lg flex items-center justify-center shrink-0">
@@ -3132,6 +3121,7 @@ const TeacherDashboard = () => {
                           </div>
                         </div>
                       </div>
+                      ) : null}
 
                       {/* Search Bar and Filters */}
                       <div className="bg-white/60 backdrop-blur-xl rounded-3xl p-3 sm:p-4 lg:p-6 shadow-xl border border-white/20">

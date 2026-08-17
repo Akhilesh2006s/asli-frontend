@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2, Layers, ChevronRight, FileStack, Wrench, BookOpen, GraduationCap, Users } from "lucide-react";
 import { API_BASE_URL } from "@/lib/api-config";
-import { fetchBootstrap, fetchSectionGapSummaries } from "./api";
+import { fetchBootstrap, fetchProductCategories, fetchSectionGapSummaries, scopeParams } from "./api";
 import type { BranchItem, ToolSectionGapSummary } from "./api";
 import { ToolSection } from "./ToolSection";
 import { getAuthToken } from "@/lib/auth-utils";
@@ -73,6 +73,15 @@ function classifyTool(toolId: string): AudienceTab {
 
 const STEPS = ["Tool", "Class", "Subject", "Topic", "Subtopic", "Records"] as const;
 
+/** Select sentinels: the API treats an empty productCategory as General, so it needs its own option. */
+const ALL_CATEGORIES = "__all__";
+const GENERAL_CATEGORY = "__general__";
+
+function categoryLabel(code: string) {
+  if (!code) return "General";
+  return code.charAt(0) + code.slice(1).toLowerCase();
+}
+
 export default function AiToolGenerationsPanel() {
   const [loading, setLoading] = useState(true);
   const [metaTotal, setMetaTotal] = useState<number | null>(null);
@@ -80,11 +89,31 @@ export default function AiToolGenerationsPanel() {
   const [tools, setTools] = useState<BranchItem[] | null>(null);
   const [board, setBoard] = useState("");
   const [boards, setBoards] = useState<string[]>([]);
+  const [category, setCategory] = useState(ALL_CATEGORIES);
+  const [categoryOptions, setCategoryOptions] = useState<BranchItem[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [gapByTool, setGapByTool] = useState<Record<string, ToolSectionGapSummary | null>>({});
   const [gapLoading, setGapLoading] = useState(false);
   const [audienceTab, setAudienceTab] = useState<AudienceTab>("teacher");
   const gapFetchKey = useRef("");
+
+  const productCategory =
+    category === ALL_CATEGORIES ? undefined : category === GENERAL_CATEGORY ? "" : category;
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetchProductCategories(board ? { board } : {});
+        if (!cancelled) setCategoryOptions(res.data.items || []);
+      } catch {
+        if (!cancelled) setCategoryOptions([]);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [board]);
 
   useEffect(() => {
     let cancelled = false;
@@ -93,7 +122,7 @@ export default function AiToolGenerationsPanel() {
       setError(null);
       try {
         const [bootstrap, boardBranch] = await Promise.all([
-          fetchBootstrap({ ...(board ? { board } : {}) }),
+          fetchBootstrap(scopeParams(board, productCategory)),
           fetch(`${API_BASE_URL}/api/super-admin/ai-tool-topics/options`, {
             headers: {
               "Content-Type": "application/json",
@@ -124,7 +153,7 @@ export default function AiToolGenerationsPanel() {
     return () => {
       cancelled = true;
     };
-  }, [board]);
+  }, [board, productCategory]);
 
   const grouped = useMemo(() => {
     const list = tools ? [...tools] : [];
@@ -320,22 +349,43 @@ export default function AiToolGenerationsPanel() {
               ) : null}
             </div>
 
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-slate-500 hidden sm:inline">Board</span>
-              <div className="w-full sm:w-[180px]">
-                <Select value={board || "__all__"} onValueChange={(v) => setBoard(v === "__all__" ? "" : v)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="All boards" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__all__">All boards</SelectItem>
-                    {boards.map((b) => (
-                      <SelectItem key={b} value={b}>
-                        {b}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-slate-500 hidden sm:inline">Board</span>
+                <div className="w-full sm:w-[180px]">
+                  <Select value={board || ALL_CATEGORIES} onValueChange={(v) => setBoard(v === ALL_CATEGORIES ? "" : v)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="All boards" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={ALL_CATEGORIES}>All boards</SelectItem>
+                      {boards.map((b) => (
+                        <SelectItem key={b} value={b}>
+                          {b}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-slate-500 hidden sm:inline">Track</span>
+                <div className="w-full sm:w-[180px]">
+                  <Select value={category} onValueChange={setCategory}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="All tracks" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={ALL_CATEGORIES}>All tracks</SelectItem>
+                      {categoryOptions.map((c) => (
+                        <SelectItem key={c.value || GENERAL_CATEGORY} value={c.value || GENERAL_CATEGORY}>
+                          {categoryLabel(c.value)} ({c.count})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </div>
           </div>
@@ -353,6 +403,13 @@ export default function AiToolGenerationsPanel() {
               <>
                 {" "}
                 · Board <span className="font-medium text-slate-700">{board}</span>
+              </>
+            ) : null}
+            {productCategory !== undefined ? (
+              <>
+                {" "}
+                · Track{" "}
+                <span className="font-medium text-slate-700">{categoryLabel(productCategory)}</span>
               </>
             ) : null}
             <span className="text-slate-300 mx-1.5">·</span>
@@ -377,9 +434,14 @@ export default function AiToolGenerationsPanel() {
               {!loading && !error && visibleTools.length === 0 && (
                 <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/80 px-4 py-12 text-center">
                   <BookOpen className="mx-auto h-8 w-8 text-slate-300 mb-2" />
-                  <p className="font-semibold text-slate-800">No {audienceTab} tools with data</p>
+                  <p className="font-semibold text-slate-800">
+                    No {audienceTab} tools with data
+                    {productCategory !== undefined ? ` on ${categoryLabel(productCategory)}` : ""}
+                  </p>
                   <p className="text-sm text-slate-600 mt-1 max-w-md mx-auto">
-                    Generate content from Book-Based Generator or AI Generator for this audience, then refresh.
+                    {productCategory
+                      ? `Adding AI Tool Topics does not create content on its own. Run the Book-Based or AI Generator with ${categoryLabel(productCategory)} selected to fill this track.`
+                      : "Generate content from Book-Based Generator or AI Generator for this audience, then refresh."}
                   </p>
                 </div>
               )}
@@ -392,6 +454,7 @@ export default function AiToolGenerationsPanel() {
                     tool={t}
                     displayName={TOOL_LABELS[t.value]}
                     board={board}
+                    productCategory={productCategory}
                     gapSummary={gapByTool[t.value]}
                     gapLoading={gapLoading && !(t.value in gapByTool)}
                   />

@@ -6,13 +6,14 @@ import {
 } from "@/components/ui/collapsible";
 import { Badge } from "@/components/ui/badge";
 import { ChevronDown, Loader2, BookMarked, ListTree } from "lucide-react";
-import { fetchBranch, type BranchItem } from "./api";
+import { fetchBranch, scopeParams, type BranchItem } from "./api";
 import { SubtopicRecordsSection } from "./SubtopicRecordsSection";
 
 function SubtopicLeafRow({
   toolName,
   classLabel,
   board,
+  productCategory,
   subject,
   topic,
   s,
@@ -20,6 +21,7 @@ function SubtopicLeafRow({
   toolName: string;
   classLabel: string;
   board?: string;
+  productCategory?: string;
   subject: string;
   topic: string;
   s: BranchItem;
@@ -60,7 +62,7 @@ function SubtopicLeafRow({
           <div className="border-t border-slate-100 bg-white px-1.5 pb-2 pt-2 overflow-x-hidden sm:px-2">
             <SubtopicRecordsSection
               parents={{
-                ...(board ? { board } : {}),
+                ...scopeParams(board, productCategory),
                 toolName,
                 classLabel,
                 subject,
@@ -79,6 +81,7 @@ export function SubtopicSection({
   toolName,
   classLabel,
   board,
+  productCategory,
   subject,
   topic,
   topicLabel,
@@ -86,6 +89,7 @@ export function SubtopicSection({
   toolName: string;
   classLabel: string;
   board?: string;
+  productCategory?: string;
   subject: string;
   topic: string;
   topicLabel: string;
@@ -101,7 +105,7 @@ export function SubtopicSection({
       setLoading(true);
       try {
         const r = await fetchBranch({
-          ...(board ? { board } : {}),
+          ...scopeParams(board, productCategory),
           toolName,
           classLabel,
           subject,
@@ -115,7 +119,7 @@ export function SubtopicSection({
     return () => {
       cancelled = true;
     };
-  }, [open, toolName, classLabel, subject, topic, board]);
+  }, [open, toolName, classLabel, subject, topic, board, productCategory]);
 
   return (
     <div className="rounded-xl border border-slate-200/90 bg-white shadow-sm overflow-hidden">
@@ -148,6 +152,7 @@ export function SubtopicSection({
                   toolName={toolName}
                   classLabel={classLabel}
                   board={board}
+                  productCategory={productCategory}
                   subject={subject}
                   topic={topic}
                   s={s}
