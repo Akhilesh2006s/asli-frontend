@@ -1,6 +1,23 @@
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, CheckCircle2 } from "lucide-react";
+import {
+  ArrowRight,
+  BarChart3,
+  BookOpen,
+  Brain,
+  CheckCircle2,
+  CircleHelp,
+  ClipboardList,
+  FileText,
+  Flame,
+  GraduationCap,
+  PlayCircle,
+  School,
+  Sparkles,
+  Target,
+  Trophy,
+  Zap,
+} from "lucide-react";
 import { MarketingShell, MarketingPageHero } from "@/components/marketing/MarketingShell";
 import { usePageSeo } from "@/components/marketing/seo";
 
@@ -173,28 +190,327 @@ export function PricingPage() {
 
 export function ResourcesPage() {
   usePageSeo({
-    title: "Resources | AsliLearn.ai Educational Content",
+    title: "Resources | Asli Prep Alpha & Beta on AsliLearn.ai",
     description:
-      "Public educational resources from AsliLearn.ai — Board learning, IIT Foundation orientation and school enablement materials.",
+      "Explore Asli Prep Alpha and Beta learning tracks, Board and IIT Foundation packages, AI tutoring, quizzes, mock tests and chapter-linked resources.",
     path: "/resources",
   });
+
+  const tools = [
+    {
+      icon: Brain,
+      title: "Vidya — Your AI Tutor",
+      body: "Ask doubts anytime and get chapter-linked explanations with clear, step-by-step solutions.",
+      color: "bg-violet-100 text-violet-700",
+    },
+    {
+      icon: ClipboardList,
+      title: "Daily Quiz & Question Bank",
+      body: "Fresh practice mapped to your class, learning track and current chapters.",
+      color: "bg-sky-100 text-sky-700",
+    },
+    {
+      icon: Target,
+      title: "Adaptive Practice",
+      body: "Practice responds to performance, reinforcing weaker topics while strong topics move faster.",
+      color: "bg-emerald-100 text-emerald-700",
+    },
+    {
+      icon: BarChart3,
+      title: "Mock Tests & Exams",
+      body: "Board-pattern and competitive-style tests with automatic scoring and instant analysis.",
+      color: "bg-orange-100 text-orange-700",
+    },
+    {
+      icon: BookOpen,
+      title: "Board Content",
+      body: "Notes, revision and practice for Board preparation alongside Foundation learning.",
+      color: "bg-blue-100 text-blue-700",
+    },
+    {
+      icon: PlayCircle,
+      title: "Video Lessons",
+      body: "Short, concept-first videos aligned to the chapters students are studying.",
+      color: "bg-rose-100 text-rose-700",
+    },
+    {
+      icon: FileText,
+      title: "Formula Sheets & Revision",
+      body: "Quick, printable-style summaries for focused revision before tests.",
+      color: "bg-cyan-100 text-cyan-700",
+    },
+    {
+      icon: Trophy,
+      title: "PYQs",
+      body: "Previous-year questions for JEE, NEET and major Olympiads, organised by topic.",
+      color: "bg-amber-100 text-amber-700",
+    },
+    {
+      icon: Flame,
+      title: "Streaks, XP & Leaderboards",
+      body: "Motivating progress features that help students build a consistent learning habit.",
+      color: "bg-red-100 text-red-700",
+    },
+    {
+      icon: Zap,
+      title: "Progress Analytics",
+      body: "Chapter-wise strengths and gaps for students, with class insight for teachers and schools.",
+      color: "bg-indigo-100 text-indigo-700",
+    },
+  ];
+
+  const faqs = [
+    {
+      q: "Do I need to buy a book to use AsliLearn.ai?",
+      a: "No. AsliLearn.ai runs on a monthly subscription. The Board Package provides board-syllabus learning, while the IIT Foundation Package adds digital Alpha/Beta books and competitive-exam preparation.",
+    },
+    {
+      q: "What is the difference between the two packages?",
+      a: "The ₹99/month Board Package focuses on Board content, quizzes and practice. The ₹249/month IIT Foundation Package includes everything in Board, plus digital Alpha/Beta books, JEE/NEET/Olympiad content and advanced mock tests.",
+    },
+    {
+      q: "What is the difference between Alpha and Beta?",
+      a: "Alpha supports Classes 6–8 with strong CBSE fundamentals and early Foundation exposure. Beta supports Classes 6–10 with a deeper, exam-focused JEE, NEET and Olympiad pathway.",
+    },
+    {
+      q: "Does AsliLearn.ai cover Board exams too?",
+      a: "Yes. Students can prepare for their Board syllabus and competitive-exam foundations in one connected learning environment.",
+    },
+    {
+      q: "How often are new questions added?",
+      a: "The question bank is refreshed regularly across supported classes, subjects and learning tracks.",
+    },
+  ];
+
   return (
     <MarketingShell>
       <MarketingPageHero
-        eyebrow="Resources"
-        title="Learning resources for schools and families"
-        subtitle="Explore how Board learning and IIT Foundation programmes work on AsliLearn.ai. Book a demo for a live walkthrough."
-      />
-      <section className="mx-auto max-w-3xl px-4 py-14 sm:px-6">
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="font-display text-xl font-bold">Coming soon</h2>
-          <p className="mt-2 text-slate-600">
-            Public resource articles and sample materials will appear here. For curriculum-aligned demos and sample
-            content, request a walkthrough.
-          </p>
-          <Link href="/book-a-demo" className="mt-6 inline-block">
-            <Button className="rounded-full bg-sky-500 text-white hover:bg-sky-600">Book a Demo</Button>
+        eyebrow="Asli Prep × AsliLearn.ai"
+        title="Every Asli Prep Book Comes Alive on AsliLearn.ai"
+        subtitle="Alpha and Beta are more than textbooks—they guide the quizzes, mock tests and AI lessons students use every day."
+      >
+        <a href="#learning-tracks">
+          <Button className="h-11 rounded-full bg-sky-500 px-6 font-semibold text-white hover:bg-sky-600">
+            Explore Resources <ArrowRight className="ml-2 h-4 w-4" />
+          </Button>
+        </a>
+        <Link href="/pricing">
+          <Button
+            variant="outline"
+            className="h-11 rounded-full border-white/50 bg-transparent px-6 font-semibold text-white hover:bg-white/10 hover:text-white"
+          >
+            View Packages
+          </Button>
+        </Link>
+      </MarketingPageHero>
+
+      <section className="border-b border-sky-100 bg-sky-50/70 px-4 py-14 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-7xl">
+          <div className="mx-auto max-w-3xl text-center">
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-sky-700">How it works</p>
+            <h2 className="mt-3 font-display text-2xl font-bold text-slate-900 sm:text-4xl">
+              Choose your package. Learn with AI every day.
+            </h2>
+            <p className="mt-4 leading-relaxed text-slate-600">
+              Pick the package that matches your goal. Your chapters, quizzes and AI lessons then follow your
+              class and Asli Prep learning track automatically.
+            </p>
+          </div>
+
+          <div className="mt-10 grid gap-5 lg:grid-cols-2">
+            <article className="rounded-3xl border border-sky-200 bg-white p-6 shadow-sm sm:p-8">
+              <p className="text-sm font-bold uppercase tracking-wide text-sky-700">Board Package</p>
+              <p className="mt-3 font-display text-4xl font-extrabold text-slate-950">
+                ₹99<span className="text-base font-medium text-slate-500">/month</span>
+              </p>
+              <p className="mt-4 text-slate-600">
+                Full Board-syllabus content, quizzes and practice for focused school learning.
+              </p>
+              <ul className="mt-5 space-y-2">
+                {["Board-aligned learning", "Quizzes and practice", "Progress tracking"].map((item) => (
+                  <li key={item} className="flex items-center gap-2 text-sm font-medium text-slate-700">
+                    <CheckCircle2 className="h-4 w-4 text-emerald-600" /> {item}
+                  </li>
+                ))}
+              </ul>
+            </article>
+            <article className="relative overflow-hidden rounded-3xl border border-violet-200 bg-[#071b43] p-6 text-white shadow-xl sm:p-8">
+              <span className="absolute right-5 top-5 rounded-full bg-amber-400 px-3 py-1 text-xs font-bold text-slate-950">
+                Complete access
+              </span>
+              <p className="text-sm font-bold uppercase tracking-wide text-violet-200">IIT Foundation Package</p>
+              <p className="mt-3 font-display text-4xl font-extrabold">
+                ₹249<span className="text-base font-medium text-white/60">/month</span>
+              </p>
+              <p className="mt-4 text-white/75">
+                Everything in Board, plus digital Alpha/Beta books and advanced Foundation preparation.
+              </p>
+              <ul className="mt-5 space-y-2">
+                {["Digital Alpha/Beta books", "JEE, NEET & Olympiad content", "Advanced mock tests"].map((item) => (
+                  <li key={item} className="flex items-center gap-2 text-sm font-medium text-white/90">
+                    <CheckCircle2 className="h-4 w-4 text-emerald-400" /> {item}
+                  </li>
+                ))}
+              </ul>
+            </article>
+          </div>
+
+          <div className="mt-8 grid gap-4 sm:grid-cols-3">
+            {[
+              ["01", "Pick your package", "Choose Board or IIT Foundation for your learning goal."],
+              ["02", "Subscribe online", "Your syllabus loads based on your class and package."],
+              ["03", "Learn with AI", "Vidya, quizzes and mock tests follow your chapters."],
+            ].map(([number, title, body]) => (
+              <div key={number} className="rounded-2xl border border-slate-200 bg-white p-5">
+                <span className="font-display text-3xl font-extrabold text-sky-200">{number}</span>
+                <h3 className="mt-2 font-display text-lg font-bold text-slate-900">{title}</h3>
+                <p className="mt-1 text-sm leading-relaxed text-slate-600">{body}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section id="learning-tracks" className="scroll-mt-20 px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
+        <div className="mx-auto max-w-7xl">
+          <div className="mx-auto max-w-3xl text-center">
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-emerald-700">Your learning tracks</p>
+            <h2 className="mt-3 font-display text-2xl font-bold text-slate-900 sm:text-4xl">
+              A clear pathway from strong fundamentals to advanced preparation
+            </h2>
+          </div>
+          <div className="mt-10 grid gap-6 lg:grid-cols-2">
+            <article className="rounded-3xl border border-blue-200 bg-gradient-to-br from-blue-50 to-white p-6 sm:p-8">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-600 text-white">
+                <BookOpen className="h-6 w-6" />
+              </div>
+              <p className="mt-5 text-xs font-bold uppercase tracking-wide text-blue-700">Classes 6–8</p>
+              <h3 className="mt-1 font-display text-2xl font-bold text-slate-950">Asli Prep Alpha</h3>
+              <p className="mt-2 font-medium text-blue-800">Build Board fundamentals and early competitive readiness.</p>
+              <p className="mt-4 leading-relaxed text-slate-600">
+                Alpha follows the CBSE curriculum chapter by chapter while introducing beginner-level Olympiad,
+                JEE and NEET Foundation thinking.
+              </p>
+              <ul className="mt-6 space-y-3">
+                {[
+                  "CBSE-aligned chapter practice",
+                  "Concept videos and Vidya AI explanations",
+                  "Daily quizzes matched to current chapters",
+                  "Foundation-level Olympiad and JEE/NEET questions",
+                ].map((item) => (
+                  <li key={item} className="flex gap-2 text-sm text-slate-700">
+                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-blue-600" /> {item}
+                  </li>
+                ))}
+              </ul>
+            </article>
+            <article className="rounded-3xl border border-emerald-200 bg-gradient-to-br from-emerald-50 to-white p-6 sm:p-8">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-600 text-white">
+                <GraduationCap className="h-6 w-6" />
+              </div>
+              <p className="mt-5 text-xs font-bold uppercase tracking-wide text-emerald-700">Classes 6–10</p>
+              <h3 className="mt-1 font-display text-2xl font-bold text-slate-950">Asli Prep Beta</h3>
+              <p className="mt-2 font-medium text-emerald-800">Go deeper with an advanced, exam-focused pathway.</p>
+              <p className="mt-4 leading-relaxed text-slate-600">
+                Beta is designed for students ready to move beyond the Board syllabus and build serious JEE, NEET
+                and Olympiad readiness through Class 10.
+              </p>
+              <ul className="mt-6 space-y-3">
+                {[
+                  "Board plus advanced competitive problem sets",
+                  "Higher-difficulty adaptive practice",
+                  "Previous-year-question banks",
+                  "Class-wise progression from 6 through 10",
+                ].map((item) => (
+                  <li key={item} className="flex gap-2 text-sm text-slate-700">
+                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" /> {item}
+                  </li>
+                ))}
+              </ul>
+            </article>
+          </div>
+          <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm leading-relaxed text-amber-950">
+            <strong>Choosing for Classes 6–8?</strong> Choose Alpha for a steady Board-first foundation. Choose
+            Beta when the student is ready for deeper, faster-paced competitive preparation.
+          </div>
+        </div>
+      </section>
+
+      <section className="bg-slate-50 px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
+        <div className="mx-auto max-w-7xl">
+          <div className="mx-auto max-w-3xl text-center">
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-violet-700">Everything included</p>
+            <h2 className="mt-3 font-display text-2xl font-bold text-slate-900 sm:text-4xl">
+              One platform. Every tool you need.
+            </h2>
+          </div>
+          <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {tools.map(({ icon: Icon, title, body, color }) => (
+              <article key={title} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${color}`}>
+                  <Icon className="h-5 w-5" />
+                </div>
+                <h3 className="mt-4 font-display text-lg font-bold text-slate-900">{title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-slate-600">{body}</p>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="bg-[#071b43] px-4 py-14 text-white sm:px-6 lg:px-8 lg:py-16">
+        <div className="mx-auto flex max-w-7xl flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
+          <div className="max-w-3xl">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/10">
+              <School className="h-5 w-5 text-sky-300" />
+            </div>
+            <h2 className="mt-4 font-display text-2xl font-bold sm:text-3xl">Built for schools and teachers too</h2>
+            <p className="mt-3 leading-relaxed text-white/70">
+              If your school uses Brainfeed or Asli Prep Foundation books, AsliLearn.ai extends the classroom
+              digitally with chapter-matched quizzes, class performance tracking and targeted student support.
+            </p>
+          </div>
+          <Link href="/book-a-demo">
+            <Button className="h-12 shrink-0 rounded-full bg-sky-500 px-6 font-semibold text-white hover:bg-sky-600">
+              Get AsliLearn.ai for Your School <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
           </Link>
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-4xl px-4 py-16 sm:px-6 lg:py-20">
+        <div className="text-center">
+          <CircleHelp className="mx-auto h-9 w-9 text-sky-600" />
+          <h2 className="mt-3 font-display text-2xl font-bold text-slate-900 sm:text-4xl">
+            Frequently asked questions
+          </h2>
+        </div>
+        <div className="mt-9 space-y-3">
+          {faqs.map(({ q, a }) => (
+            <details key={q} className="group rounded-2xl border border-slate-200 bg-white p-5 open:shadow-sm">
+              <summary className="cursor-pointer list-none pr-6 font-semibold text-slate-900">{q}</summary>
+              <p className="mt-3 text-sm leading-relaxed text-slate-600">{a}</p>
+            </details>
+          ))}
+        </div>
+        <div className="mt-10 rounded-3xl bg-gradient-to-r from-sky-600 to-blue-700 p-7 text-center text-white sm:p-10">
+          <Sparkles className="mx-auto h-8 w-8 text-sky-200" />
+          <h2 className="mt-3 font-display text-2xl font-bold">Ready to see learning come alive?</h2>
+          <p className="mx-auto mt-2 max-w-xl text-sm leading-relaxed text-white/80">
+            Explore the right package for your family or request a personalised walkthrough for your school.
+          </p>
+          <div className="mt-6 flex flex-wrap justify-center gap-3">
+            <Link href="/pricing">
+              <Button className="rounded-full bg-white px-6 font-semibold text-sky-800 hover:bg-sky-50">
+                View Pricing
+              </Button>
+            </Link>
+            <Link href="/book-a-demo">
+              <Button variant="outline" className="rounded-full border-white/50 bg-transparent px-6 text-white hover:bg-white/10 hover:text-white">
+                Book a Demo
+              </Button>
+            </Link>
+          </div>
         </div>
       </section>
     </MarketingShell>

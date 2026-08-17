@@ -16,6 +16,7 @@ import {
   AdminRoute,
   SuperAdminRoute,
 } from "@/components/ProtectedRoute";
+import { getUser } from "@/lib/auth-utils";
 
 const Dashboard = lazy(() => import("./pages/dashboard"));
 const LearningPaths = lazy(() => import("./pages/learning-paths"));
@@ -83,6 +84,22 @@ function RouteLoadingState() {
   );
 }
 
+/**
+ * `/learning-paths` is the student/teacher library. Admins have their own
+ * Learning Paths view inside the admin dashboard, so send them there instead of
+ * rendering the student portal chrome against student-only APIs.
+ */
+function LearningPathsEntry() {
+  const role = String(getUser()?.role || "").toLowerCase();
+  if (role === "admin") {
+    return <Redirect to="/admin/dashboard?tab=learning-paths" replace />;
+  }
+  if (role === "super-admin") {
+    return <Redirect to="/super-admin/dashboard" replace />;
+  }
+  return <LearningPaths />;
+}
+
 function EduOTTWithFilters() {
   return (
     <EduOTTFilterProvider>
@@ -129,7 +146,7 @@ function Router() {
           <Redirect to="/book-a-demo" />
         </Route>
         <Route path="/dashboard" component={() => <Guarded Guard={StudentRoute} Page={Dashboard} />} />
-        <Route path="/learning-paths" component={() => <Guarded Guard={ProtectedRoute} Page={LearningPaths} />} />
+        <Route path="/learning-paths" component={() => <Guarded Guard={ProtectedRoute} Page={LearningPathsEntry} />} />
         <Route path="/tests" component={() => <Guarded Guard={StudentRoute} Page={PracticeTests} />} />
         <Route path="/student-exams" component={() => <Guarded Guard={StudentRoute} Page={StudentExams} />} />
         <Route path="/student/results" component={() => <Guarded Guard={StudentRoute} Page={StudentOmrResults} />} />

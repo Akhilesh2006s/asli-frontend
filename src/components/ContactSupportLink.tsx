@@ -10,7 +10,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-const SUPPORT_EMAIL = "hello@aslilearn.ai";
+const SUPPORT_EMAIL = "info@aslilearn.ai";
 
 type ContactSupportLinkProps = {
   className?: string;

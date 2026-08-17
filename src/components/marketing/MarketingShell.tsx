@@ -213,8 +213,8 @@ export function MarketingFooter() {
 
         <div>
           <p className="text-sm font-semibold text-white/90">For enquiries</p>
-          <a href="mailto:hello@aslilearn.ai" className="mt-2 block text-sm text-sky-300 hover:text-sky-200">
-            hello@aslilearn.ai
+          <a href="mailto:info@aslilearn.ai" className="mt-2 block text-sm text-sky-300 hover:text-sky-200">
+            info@aslilearn.ai
           </a>
           <Link
             href="/book-a-demo"

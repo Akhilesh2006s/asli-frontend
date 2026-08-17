@@ -305,7 +305,7 @@ export function SuperAdminSidebar({ currentView, onViewChange, user, onLogout }:
             <span className={cn(!useDrawerNav && "hidden lg:inline")}>Logout</span>
           </button>
           <a
-            href="mailto:hello@aslilearn.ai?subject=AsliLearn%20support%20request"
+            href="mailto:info@aslilearn.ai?subject=AsliLearn%20support%20request"
             className={cn(
               "w-full flex items-center rounded-xl transition-colors text-slate-700 border border-sky-100/80 bg-white/95 hover:bg-gradient-to-r hover:from-sky-50 hover:to-orange-50 hover:text-slate-900 shadow-sm",
               "px-3 py-2.5 text-xs sm:text-sm font-bold",

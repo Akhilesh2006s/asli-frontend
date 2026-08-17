@@ -39,8 +39,8 @@ export default function Terms() {
           <p className="leading-relaxed text-slate-700">
             We may update these terms periodically. Continued use indicates acceptance of revised
             terms. Questions:{" "}
-            <a href="mailto:hello@aslilearn.ai" className="font-medium text-sky-700 hover:underline">
-              hello@aslilearn.ai
+            <a href="mailto:info@aslilearn.ai" className="font-medium text-sky-700 hover:underline">
+              info@aslilearn.ai
             </a>
             .
           </p>

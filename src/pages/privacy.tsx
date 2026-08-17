@@ -40,8 +40,8 @@ export default function Privacy() {
           <h2 className="font-display text-xl font-bold text-slate-900">Contact</h2>
           <p className="leading-relaxed text-slate-700">
             For privacy-related questions, email{" "}
-            <a href="mailto:hello@aslilearn.ai" className="font-medium text-sky-700 hover:underline">
-              hello@aslilearn.ai
+            <a href="mailto:info@aslilearn.ai" className="font-medium text-sky-700 hover:underline">
+              info@aslilearn.ai
             </a>{" "}
             or use our{" "}
             <Link href="/book-a-demo" className="font-medium text-sky-700 hover:underline">
