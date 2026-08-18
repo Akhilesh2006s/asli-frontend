@@ -7,6 +7,7 @@ import PortalPageHero from '@/components/layout/PortalPageHero';
 import { DashboardScrollPanel } from '@/components/layout/DashboardScrollPanel';
 import StatCard from '@/components/dashboard/StatCard';
 import { WeeklyDigestCard } from '@/components/weekly-digest-card';
+import { startTeacherPlatformSessionSync } from '@/lib/teacher-session-sync';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -478,6 +479,10 @@ const TeacherDashboard = () => {
       setVidyaAiTab('teacher-tools');
     }
   }, [vidyaChatEnabled, dashboardSubTab, vidyaAiTab]);
+
+  useEffect(() => {
+    return startTeacherPlatformSessionSync();
+  }, []);
 
   const [teacherId, setTeacherId] = useState<string>('');
   
