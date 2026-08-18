@@ -96,6 +96,8 @@ type DigestMetrics = {
   generationsCreated?: number;
   status?: string;
   activeDays?: number;
+  classesAssigned?: number;
+  studentsInClasses?: number;
   schoolStudentsAccessed?: number;
   schoolSessions?: number;
   schoolTeachersActive?: number;
