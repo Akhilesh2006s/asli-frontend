@@ -233,9 +233,8 @@ export default function IndividualPlanRatesPanel() {
           Individual plan rates
         </CardTitle>
         <CardDescription>
-          Fix every individual (B2C) rate here. Checkout and Razorpay use these amounts. Leave a yearly ₹
-          blank to use month × 12 (or hide yearly if discount is 0). Yearly discount % comes off the yearly
-          list — set it to 0 if the yearly rupee you type should be the final price.
+          Fix every individual (B2C) rate here. Checkout always offers monthly and yearly. Leave yearly ₹
+          blank to use month × 12. Yearly discount % comes off that yearly list (0 = full year price).
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -297,7 +296,7 @@ export default function IndividualPlanRatesPanel() {
                 <PriceField
                   id="studentYearlyDiscountPercent"
                   label="Yearly discount %"
-                  hint="0 = no student yearly option unless you fill a yearly ₹. Example: 15 = 15% off yearly list."
+                  hint="0 = yearly is month × 12 with no discount. Example: 15 = 15% off yearly list."
                   value={form.studentYearlyDiscountPercent || '0'}
                   onChange={(v) => setField('studentYearlyDiscountPercent', v)}
                 />
@@ -318,7 +317,7 @@ export default function IndividualPlanRatesPanel() {
                   <PriceField
                     id="teacherBoardYear"
                     label="Boards ₹ / year"
-                    placeholder="blank = month × 12 if discount set"
+                    placeholder="blank = month × 12"
                     value={form.teacherBoardYear || ''}
                     onChange={(v) => setField('teacherBoardYear', v)}
                   />

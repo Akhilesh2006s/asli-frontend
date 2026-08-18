@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { CheckCircle2, GraduationCap } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { API_BASE_URL } from '@/lib/api-config';
-import { getAuthToken } from '@/lib/auth-utils';
+import { authJsonHeaders } from '@/lib/auth-utils';
 import { INDIVIDUAL_CLASS_OPTIONS } from '@/lib/individual-signup';
 import {
   B2C_BOARD_PRICE,
@@ -39,10 +39,22 @@ type Catalog = {
   teacher: Record<PlanPackage, PackOptions>;
 };
 
+function yearFromMonth(plan: PlanOption): PlanOption {
+  const list = plan.amountInr * 12;
+  return {
+    amountInr: list,
+    listPriceInr: list,
+    discountPercent: 0,
+    period: 'year',
+    label: plan.label,
+  };
+}
+
 function packFromLegacy(plan: PlanOption): PackOptions {
-  return plan.period === 'year'
-    ? { month: null, year: plan }
-    : { month: plan, year: null };
+  if (plan.period === 'year') {
+    return { month: null, year: plan };
+  }
+  return { month: plan, year: yearFromMonth(plan) };
 }
 
 const FALLBACK_PLANS: Catalog = {
@@ -61,7 +73,9 @@ const FALLBACK_PLANS: Catalog = {
 function asPack(raw: unknown): PackOptions {
   const v = raw as PackOptions & PlanOption;
   if (v && (v.month || v.year)) {
-    return { month: v.month || null, year: v.year || null };
+    const month = v.month || null;
+    const year = v.year || (month ? yearFromMonth(month) : null);
+    return { month, year };
   }
   if (v && typeof v.amountInr === 'number') {
     return packFromLegacy(v);
@@ -185,13 +199,9 @@ export function IndividualPlanCheckout({
 
   const persistStudentPlan = async () => {
     if (!userId || billingRole === 'teacher') return true;
-    const token = getAuthToken();
     const res = await fetch(`${API_BASE_URL}/api/users/${userId}`, {
       method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
+      headers: authJsonHeaders(),
       credentials: 'include',
       body: JSON.stringify({
         classNumber: classLabel,
@@ -229,13 +239,10 @@ export function IndividualPlanCheckout({
       if (!scriptOk || !(window as any).Razorpay) {
         throw new Error('Could not load Razorpay. Check your connection and try again.');
       }
-      const token = getAuthToken();
       const orderRes = await fetch(`${API_BASE_URL}/api/billing/individual/order`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
+        headers: authJsonHeaders(),
+        credentials: 'include',
         body: JSON.stringify({
           packageType,
           period: billingPeriod,
@@ -275,10 +282,8 @@ export function IndividualPlanCheckout({
           try {
             const verifyRes = await fetch(`${API_BASE_URL}/api/billing/individual/verify`, {
               method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                ...(token ? { Authorization: `Bearer ${token}` } : {}),
-              },
+              headers: authJsonHeaders(),
+              credentials: 'include',
               body: JSON.stringify({
                 ...response,
                 packageType,
@@ -364,6 +369,54 @@ export function IndividualPlanCheckout({
           </div>
         </div>
       </div>
+
+      {pack.month && pack.year ? (
+        <div className="space-y-2">
+          <Label>Pay monthly or yearly</Label>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => setBillingPeriod('month')}
+              className={cn(
+                'rounded-xl border px-3 py-3 text-left',
+                billingPeriod === 'month'
+                  ? 'border-sky-400 bg-sky-50 ring-2 ring-sky-200'
+                  : 'border-slate-200 bg-white',
+              )}
+            >
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Monthly</p>
+              <p className="mt-0.5 text-lg font-extrabold text-slate-900">
+                ₹{pack.month.amountInr}
+                <span className="text-sm font-medium text-slate-500"> / month</span>
+              </p>
+            </button>
+            <button
+              type="button"
+              onClick={() => setBillingPeriod('year')}
+              className={cn(
+                'rounded-xl border px-3 py-3 text-left',
+                billingPeriod === 'year'
+                  ? 'border-emerald-400 bg-emerald-50 ring-2 ring-emerald-200'
+                  : 'border-slate-200 bg-white',
+              )}
+            >
+              <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">
+                Yearly
+                {pack.year.discountPercent ? ` · ${pack.year.discountPercent}% off` : ''}
+              </p>
+              <p className="mt-0.5 text-lg font-extrabold text-slate-900">
+                ₹{pack.year.amountInr}
+                <span className="text-sm font-medium text-slate-500"> / year</span>
+              </p>
+              {pack.year.discountPercent && pack.year.listPriceInr && pack.year.listPriceInr > pack.year.amountInr ? (
+                <p className="text-[11px] text-slate-400 line-through">₹{pack.year.listPriceInr}</p>
+              ) : (
+                <p className="text-[11px] text-slate-500">12 × monthly</p>
+              )}
+            </button>
+          </div>
+        </div>
+      ) : null}
 
       {needsIitTrack ? (
         <div className="space-y-3">

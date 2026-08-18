@@ -39,6 +39,7 @@ export default function SubscribePage() {
       try {
         const res = await fetch(`${API_BASE_URL}/api/auth/me`, {
           headers: { Authorization: `Bearer ${token}` },
+          credentials: 'include',
         });
         if (!res.ok) {
           clearAuthData();
