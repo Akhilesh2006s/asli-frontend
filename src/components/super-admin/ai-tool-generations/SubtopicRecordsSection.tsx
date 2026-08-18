@@ -6,6 +6,7 @@ import { fetchRecords, fetchExportBundle } from "./api";
 import type { RecordRow } from "./api";
 import { downloadGenerationsPdf } from "./pdf-utils";
 import { GenerationRecordsList } from "./GenerationRecordsList";
+import { useToast } from "@/hooks/use-toast";
 
 function labelEmpty(v: string) {
   return v === "" || v == null ? "(None)" : v;
@@ -16,8 +17,10 @@ export function SubtopicRecordsSection({
 }: {
   parents: Record<string, string>;
 }) {
+  const { toast } = useToast();
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [exporting, setExporting] = useState(false);
   const [total, setTotal] = useState(0);
   const [items, setItems] = useState<RecordRow[]>([]);
 
@@ -37,21 +40,45 @@ export function SubtopicRecordsSection({
   }, [load]);
 
   const pdfThisSubtopic = async () => {
-    const r = await fetchExportBundle(parents, 500);
-    const recs = r.data.records.map((x) => ({
-      toolDisplayName: x.toolDisplayName,
-      toolName: x.toolName,
-      classLabel: x.classLabel,
-      subject: x.subject,
-      topic: x.topic,
-      subtopic: x.subtopic,
-      content: x.content,
-      createdAt: x.createdAt,
-    }));
-    await downloadGenerationsPdf(
-      `${parents.toolName || "tool"}_${parents.subtopic || "sub"}`,
-      recs,
-    );
+    if (exporting) return;
+    setExporting(true);
+    try {
+      const r = await fetchExportBundle(parents, 500);
+      const recs = (r.data?.records || []).map((x) => ({
+        toolDisplayName: x.toolDisplayName,
+        toolName: x.toolName,
+        classLabel: x.classLabel,
+        subject: x.subject,
+        topic: x.topic,
+        subtopic: x.subtopic,
+        content: x.content,
+        createdAt: x.createdAt,
+      }));
+      if (!recs.length) {
+        toast({
+          title: "Nothing to download",
+          description: "No records in this subtopic.",
+          variant: "destructive",
+        });
+        return;
+      }
+      await downloadGenerationsPdf(
+        `${parents.toolName || "tool"}_${parents.subtopic || "sub"}`,
+        recs,
+      );
+      toast({
+        title: "PDF downloaded",
+        description: `${recs.length} record${recs.length === 1 ? "" : "s"} exported.`,
+      });
+    } catch (error: unknown) {
+      toast({
+        title: "Download failed",
+        description: error instanceof Error ? error.message : "Could not create the PDF.",
+        variant: "destructive",
+      });
+    } finally {
+      setExporting(false);
+    }
   };
 
   return (
@@ -73,10 +100,15 @@ export function SubtopicRecordsSection({
         <Button
           size="sm"
           className="w-full sm:w-auto rounded-xl bg-orange-600 hover:bg-orange-700 text-white shadow-sm shrink-0"
-          onClick={pdfThisSubtopic}
+          disabled={exporting || loading || total === 0}
+          onClick={() => void pdfThisSubtopic()}
         >
-          <FileDown className="w-4 h-4 mr-2" />
-          Download PDF
+          {exporting ? (
+            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+          ) : (
+            <FileDown className="w-4 h-4 mr-2" />
+          )}
+          {exporting ? "Preparing PDF…" : "Download PDF"}
         </Button>
       </div>
 

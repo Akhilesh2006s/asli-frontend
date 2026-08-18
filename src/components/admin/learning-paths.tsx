@@ -41,6 +41,7 @@ import {
   groupLearningPathsByClass,
   subjectMatchesClassFilter,
 } from '@/lib/learning-path-admin';
+import { countLearningPathDisplayStats } from '@/lib/learning-path-stats';
 
 function isActiveCatalogSubject(subject: {
   name?: string;
@@ -570,7 +571,16 @@ export default function AdminLearningPaths() {
                       const iitItems = (subject.asliPrepContent || []).filter((c: any) =>
                         isIitTrackContent(c),
                       );
+                      const boardItems = (subject.asliPrepContent || []).filter(
+                        (c: any) => !isIitTrackContent(c),
+                      );
+                      const displayStats = countLearningPathDisplayStats(boardItems);
                       const hasIit = iitItems.length > 0;
+                      const cardTotal =
+                        displayStats.textbooks +
+                        displayStats.materials +
+                        displayStats.videos +
+                        iitItems.length;
 
                       return (
                         <Card
@@ -593,7 +603,7 @@ export default function AdminLearningPaths() {
                                 </div>
                               </div>
                               <Badge variant="secondary" className="text-xs shrink-0">
-                                {subject.totalContent || 0}
+                                {cardTotal}
                               </Badge>
                             </div>
 
@@ -604,21 +614,16 @@ export default function AdminLearningPaths() {
 
                             <div className="flex flex-wrap gap-1.5">
                               <span className="rounded-md border border-sky-100 bg-sky-50 px-2 py-0.5 text-micro font-medium text-sky-800">
-                                Textbooks{' '}
-                                {
-                                  (subject.asliPrepContent || []).filter(
-                                    (c: any) => c?.type === 'TextBook' && !isIitTrackContent(c),
-                                  ).length
-                                }
+                                Textbooks {displayStats.textbooks}
                               </span>
                               <span className="rounded-md border border-amber-100 bg-amber-50 px-2 py-0.5 text-micro font-medium text-amber-800">
-                                Materials{' '}
-                                {
-                                  (subject.asliPrepContent || []).filter(
-                                    (c: any) => c?.type === 'Material' && !isIitTrackContent(c),
-                                  ).length
-                                }
+                                Materials {displayStats.materials}
                               </span>
+                              {displayStats.videos > 0 ? (
+                                <span className="rounded-md border border-violet-100 bg-violet-50 px-2 py-0.5 text-micro font-medium text-violet-800">
+                                  Videos {displayStats.videos}
+                                </span>
+                              ) : null}
                               {hasIit ? (
                                 <span className="rounded-md border border-slate-200 bg-slate-900 px-2 py-0.5 text-micro font-medium text-amber-200">
                                   IIT {iitItems.length}

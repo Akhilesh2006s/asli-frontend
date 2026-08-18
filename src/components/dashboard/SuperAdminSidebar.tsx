@@ -408,7 +408,7 @@ export function SuperAdminSidebar({ currentView, onViewChange, user, onLogout }:
     <aside
       className={cn(
         "super-admin-sidebar hidden sm:flex flex-col transition-all duration-300",
-        "sm:w-[60px] lg:w-64 sm:min-w-[60px] lg:min-w-[16rem] lg:max-w-[16rem]",
+        "sm:w-[60px] lg:w-72 sm:min-w-[60px] lg:min-w-[18rem] lg:max-w-[18rem]",
         "h-screen fixed top-0 left-0 overflow-hidden z-20",
       )}
     >

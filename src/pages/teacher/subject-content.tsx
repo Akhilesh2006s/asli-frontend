@@ -19,6 +19,7 @@ import CalendarView from '@/components/student/calendar-view';
 import { API_BASE_URL } from '@/lib/api-config';
 import { normalizeClassNumber } from '@/lib/exam-classes';
 import { filterVideosForLearningPath } from '@/lib/school-program';
+import { formatLibraryContentClassLabel } from '@/lib/library-content-labels';
 import { goBackOrFallback } from '@/lib/navigate-back';
 
 interface ContentItem {
@@ -251,6 +252,14 @@ export default function TeacherSubjectContent() {
                   <h1 className="text-2xl sm:text-3xl font-bold mb-1 uppercase tracking-wide">
                     {subject?.name || 'Subject'}
                   </h1>
+                  {(() => {
+                    const classLabel = selectedClassFilter
+                      ? `Class ${selectedClassFilter}`
+                      : contents.map((row) => formatLibraryContentClassLabel(row)).find(Boolean);
+                    return classLabel ? (
+                      <p className="text-blue-50 font-medium mb-1">{classLabel}</p>
+                    ) : null;
+                  })()}
                   {subject?.description && (
                     <p className="text-blue-100 text-sm sm:text-base">{subject.description}</p>
                   )}

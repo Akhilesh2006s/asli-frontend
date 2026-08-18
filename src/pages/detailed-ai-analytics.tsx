@@ -60,6 +60,7 @@ interface AdminAnalytics {
   board?: string;
   curriculumBoard?: string;
   effectiveBoard?: string;
+  iitCategories?: string[];
   state?: string;
   examDifficulty: ExamDifficulty;
   topScorers: TopScorer[];
@@ -172,10 +173,11 @@ export default function DetailedAIAnalyticsDashboard({
   const [filterState, setFilterState] = useState<string>('all');
   const [filterBoard, setFilterBoard] = useState<string>('all');
 
-  // Board options — curriculum boards + OTHER (aligned with backend boardScope)
+  // Board options — curriculum boards + IIT + OTHER (aligned with backend boardScope)
   const boardOptions = [
     { value: 'all', label: 'All Boards' },
     { value: 'CBSE', label: 'CBSE' },
+    { value: 'IIT', label: 'IIT' },
     { value: 'STATE', label: 'State Board' },
     { value: 'SSC', label: 'SSC' },
     { value: 'ICSE', label: 'ICSE' },
@@ -184,15 +186,37 @@ export default function DetailedAIAnalyticsDashboard({
     { value: 'OTHER', label: 'Other / Unmapped' },
   ];
 
+  const canonicalizeAnalyticsBoard = (raw?: string | null) => {
+    const u = String(raw || '').toUpperCase().trim();
+    if (!u) return '';
+    const compact = u.replace(/[\s/\\-_]+/g, '');
+    if (compact.includes('IIT') || compact.includes('NEET') || compact.includes('JEE')) return 'IIT';
+    return u;
+  };
+
+  const adminHasIitProgram = (adminData: any, fallbackAdmin?: AdminAnalytics) => {
+    const cats = adminData?.iitCategories || fallbackAdmin?.iitCategories;
+    if (Array.isArray(cats) && cats.some((c: unknown) => String(c || '').trim())) return true;
+    return (
+      canonicalizeAnalyticsBoard(adminData?.board || fallbackAdmin?.board) === 'IIT' ||
+      canonicalizeAnalyticsBoard(adminData?.curriculumBoard || fallbackAdmin?.curriculumBoard) === 'IIT'
+    );
+  };
+
   const resolveAdminCurriculumBoard = (adminData: any, fallbackAdmin?: AdminAnalytics) => {
-    const curriculum =
+    const curriculum = canonicalizeAnalyticsBoard(
       adminData?.curriculumBoard ||
-      fallbackAdmin?.curriculumBoard ||
-      fallbackAdmin?.effectiveBoard ||
-      '';
-    if (curriculum) return String(curriculum).toUpperCase().trim();
-    const hub = String(adminData?.board || fallbackAdmin?.board || '').toUpperCase().trim();
+        fallbackAdmin?.curriculumBoard ||
+        fallbackAdmin?.effectiveBoard ||
+        '',
+    );
+    if (curriculum && curriculum !== 'ASLI_EXCLUSIVE_SCHOOLS' && curriculum !== 'OTHER') {
+      return curriculum;
+    }
+    const hub = canonicalizeAnalyticsBoard(adminData?.board || fallbackAdmin?.board || '');
+    if (hub === 'IIT') return 'IIT';
     if (['CBSE', 'STATE', 'SSC', 'ICSE', 'IB', 'CAMBRIDGE'].includes(hub)) return hub;
+    if (adminHasIitProgram(adminData, fallbackAdmin)) return 'IIT';
     return 'OTHER';
   };
 
@@ -347,6 +371,7 @@ export default function DetailedAIAnalyticsDashboard({
     if (filterBoard !== 'all') {
       filteredAdminAnalytics = filteredAdminAnalytics.filter(admin => {
         const adminData = admins.find(a => String(a.id || a._id) === String(admin.adminId));
+        if (filterBoard === 'IIT') return adminHasIitProgram(adminData, admin);
         return resolveAdminCurriculumBoard(adminData, admin) === filterBoard;
       });
     }

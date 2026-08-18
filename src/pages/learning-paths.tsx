@@ -48,6 +48,7 @@ import {
 } from "@/lib/school-program";
 import {
   formatIitLearningPathContentLabel,
+  formatLibraryContentContextLabel,
   isIitTrackContent,
   libraryContentMatchesSubject,
   getLibraryContentSubjectKey,
@@ -66,6 +67,7 @@ import {
   normalizeSubjectDisplayKey,
   prepareStudentLearningPathSubjects,
 } from "@/lib/learning-path-subjects";
+import { countLearningPathDisplayStats } from "@/lib/learning-path-stats";
 
 function isTeacherPortalUser(): boolean {
   const stored = getUser();
@@ -749,19 +751,20 @@ export default function LearningPaths() {
                 );
                 const boardMine = mine.filter((c: any) => !isIitTrackContent(c));
                 const iitMine = mine.filter((c: any) => isIitTrackContent(c));
-                const countOf = (t: string) =>
-                  boardMine.filter((c: any) => c?.type === t).length;
+                const boardStats = countLearningPathDisplayStats(boardMine);
                 const iitCount = iitMine.length;
-                const videoCount = countOf('Video');
                 const tiles = [
-                  { label: 'Textbooks', value: countOf('TextBook'), iit: false },
-                  { label: 'Materials', value: countOf('Material'), iit: false },
+                  { label: 'Textbooks', value: boardStats.textbooks, iit: false },
+                  { label: 'Materials', value: boardStats.materials, iit: false },
                   ...(iitCount > 0 || subject.hasIitTrack
                     ? [{ label: 'IIT', value: iitCount, iit: true }]
-                    : isAsliPrepExclusive && allowedBrowseTypes.includes('Video')
-                      ? [{ label: 'Videos', value: videoCount, iit: false }]
+                    : boardStats.videos > 0 ||
+                        (isAsliPrepExclusive && allowedBrowseTypes.includes('Video'))
+                      ? [{ label: 'Videos', value: boardStats.videos, iit: false }]
                       : []),
                 ];
+                const cardTotal =
+                  boardStats.textbooks + boardStats.materials + boardStats.videos + iitCount;
                 const recentBoard = boardMine.slice(0, 2);
                 const recentIit = iitMine.slice(0, 2);
 
@@ -784,7 +787,7 @@ export default function LearningPaths() {
                         </p>
                       </div>
                       <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${theme.soft}`}>
-                        {mine.length} {mine.length === 1 ? 'Item' : 'Items'}
+                        {cardTotal} {cardTotal === 1 ? 'Item' : 'Items'}
                       </span>
                     </div>
 
@@ -1073,30 +1076,17 @@ export default function LearningPaths() {
                           </Badge>
                         </div>
                         <CardTitle className="text-base sm:text-lg">{content.title}</CardTitle>
+                        {(() => {
+                          const context = formatLibraryContentContextLabel(content);
+                          return context ? (
+                            <p className="text-xs sm:text-sm font-medium text-slate-700 mt-1">{context}</p>
+                          ) : null;
+                        })()}
                         {content.description && (
                           <p className="text-gray-600 text-xs sm:text-sm mt-2">{content.description}</p>
                         )}
                       </CardHeader>
                       <CardContent className="space-y-3 flex-1 flex flex-col">
-                        <div className="space-y-3 flex-1">
-                        {content.subject && (
-                          <div className="flex items-center space-x-2">
-                            <BookOpen className="w-3 h-3 sm:w-4 sm:h-4 text-gray-500" />
-                            <span className="text-xs sm:text-sm text-gray-600">
-                              {isIitTrackContent(content)
-                                ? formatIitLearningPathContentLabel(
-                                    content,
-                                    typeof content.subject === 'object'
-                                      ? content.subject.name
-                                      : '',
-                                  )
-                                : typeof content.subject === 'object'
-                                  ? learningPathDisplayName(content.subject.name || '')
-                                  : 'Subject'}
-                            </span>
-                          </div>
-                        )}
-                        </div>
                         <div className="flex space-x-2">
                           <Button
                             variant="outline"
@@ -1168,12 +1158,23 @@ export default function LearningPaths() {
             <DialogTitle className="pr-12 text-left text-lg font-bold leading-snug text-slate-900 sm:text-xl md:text-2xl">
               {previewContent?.title || "Content Preview"}
             </DialogTitle>
-            {previewContent?.type ? (
-              <p className="text-left text-sm text-slate-600 sm:text-base">
-                {previewContent.type}
-                {previewContent.description ? ` · ${previewContent.description}` : ""}
-              </p>
-            ) : null}
+            {(() => {
+              const context = previewContent
+                ? formatLibraryContentContextLabel(previewContent)
+                : "";
+              const bits = [context, previewContent?.type].filter(Boolean);
+              return bits.length > 0 ? (
+                <p className="text-left text-sm text-slate-600 sm:text-base">
+                  {bits.join(" · ")}
+                  {previewContent?.description ? ` · ${previewContent.description}` : ""}
+                </p>
+              ) : previewContent?.type ? (
+                <p className="text-left text-sm text-slate-600 sm:text-base">
+                  {previewContent.type}
+                  {previewContent.description ? ` · ${previewContent.description}` : ""}
+                </p>
+              ) : null;
+            })()}
           </DialogHeader>
           <div
             className={`min-h-0 flex-1 ${
@@ -1232,6 +1233,9 @@ export default function LearningPaths() {
                   title={previewContent?.title}
                   className="h-full min-h-0 w-full flex-1"
                   variant="book"
+                  contextLabel={
+                    previewContent ? formatLibraryContentContextLabel(previewContent) : ""
+                  }
                 />
               );
             }

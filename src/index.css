@@ -56,7 +56,7 @@
   --shell-surface: #f4f8fc;
   --shell-radius: 1.5rem;
   --shell-topbar: #ffffff;
-  --shell-rail-w: 16rem;
+  --shell-rail-w: 18rem;
   --shell-rail-w-collapsed: 5rem;
 
   /* Brand extras */
@@ -175,6 +175,7 @@
   /* Radix Select uses react-remove-scroll-bar, which pads body when the scrollbar
      hides. With scrollbar-gutter above the pad is redundant and causes the
      sideways "giggle" on every dropdown open/close — zero it all out. */
+  html[data-scroll-locked],
   body[data-scroll-locked] {
     padding-left: 0 !important;
     padding-top: 0 !important;
@@ -182,6 +183,7 @@
     margin-left: 0 !important;
     margin-top: 0 !important;
     margin-right: 0 !important;
+    --removed-body-scroll-bar-size: 0px;
   }
 
   body[data-scroll-locked] .width-before-scroll-bar,

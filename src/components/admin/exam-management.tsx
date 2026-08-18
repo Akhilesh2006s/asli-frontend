@@ -953,21 +953,27 @@ const ExamManagement = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="startDate">Start Date</Label>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:items-start">
+              <div className="flex min-w-0 flex-col gap-1.5">
+                <Label htmlFor="startDate" className="text-sm font-semibold leading-none">
+                  Start Date
+                </Label>
                 <Input
                   id="startDate"
                   type="datetime-local"
+                  className="asli-date-input !h-11 !min-h-[2.75rem] py-1.5 text-base"
                   value={examForm.startDate}
                   onChange={(e) => setExamForm(prev => ({ ...prev, startDate: e.target.value }))}
                 />
               </div>
-              <div>
-                <Label htmlFor="endDate">End Date</Label>
+              <div className="flex min-w-0 flex-col gap-1.5">
+                <Label htmlFor="endDate" className="text-sm font-semibold leading-none">
+                  End Date
+                </Label>
                 <Input
                   id="endDate"
                   type="datetime-local"
+                  className="asli-date-input !h-11 !min-h-[2.75rem] py-1.5 text-base"
                   value={examForm.endDate}
                   onChange={(e) => setExamForm(prev => ({ ...prev, endDate: e.target.value }))}
                 />

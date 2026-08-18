@@ -766,7 +766,7 @@ export function SixSectionViewer({ tool, curriculum, chapter, summary, sections,
       )}
 
       {/* six sections — the primary (worksheet/core) dominates; all collapsible */}
-      <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+      <div className="grid grid-cols-1 items-start gap-5 md:grid-cols-2">
         {visibleSections.map((s) => {
           const idx = sections.indexOf(s);
           const accent = ACCENTS[s.accent];
@@ -778,9 +778,10 @@ export function SixSectionViewer({ tool, curriculum, chapter, summary, sections,
             <section
               key={s.id}
               className={cn(
-                'group relative flex flex-col overflow-hidden rounded-[1.5rem] border bg-white transition-all duration-300 dark:bg-slate-900',
+                'group relative flex h-auto flex-col overflow-hidden rounded-[1.5rem] border bg-white transition-all duration-300 dark:bg-slate-900',
                 accent.ring,
                 (s.full || isPrimary || soloView) && 'md:col-span-2',
+                isCollapsed && 'self-start',
                 isPrimary
                   ? 'shadow-[0_8px_30px_-8px_rgba(0,0,0,0.16)] ring-1 ring-slate-900/5 dark:ring-white/10'
                   : 'shadow-[0_2px_10px_-4px_rgba(0,0,0,0.08)] hover:-translate-y-0.5 hover:shadow-[0_12px_32px_-8px_rgba(0,0,0,0.14)]',
@@ -794,7 +795,8 @@ export function SixSectionViewer({ tool, curriculum, chapter, summary, sections,
                 onClick={() => toggleSection(s.id)}
                 aria-expanded={!isCollapsed}
                 className={cn(
-                  'flex w-full items-center gap-3 border-b bg-gradient-to-b to-white px-5 text-left transition-colors hover:brightness-[0.99] dark:to-slate-900',
+                  'flex w-full items-center gap-3 bg-gradient-to-b to-white px-5 text-left transition-colors hover:brightness-[0.99] dark:to-slate-900',
+                  !isCollapsed && 'border-b',
                   accent.ring,
                   accent.head,
                   isPrimary ? 'py-5' : 'py-4',
@@ -850,7 +852,7 @@ export function SixSectionViewer({ tool, curriculum, chapter, summary, sections,
                 />
               </button>
               {!isCollapsed && (
-                <div className={cn('flex-1', isPrimary ? 'p-6' : 'p-5')}>
+                <div className={isPrimary ? 'p-6' : 'p-5'}>
                   <Blocks blocks={s.blocks} accent={accent} />
                 </div>
               )}

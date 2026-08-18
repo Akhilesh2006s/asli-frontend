@@ -102,6 +102,27 @@ export function writeStoredPdfPage(fileUrl: string, page: number): void {
   }
 }
 
+/** Jump inside the PDF scroller. Avoid scrollIntoView — it moves the dialog, not the pages. */
+export function scrollPdfHostToPage(
+  host: HTMLElement | null | undefined,
+  page: number,
+  totalPages: number,
+): boolean {
+  if (!host) return false;
+  const clamped = Math.min(Math.max(1, Math.floor(page)), Math.max(1, totalPages || 1));
+  const slot = host.querySelector(`[data-page="${clamped}"]`) as HTMLElement | null;
+  const pageH = Math.max(1, host.clientHeight);
+  const top =
+    slot && slot.offsetHeight > 8 ? slot.offsetTop : (clamped - 1) * pageH;
+  const prevSnap = host.style.scrollSnapType;
+  host.style.scrollSnapType = 'none';
+  host.scrollTo({ top, left: 0, behavior: 'auto' });
+  window.requestAnimationFrame(() => {
+    host.style.scrollSnapType = prevSnap;
+  });
+  return Boolean(slot) || clamped === 1;
+}
+
 function getPageViewport(page: pdfjs.PDFPageProxy, scale: number) {
   // Honor embedded page rotation so landscape / sideways pages render upright.
   return page.getViewport({ scale, rotation: page.rotate ?? 0 });
@@ -488,19 +509,12 @@ const PdfMobileScrollViewer = forwardRef<PdfMobileScrollViewerHandle, PdfMobileS
     let attempts = 0;
     const jump = () => {
       attempts += 1;
-      const slot = host.querySelector(`[data-page="${targetPage}"]`) as HTMLElement | null;
-      if (slot) {
-        slot.scrollIntoView({ block: 'start', behavior: 'auto' });
+      if (scrollPdfHostToPage(host, targetPage, totalPages) || attempts >= 40) {
         restoredRef.current = true;
         return;
       }
-      if (attempts < 40) {
-        window.setTimeout(jump, 50);
-      } else {
-        restoredRef.current = true;
-      }
+      window.setTimeout(jump, 50);
     };
-    // Wait a frame so page 1 layout exists, then jump.
     window.requestAnimationFrame(jump);
   }, [storageKey, totalPages, pdf]);
 
@@ -560,10 +574,16 @@ const PdfMobileScrollViewer = forwardRef<PdfMobileScrollViewerHandle, PdfMobileS
   const goToPage = useCallback(
     (page: number) => {
       const host = scrollRef.current;
-      const clamped = Math.min(Math.max(1, page), Math.max(1, totalPages));
+      const clamped = Math.min(Math.max(1, Math.floor(page)), Math.max(1, totalPages));
       persistPage(clamped);
-      const slot = host?.querySelector(`[data-page="${clamped}"]`) as HTMLElement | null;
-      slot?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+      if (scrollPdfHostToPage(host, clamped, totalPages)) return;
+      let attempts = 0;
+      const retry = () => {
+        attempts += 1;
+        if (scrollPdfHostToPage(scrollRef.current, clamped, totalPages) || attempts >= 20) return;
+        window.setTimeout(retry, 50);
+      };
+      window.requestAnimationFrame(retry);
     },
     [persistPage, totalPages],
   );

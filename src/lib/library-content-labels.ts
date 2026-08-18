@@ -1,6 +1,7 @@
 import { normalizeBoardKey } from '@/lib/board-label';
 import { learningPathDisplayName } from '@/lib/learning-path-subjects';
 import {
+  extractClassNumberFromSubjectName,
   extractPlainSubjectName,
   formatSubjectWithIitCategory,
   normalizeSubjectDisplayKey,
@@ -110,10 +111,68 @@ export function isIitTrackContent(row: LibraryContentLike): boolean {
   return board === 'IIT' || board === 'IIT/NEET';
 }
 
+/**
+ * Keep a row on an opened subject page (Maths must not list Biology IIT).
+ * IIT rows without a subject name are excluded; board rows without a name stay.
+ */
+export function libraryContentBelongsToOpenedSubject(
+  row: LibraryContentLike,
+  openedSubjectName?: string,
+): boolean {
+  const openedKey = normalizeSubjectDisplayKey(openedSubjectName || '');
+  if (!openedKey) return true;
+  const contentKey = getLibraryContentSubjectKey(row);
+  if (contentKey) return contentKey === openedKey;
+  return !isIitTrackContent(row);
+}
+
 export function getLibraryContentSubjectName(row: LibraryContentLike): string {
   const raw = getLibraryContentSubjectRawName(row);
   if (raw) return learningPathDisplayName(raw) || extractPlainSubjectName(raw);
   return '';
+}
+
+export function normalizeLibraryClassNumber(value: unknown): string {
+  const trimmed = value != null ? String(value).trim() : '';
+  if (!trimmed) return '';
+  const withoutPrefix = trimmed.replace(/^class\s+/i, '').trim();
+  const parsed = parseInt(withoutPrefix, 10);
+  if (!Number.isNaN(parsed) && parsed > 0) return String(parsed);
+  return withoutPrefix || trimmed;
+}
+
+export function getLibraryContentClassNumber(row: LibraryContentLike): string {
+  const direct = normalizeLibraryClassNumber(row.classNumber);
+  if (direct) return direct;
+  const subject = asSubjectRef(row.subject) || asSubjectRef(row.subjectId);
+  const fromSubject = normalizeLibraryClassNumber(subject?.classNumber);
+  if (fromSubject) return fromSubject;
+  return extractClassNumberFromSubjectName(getLibraryContentSubjectRawName(row)) || '';
+}
+
+export function formatLibraryContentClassLabel(
+  row: LibraryContentLike,
+  fallbackClassNumber?: string | number | null,
+): string {
+  const n =
+    getLibraryContentClassNumber(row) ||
+    normalizeLibraryClassNumber(fallbackClassNumber);
+  if (!n) return '';
+  return /^class\b/i.test(n) ? n : `Class ${n}`;
+}
+
+/** e.g. "Class 6 · English" or "Class 9 · Mathematics IIT Alpha" — shown while viewing. */
+export function formatLibraryContentContextLabel(
+  row: LibraryContentLike,
+  opts?: { fallbackSubjectName?: string; fallbackClassNumber?: string | number | null },
+): string {
+  const classLabel = formatLibraryContentClassLabel(row, opts?.fallbackClassNumber);
+  const subject = isIitTrackContent(row)
+    ? formatIitLearningPathContentLabel(row, opts?.fallbackSubjectName)
+    : getLibraryContentSubjectName(row) ||
+      learningPathDisplayName(opts?.fallbackSubjectName || '') ||
+      '';
+  return [classLabel, subject].filter(Boolean).join(' · ');
 }
 
 /** e.g. Biology IIT Alpha — used under the Learning Paths IIT section. */

@@ -117,6 +117,45 @@ export function getPdfContentPreviewProxyUrl(fileUrl: string, title?: string): s
 }
 
 /**
+ * URL a new tab can actually open. `/uploads` files require auth or a signature;
+ * `<a href="/uploads/...">` hits the frontend host and gets 401 on the API.
+ */
+export function getProtectedFileOpenUrl(fileUrl: string, title?: string): string {
+  const raw = String(fileUrl || "").trim();
+  if (!raw) return "";
+  const lower = raw.toLowerCase();
+  if (
+    lower.startsWith("javascript:") ||
+    lower.startsWith("data:") ||
+    lower.startsWith("vbscript:") ||
+    lower.startsWith("file:")
+  ) {
+    return "";
+  }
+  const absolute = normalizeContentFileUrl(raw);
+  if (!absolute) return "";
+  try {
+    const parsed = new URL(absolute);
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return "";
+    if (parsed.searchParams.get("sig") && parsed.searchParams.get("exp")) {
+      return absolute;
+    }
+    if (parsed.pathname.startsWith("/uploads/")) {
+      return getPdfContentPreviewProxyUrl(absolute, title || "file");
+    }
+    return absolute;
+  } catch {
+    return "";
+  }
+}
+
+export function openProtectedFile(fileUrl: string, title?: string): void {
+  const url = getProtectedFileOpenUrl(fileUrl, title);
+  if (!url || typeof window === "undefined") return;
+  window.open(url, "_blank", "noopener,noreferrer");
+}
+
+/**
  * Authenticated proxy that returns PDF bytes (no 302 to NCERT) for pdf.js canvas rendering.
  */
 export function getPdfJsFetchUrl(fileUrl: string, title?: string): string {
@@ -133,15 +172,55 @@ export function getPdfJsFetchUrl(fileUrl: string, title?: string): string {
 }
 
 /**
- * Best URL to open a PDF in a new browser tab (not iframe).
- * Prefer direct /uploads links so staff roles are not blocked by student-only checks.
+ * In-app full-window reader — never the browser PDF plugin (which shows Download).
  */
-export function getPdfOpenInNewTabUrl(fileUrl: string, title?: string): string {
-  const absolute = normalizeContentFileUrl(fileUrl);
-  if (!absolute) return "";
-  if (shouldFetchDirectly(absolute)) return absolute;
-  if (/\/uploads\//i.test(absolute)) return absolute;
-  return getPdfContentPreviewProxyUrl(fileUrl, title);
+export function getPdfReaderAppUrl(fileUrl: string, title?: string, context?: string): string {
+  const raw = String(fileUrl || "").trim();
+  if (!raw) return "";
+  const params = new URLSearchParams();
+  params.set("file", raw);
+  const label = String(title || "").trim();
+  if (label) params.set("title", label);
+  const ctx = String(context || "").trim();
+  if (ctx) params.set("context", ctx);
+  return `/pdf-reader?${params.toString()}`;
+}
+
+export function isAllowedPdfReaderFileUrl(fileUrl: string): boolean {
+  const raw = String(fileUrl || "").trim();
+  if (!raw) return false;
+  const lower = raw.toLowerCase();
+  if (
+    lower.startsWith("javascript:") ||
+    lower.startsWith("data:") ||
+    lower.startsWith("vbscript:") ||
+    lower.startsWith("file:")
+  ) {
+    return false;
+  }
+  const absolute = normalizeContentFileUrl(raw);
+  if (!absolute) return false;
+  try {
+    const parsed = new URL(absolute);
+    return parsed.protocol === "http:" || parsed.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
+/** Open a PDF in a new tab of our reader (no Chrome download toolbar). */
+export function openPdfInAppReader(fileUrl: string, title?: string, context?: string): void {
+  const url = getPdfReaderAppUrl(fileUrl, title, context);
+  if (!url || typeof window === "undefined") return;
+  window.open(url, "_blank", "noopener,noreferrer");
+}
+
+/**
+ * Best URL to open a PDF in a new browser tab.
+ * Always uses the in-app reader so Chrome's Download/Print bar is not shown.
+ */
+export function getPdfOpenInNewTabUrl(fileUrl: string, title?: string, context?: string): string {
+  return getPdfReaderAppUrl(fileUrl, title, context);
 }
 
 /** Mobile iframe fallback: one page fitted to the viewport. */

@@ -1490,7 +1490,7 @@ export default function SuperAdminDashboard() {
       <div
         className={cn(
           "flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden",
-          superAdminDrawerNav ? "ml-0 pt-14 pb-16 sm:pb-0" : "sm:ml-[60px] lg:ml-64",
+          superAdminDrawerNav ? "ml-0 pt-14 pb-16 sm:pb-0" : "sm:ml-[60px] lg:ml-72",
         )}
       >
         <main

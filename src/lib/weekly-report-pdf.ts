@@ -1,5 +1,11 @@
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
+import {
+  teacherActivityTiles,
+  teacherAiTiles,
+  teacherSchoolTiles,
+  type WeeklyReportTile,
+} from './weekly-report-metrics';
 
 export type WeeklyReportPdfExam = {
   title?: string;
@@ -36,6 +42,10 @@ function tile(label: string, value: string, hint = '') {
     <div class="tile-value">${esc(value)}</div>
     ${hint ? `<div class="tile-hint">${esc(hint)}</div>` : ''}
   </div>`;
+}
+
+function tilesHtml(tiles: WeeklyReportTile[]) {
+  return tiles.map((t) => tile(t.label, t.value, t.hint || '')).join('');
 }
 
 function section(title: string, bodyHtml: string) {
@@ -167,23 +177,27 @@ export function buildWeeklyReportHtml(input: WeeklyReportPdfInput): string {
       border: 1px solid #e2e8f0;
       border-radius: 14px;
       padding: 12px 14px;
+      min-height: 96px;
+      display: flex;
+      flex-direction: column;
       background: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
     }
     .tile-label {
-      font-size: 10px;
+      font-size: 11px;
       font-weight: 700;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
+      letter-spacing: 0.01em;
       color: #64748b;
+      line-height: 1.25;
+      min-height: 28px;
     }
     .tile-value {
-      margin-top: 4px;
+      margin-top: auto;
       font-size: 20px;
       font-weight: 800;
       color: #0f172a;
       word-break: break-word;
     }
-    .tile-hint { margin-top: 2px; font-size: 11px; color: #64748b; }
+    .tile-hint { margin-top: 4px; font-size: 11px; color: #64748b; min-height: 14px; }
     .list {
       list-style: none;
       margin: 0;
@@ -265,20 +279,13 @@ export function buildWeeklyReportHtml(input: WeeklyReportPdfInput): string {
     ${section(
       'Your activity',
       `<div class="grid">
-        ${tile('Logins this week', String(n(m.loginCount)), 'Days you opened the app')}
-        ${tile('Sessions', String(n(m.sessions)))}
-        ${tile('Time on platform', String(m.totalTimeLabel || `${n(m.minutes)} min`))}
-        ${tile('Last active', String(m.lastActiveDate || '—'))}
-        ${tile('Status (14 days)', String(m.status || '—'))}
-        ${tile('Active days (14d)', String(n(m.activeDays)))}
+        ${tilesHtml(teacherActivityTiles(m))}
       </div>`,
     )}
     ${section(
       'Teaching with AI',
       `<div class="grid">
-        ${tile('AI resources created', String(n(m.generationsCreated)))}
-        ${tile('Vidya AI asks', String(n(m.aiDoubts)))}
-        ${tile('Tool opens', String(n(m.aiToolUses)))}
+        ${tilesHtml(teacherAiTiles(m))}
       </div>
       ${usageRows(
         toolsUsed.slice(0, 8).map((t) => ({
@@ -292,9 +299,7 @@ export function buildWeeklyReportHtml(input: WeeklyReportPdfInput): string {
     ${section(
       'Your school this week',
       `<div class="grid">
-        ${tile('Students accessed', String(n(m.schoolStudentsAccessed)))}
-        ${tile('School sessions', String(n(m.schoolSessions)))}
-        ${tile('Teachers active', String(n(m.schoolTeachersActive)))}
+        ${tilesHtml(teacherSchoolTiles(m))}
       </div>`,
     )}
     ${highlightsBlock}

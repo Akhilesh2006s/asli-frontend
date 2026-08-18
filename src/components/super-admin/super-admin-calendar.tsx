@@ -73,6 +73,10 @@ function localTodayIso() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
+function isPastLocalDay(date: Date) {
+  return stripTime(date) < stripTime(new Date());
+}
+
 function monthKey(date: Date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
 }
@@ -470,6 +474,14 @@ export default function SuperAdminCalendar({ onNavigateToExams }: SuperAdminCale
   };
 
   const openQuickAdd = (date: Date) => {
+    if (isPastLocalDay(date)) {
+      toast({
+        title: 'Past date',
+        description: 'You can view past days, but new events can only be added for today or a future date.',
+        variant: 'destructive',
+      });
+      return;
+    }
     const yyyy = date.getFullYear();
     const mm = String(date.getMonth() + 1).padStart(2, '0');
     const dd = String(date.getDate()).padStart(2, '0');
@@ -768,6 +780,7 @@ export default function SuperAdminCalendar({ onNavigateToExams }: SuperAdminCale
                       const dayEvents = eventsByDateKey[date.toDateString()] || [];
                       const isCurrentMonthDay = isCurrentMonth(date);
                       const isTodayDate = isToday(date);
+                      const isPastDay = isPastLocalDay(date);
 
                       return (
                         <motion.div
@@ -794,8 +807,9 @@ export default function SuperAdminCalendar({ onNavigateToExams }: SuperAdminCale
                               type="button"
                               variant="ghost"
                               size="icon"
-                              className="h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6 shrink-0 text-gray-500 hover:text-sky-600"
-                              title="Add"
+                              className="h-4 w-4 sm:h-5 sm:w-5 lg:h-6 lg:w-6 shrink-0 text-gray-500 hover:text-sky-600 disabled:text-gray-300"
+                              title={isPastDay ? 'Cannot add events on past dates' : 'Add'}
+                              disabled={isPastDay}
                               onClick={() => openQuickAdd(date)}
                             >
                               <Plus className="h-3.5 w-3.5" />
@@ -935,7 +949,20 @@ export default function SuperAdminCalendar({ onNavigateToExams }: SuperAdminCale
                     type="date"
                     min={localTodayIso()}
                     value={quickAddForm.date}
-                    onChange={(e) => setQuickAddForm((prev) => ({ ...prev, date: e.target.value }))}
+                    onChange={(e) => {
+                      const next = e.target.value;
+                      const today = localTodayIso();
+                      if (next && next < today) {
+                        toast({
+                          title: 'Past date',
+                          description: 'Choose today or a future date.',
+                          variant: 'destructive',
+                        });
+                        setQuickAddForm((prev) => ({ ...prev, date: today }));
+                        return;
+                      }
+                      setQuickAddForm((prev) => ({ ...prev, date: next }));
+                    }}
                     className="rounded-lg bg-white"
                   />
                 </div>
@@ -1018,7 +1045,11 @@ export default function SuperAdminCalendar({ onNavigateToExams }: SuperAdminCale
               <Button variant="outline" onClick={() => setQuickAddOpen(false)} className="rounded-lg">
                 Cancel
               </Button>
-              <Button onClick={saveCustomEvent} disabled={isSavingCustom} className="rounded-lg">
+              <Button
+                onClick={saveCustomEvent}
+                disabled={isSavingCustom || !quickAddForm.date || quickAddForm.date < localTodayIso()}
+                className="rounded-lg"
+              >
                 {isSavingCustom ? 'Saving...' : 'Save Event'}
               </Button>
             </DialogFooter>

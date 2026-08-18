@@ -31,6 +31,13 @@ import {
 } from "lucide-react";
 import { getAuthToken, getStudentDisplayName, getUser } from "@/lib/auth-utils";
 import { downloadWeeklyReportPdf } from "@/lib/weekly-report-pdf";
+import {
+  studentPreviewTiles,
+  teacherActivityTiles,
+  teacherAiTiles,
+  teacherPreviewTiles,
+  teacherSchoolTiles,
+} from "@/lib/weekly-report-metrics";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
@@ -122,10 +129,27 @@ function MetricTile({
   hint?: string;
 }) {
   return (
-    <div className="rounded-xl border border-slate-100 bg-slate-50/80 px-3 py-2.5">
-      <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">{label}</p>
-      <p className="mt-0.5 text-lg font-bold tabular-nums text-slate-900">{value}</p>
-      {hint ? <p className="text-[11px] text-slate-500">{hint}</p> : null}
+    <div className="flex h-full min-h-[6.25rem] flex-col rounded-xl border border-slate-100 bg-slate-50/80 px-3 py-2.5">
+      <p className="min-h-[2.25rem] text-[11px] font-semibold leading-tight text-slate-500 line-clamp-2">
+        {label}
+      </p>
+      <p className="mt-1 truncate text-lg font-bold tabular-nums leading-none text-slate-900">{value}</p>
+      <p className="mt-auto min-h-[1rem] pt-1 text-[11px] leading-tight text-slate-500 line-clamp-1">
+        {hint || "\u00a0"}
+      </p>
+    </div>
+  );
+}
+
+function PreviewStatTile({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex h-full min-h-[4.75rem] flex-col rounded-xl border border-slate-100 bg-slate-50/90 px-3 py-2.5">
+      <p className="min-h-[2.25rem] text-[11px] font-semibold leading-tight text-slate-500 line-clamp-2">
+        {label}
+      </p>
+      <p className="mt-auto truncate text-base font-bold tabular-nums leading-none text-slate-900">
+        {value}
+      </p>
     </div>
   );
 }
@@ -271,26 +295,11 @@ export function WeeklyDigestCard({ apiBase }: { apiBase: "/api/teacher" | "/api/
   };
 
   const previewStats = isTeacher
-    ? [
-        { label: "Logins", value: String(n(m.loginCount)) },
-        { label: "Sessions", value: String(n(m.sessions)) },
-        { label: "Time", value: String(m.totalTimeLabel || `${n(m.minutes)} min`) },
-        { label: "AI resources", value: String(n(m.generationsCreated)) },
-        { label: "Vidya", value: String(n(m.aiDoubts)) },
-        { label: "Status", value: String(m.status || "—") },
-        { label: "School stu.", value: String(n(m.schoolStudentsAccessed)) },
-        { label: "School sess.", value: String(n(m.schoolSessions)) },
-      ]
-    : [
-        { label: "Logins", value: String(n(m.loginCount)) },
-        { label: "Sessions", value: String(n(m.sessions)) },
-        { label: "Study time", value: String(m.totalTimeLabel || `${n(m.minutes)} min`) },
-        { label: "Exams", value: String(n(m.examAttempts)) },
-        { label: "Avg exam", value: n(m.examAttempts) > 0 ? `${n(m.avgExamPct)}%` : "—" },
-        { label: "Offline", value: String(n(m.omrAttempts)) },
-        { label: "AI uses", value: String(n(m.aiExplanations)) },
-        { label: "Streak", value: n(m.streak) > 0 ? `${n(m.streak)}d` : "0" },
-      ];
+    ? teacherPreviewTiles(m as Record<string, unknown>)
+    : studentPreviewTiles(m as Record<string, unknown>);
+  const teacherActivity = teacherActivityTiles(m as Record<string, unknown>);
+  const teacherAi = teacherAiTiles(m as Record<string, unknown>);
+  const teacherSchool = teacherSchoolTiles(m as Record<string, unknown>);
 
   return (
     <Card className="border-sky-100 shadow-sm overflow-hidden">
@@ -337,38 +346,17 @@ export function WeeklyDigestCard({ apiBase }: { apiBase: "/api/teacher" | "/api/
             </div>
 
             <SectionTitle icon={LogIn} title="Your activity" />
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              <MetricTile label="Logins this week" value={n(m.loginCount)} hint="Days you opened the app" />
-              <MetricTile label="Sessions" value={n(m.sessions)} hint="Times you started using it" />
-              <MetricTile
-                label="Time on platform"
-                value={m.totalTimeLabel || `${n(m.minutes)} min`}
-                hint="Total time spent this week"
-              />
-              <MetricTile label="Last active" value={m.lastActiveDate || "—"} hint="Your most recent visit" />
-              <MetricTile
-                label="Status (14 days)"
-                value={String(m.status || "—")}
-                hint="Active if used in last 14 days"
-              />
-              <MetricTile label="Active days (14d)" value={n(m.activeDays)} hint="Days used in last 2 weeks" />
-              <MetricTile label="Classes assigned" value={n(m.classesAssigned)} hint="Classes you teach" />
-              <MetricTile
-                label="Students in classes"
-                value={n(m.studentsInClasses)}
-                hint="Learners across your classes"
-              />
+            <div className="grid grid-cols-2 items-stretch gap-2 sm:grid-cols-3">
+              {teacherActivity.map((tile) => (
+                <MetricTile key={tile.label} label={tile.label} value={tile.value} hint={tile.hint} />
+              ))}
             </div>
 
             <SectionTitle icon={Sparkles} title="Teaching with AI" />
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              <MetricTile
-                label="AI resources created"
-                value={n(m.generationsCreated)}
-                hint="Worksheets, notes & more you made"
-              />
-              <MetricTile label="Vidya AI asks" value={n(m.aiDoubts)} hint="Questions you asked Vidya AI" />
-              <MetricTile label="Tool opens" value={n(m.aiToolUses)} hint="Times you opened an AI tool" />
+            <div className="grid grid-cols-2 items-stretch gap-2 sm:grid-cols-3">
+              {teacherAi.map((tile) => (
+                <MetricTile key={tile.label} label={tile.label} value={tile.value} hint={tile.hint} />
+              ))}
             </div>
             {(Array.isArray(m.toolsUsed) ? m.toolsUsed : []).length > 0 ? (
               <ul className="space-y-1.5 rounded-xl border border-slate-100 bg-white px-3 py-2">
@@ -396,22 +384,10 @@ export function WeeklyDigestCard({ apiBase }: { apiBase: "/api/teacher" | "/api/
             )}
 
             <SectionTitle icon={Users} title="Your school this week" />
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              <MetricTile
-                label="Students accessed"
-                value={n(m.schoolStudentsAccessed)}
-                hint="Students who used the app"
-              />
-              <MetricTile
-                label="School sessions"
-                value={n(m.schoolSessions)}
-                hint="Total sessions across your school"
-              />
-              <MetricTile
-                label="Teachers active"
-                value={n(m.schoolTeachersActive)}
-                hint="Colleagues active this week"
-              />
+            <div className="grid grid-cols-2 items-stretch gap-2 sm:grid-cols-3">
+              {teacherSchool.map((tile) => (
+                <MetricTile key={tile.label} label={tile.label} value={tile.value} hint={tile.hint} />
+              ))}
             </div>
 
             {(digest.highlights || []).length > 0 ? (
@@ -772,19 +748,15 @@ export function WeeklyDigestCard({ apiBase }: { apiBase: "/api/teacher" | "/api/
       </CardContent>
 
       <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
-        <DialogContent className="max-w-lg gap-0 overflow-hidden p-0 sm:rounded-2xl">
+        <DialogContent className="max-w-xl gap-0 overflow-hidden p-0 sm:rounded-2xl">
           <div className="relative overflow-hidden bg-gradient-to-br from-sky-500 via-sky-600 to-teal-700 px-5 pb-5 pt-6 text-white">
-            <motion.div
+            <div
               aria-hidden
               className="pointer-events-none absolute -right-8 -top-10 h-36 w-36 rounded-full bg-white/10"
-              animate={{ scale: [1, 1.08, 1], opacity: [0.35, 0.55, 0.35] }}
-              transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
             />
-            <motion.div
+            <div
               aria-hidden
               className="pointer-events-none absolute -bottom-10 left-10 h-28 w-28 rounded-full bg-teal-300/20"
-              animate={{ y: [0, -8, 0] }}
-              transition={{ duration: 3.2, repeat: Infinity, ease: "easeInOut" }}
             />
             <DialogHeader className="relative space-y-1 text-left">
               <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-sky-100">
@@ -815,20 +787,9 @@ export function WeeklyDigestCard({ apiBase }: { apiBase: "/api/teacher" | "/api/
 
           <div className="space-y-4 px-5 py-4">
             {hasRichStudentMetrics || hasRichTeacherMetrics ? (
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                {previewStats.map((stat, i) => (
-                  <motion.div
-                    key={stat.label}
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.04 * i }}
-                    className="rounded-xl border border-slate-100 bg-slate-50/90 px-2.5 py-2"
-                  >
-                    <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
-                      {stat.label}
-                    </p>
-                    <p className="mt-0.5 text-sm font-bold tabular-nums text-slate-900">{stat.value}</p>
-                  </motion.div>
+              <div className="grid grid-cols-2 items-stretch gap-2 sm:grid-cols-4">
+                {previewStats.map((stat) => (
+                  <PreviewStatTile key={stat.label} label={stat.label} value={stat.value} />
                 ))}
               </div>
             ) : (

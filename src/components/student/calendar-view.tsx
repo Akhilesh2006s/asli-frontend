@@ -31,7 +31,9 @@ import {
 } from '@/lib/video-chapter-schedule';
 import {
   formatIitLearningPathContentLabel,
+  formatLibraryContentContextLabel,
   isIitTrackContent,
+  libraryContentBelongsToOpenedSubject,
 } from '@/lib/library-content-labels';
 
 interface ContentItem {
@@ -48,8 +50,10 @@ interface ContentItem {
   topic?: string;
   productCategory?: string | null;
   board?: string | null;
+  classNumber?: string | number | null;
   subject?: {
     name?: string;
+    classNumber?: string | number | null;
     productCategory?: string | null;
     board?: string | null;
   } | string;
@@ -102,7 +106,11 @@ export default function CalendarView({
   const [existingSubmission, setExistingSubmission] = useState<any>(null);
 
   // Match Super Admin: chapter → module → title (not upload date alone).
-  const sortedContents = sortContentsChapterWise(contents);
+  const sortedContents = sortContentsChapterWise(
+    subjectName
+      ? contents.filter((c) => libraryContentBelongsToOpenedSubject(c, subjectName))
+      : contents,
+  );
 
   const handleMarkAsDone = (contentId: string) => {
     const newMarked = new Set(markedDone);
@@ -376,6 +384,9 @@ export default function CalendarView({
           fileUrl={content.fileUrl}
           title={content.title}
           className="h-full min-h-0 w-full flex-1"
+          contextLabel={formatLibraryContentContextLabel(content, {
+            fallbackSubjectName: subjectName,
+          })}
         />
       );
     }
@@ -470,13 +481,20 @@ export default function CalendarView({
     const uploadedTitle = getLibraryContentDisplayTitle(content);
     const hasUploadedTitle = Boolean(uploadedTitle) && uploadedTitle !== 'Untitled';
     const title = opts?.iit && !hasUploadedTitle ? iitTrackLabel : uploadedTitle;
+    const contextLabel = formatLibraryContentContextLabel(content, {
+      fallbackSubjectName: subjectName,
+    });
     const subtitleBits = opts?.iit
       ? [
-          iitTrackLabel && iitTrackLabel !== title ? iitTrackLabel : null,
+          contextLabel || null,
+          iitTrackLabel && iitTrackLabel !== title && iitTrackLabel !== contextLabel
+            ? iitTrackLabel
+            : null,
           content.chapter ? `Chapter ${content.chapter}` : null,
           content.type || null,
         ].filter(Boolean)
       : [
+          contextLabel || null,
           content.chapter ? `Chapter ${content.chapter}` : null,
           content.module ? `Module ${content.module}` : null,
           content.topic && content.topic !== content.title ? content.topic : null,
@@ -606,7 +624,17 @@ export default function CalendarView({
               {selectedContent ? getLibraryContentDisplayTitle(selectedContent) : ''}
             </DialogTitle>
             <DialogDescription className="text-xs sm:text-sm">
-              {selectedContent?.description || 'Content preview'}
+              {[
+                selectedContent
+                  ? formatLibraryContentContextLabel(selectedContent, {
+                      fallbackSubjectName: subjectName,
+                    })
+                  : '',
+                selectedContent?.type || '',
+                selectedContent?.description || '',
+              ]
+                .filter(Boolean)
+                .join(' · ') || 'Content preview'}
             </DialogDescription>
           </DialogHeader>
           

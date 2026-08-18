@@ -244,7 +244,7 @@ function NavRow({
         href={item.href}
         onClick={handleClick}
         className={cn(
-          "group relative flex items-center gap-3 overflow-hidden rounded-2xl px-3 py-2.5 text-sm font-bold transition-all duration-300",
+          "group relative flex items-center gap-2.5 overflow-hidden rounded-2xl px-3 py-2.5 text-sm font-bold transition-all duration-300",
           active
             ? cn("bg-gradient-to-r text-white", accent.active, accent.glow)
             : "text-slate-600 hover:bg-white/85 hover:text-slate-900 hover:shadow-md hover:shadow-sky-100/80",
@@ -278,13 +278,15 @@ function NavRow({
           <Icon className="h-[1.125rem] w-[1.125rem]" aria-hidden="true" />
         </motion.span>
 
-        <span className="relative min-w-0 flex-1 truncate">{item.label}</span>
+        <span className="relative min-w-0 flex-1 whitespace-normal break-words leading-snug">
+          {item.label}
+        </span>
 
         {active ? (
           <motion.span
             initial={{ scale: 0, rotate: -30 }}
             animate={{ scale: 1, rotate: 0 }}
-            className="relative flex h-5 w-5 items-center justify-center"
+            className="relative flex h-5 w-5 shrink-0 items-center justify-center"
           >
             <Sparkles className="h-3.5 w-3.5 text-white/90" aria-hidden="true" />
           </motion.span>

@@ -586,8 +586,8 @@ async function pdfFetchUrlReachable(fetchUrl: string): Promise<boolean> {
 }
 
 async function inspectPdfPageCount(file: File): Promise<number> {
-  const data = await file.arrayBuffer();
-  const pdf = await pdfjs.getDocument({ data }).promise;
+  const src = await file.arrayBuffer();
+  const pdf = await pdfjs.getDocument({ data: src.slice(0) }).promise;
   try {
     return pdf.numPages || 1;
   } finally {
@@ -596,13 +596,91 @@ async function inspectPdfPageCount(file: File): Promise<number> {
 }
 
 async function renderPdfFirstPageDataUrlFromFile(file: File, pageNumber = 1): Promise<string> {
-  const data = await file.arrayBuffer();
-  const pdf = await pdfjs.getDocument({ data }).promise;
+  const src = await file.arrayBuffer();
+  const pdf = await pdfjs.getDocument({ data: src.slice(0) }).promise;
   try {
     return await renderPdfPageToDataUrl(pdf, pageNumber);
   } finally {
     await pdf.destroy();
   }
+}
+
+function PdfCoverPageField({
+  id,
+  page,
+  pageCount,
+  previewUrl,
+  previewLoading,
+  onPageChange,
+}: {
+  id: string;
+  page: number;
+  pageCount: number;
+  previewUrl: string;
+  previewLoading: boolean;
+  onPageChange: (page: number) => void;
+}) {
+  const setPage = (n: number) => onPageChange(Math.min(pageCount, Math.max(1, Math.floor(n) || 1)));
+  return (
+    <div className="space-y-2 rounded-lg border border-slate-200 bg-white p-3">
+      <div className="flex flex-wrap items-center gap-2">
+        <Label htmlFor={id}>PDF page</Label>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="h-9 w-9 px-0"
+          disabled={page <= 1}
+          onClick={() => setPage(page - 1)}
+          aria-label="Previous PDF page"
+        >
+          −
+        </Button>
+        <Input
+          id={id}
+          type="number"
+          min={1}
+          max={pageCount}
+          value={page}
+          onChange={(e) => setPage(parseInt(e.target.value, 10) || 1)}
+          className="h-9 w-24"
+        />
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="h-9 w-9 px-0"
+          disabled={page >= pageCount}
+          onClick={() => setPage(page + 1)}
+          aria-label="Next PDF page"
+        >
+          +
+        </Button>
+        <span className="text-xs text-gray-500">of {pageCount}</span>
+      </div>
+      <p className="text-xs text-gray-500">
+        Changing the number only previews that page. Click Upload to use it as the cover.
+      </p>
+      <div className="overflow-hidden rounded-md border border-slate-200 bg-slate-50">
+        {previewLoading && !previewUrl ? (
+          <div className="flex h-40 items-center justify-center gap-2 text-xs text-slate-500">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Loading page {page}…
+          </div>
+        ) : previewUrl ? (
+          <img
+            src={previewUrl}
+            alt={`PDF page ${page}`}
+            className={`mx-auto max-h-56 w-auto ${previewLoading ? 'opacity-60' : ''}`}
+          />
+        ) : (
+          <div className="flex h-24 items-center justify-center text-xs text-slate-500">
+            Could not preview this page
+          </div>
+        )}
+      </div>
+    </div>
+  );
 }
 
 async function renderPdfFirstPageDataUrl(
@@ -792,6 +870,8 @@ export default function SubjectContentManagement() {
   const [uploadInputKey, setUploadInputKey] = useState(0);
   const [pdfCoverPage, setPdfCoverPage] = useState(1);
   const [pdfPageCount, setPdfPageCount] = useState<number | null>(null);
+  const [pdfCoverPreviewUrl, setPdfCoverPreviewUrl] = useState('');
+  const [pdfCoverPreviewLoading, setPdfCoverPreviewLoading] = useState(false);
   const [isUploadingFile, setIsUploadingFile] = useState(false);
 
   const [isSavingSubject, setIsSavingSubject] = useState(false);
@@ -808,6 +888,8 @@ export default function SubjectContentManagement() {
     setUploadInputKey((k) => k + 1);
     setPdfCoverPage(1);
     setPdfPageCount(null);
+    setPdfCoverPreviewUrl('');
+    setPdfCoverPreviewLoading(false);
   };
 
   const onPickUploadFile = (file: File | null) => {
@@ -816,7 +898,7 @@ export default function SubjectContentManagement() {
       void inspectPdfPageCount(file)
         .then((n) => {
           setPdfPageCount(n);
-          setPdfCoverPage(1);
+          setPdfCoverPage((prev) => Math.min(Math.max(1, prev || 1), n));
         })
         .catch(() => {
           setPdfPageCount(null);
@@ -825,8 +907,39 @@ export default function SubjectContentManagement() {
     } else {
       setPdfPageCount(null);
       setPdfCoverPage(1);
+      setPdfCoverPreviewUrl('');
     }
   };
+
+  useEffect(() => {
+    const file = selectedUploadFile;
+    const isPdf =
+      !!file &&
+      (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf'));
+    if (!isPdf || !file) {
+      setPdfCoverPreviewUrl('');
+      setPdfCoverPreviewLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setPdfCoverPreviewLoading(true);
+    const timer = window.setTimeout(() => {
+      void renderPdfFirstPageDataUrlFromFile(file, pdfCoverPage)
+        .then((url) => {
+          if (!cancelled) setPdfCoverPreviewUrl(url);
+        })
+        .catch(() => {
+          if (!cancelled) setPdfCoverPreviewUrl('');
+        })
+        .finally(() => {
+          if (!cancelled) setPdfCoverPreviewLoading(false);
+        });
+    }, 180);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [selectedUploadFile, pdfCoverPage]);
   /** Pinned class/subject while Edit Content dialog is open (avoids sidebar auto-select override). */
   const [editContentContext, setEditContentContext] = useState<{
     classLabel: string;
@@ -2262,11 +2375,13 @@ export default function SubjectContentManagement() {
           fileUrl: uploadedUrl,
           thumbnailUrl: nextThumbnailUrl || prev.thumbnailUrl,
         }));
-        clearSelectedUploadFile();
+        if (!isPdfUpload) {
+          clearSelectedUploadFile();
+        }
         toast({
           title: 'Uploaded',
           description: isPdfUpload && nextThumbnailUrl
-            ? 'File and PDF cover preview uploaded. Save content to apply.'
+            ? `File uploaded using PDF page ${pdfCoverPage} as the cover. Change the page and upload again to replace it, then Save.`
             : 'File uploaded successfully. You can now save the content.',
         });
       } else {
@@ -3538,23 +3653,14 @@ export default function SubjectContentManagement() {
                       ) : null}
                     </div>
                     {pdfPageCount != null ? (
-                      <div className="flex flex-wrap items-center gap-2">
-                        <Label htmlFor="pdf-cover-page-audio">Cover page</Label>
-                        <Input
-                          id="pdf-cover-page-audio"
-                          type="number"
-                          min={1}
-                          max={pdfPageCount}
-                          value={pdfCoverPage}
-                          onChange={(e) =>
-                            setPdfCoverPage(
-                              Math.min(pdfPageCount, Math.max(1, parseInt(e.target.value, 10) || 1))
-                            )
-                          }
-                          className="h-9 w-24"
-                        />
-                        <span className="text-xs text-gray-500">of {pdfPageCount}</span>
-                      </div>
+                      <PdfCoverPageField
+                        id="pdf-cover-page-audio"
+                        page={pdfCoverPage}
+                        pageCount={pdfPageCount}
+                        previewUrl={pdfCoverPreviewUrl}
+                        previewLoading={pdfCoverPreviewLoading}
+                        onPageChange={setPdfCoverPage}
+                      />
                     ) : null}
                     <p
                       className={`text-xs ${selectedUploadFile ? 'text-orange-700 font-medium' : 'text-gray-500'}`}
@@ -3612,25 +3718,14 @@ export default function SubjectContentManagement() {
                     ) : null}
                   </div>
                   {pdfPageCount != null ? (
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Label htmlFor="pdf-cover-page">Cover page</Label>
-                      <Input
-                        id="pdf-cover-page"
-                        type="number"
-                        min={1}
-                        max={pdfPageCount}
-                        value={pdfCoverPage}
-                        onChange={(e) =>
-                          setPdfCoverPage(
-                            Math.min(pdfPageCount, Math.max(1, parseInt(e.target.value, 10) || 1))
-                          )
-                        }
-                        className="h-9 w-24"
-                      />
-                      <span className="text-xs text-gray-500">
-                        Page {pdfCoverPage} of {pdfPageCount}
-                      </span>
-                    </div>
+                    <PdfCoverPageField
+                      id="pdf-cover-page"
+                      page={pdfCoverPage}
+                      pageCount={pdfPageCount}
+                      previewUrl={pdfCoverPreviewUrl}
+                      previewLoading={pdfCoverPreviewLoading}
+                      onPageChange={setPdfCoverPage}
+                    />
                   ) : null}
                   <p
                     className={`text-xs ${

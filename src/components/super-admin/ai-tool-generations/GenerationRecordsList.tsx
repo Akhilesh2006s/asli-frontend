@@ -35,6 +35,7 @@ import {
 } from "@/lib/ai-tool-record-list-preview";
 import { openAiToolRecordPdf } from "@/lib/ai-tool-record-pdf";
 import { sortAiToolRecordsByVariantThenDate } from "@/lib/ai-tool-record-sort";
+import { downloadGenerationsPdf } from "./pdf-utils";
 
 function questionsToStructuredPayload(questions: McqQuestion[]) {
   return questions.map((q) => ({
@@ -113,6 +114,7 @@ export function GenerationRecordsList({
   const [editContent, setEditContent] = useState("");
   const [savingEdit, setSavingEdit] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [pdfDownloadingId, setPdfDownloadingId] = useState<string | null>(null);
   const [deletingQuestionKey, setDeletingQuestionKey] = useState<string | null>(null);
   const [viewDetail, setViewDetail] = useState<Record<string, unknown> | null>(null);
 
@@ -254,14 +256,49 @@ export function GenerationRecordsList({
   };
 
   const openPdf = async (row: RecordRow) => {
+    if (pdfDownloadingId) return;
+    setPdfDownloadingId(row._id);
     try {
       await openAiToolRecordPdf(row._id);
-    } catch (error: unknown) {
-      toast({
-        title: "PDF failed",
-        description: error instanceof Error ? error.message : "Could not generate PDF.",
-        variant: "destructive",
-      });
+    } catch (firstError: unknown) {
+      try {
+        const full = await fetchDocument(row._id);
+        const structured = (full.data as { metadata?: { structuredContent?: unknown } })?.metadata
+          ?.structuredContent;
+        let body = String(full.data?.content || row.content || row.preview || "").trim();
+        if (structured && typeof structured === "object") {
+          try {
+            const dumped = JSON.stringify(structured, null, 2);
+            if (dumped.length > body.length + 20) body = dumped;
+          } catch {
+            /* keep body */
+          }
+        }
+        await downloadGenerationsPdf(
+          String(full.data?.toolDisplayName || full.data?.toolName || row.toolDisplayName || row.toolName || "AI Content"),
+          [
+            {
+              toolDisplayName: full.data?.toolDisplayName || row.toolDisplayName,
+              toolName: full.data?.toolName || row.toolName,
+              classLabel: full.data?.classLabel || row.classLabel,
+              subject: full.data?.subject || row.subject,
+              topic: full.data?.topic || row.topic,
+              subtopic: full.data?.subtopic || row.subtopic,
+              content: body,
+              createdAt: full.data?.createdAt || row.createdAt,
+            },
+          ],
+        );
+      } catch {
+        toast({
+          title: "PDF failed",
+          description:
+            firstError instanceof Error ? firstError.message : "Could not generate PDF.",
+          variant: "destructive",
+        });
+      }
+    } finally {
+      setPdfDownloadingId(null);
     }
   };
 
@@ -397,11 +434,16 @@ export function GenerationRecordsList({
                   <Button
                     size="sm"
                     variant="ghost"
+                    disabled={pdfDownloadingId === row._id}
                     className="h-8 text-xs rounded-lg text-slate-700 hover:text-slate-900 hover:bg-slate-100"
                     onClick={() => void openPdf(row)}
                   >
-                    <FileDown className="h-3.5 w-3.5 mr-1.5" />
-                    PDF
+                    {pdfDownloadingId === row._id ? (
+                      <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                    ) : (
+                      <FileDown className="h-3.5 w-3.5 mr-1.5" />
+                    )}
+                    {pdfDownloadingId === row._id ? "PDF…" : "PDF"}
                   </Button>
                 </div>
               </div>

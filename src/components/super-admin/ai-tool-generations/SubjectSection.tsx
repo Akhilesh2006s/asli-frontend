@@ -140,7 +140,10 @@ export function SubjectSection({
     >
       <CollapsibleTrigger className="flex w-full min-w-0 items-start gap-2 px-3 sm:px-4 py-3 text-left hover:bg-orange-50/50 transition-colors">
         <span className="min-w-0 flex-1 space-y-1">
-          <Badge className="rounded-md bg-slate-800 hover:bg-slate-800 text-micro font-semibold uppercase tracking-wide shrink-0">
+          <Badge
+            variant="outline"
+            className="rounded-md border-sky-200 bg-sky-100 text-micro font-semibold uppercase tracking-wide text-sky-900 hover:bg-sky-100"
+          >
             Class
           </Badge>
           <span className="block font-semibold text-slate-900 text-sm sm:text-base leading-snug break-words">

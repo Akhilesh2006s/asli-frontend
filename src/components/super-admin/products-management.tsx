@@ -165,21 +165,12 @@ export default function ProductsManagement() {
   return (
     <div className="space-y-6">
       {ConfirmDialog}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h2 className="text-xl font-semibold text-slate-900 sm:text-2xl">Products</h2>
-          <p className="mt-1 max-w-2xl text-sm text-slate-600">
-            Product tracks under {PRODUCT_IIT}. Add your own categories (e.g. Delta, Foundation+) —
-            then assign them to schools and tag subjects / books.
-          </p>
-        </div>
-        <Button
-          onClick={openAdd}
-          className="bg-gradient-to-r from-orange-500 to-sky-500 text-white"
-        >
-          <Plus className="mr-2 h-4 w-4" />
-          Add category
-        </Button>
+      <div>
+        <h2 className="text-xl font-semibold text-slate-900 sm:text-2xl">Products</h2>
+        <p className="mt-1 max-w-2xl text-sm text-slate-600">
+          Product tracks under {PRODUCT_IIT}. Use <span className="font-medium">Add your own category</span> below
+          (e.g. Delta, Foundation+) — then assign them to schools and tag subjects / books.
+        </p>
       </div>
 
       <Card className="border-slate-200 shadow-sm">

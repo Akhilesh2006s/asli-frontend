@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Upload, Video, FileText, File, X, Trash2, Edit, Play, Eye, Plus, Calendar, Grid3x3, ChevronDown, ChevronUp, BookOpen, GraduationCap, ExternalLink } from 'lucide-react';
-import { API_BASE_URL } from '@/lib/api-config';
+import { API_BASE_URL, openPdfInAppReader } from '@/lib/api-config';
 import { useToast } from '@/hooks/use-toast';
 import { useConfirm } from '@/hooks/use-confirm';
 import { getAuthToken } from '@/lib/auth-utils';
@@ -1768,7 +1768,7 @@ export default function ContentManagement() {
                               <Button
                                 variant="secondary"
                                 size="sm"
-                                onClick={() => window.open(fileUrl, '_blank', 'noopener,noreferrer')}
+                                onClick={() => openPdfInAppReader(fileUrl, viewingContent.title)}
                               >
                                 <ExternalLink className="w-3 h-3 mr-1" />
                                 Open in New Tab
@@ -1816,7 +1816,7 @@ export default function ContentManagement() {
                           <Button
                             variant="secondary"
                             size="sm"
-                            onClick={() => window.open(fileUrl, '_blank', 'noopener,noreferrer')}
+                            onClick={() => openPdfInAppReader(fileUrl, viewingContent.title)}
                             className="text-xs shadow-lg"
                           >
                             <ExternalLink className="w-3 h-3 mr-1" />

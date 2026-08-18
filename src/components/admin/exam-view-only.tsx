@@ -1016,20 +1016,20 @@ export default function ExamViewOnly() {
                         {exam.title}
                       </CardTitle>
                       <div className="flex flex-wrap items-center gap-2 mt-2 min-h-[2.25rem]">
-                        <Badge className={`${colorScheme.badge} border-0`}>
+                        <Badge className={`${colorScheme.badge} inline-flex items-center justify-center border-0 leading-none`}>
                           {exam.examType.toUpperCase()}
                         </Badge>
                         <Badge className={
                           status.status === 'Ended' 
-                            ? 'bg-red-600 text-white border-2 border-white/50 shadow-lg font-semibold'
+                            ? 'inline-flex items-center justify-center bg-red-600 text-white border-2 border-white/50 shadow-lg font-semibold leading-none'
                             : status.status === 'Active'
-                            ? 'bg-teal-600 text-white border-2 border-white/50 shadow-lg font-semibold'
-                            : 'bg-yellow-600 text-white border-2 border-white/50 shadow-lg font-semibold'
+                            ? 'inline-flex items-center justify-center bg-teal-600 text-white border-2 border-white/50 shadow-lg font-semibold leading-none'
+                            : 'inline-flex items-center justify-center bg-yellow-600 text-white border-2 border-white/50 shadow-lg font-semibold leading-none'
                         }>
                           {status.status}
                         </Badge>
                         {classLabels.map((cl) => (
-                          <Badge key={cl} className="bg-white/90 text-gray-900 border-0 font-medium whitespace-nowrap">
+                          <Badge key={cl} className="inline-flex items-center justify-center bg-white/90 text-gray-900 border-0 font-medium whitespace-nowrap leading-none">
                             Class {cl}
                           </Badge>
                         ))}
@@ -1040,33 +1040,33 @@ export default function ExamViewOnly() {
                     <p className={`text-xs sm:text-sm text-white/90 mt-2 line-clamp-2`}>{exam.description}</p>
                   )}
                 </CardHeader>
-                <CardContent className="pt-0 flex-1 flex flex-col">
+                <CardContent className="flex flex-1 flex-col gap-4 pt-0">
                   <div className="space-y-2 text-xs sm:text-sm text-white">
                     <div className="flex items-center">
-                      <Calendar className="h-3 w-3 sm:h-4 sm:w-4 mr-2 text-white" />
-                      <span className="text-white">{exam.duration} minutes</span>
+                      <Calendar className="h-3 w-3 sm:h-4 sm:w-4 mr-2 shrink-0 text-white" />
+                      <span className="leading-none text-white">{exam.duration} minutes</span>
                     </div>
                     <div className="flex items-center">
-                      <BookOpen className="h-3 w-3 sm:h-4 sm:w-4 mr-2 text-white" />
-                      <span className="text-white">{exam.totalQuestions} questions • {exam.totalMarks} marks</span>
+                      <BookOpen className="h-3 w-3 sm:h-4 sm:w-4 mr-2 shrink-0 text-white" />
+                      <span className="leading-none text-white">{exam.totalQuestions} questions • {exam.totalMarks} marks</span>
                     </div>
                     <div className="flex items-center">
-                      <Calendar className="h-3 w-3 sm:h-4 sm:w-4 mr-2 text-white" />
-                      <span className="text-xs text-white">
+                      <Calendar className="h-3 w-3 sm:h-4 sm:w-4 mr-2 shrink-0 text-white" />
+                      <span className="text-xs leading-none text-white">
                         {new Date(exam.startDate).toLocaleDateString()} - {new Date(exam.endDate).toLocaleDateString()}
                       </span>
                     </div>
                     {exam.createdBy && (
-                      <div className={`text-xs text-white/90 pt-2 border-t border-white/30`}>
+                      <div className="border-t border-white/30 pt-2 text-xs leading-none text-white/90">
                         Created by: {exam.createdBy.fullName}
                       </div>
                     )}
                   </div>
                   <Button 
-                    className="w-full mt-auto pt-4 bg-white/90 text-gray-900 border-white/30 hover:bg-white hover:text-gray-900" 
+                    className="mt-auto inline-flex h-12 min-h-12 w-full items-center justify-center gap-2 py-0 leading-none bg-white/90 text-gray-900 border-white/30 hover:bg-white hover:text-gray-900" 
                     onClick={() => handleViewExam(exam)}
                   >
-                    <Eye className="h-3 w-3 sm:h-4 sm:w-4 mr-2" />
+                    <Eye className="h-4 w-4 shrink-0" />
                     View Results & Analytics
                   </Button>
                 </CardContent>

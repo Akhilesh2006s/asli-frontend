@@ -4130,8 +4130,8 @@ export default function ExamManagement() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                <div>
+              <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2">
+                <div className="flex min-w-0 flex-col gap-1.5">
                   <Label htmlFor="exam-class-select">Assigned Classes *</Label>
                   <Select
                     onValueChange={(cls) => {
@@ -4144,7 +4144,7 @@ export default function ExamManagement() {
                       if (!open) setClassPickerSearch('');
                     }}
                   >
-                    <SelectTrigger id="exam-class-select" className="mt-1">
+                    <SelectTrigger id="exam-class-select">
                       <SelectValue placeholder="Add a class from school classes…" />
                     </SelectTrigger>
                     <SelectContent className="max-h-72">
@@ -4178,10 +4178,10 @@ export default function ExamManagement() {
                       )}
                     </SelectContent>
                   </Select>
-                  <p className="mt-1 text-xs text-slate-500">
+                  <p className="min-h-[2.5rem] text-xs leading-snug text-slate-500">
                     Includes classes created in school dashboards, plus grades 1–12.
                   </p>
-                  <div className="mt-2 flex flex-wrap gap-2">
+                  <div className="flex min-h-[1.75rem] flex-wrap gap-2">
                     {formData.assignedClasses.map((cls) => (
                       <Badge key={cls} className="bg-sky-100 text-sky-700 font-semibold rounded-full">
                         {`Class ${cls}`}
@@ -4193,7 +4193,7 @@ export default function ExamManagement() {
                     ))}
                   </div>
                 </div>
-                <div>
+                <div className="flex min-w-0 flex-col gap-1.5">
                   <Label htmlFor="exam-subject-select">Subjects *</Label>
                   {/* Pick-and-tag, matching Assigned Classes above. This used to
                       be a checkbox list inside a 128px box you had to scroll. */}
@@ -4203,7 +4203,7 @@ export default function ExamManagement() {
                       setFormData({ ...formData, subjects: [...formData.subjects, value as any] });
                     }}
                   >
-                    <SelectTrigger id="exam-subject-select" className="mt-1">
+                    <SelectTrigger id="exam-subject-select">
                       <SelectValue placeholder="Add a subject from the list…" />
                     </SelectTrigger>
                     <SelectContent className="max-h-64">
@@ -4218,7 +4218,10 @@ export default function ExamManagement() {
                       ))}
                     </SelectContent>
                   </Select>
-                  <div className="mt-2 flex flex-wrap gap-2">
+                  <p className="min-h-[2.5rem] text-xs leading-snug text-slate-500">
+                    Multiple subjects are saved under a single exam.
+                  </p>
+                  <div className="flex min-h-[1.75rem] flex-wrap gap-2">
                     {formData.subjects.map((value) => (
                       <Badge
                         key={value}
@@ -4237,10 +4240,13 @@ export default function ExamManagement() {
                       </Badge>
                     ))}
                   </div>
-                  <p className="text-xs text-gray-500 mt-1">Multiple subjects are saved under a single exam.</p>
                 </div>
-                <div>
-                  <Label htmlFor="maxAttempts">No. of Attempts *</Label>
+              </div>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4 lg:items-start">
+                <div className="flex min-w-0 flex-col gap-1.5">
+                  <Label htmlFor="maxAttempts" className="text-sm font-semibold leading-none">
+                    No. of Attempts *
+                  </Label>
                   <Input
                     id="maxAttempts"
                     type="number"
@@ -4249,11 +4255,14 @@ export default function ExamManagement() {
                     onChange={(e) => setFormData({ ...formData, maxAttempts: e.target.value })}
                     placeholder="1"
                   />
+                  <p className="min-h-[2.5rem] text-xs leading-snug text-slate-500">
+                    How many times a student can take this exam.
+                  </p>
                 </div>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                <div>
-                  <Label htmlFor="duration">Duration (minutes) *</Label>
+                <div className="flex min-w-0 flex-col gap-1.5">
+                  <Label htmlFor="duration" className="text-sm font-semibold leading-none">
+                    Duration (minutes) *
+                  </Label>
                   <Input
                     id="duration"
                     type="number"
@@ -4263,9 +4272,14 @@ export default function ExamManagement() {
                     onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
                     placeholder="180"
                   />
+                  <p className="min-h-[2.5rem] text-xs leading-snug text-slate-500">
+                    Time limit once the student starts.
+                  </p>
                 </div>
-                <div>
-                  <Label htmlFor="totalQuestions">Total Questions * (max allowed)</Label>
+                <div className="flex min-w-0 flex-col gap-1.5">
+                  <Label htmlFor="totalQuestions" className="text-sm font-semibold leading-none">
+                    Total Questions *
+                  </Label>
                   <Input
                     id="totalQuestions"
                     type="number"
@@ -4274,12 +4288,14 @@ export default function ExamManagement() {
                     onChange={(e) => setFormData({ ...formData, totalQuestions: e.target.value })}
                     placeholder="90"
                   />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Cap for this exam — uploads cannot exceed this count.
+                  <p className="min-h-[2.5rem] text-xs leading-snug text-slate-500">
+                    Maximum questions this exam may contain.
                   </p>
                 </div>
-                <div>
-                  <Label htmlFor="totalMarks">Total Marks * (max allowed)</Label>
+                <div className="flex min-w-0 flex-col gap-1.5">
+                  <Label htmlFor="totalMarks" className="text-sm font-semibold leading-none">
+                    Total Marks *
+                  </Label>
                   <Input
                     id="totalMarks"
                     type="number"
@@ -4288,26 +4304,32 @@ export default function ExamManagement() {
                     onChange={(e) => setFormData({ ...formData, totalMarks: e.target.value })}
                     placeholder="360"
                   />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Cap for this exam — sum of question marks cannot exceed this.
+                  <p className="min-h-[2.5rem] text-xs leading-snug text-slate-500">
+                    Maximum total marks across all questions.
                   </p>
                 </div>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="startDate">Start Date *</Label>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:items-start">
+                <div className="flex min-w-0 flex-col gap-1.5">
+                  <Label htmlFor="startDate" className="text-sm font-semibold leading-none">
+                    Start Date *
+                  </Label>
                   <Input
                     id="startDate"
                     type="datetime-local"
+                    className="asli-date-input !h-11 !min-h-[2.75rem] py-1.5 text-base"
                     value={formData.startDate}
                     onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
                   />
                 </div>
-                <div>
-                  <Label htmlFor="endDate">End Date *</Label>
+                <div className="flex min-w-0 flex-col gap-1.5">
+                  <Label htmlFor="endDate" className="text-sm font-semibold leading-none">
+                    End Date *
+                  </Label>
                   <Input
                     id="endDate"
                     type="datetime-local"
+                    className="asli-date-input !h-11 !min-h-[2.75rem] py-1.5 text-base"
                     value={formData.endDate}
                     onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
                   />

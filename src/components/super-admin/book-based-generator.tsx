@@ -16,6 +16,7 @@ import { useCurriculumCascade } from "@/hooks/use-curriculum-cascade";
 import { useProductCategories } from "@/hooks/use-product-categories";
 import { formatIitCategoryLabel, normalizeIitCategory } from "@/lib/products";
 import { cn } from "@/lib/utils";
+import { displayBoardShort } from "@/lib/board-label";
 import { getAuthToken } from '@/lib/auth-utils';
 import {
   BOOK_BASED_STUDENT_TOOLS,
@@ -1069,25 +1070,36 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
 
         <div className={cn("space-y-3 border-t border-slate-200 pt-4", !selectedTool && "opacity-60 pointer-events-none")}>
           <p className="text-sm font-semibold text-slate-900">2. Curriculum inputs</p>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-2.5">
-            <div className="space-y-1">
+          <div
+            className={cn(
+              "grid grid-cols-1 gap-3 sm:grid-cols-2",
+              isIitBoardSelected ? "xl:grid-cols-5" : "xl:grid-cols-4",
+            )}
+          >
+            <div className="min-w-0 space-y-1 xl:min-w-[13.5rem]">
               <Label className="text-xs">Board</Label>
               <Select value={board} onValueChange={handleBoardChange}>
-                <SelectTrigger><SelectValue placeholder={boardOptionsForSelect.length ? "Select board" : "Loading…"} /></SelectTrigger>
+                <SelectTrigger className="h-10 [&>span]:whitespace-nowrap [&>span]:break-normal [&>span]:truncate">
+                  <SelectValue placeholder={boardOptionsForSelect.length ? "Select board" : "Loading…"} />
+                </SelectTrigger>
                 <SelectContent>
-                  {boardOptionsForSelect.map((b) => <SelectItem key={b} value={b}>{b}</SelectItem>)}
+                  {boardOptionsForSelect.map((b) => (
+                    <SelectItem key={b} value={b}>
+                      {displayBoardShort(b) || b}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
             {isIitBoardSelected ? (
-              <div className="space-y-1">
+              <div className="min-w-0 space-y-1">
                 <Label className="text-xs">IIT track</Label>
                 <Select
                   value={productCategory || "__general__"}
                   onValueChange={handleCategoryChange}
                   disabled={!board}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="h-10 [&>span]:whitespace-nowrap [&>span]:break-normal [&>span]:truncate">
                     <SelectValue placeholder={!board ? "Board first" : "General"} />
                   </SelectTrigger>
                   <SelectContent>
@@ -1100,19 +1112,21 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
                 </Select>
               </div>
             ) : null}
-            <div className="space-y-1">
+            <div className="min-w-0 space-y-1">
               <Label className="text-xs">Class</Label>
               <Select value={classNumber} onValueChange={handleClassChange} disabled={!board || loadingClasses}>
-                <SelectTrigger><SelectValue placeholder={!board ? "Board first" : loadingClasses ? "Loading…" : "Class"} /></SelectTrigger>
+                <SelectTrigger className="h-10 [&>span]:whitespace-nowrap [&>span]:break-normal [&>span]:truncate">
+                  <SelectValue placeholder={!board ? "Board first" : loadingClasses ? "Loading…" : "Class"} />
+                </SelectTrigger>
                 <SelectContent>
                   {classOptionsForSelectWithBook.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-1">
+            <div className="min-w-0 space-y-1">
               <Label className="text-xs">Subject</Label>
               <Select value={subject} onValueChange={handleSubjectChange} disabled={!classNumber || loadingSubjects}>
-                <SelectTrigger>
+                <SelectTrigger className="h-10 [&>span]:whitespace-nowrap [&>span]:break-normal [&>span]:truncate">
                   <SelectValue
                     placeholder={
                       !classNumber
@@ -1132,16 +1146,18 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-1 col-span-2 sm:col-span-2 lg:col-span-2">
+            <div className="min-w-0 space-y-1">
               <Label className="text-xs">Topic</Label>
               <Select value={topic} onValueChange={handleTopicChange} disabled={!subject || loadingTopics}>
-                <SelectTrigger><SelectValue placeholder={!subject ? "Subject first" : loadingTopics ? "Loading…" : "Topic"} /></SelectTrigger>
+                <SelectTrigger className="h-10 [&>span]:whitespace-nowrap [&>span]:break-normal [&>span]:truncate">
+                  <SelectValue placeholder={!subject ? "Subject first" : loadingTopics ? "Loading…" : "Topic"} />
+                </SelectTrigger>
                 <SelectContent>
                   {topicOptionsForSelect.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-1 col-span-2 sm:col-span-2 lg:col-span-2">
+            <div className="min-w-0 space-y-1 sm:col-span-2 xl:col-span-full">
               <Label className="text-xs">Sub topic</Label>
               <Select
                 value={subTopic || WHOLE_CHAPTER_VALUE}
@@ -1151,7 +1167,7 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
                 }}
                 disabled={!topic || loadingSubtopics}
               >
-                <SelectTrigger>
+                <SelectTrigger className="h-10 [&>span]:whitespace-nowrap [&>span]:break-normal [&>span]:truncate">
                   <SelectValue
                     placeholder={
                       !topic

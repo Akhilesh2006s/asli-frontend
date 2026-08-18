@@ -30,6 +30,7 @@ import { useConfirm } from "@/hooks/use-confirm";
 import { useCurriculumCascade } from "@/hooks/use-curriculum-cascade";
 import { useProductCategories } from "@/hooks/use-product-categories";
 import { formatIitCategoryLabel, isIitStyleBoard, normalizeIitCategory } from "@/lib/products";
+import { displayBoardShort } from "@/lib/board-label";
 import { GeneratedRecordBody } from "@/components/super-admin/generated-record-body";
 import { AiToolRecordPreviewBody } from "@/components/super-admin/ai-tool-record-preview-body";
 import {
@@ -1153,8 +1154,8 @@ export default function SuperAdminAiGenerator() {
         <CardHeader>
           <CardTitle>Generate Content</CardTitle>
         </CardHeader>
-        <CardContent className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-2.5">
-          <div className="col-span-2 md:col-span-3 lg:col-span-4 xl:col-span-6">
+        <CardContent className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="sm:col-span-2 lg:col-span-4">
             <Label className="text-xs">Selected Tool</Label>
             <div className="mt-1">{currentTool ? <Badge>{currentTool.name}</Badge> : <Badge variant="secondary">No tool selected</Badge>}</div>
             {isStoryLanguageTool(selectedTool) ? (
@@ -1168,12 +1169,18 @@ export default function SuperAdminAiGenerator() {
               </p>
             ) : null}
           </div>
-          <div className="space-y-1">
+          <div className="min-w-0 space-y-1">
             <Label className="text-xs">Board</Label>
             <Select value={board} onValueChange={handleBoardChange}>
-              <SelectTrigger><SelectValue placeholder="Select board" /></SelectTrigger>
+              <SelectTrigger className="h-10 [&>span]:whitespace-nowrap [&>span]:break-normal [&>span]:truncate">
+                <SelectValue placeholder="Select board" />
+              </SelectTrigger>
               <SelectContent>
-                {boardOptions.map((b) => <SelectItem key={b} value={b}>{b}</SelectItem>)}
+                {boardOptions.map((b) => (
+                  <SelectItem key={b} value={b}>
+                    {displayBoardShort(b) || b}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -1235,7 +1242,7 @@ export default function SuperAdminAiGenerator() {
               </SelectContent>
             </Select>
           </div>
-          <div className="col-span-2 md:col-span-2 lg:col-span-2">
+          <div className="min-w-0 space-y-1">
             <Label>Topic</Label>
             <Select value={topic} onValueChange={handleTopicChange} disabled={!classNumber || !subject || loadingTopics}>
               <SelectTrigger>
@@ -1262,7 +1269,7 @@ export default function SuperAdminAiGenerator() {
               </p>
             ) : null}
           </div>
-          <div className="col-span-2 md:col-span-2 lg:col-span-2">
+          <div className="min-w-0 space-y-1 sm:col-span-2 lg:col-span-4">
             <Label>Sub Topic</Label>
             <Select value={subTopic} onValueChange={setSubTopic} disabled={!topic || loadingSubtopics}>
               <SelectTrigger>

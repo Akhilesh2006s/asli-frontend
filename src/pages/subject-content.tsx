@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import StudentShell from "@/components/layout/StudentShell";
 import { filterVideosForLearningPath } from '@/lib/school-program';
+import { formatLibraryContentClassLabel } from '@/lib/library-content-labels';
 import VideoModal from '@/components/video-modal';
 import CalendarView from '@/components/student/calendar-view';
 import VidyaAIFloatingAssistant from '@/components/student/VidyaAIFloatingAssistant';
@@ -426,6 +427,14 @@ export default function SubjectContent() {
                 </div>
                 <div>
                   <h1 className="text-2xl sm:text-3xl font-bold mb-2">{subject.name}</h1>
+                  {(() => {
+                    const classLabel = contents
+                      .map((row) => formatLibraryContentClassLabel(row))
+                      .find(Boolean);
+                    return classLabel ? (
+                      <p className="text-blue-50 font-medium mb-1">{classLabel}</p>
+                    ) : null;
+                  })()}
                   <p className="text-blue-100">{subject.description}</p>
                 </div>
               </div>

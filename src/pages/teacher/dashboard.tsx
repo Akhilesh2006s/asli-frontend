@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { API_BASE_URL } from '@/lib/api-config';
+import { API_BASE_URL, openProtectedFile } from '@/lib/api-config';
 import { getAuthToken, getUser as getStoredUser, getTeacherDisplayName, setUser as persistUser } from '@/lib/auth-utils';
 import TeacherShell from '@/components/layout/TeacherShell';
 import PortalPageHero from '@/components/layout/PortalPageHero';
@@ -2700,7 +2700,7 @@ const TeacherDashboard = () => {
                       </div>
                     </div>
 
-                    <div className="bg-white rounded-2xl shadow-lg border border-gray-200" style={{ minHeight: '600px' }}>
+                    <div className="bg-white rounded-2xl shadow-lg border border-gray-200 text-slate-900" style={{ minHeight: '600px' }}>
                       {teacherId ? (
                         <AIChat
                           userId={teacherId}
@@ -3356,22 +3356,23 @@ const TeacherDashboard = () => {
                                                 <p className="text-xs sm:text-sm text-gray-600 mt-2 italic">{homework.description}</p>
                                               )}
                                               {homework.fileUrl && (
-                                                <div className="mt-2">
+                                                <div
+                                                  className="mt-2"
+                                                  onClick={(e) => e.stopPropagation()}
+                                                  onPointerDown={(e) => e.stopPropagation()}
+                                                >
                                                   <Button
+                                                    type="button"
                                                     size="sm"
                                                     variant="outline"
-                                                    asChild
                                                     className="bg-blue-50 text-blue-700 hover:bg-blue-100 border-blue-200"
+                                                    onClick={(e) => {
+                                                      e.stopPropagation();
+                                                      openProtectedFile(homework.fileUrl, homework.title || 'Homework');
+                                                    }}
                                                   >
-                                                    <a
-                                                      href={homework.fileUrl}
-                                                      target="_blank"
-                                                      rel="noopener noreferrer"
-                                                      onClick={(e) => e.stopPropagation()}
-                                                    >
-                                                      <FileText className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
-                                                      View Homework File
-                                                    </a>
+                                                    <FileText className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
+                                                    View Homework File
                                                   </Button>
                                                 </div>
                                               )}
@@ -3414,22 +3415,24 @@ const TeacherDashboard = () => {
                                                         </div>
                                                       </div>
                                                       <div className="ml-4">
+                                                        {submission.submissionLink ? (
                                                         <Button
+                                                          type="button"
                                                           size="sm"
                                                           variant="outline"
-                                                          asChild
                                                           className="bg-purple-50 text-purple-700 hover:bg-purple-100 border-purple-200"
+                                                          onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            openProtectedFile(
+                                                              submission.submissionLink,
+                                                              `${submission.studentId?.fullName || submission.studentId?.name || 'Student'} submission`,
+                                                            );
+                                                          }}
                                                         >
-                                                          <a
-                                                            href={submission.submissionLink}
-                                                            target="_blank"
-                                                            rel="noopener noreferrer"
-                                                            onClick={(e) => e.stopPropagation()}
-                                                          >
-                                                            <Eye className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
-                                                            View Submission
-                                                          </a>
+                                                          <Eye className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
+                                                          View Submission
                                                         </Button>
+                                                        ) : null}
                                                       </div>
                                                     </div>
                                                   </div>

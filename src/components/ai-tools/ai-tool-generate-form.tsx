@@ -146,14 +146,11 @@ export function AiToolGenerateFormCard({
   const displayGenerateLabel = formatAiToolText(generateLabel);
 
   return (
-    <motion.section
-      initial={{ opacity: 0, y: 14 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3, delay: 0.06 }}
+    <section
       className={cn(
         AI_V2.radius.cardLg,
         AI_V2.shadow.card,
-        'overflow-hidden border border-slate-200/80 bg-white',
+        'overflow-hidden border border-slate-200/80 bg-white [overflow-anchor:none]',
         className,
       )}
     >
@@ -170,31 +167,29 @@ export function AiToolGenerateFormCard({
       <div className="space-y-6 bg-gradient-to-b from-white to-slate-50/50 p-5 sm:p-7">
         {notices}
         <div className="rounded-xl border border-slate-200/80 bg-white p-4 shadow-sm sm:p-5">
-          <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 items-end gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {children}
           </div>
         </div>
-        <motion.div whileTap={{ scale: 0.985 }}>
-          <Button
-            type="button"
-            onClick={onGenerate}
-            disabled={isGenerating || generateDisabled}
-            className="h-14 w-full rounded-xl bg-violet-700 text-lg font-bold text-white shadow-lg shadow-violet-500/25 transition hover:bg-violet-800 disabled:opacity-70"
-          >
-            {isGenerating ? (
-              <>
-                <span className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                {formatAiToolText('Generating…')}
-              </>
-            ) : (
-              <>
-                <Sparkles className="mr-2 h-4 w-4" />
-                {displayGenerateLabel}
-              </>
-            )}
-          </Button>
-        </motion.div>
+        <Button
+          type="button"
+          onClick={onGenerate}
+          disabled={isGenerating || generateDisabled}
+          className="h-14 w-full rounded-xl bg-violet-700 text-lg font-bold text-white shadow-lg shadow-violet-500/25 transition-[background-color,box-shadow,opacity] hover:translate-y-0 hover:bg-violet-800 active:scale-100 disabled:opacity-70"
+        >
+          {isGenerating ? (
+            <>
+              <span className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+              {formatAiToolText('Generating…')}
+            </>
+          ) : (
+            <>
+              <Sparkles className="mr-2 h-4 w-4" />
+              {displayGenerateLabel}
+            </>
+          )}
+        </Button>
       </div>
-    </motion.section>
+    </section>
   );
 }

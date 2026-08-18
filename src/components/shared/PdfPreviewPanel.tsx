@@ -37,6 +37,8 @@ interface PdfPreviewPanelProps {
   variant?: 'book' | 'fill';
   /** Show a browser fullscreen toggle for the preview panel. */
   allowFullscreen?: boolean;
+  /** Class · subject line shown while reading (Learning Paths). */
+  contextLabel?: string;
 }
 
 /** Comfortable reading width — expands further in fullscreen / large desktops. */
@@ -378,6 +380,80 @@ function getFitWidthScale(containerWidth: number, pageWidth: number): number {
 
 type PageLayout = 'viewport' | 'scroll';
 
+function PdfPageJumpBar({
+  page,
+  pageCount,
+  draft,
+  onDraftChange,
+  onSubmit,
+  onPrev,
+  onNext,
+}: {
+  page: number;
+  pageCount: number;
+  draft: string;
+  onDraftChange: (value: string) => void;
+  onSubmit: () => void;
+  onPrev: () => void;
+  onNext: () => void;
+}) {
+  const knownCount = pageCount > 0;
+  return (
+    <div className="flex shrink-0 flex-wrap items-center justify-center gap-2 border-t border-stone-300/50 bg-stone-100/95 px-3 py-2.5 backdrop-blur-sm sm:gap-3 sm:py-3">
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        className="h-10 min-w-10 rounded-xl px-0 sm:h-11 sm:min-w-11"
+        disabled={page <= 1}
+        onClick={onPrev}
+        aria-label="Previous page"
+      >
+        <ChevronLeft className="h-5 w-5" />
+      </Button>
+      <form
+        className="flex items-center gap-1.5 sm:gap-2"
+        onSubmit={(e) => {
+          e.preventDefault();
+          onSubmit();
+        }}
+      >
+        <span className="text-sm font-semibold text-stone-700">Page</span>
+        <Input
+          type="text"
+          inputMode="numeric"
+          pattern="[0-9]*"
+          value={draft}
+          onChange={(e) => onDraftChange(e.target.value.replace(/[^\d]/g, ''))}
+          onBlur={onSubmit}
+          onFocus={(e) => e.currentTarget.select()}
+          className="h-10 w-14 rounded-xl text-center text-sm font-semibold tabular-nums sm:h-11 sm:w-16"
+          aria-label="Go to page number"
+        />
+        {knownCount ? (
+          <span className="text-sm font-semibold tabular-nums text-stone-700">
+            of {pageCount}
+          </span>
+        ) : null}
+        <Button type="submit" variant="outline" size="sm" className="h-10 rounded-xl px-3 sm:h-11">
+          Go
+        </Button>
+      </form>
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        className="h-10 min-w-10 rounded-xl px-0 sm:h-11 sm:min-w-11"
+        disabled={knownCount ? page >= pageCount : false}
+        onClick={onNext}
+        aria-label="Next page"
+      >
+        <ChevronRight className="h-5 w-5" />
+      </Button>
+    </div>
+  );
+}
+
 export default function PdfPreviewPanel({
   fileUrl,
   title,
@@ -385,6 +461,7 @@ export default function PdfPreviewPanel({
   showOpenInNewTab = false,
   variant = 'book',
   allowFullscreen = true,
+  contextLabel = '',
 }: PdfPreviewPanelProps) {
   const isBookLayout = variant !== 'fill';
   const prefersCanvasPreview = useCanvasPdfPreview();
@@ -415,6 +492,7 @@ export default function PdfPreviewPanel({
   const [readerPage, setReaderPage] = useState(1);
   const [readerPageCount, setReaderPageCount] = useState(0);
   const [pageJumpDraft, setPageJumpDraft] = useState('1');
+  const [iframeJumpPage, setIframeJumpPage] = useState(1);
   const pdfDocRef = useRef<pdfjs.PDFDocumentProxy | null>(null);
   const renderingPagesRef = useRef<Set<number>>(new Set());
   /** Survives the slot rebuild that fullscreen toggling causes. */
@@ -434,17 +512,14 @@ export default function PdfPreviewPanel({
   const absoluteUrl = normalizeContentFileUrl(fileUrl);
   const proxyUrl = getPdfContentPreviewProxyUrl(fileUrl, title);
   const forcedProxyUrl = getPdfJsFetchUrl(fileUrl, title);
-  const rememberedIframePage = readStoredPdfPage(absoluteUrl || fileUrl);
   const iframeSrc =
-    rememberedIframePage > 1
-      ? getMobilePdfIframePageSrc(absoluteUrl || fileUrl, title, rememberedIframePage)
+    iframeJumpPage > 1
+      ? getMobilePdfIframePageSrc(absoluteUrl || fileUrl, title, iframeJumpPage)
       : getEmbeddedPdfIframeSrc(absoluteUrl || fileUrl, title);
-  const openTabUrl = getPdfOpenInNewTabUrl(fileUrl, title);
-
   const openInNewTab = useCallback(() => {
-    const target = openTabUrl || forcedProxyUrl || proxyUrl || absoluteUrl;
+    const target = getPdfOpenInNewTabUrl(fileUrl, title, contextLabel);
     if (target) window.open(target, '_blank', 'noopener,noreferrer');
-  }, [openTabUrl, forcedProxyUrl, proxyUrl, absoluteUrl]);
+  }, [fileUrl, title, contextLabel]);
 
   const toggleFullscreen = useCallback(async () => {
     const el = panelRef.current;
@@ -470,20 +545,36 @@ export default function PdfPreviewPanel({
 
   const jumpReaderPage = useCallback(
     (page: number) => {
-      if (useMobileScrollLayout && mobileViewerRef.current) {
-        mobileViewerRef.current.goToPage(page);
-        return;
-      }
-      const host = scrollHostRef.current;
-      if (!host || host.childElementCount < 1) return;
-      const pageH = Math.max(1, host.clientHeight);
-      const max = totalPages > 0 ? totalPages : host.childElementCount;
-      const next = Math.min(Math.max(1, Math.floor(page)), max);
-      host.scrollTo({ top: (next - 1) * pageH, behavior: 'smooth' });
+      const knownMax = readerPageCount || totalPages;
+      const next =
+        knownMax > 0
+          ? Math.min(Math.max(1, Math.floor(page)), knownMax)
+          : Math.max(1, Math.floor(page));
+      setReaderPage(next);
+      setPageJumpDraft(String(next));
+      setIframeJumpPage(next);
       rememberedPageRef.current = next;
       if (absoluteUrl) writeStoredPdfPage(absoluteUrl, next);
+
+      if (useMobileScrollLayout) {
+        const viewer = mobileViewerRef.current;
+        if (viewer) {
+          viewer.goToPage(next);
+          return;
+        }
+        window.requestAnimationFrame(() => {
+          mobileViewerRef.current?.goToPage(next);
+        });
+        return;
+      }
+
+      const host = scrollHostRef.current;
+      if (host && host.childElementCount >= 1) {
+        const pageH = Math.max(1, host.clientHeight);
+        host.scrollTo({ top: (next - 1) * pageH, behavior: 'auto' });
+      }
     },
-    [useMobileScrollLayout, totalPages, absoluteUrl],
+    [useMobileScrollLayout, readerPageCount, totalPages, absoluteUrl],
   );
 
   /** Resolve the element that should receive keyboard scrolling (canvas, not window). */
@@ -654,23 +745,25 @@ export default function PdfPreviewPanel({
   }, [readerPage]);
 
   useEffect(() => {
+    const stored = readStoredPdfPage(normalizeContentFileUrl(fileUrl) || fileUrl);
+    const start = stored >= 1 ? stored : 1;
     setTotalPages(0);
     setUseIframeFallback(false);
     setPdfError(null);
-    setReaderPage(1);
+    setReaderPage(start);
     setReaderPageCount(0);
-    setPageJumpDraft('1');
+    setPageJumpDraft(String(start));
+    setIframeJumpPage(start);
   }, [fileUrl, title]);
 
   const submitPageJump = useCallback(() => {
-    const max = Math.max(1, readerPageCount || totalPages || 1);
     const parsed = Number.parseInt(pageJumpDraft.replace(/[^\d]/g, ''), 10);
-    if (!Number.isFinite(parsed)) {
+    if (!Number.isFinite(parsed) || parsed < 1) {
       setPageJumpDraft(String(readerPage));
       return;
     }
-    const next = Math.min(Math.max(1, parsed), max);
-    setPageJumpDraft(String(next));
+    const knownMax = readerPageCount || totalPages;
+    const next = knownMax > 0 ? Math.min(parsed, knownMax) : parsed;
     jumpReaderPage(next);
   }, [pageJumpDraft, readerPage, readerPageCount, totalPages, jumpReaderPage]);
 
@@ -1012,7 +1105,15 @@ export default function PdfPreviewPanel({
         aria-label={title ? `${title} textbook reader` : 'Textbook reader'}
         className={`flex h-full min-h-0 flex-1 flex-col bg-[#d6d3d1] outline-none ${className}`}
       >
-        <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 border-b border-stone-300/60 bg-stone-100/95 px-3 py-2.5 backdrop-blur-sm sm:px-4">
+        <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-stone-300/60 bg-stone-100/95 px-3 py-2.5 backdrop-blur-sm sm:px-4">
+          {contextLabel ? (
+            <p className="min-w-0 flex-1 truncate text-xs font-semibold text-stone-800 sm:text-sm">
+              {contextLabel}
+            </p>
+          ) : (
+            <span />
+          )}
+          <div className="flex flex-wrap items-center justify-end gap-2">
           {allowFullscreen ? (
             <Button type="button" variant="outline" size="sm" onClick={() => void toggleFullscreen()}>
               {isFullscreen ? (
@@ -1029,6 +1130,7 @@ export default function PdfPreviewPanel({
               Open in new tab
             </Button>
           ) : null}
+          </div>
         </div>
         <div
           className={`flex min-h-0 flex-1 justify-center overflow-hidden ${
@@ -1048,13 +1150,22 @@ export default function PdfPreviewPanel({
             />
           </div>
         </div>
+        <PdfPageJumpBar
+          page={readerPage}
+          pageCount={0}
+          draft={pageJumpDraft}
+          onDraftChange={setPageJumpDraft}
+          onSubmit={submitPageJump}
+          onPrev={() => jumpReaderPage(readerPage - 1)}
+          onNext={() => jumpReaderPage(readerPage + 1)}
+        />
       </div>
     );
   }
 
   const mobileIframeSrc =
-    rememberedIframePage > 1
-      ? getMobilePdfIframePageSrc(fileUrl, title, rememberedIframePage)
+    iframeJumpPage > 1
+      ? getMobilePdfIframePageSrc(fileUrl, title, iframeJumpPage)
       : getEmbeddedPdfIframeSrc(fileUrl, title);
 
   /** Book / touch — scroll through full pages (no clipped FitH iframe). */
@@ -1067,11 +1178,16 @@ export default function PdfPreviewPanel({
       className={`flex h-full min-h-0 flex-1 flex-col bg-[#d6d3d1] outline-none ${className}`}
     >
       <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-stone-300/60 bg-stone-100/95 px-3 py-2.5 backdrop-blur-sm sm:px-4">
-        <p className="text-xs font-medium text-stone-600 sm:text-sm">
-          {useIframeFallback
-            ? 'Use the scrollbar to move through pages'
-            : '↑↓ pages · Ctrl+scroll or +/− zoom (expands on screen) · drag to pan'}
-        </p>
+        <div className="min-w-0 flex-1">
+          {contextLabel ? (
+            <p className="truncate text-xs font-semibold text-stone-800 sm:text-sm">{contextLabel}</p>
+          ) : null}
+          <p className="text-xs font-medium text-stone-600 sm:text-sm">
+            {useIframeFallback
+              ? 'Use the scrollbar to move through pages'
+              : '↑↓ pages · Ctrl+scroll or +/− zoom (expands on screen) · drag to pan'}
+          </p>
+        </div>
         <div className="flex flex-wrap items-center gap-2">
           {!useIframeFallback ? (
             <>
@@ -1176,67 +1292,30 @@ export default function PdfPreviewPanel({
             {pdfError ? (
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-stone-50 px-4 text-center">
                 <p className="text-sm text-muted-foreground">{pdfError}</p>
-                <Button type="button" onClick={openInNewTab}>
-                  Open PDF externally
-                </Button>
+                {showOpenInNewTab ? (
+                  <Button type="button" onClick={openInNewTab}>
+                    Open in full window
+                  </Button>
+                ) : (
+                  <Button type="button" onClick={() => window.location.reload()}>
+                    Try again
+                  </Button>
+                )}
               </div>
             ) : null}
           </div>
         </div>
       </div>
 
-      {!useIframeFallback && readerPageCount > 0 ? (
-        <div className="flex shrink-0 flex-wrap items-center justify-center gap-2 border-t border-stone-300/50 bg-stone-100/95 px-3 py-2.5 backdrop-blur-sm sm:gap-3 sm:py-3">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="h-10 min-w-10 rounded-xl px-0 sm:h-11 sm:min-w-11"
-            disabled={readerPage <= 1}
-            onClick={() => mobileViewerRef.current?.goToPage(readerPage - 1)}
-            aria-label="Previous page"
-          >
-            <ChevronLeft className="h-5 w-5" />
-          </Button>
-          <form
-            className="flex items-center gap-1.5 sm:gap-2"
-            onSubmit={(e) => {
-              e.preventDefault();
-              submitPageJump();
-            }}
-          >
-            <span className="text-sm font-semibold text-stone-700">Page</span>
-            <Input
-              type="text"
-              inputMode="numeric"
-              pattern="[0-9]*"
-              value={pageJumpDraft}
-              onChange={(e) => setPageJumpDraft(e.target.value.replace(/[^\d]/g, ''))}
-              onBlur={submitPageJump}
-              onFocus={(e) => e.currentTarget.select()}
-              className="h-10 w-14 rounded-xl text-center text-sm font-semibold tabular-nums sm:h-11 sm:w-16"
-              aria-label="Go to page number"
-            />
-            <span className="text-sm font-semibold tabular-nums text-stone-700">
-              of {readerPageCount}
-            </span>
-            <Button type="submit" variant="outline" size="sm" className="h-10 rounded-xl px-3 sm:h-11">
-              Go
-            </Button>
-          </form>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="h-10 min-w-10 rounded-xl px-0 sm:h-11 sm:min-w-11"
-            disabled={readerPage >= readerPageCount}
-            onClick={() => mobileViewerRef.current?.goToPage(readerPage + 1)}
-            aria-label="Next page"
-          >
-            <ChevronRight className="h-5 w-5" />
-          </Button>
-        </div>
-      ) : null}
+      <PdfPageJumpBar
+        page={readerPage}
+        pageCount={readerPageCount || totalPages}
+        draft={pageJumpDraft}
+        onDraftChange={setPageJumpDraft}
+        onSubmit={submitPageJump}
+        onPrev={() => jumpReaderPage(readerPage - 1)}
+        onNext={() => jumpReaderPage(readerPage + 1)}
+      />
     </div>
   );
 }

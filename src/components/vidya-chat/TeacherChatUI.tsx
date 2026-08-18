@@ -90,7 +90,7 @@ export function TeacherChatUI({ model, className }: TeacherChatUIProps) {
   }
 
   return (
-    <div className={`${className ?? ""} mx-auto flex h-full min-h-0 w-full max-w-4xl flex-col overflow-hidden rounded-3xl border border-ink/10 bg-white shadow-elevated`}>
+    <div className={`${className ?? ""} mx-auto flex h-full min-h-0 w-full max-w-4xl flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white text-slate-900 shadow-elevated`}>
       <div className={`border-b border-ink/10 px-5 py-5 sm:px-7 ${modeUi.header}`}>
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-3">
@@ -121,12 +121,14 @@ export function TeacherChatUI({ model, className }: TeacherChatUIProps) {
       </div>
 
       <div className="px-5 pt-5 sm:px-7">
-        <div className="grid grid-cols-3 gap-2 rounded-2xl bg-mist p-1.5">
+        <div className="grid grid-cols-3 gap-2 rounded-2xl bg-slate-100 p-1.5">
           <button
             type="button"
             onClick={() => setTeachingTab("desk")}
             className={`rounded-xl px-3 py-3 text-base font-semibold transition-all active:scale-[0.98] ${
-              teachingTab === "desk" ? modeUi.activeTab : "text-ink/65 hover:bg-white"
+              teachingTab === "desk"
+                ? modeUi.activeTab
+                : "bg-transparent text-slate-800 hover:bg-white hover:text-slate-950"
             }`}
           >
             Class desk
@@ -135,7 +137,9 @@ export function TeacherChatUI({ model, className }: TeacherChatUIProps) {
             type="button"
             onClick={() => setTeachingTab("lesson")}
             className={`rounded-xl px-3 py-3 text-base font-semibold transition-all active:scale-[0.98] ${
-              teachingTab === "lesson" ? modeUi.activeTab : "text-ink/65 hover:bg-white"
+              teachingTab === "lesson"
+                ? modeUi.activeTab
+                : "bg-transparent text-slate-800 hover:bg-white hover:text-slate-950"
             }`}
           >
             Lesson
@@ -144,7 +148,9 @@ export function TeacherChatUI({ model, className }: TeacherChatUIProps) {
             type="button"
             onClick={() => setTeachingTab("quiz")}
             className={`rounded-xl px-3 py-3 text-base font-semibold transition-all active:scale-[0.98] ${
-              teachingTab === "quiz" ? modeUi.activeTab : "text-ink/65 hover:bg-white"
+              teachingTab === "quiz"
+                ? modeUi.activeTab
+                : "bg-transparent text-slate-800 hover:bg-white hover:text-slate-950"
             }`}
           >
             Quiz

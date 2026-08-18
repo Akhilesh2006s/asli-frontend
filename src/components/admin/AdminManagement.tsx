@@ -507,7 +507,12 @@ function curriculumDisplayLabel(code?: string, nameMap?: Map<string, string>): s
   return labels[u] || code || "";
 }
 
-/** Normalize for school search: lowercase, strip punctuation, collapse spaces. */
+/** API uses "Active" / "Inactive"; treat anything else as inactive. */
+function isSchoolActive(admin?: { status?: string; isActive?: boolean } | null): boolean {
+  if (!admin) return false;
+  if (typeof admin.isActive === 'boolean') return admin.isActive;
+  return String(admin.status || '').trim().toLowerCase() === 'active';
+}
 function normalizeSchoolSearchText(value: unknown): string {
   return String(value ?? "")
     .toLowerCase()
@@ -3066,21 +3071,21 @@ export default function AdminManagement() {
       </div>
 
       {/* Search Bar */}
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
-        <div className="relative flex-1 max-w-md">
+      <div className="flex min-w-0 w-full flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+        <div className="relative min-w-0 w-full flex-1">
           <SearchIcon className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
           <Input
             type="text"
-            placeholder="Search by school, contact, email, city, state, board…"
+            placeholder="Search school, contact, email, city, state or board"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="h-11 pl-11 pr-3 text-sm sm:h-12 sm:text-base"
-            aria-label="Search schools"
+            className="h-11 min-w-0 w-full rounded-xl pl-11 pr-4 text-sm"
+            aria-label="Search schools by name, contact, email, city, state or board"
           />
         </div>
         {searchQuery.trim() ? (
-          <div className="flex items-center gap-2">
-            <p className="text-sm text-slate-600">
+          <div className="flex shrink-0 items-center gap-2">
+            <p className="whitespace-nowrap text-sm text-slate-600">
               Showing {filteredAdmins.length} of {admins?.length || 0}
             </p>
             <Button
@@ -3233,8 +3238,8 @@ export default function AdminManagement() {
                     </div>
                   </div>
                 </div>
-                <Badge className="shrink-0" variant={(admin?.status || 'inactive') === 'active' ? 'default' : 'secondary'}>
-                  {admin?.status || 'inactive'}
+                <Badge className="shrink-0" variant={isSchoolActive(admin) ? 'default' : 'secondary'}>
+                  {isSchoolActive(admin) ? 'Active' : 'Inactive'}
                 </Badge>
               </div>
             </CardHeader>
@@ -3265,7 +3270,14 @@ export default function AdminManagement() {
                   </div>
                 </div>
                 
-                <div className="flex justify-between items-center pt-4 border-t">
+                <div className="flex flex-col gap-2 pt-4 border-t">
+                  {!isSchoolActive(admin) ? (
+                    <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-950">
+                      Login is off. Students and teachers were kept. Reactivate this school instead of
+                      creating a new one with the same email.
+                    </div>
+                  ) : null}
+                  <div className="flex justify-between items-center gap-2">
                   <span className="text-xs sm:text-sm text-gray-500">
                     Added: {admin?.joinDate ? new Date(admin.joinDate).toLocaleDateString() : 'Unknown'}
                   </span>
@@ -3287,17 +3299,6 @@ export default function AdminManagement() {
                     >
                       <EditIcon className="h-3 w-3 sm:h-4 sm:w-4" />
                     </Button>
-                    {(admin?.status || 'inactive') !== 'active' ? (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => void handleReactivateAdmin(admin)}
-                        className="text-emerald-700 hover:text-emerald-800 hover:bg-emerald-50"
-                        title="Reactivate school"
-                      >
-                        Reactivate
-                      </Button>
-                    ) : null}
                     <Button 
                       size="sm" 
                       variant="outline" 
@@ -3306,11 +3307,22 @@ export default function AdminManagement() {
                         setSchoolActionTarget(admin);
                       }}
                       className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                      title="Deactivate or permanently delete"
+                      title={isSchoolActive(admin) ? 'Deactivate or permanently delete' : 'Permanently delete'}
                     >
-                      <TrashIcon className="h-3 w-3 sm:h-4 sm:w-4" />
+                      <TrashIcon className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+                      {isSchoolActive(admin) ? 'Remove' : 'Delete'}
                     </Button>
                   </div>
+                  </div>
+                  {!isSchoolActive(admin) ? (
+                    <Button
+                      size="sm"
+                      className="w-full bg-emerald-600 hover:bg-emerald-700"
+                      onClick={() => void handleReactivateAdmin(admin)}
+                    >
+                      Reactivate school
+                    </Button>
+                  ) : null}
                 </div>
               </div>
             </CardContent>
@@ -3358,10 +3370,15 @@ export default function AdminManagement() {
       >
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Remove school</DialogTitle>
+            <DialogTitle>
+              {schoolActionTarget && !isSchoolActive(schoolActionTarget)
+                ? 'Inactive school'
+                : 'Remove school'}
+            </DialogTitle>
             <DialogDescription>
-              Trash used to say “Deleting” while only deactivating login. Choose deactivate
-              (keeps students and teachers) or a permanent wipe.
+              {schoolActionTarget && !isSchoolActive(schoolActionTarget)
+                ? 'This school is deactivated (login off). Reactivate it, or type the email below to permanently delete it.'
+                : 'Trash does not wipe data by default. Choose deactivate (keeps students and teachers) or a permanent wipe.'}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 text-sm">
@@ -3369,7 +3386,7 @@ export default function AdminManagement() {
               {schoolActionTarget?.schoolName || schoolActionTarget?.name || 'School'}
             </p>
             <p className="break-all text-slate-600">{schoolActionTarget?.email}</p>
-            {(schoolActionTarget?.status || 'inactive') !== 'active' ? (
+            {(schoolActionTarget && !isSchoolActive(schoolActionTarget)) ? (
               <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-amber-900">
                 This school is already inactive. Reactivate it instead of creating a duplicate.
               </p>
@@ -3392,7 +3409,7 @@ export default function AdminManagement() {
             </div>
           </div>
           <DialogFooter className="flex-col gap-2 sm:flex-col sm:space-x-0">
-            {(schoolActionTarget?.status || 'inactive') !== 'active' ? (
+            {schoolActionTarget && !isSchoolActive(schoolActionTarget) ? (
               <Button
                 type="button"
                 className="w-full bg-emerald-600 hover:bg-emerald-700"

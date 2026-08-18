@@ -22,6 +22,7 @@ import CalendarView from '@/components/student/calendar-view';
 import { API_BASE_URL } from '@/lib/api-config';
 import { sortContentsChapterWise } from '@/lib/video-chapter-schedule';
 import { filterVideosForLearningPath } from '@/lib/school-program';
+import { formatLibraryContentClassLabel } from '@/lib/library-content-labels';
 
 interface ContentItem {
   _id: string;
@@ -179,6 +180,14 @@ export default function AdminSubjectContent() {
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div className="min-w-0">
               <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 break-words">{subject?.name || 'Subject'}</h1>
+              {(() => {
+                const classLabel = contents
+                  .map((row) => formatLibraryContentClassLabel(row))
+                  .find(Boolean);
+                return classLabel ? (
+                  <p className="text-sm font-medium text-sky-800 mt-1">{classLabel}</p>
+                ) : null;
+              })()}
               {subject?.description && (
                 <p className="text-gray-600 mt-2 break-words">{subject.description}</p>
               )}

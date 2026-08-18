@@ -68,6 +68,7 @@ const Resources = lazy(() =>
 const Faq = lazy(() =>
   import("./pages/marketing-pages").then((m) => ({ default: m.FaqPage })),
 );
+const PdfReaderPage = lazy(() => import("./pages/pdf-reader"));
 
 function RouteLoadingState() {
   // Lightweight route chunk loader — avoid full-screen "Opening Your Workspace"
@@ -191,6 +192,7 @@ function Router() {
           {(params) => <Redirect to={`/super-admin/schools/${params.id}`} />}
         </Route>
         <Route path="/onboarding" component={Onboarding} />
+        <Route path="/pdf-reader" component={() => <Guarded Guard={ProtectedRoute} Page={PdfReaderPage} />} />
         {/* Preview/test routes removed from production router */}
         <Route component={NotFound} />
       </Switch>

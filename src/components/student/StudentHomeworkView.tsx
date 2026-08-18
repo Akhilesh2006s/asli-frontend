@@ -10,7 +10,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { ExternalLink, FileText, Loader2 } from 'lucide-react';
-import { API_BASE_URL } from '@/lib/api-config';
+import { API_BASE_URL, openProtectedFile } from '@/lib/api-config';
 import { getAuthToken } from '@/lib/auth-utils';
 import { filterContentsBySchoolProgram, resolveIsAsliPrepExclusive } from '@/lib/school-program';
 import { fetchAuthUser } from '@/lib/auth-session';
@@ -251,11 +251,14 @@ export function StudentHomeworkView() {
                       {submitted ? 'Submitted' : 'Pending'}
                     </Badge>
                     {item.fileUrl ? (
-                      <Button variant="outline" size="sm" asChild>
-                        <a href={item.fileUrl} target="_blank" rel="noreferrer">
-                          <ExternalLink className="mr-1.5 h-4 w-4" />
-                          View
-                        </a>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => openProtectedFile(item.fileUrl, item.title || 'Homework')}
+                      >
+                        <ExternalLink className="mr-1.5 h-4 w-4" />
+                        View
                       </Button>
                     ) : null}
                     <Button size="sm" onClick={() => openSubmit(item)}>

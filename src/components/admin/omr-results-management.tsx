@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Upload, AlertTriangle, Search, Link2, CheckCircle2, Building2, GraduationCap, Info } from 'lucide-react';
+import { Upload, AlertTriangle, Search, Link2, CheckCircle2, Building2, GraduationCap, Info, Trash2 } from 'lucide-react';
 import { getAuthToken } from '@/lib/auth-utils';
 import { API_BASE_URL } from '@/lib/api-config';
 import { useToast } from '@/hooks/use-toast';
+import { useConfirm } from '@/hooks/use-confirm';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -152,6 +153,7 @@ export default function OmrResultsManagement({ variant = 'school-admin' }: OmrRe
   const apiPrefix = isSuperAdmin ? '/api/super-admin' : '/api/admin';
 
   const { toast } = useToast();
+  const { confirm, ConfirmDialog } = useConfirm();
   const [schools, setSchools] = useState<SchoolOption[]>([]);
   const [selectedSchoolId, setSelectedSchoolId] = useState('');
   const [schoolSearch, setSchoolSearch] = useState('');
@@ -168,6 +170,8 @@ export default function OmrResultsManagement({ variant = 'school-admin' }: OmrRe
   const [savingAssign, setSavingAssign] = useState(false);
   const [uploadOpen, setUploadOpen] = useState(false);
   const [file, setFile] = useState<File | null>(null);
+  const [uploadInputKey, setUploadInputKey] = useState(0);
+  const [removingFile, setRemovingFile] = useState(false);
   const [search, setSearch] = useState('');
   const [assignDrafts, setAssignDrafts] = useState<Record<string, string>>({});
   const [filterUnassigned, setFilterUnassigned] = useState(false);
@@ -540,6 +544,56 @@ export default function OmrResultsManagement({ variant = 'school-admin' }: OmrRe
     }
   };
 
+  const clearPickedUploadFile = () => {
+    setFile(null);
+    setUploadInputKey((k) => k + 1);
+  };
+
+  const handleRemoveSelectedFile = async () => {
+    if (!selectedBatchId) {
+      toast({
+        title: 'No uploaded file',
+        description: 'Select an uploaded test first, or use Upload CSV and Remove file before importing.',
+      });
+      return;
+    }
+    const label = batchMeta?.sourceFileName || batchMeta?.testTitle || 'this uploaded file';
+    const ok = await confirm({
+      title: 'Remove file?',
+      description: `This permanently deletes ${label} and all of its score rows.`,
+      confirmLabel: 'Remove file',
+      destructive: true,
+    });
+    if (!ok) return;
+    setRemovingFile(true);
+    try {
+      const res = await fetch(
+        buildOmrApiUrl(
+          apiPrefix,
+          `/omr-results/batches/${selectedBatchId}`,
+          isSuperAdmin ? selectedSchoolId : undefined,
+        ),
+        { method: 'DELETE', headers: authHeaders() },
+      );
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.success) throw new Error(data.message || 'Could not remove file');
+      toast({ title: 'File removed', description: data.message || 'Uploaded score list deleted.' });
+      setSelectedBatchId(null);
+      setRows([]);
+      setBatchMeta(null);
+      const list = await loadBatches();
+      if (list[0]?._id) setSelectedBatchId(list[0]._id);
+    } catch (err) {
+      toast({
+        title: 'Could not remove file',
+        description: err instanceof Error ? err.message : 'Try again',
+        variant: 'destructive',
+      });
+    } finally {
+      setRemovingFile(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="space-y-3">
@@ -677,14 +731,26 @@ export default function OmrResultsManagement({ variant = 'school-admin' }: OmrRe
                 </SelectContent>
               </Select>
             </div>
-            <Button
-              type="button"
-              className="h-11 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700"
-              onClick={() => setUploadOpen(true)}
-            >
-              <Upload className="mr-2 h-4 w-4" />
-              Upload CSV
-            </Button>
+            <div className="flex flex-col gap-2 sm:flex-row lg:flex-col">
+              <Button
+                type="button"
+                className="h-11 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700"
+                onClick={() => setUploadOpen(true)}
+              >
+                <Upload className="mr-2 h-4 w-4" />
+                Upload CSV
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="h-11 rounded-xl border-red-200 text-red-700 hover:bg-red-50 hover:text-red-800"
+                disabled={!selectedBatchId || removingFile}
+                onClick={() => void handleRemoveSelectedFile()}
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                {removingFile ? 'Removing…' : 'Remove file'}
+              </Button>
+            </div>
           </CardContent>
         </Card>
       )}
@@ -1085,30 +1151,28 @@ export default function OmrResultsManagement({ variant = 'school-admin' }: OmrRe
               <div className="space-y-3">
                 <Label htmlFor="omr-csv">Score List CSV / Excel</Label>
                 <Input
+                  key={uploadInputKey}
                   id="omr-csv"
                   type="file"
                   accept=".csv,.xlsx,.xls"
                   className="rounded-xl border-slate-200"
                   onChange={(e) => setFile(e.target.files?.[0] || null)}
                 />
-                {file ? (
-                  <div className="flex items-center justify-between gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2">
-                    <p className="min-w-0 truncate text-xs text-emerald-800">{file.name}</p>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="h-7 shrink-0 text-xs text-red-700 hover:bg-red-50 hover:text-red-800"
-                      onClick={() => {
-                        setFile(null);
-                        const input = document.getElementById('omr-csv') as HTMLInputElement | null;
-                        if (input) input.value = '';
-                      }}
-                    >
-                      Remove
-                    </Button>
-                  </div>
-                ) : null}
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="min-w-0 truncate text-xs text-slate-600">
+                    {file ? `Selected file: ${file.name}` : 'No file selected'}
+                  </p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-8 rounded-lg border-red-200 text-red-700 hover:bg-red-50"
+                    disabled={!file}
+                    onClick={clearPickedUploadFile}
+                  >
+                    Remove file
+                  </Button>
+                </div>
               </div>
               <DialogFooter className="gap-2">
                 <Button
@@ -1132,6 +1196,7 @@ export default function OmrResultsManagement({ variant = 'school-admin' }: OmrRe
           </Dialog>
         </>
       ) : null}
+      {ConfirmDialog}
     </div>
   );
 }

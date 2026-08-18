@@ -983,8 +983,7 @@ export default function TrialMembersManagement() {
                 <div>
                   <h3 className="text-sm font-semibold text-slate-900">1. Trial length</h3>
                   <p className="mt-0.5 text-xs text-slate-600">
-                    Presets fill the days field only. Click Save &amp; reset trial days in the
-                    footer to apply.
+                    Preset buttons only fill the days field. Click Save trial length to apply.
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -1004,7 +1003,7 @@ export default function TrialMembersManagement() {
                 </div>
                 <div className="flex flex-wrap gap-2 border-t border-slate-200/80 pt-3">
                   <span className="w-full text-xs font-medium text-slate-500 sm:w-auto sm:self-center">
-                    Extend current trial (apply with Save restrictions):
+                    Extend current trial (fills selection only):
                   </span>
                   <Button
                     type="button"
@@ -1024,10 +1023,22 @@ export default function TrialMembersManagement() {
                   >
                     +7 days
                   </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    disabled={saving || !editForm.extendDays}
+                    onClick={() => {
+                      const extend = parseInt(editForm.extendDays, 10);
+                      if (!Number.isFinite(extend) || extend <= 0) return;
+                      void saveMember({ extendDays: extend });
+                    }}
+                  >
+                    Save extension
+                  </Button>
                 </div>
                 <div className="grid gap-3 border-t border-slate-200/80 pt-3 sm:grid-cols-[1fr_auto] sm:items-end">
                   <div className="space-y-1.5">
-                    <Label htmlFor="custom-trial-days">Custom days (apply with Save below)</Label>
+                    <Label htmlFor="custom-trial-days">Days (not applied until you save)</Label>
                     <Input
                       id="custom-trial-days"
                       type="number"
@@ -1038,10 +1049,19 @@ export default function TrialMembersManagement() {
                       onChange={(e) => setEditForm((p) => ({ ...p, trialDays: e.target.value }))}
                     />
                   </div>
-                  <p className="text-xs text-slate-500 sm:pb-2">
-                    Use <span className="font-medium text-slate-700">Save &amp; reset trial days</span> in
-                    the footer to apply this number.
-                  </p>
+                  <Button
+                    type="button"
+                    disabled={saving}
+                    onClick={() =>
+                      void saveMember({
+                        resetTrial: true,
+                        trialDays: Math.max(1, parseInt(editForm.trialDays, 10) || 7),
+                      })
+                    }
+                  >
+                    {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                    Save trial length
+                  </Button>
                 </div>
               </section>
 
