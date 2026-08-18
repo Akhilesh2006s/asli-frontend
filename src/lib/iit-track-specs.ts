@@ -5,6 +5,9 @@
 
 export const B2C_BOARD_PRICE = 99;
 export const B2C_IIT_PRICE = 249;
+export const B2C_STUDENT_BOTH_PRICE = 348;
+export const B2C_TEACHER_IIT_PRICE = 3999;
+export const B2C_TEACHER_BOTH_PRICE = 5187;
 
 export type IitTrackCode = 'ALPHA' | 'BETA' | 'GAMMA';
 

@@ -10,7 +10,7 @@ import { CreditCard, Clock, LogOut } from 'lucide-react';
 
 /**
  * Shown when an individual trial has ended and payment is required.
- * Lets the student pick class + Alpha / Beta / Gamma before paying.
+ * Boards ₹99/month, IIT ₹249/month (students) or ₹3999/year (teachers), or both.
  */
 export default function SubscribePage() {
   const [, setLocation] = useLocation();
@@ -82,10 +82,11 @@ export default function SubscribePage() {
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-orange-100 text-orange-700 board:h-14 board:w-14">
             <CreditCard className="h-6 w-6 board:h-7 board:w-7" />
           </div>
-          <CardTitle className="text-xl board:text-3xl">Choose your class and IIT material</CardTitle>
+          <CardTitle className="text-xl board:text-3xl">Choose Boards, IIT, or both</CardTitle>
           <p className="text-sm text-slate-600 board:text-base">
-            Hi {user?.fullName || 'there'} — your {INDIVIDUAL_TRIAL_DAYS}-day trial has ended. Pick Alpha, Beta or
-            Gamma for your class so Vidya, quizzes and practice exams stay tied to the matching Asli Prep book.
+            Hi {user?.fullName || 'there'} — your {INDIVIDUAL_TRIAL_DAYS}-day trial has ended. Pick Boards, IIT
+            Foundation (Alpha/Beta), or both. Monthly and yearly prices (including any yearly discount) are shown
+            on the plan below.
           </p>
         </CardHeader>
         <CardContent className="space-y-4 board:space-y-5 board:px-10 board:pb-10">
@@ -103,6 +104,9 @@ export default function SubscribePage() {
 
           <IndividualPlanCheckout
             userId={user?._id || user?.id || null}
+            role={user?.role}
+            userName={user?.fullName}
+            userEmail={user?.email}
             initialClass={user?.classNumber || ''}
             initialTrack={initialTrack}
             initialPackage={initialTrack ? 'iit' : 'board'}

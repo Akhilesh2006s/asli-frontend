@@ -45,6 +45,7 @@ import {
   INDIVIDUAL_SUBJECT_OPTIONS,
   INDIVIDUAL_TRIAL_DAYS,
 } from '@/lib/individual-signup';
+import IndividualPlanRatesPanel from '@/components/super-admin/IndividualPlanRatesPanel';
 
 type TrialMember = {
   id: string;
@@ -504,6 +505,8 @@ export default function TrialMembersManagement() {
           </Button>
         </div>
       </div>
+
+      <IndividualPlanRatesPanel />
 
       {summary && (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">

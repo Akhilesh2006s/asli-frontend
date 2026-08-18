@@ -219,8 +219,8 @@ export default function SubscriptionManagement() {
               Payments &amp; Subscriptions
             </h2>
             <p className="text-slate-600 mt-1 max-w-xl text-sm">
-              School orders &amp; seats, individual (B2C) converted subscriptions, and Razorpay
-              billing — all in one place.
+              School orders &amp; seats, individual (B2C) rates &amp; converted subscriptions, and Razorpay
+              billing — all in one place. Set student/teacher monthly and yearly prices on the Individual tab.
             </p>
           </div>
           <div className="flex flex-wrap gap-2 shrink-0 w-full sm:w-auto">

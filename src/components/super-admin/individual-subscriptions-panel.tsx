@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
 import { API_BASE_URL } from '@/lib/api-config';
-import { GraduationCap, Loader2, RefreshCw, Search, UserRound } from 'lucide-react';
+import IndividualPlanRatesPanel from '@/components/super-admin/IndividualPlanRatesPanel';
 
 type PaidMember = {
   id: string;
@@ -127,6 +127,8 @@ export default function IndividualSubscriptionsPanel() {
 
   return (
     <div className="space-y-5">
+      <IndividualPlanRatesPanel />
+
       <Card className="border-emerald-100 bg-gradient-to-br from-emerald-50/80 to-white">
         <CardHeader className="pb-2">
           <CardTitle className="text-lg">Individual subscriptions (B2C)</CardTitle>
