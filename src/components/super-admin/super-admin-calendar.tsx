@@ -68,6 +68,11 @@ function stripTime(d: Date) {
   return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
 }
 
+function localTodayIso() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
 function monthKey(date: Date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
 }
@@ -516,6 +521,14 @@ export default function SuperAdminCalendar({ onNavigateToExams }: SuperAdminCale
       });
       return;
     }
+    if (quickAddForm.date < localTodayIso()) {
+      toast({
+        title: 'Past date',
+        description: 'Calendar events cannot be created on a past date.',
+        variant: 'destructive',
+      });
+      return;
+    }
     setIsSavingCustom(true);
     try {
       const token = getAuthToken();
@@ -920,6 +933,7 @@ export default function SuperAdminCalendar({ onNavigateToExams }: SuperAdminCale
                   <Input
                     id="quick-add-date"
                     type="date"
+                    min={localTodayIso()}
                     value={quickAddForm.date}
                     onChange={(e) => setQuickAddForm((prev) => ({ ...prev, date: e.target.value }))}
                     className="rounded-lg bg-white"

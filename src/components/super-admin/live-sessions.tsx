@@ -574,6 +574,21 @@ export default function LiveSessions() {
                   })
                 )}
               </div>
+              {formData.schoolAdminIds.length > 0 ? (
+                <div className="flex flex-wrap gap-1.5 rounded-md border border-sky-100 bg-sky-50/70 p-2">
+                  {formData.schoolAdminIds.map((id) => {
+                    const school = schools.find((s) => s.id === id);
+                    if (!school) return null;
+                    return (
+                      <Badge key={id} variant="secondary" className="max-w-full whitespace-normal break-words text-xs">
+                        {school.schoolName}
+                      </Badge>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="text-xs text-gray-500">Selected school names will appear here.</p>
+              )}
             </div>
 
             <div>

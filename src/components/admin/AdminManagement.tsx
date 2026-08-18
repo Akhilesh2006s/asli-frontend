@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
@@ -579,6 +579,9 @@ export default function AdminManagement() {
   const [editingAdmin, setEditingAdmin] = useState<Admin | null>(null);
   const [isUpdatingAdmin, setIsUpdatingAdmin] = useState(false);
   const [isDeletingAdmin, setIsDeletingAdmin] = useState(false);
+  const [isHardDeletingAdmin, setIsHardDeletingAdmin] = useState(false);
+  const [schoolActionTarget, setSchoolActionTarget] = useState<Admin | null>(null);
+  const [hardDeleteEmail, setHardDeleteEmail] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const DEFAULT_CURRICULUM_BOARD = "CBSE";
 
@@ -1397,7 +1400,69 @@ export default function AdminManagement() {
     }
   };
 
-  const handleDeleteAdmin = async (adminId: string, schoolId?: string) => {
+  const refreshAdminsAfterMutation = async (token: string, deleteId?: string, schoolId?: string) => {
+    const fetchResponse = await fetch(`${API_BASE_URL}/api/super-admin/admins`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    if (fetchResponse.ok) {
+      const fetchData = await fetchResponse.json();
+      if (Array.isArray(fetchData)) {
+        setAdmins(fetchData.map(mapAdminState));
+      } else if (fetchData.data && Array.isArray(fetchData.data)) {
+        setAdmins(fetchData.data.map(mapAdminState));
+      } else if (deleteId) {
+        setAdmins((admins || []).filter(
+          (a) => a?.id !== deleteId && a?.schoolId !== deleteId && a?.schoolId !== schoolId
+        ));
+      }
+    }
+  };
+
+  const handleReactivateAdmin = async (admin: Admin) => {
+    if (isUpdatingAdmin) return;
+    const adminId = admin?.id || '';
+    if (!adminId) return;
+    setIsUpdatingAdmin(true);
+    try {
+      const token = getAuthToken();
+      const response = await fetch(`${API_BASE_URL}/api/super-admin/admins/${adminId}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ isActive: true }),
+      });
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Failed to reactivate school');
+      }
+      await refreshAdminsAfterMutation(token || '');
+      setSchoolActionTarget(null);
+      toast({
+        title: 'School reactivated',
+        description: `${admin.schoolName || admin.name || 'School'} can sign in again.`,
+      });
+      window.dispatchEvent(new CustomEvent('adminDeleted'));
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: error instanceof Error ? error.message : 'Failed to reactivate school',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsUpdatingAdmin(false);
+    }
+  };
+
+  const handleDeleteAdmin = async (
+    adminId: string,
+    schoolId?: string,
+    options?: { hard?: boolean; confirmEmail?: string }
+  ) => {
     if (isDeletingAdmin) return;
 
     const deleteId = adminId || schoolId || '';
@@ -1410,57 +1475,51 @@ export default function AdminManagement() {
       return;
     }
 
+    const hard = Boolean(options?.hard);
+    if (hard) {
+      const expected = String(schoolActionTarget?.email || '').trim().toLowerCase();
+      const typed = String(options?.confirmEmail || '').trim().toLowerCase();
+      if (!expected || typed !== expected) {
+        toast({
+          title: 'Type the school email to confirm',
+          description: 'Permanent delete requires the exact school login email.',
+          variant: 'destructive',
+        });
+        return;
+      }
+    }
+
     setIsDeletingAdmin(true);
+    setIsHardDeletingAdmin(hard);
     try {
       const token = getAuthToken();
-      const response = await fetch(`${API_BASE_URL}/api/super-admin/admins/${deleteId}`, {
+      const url = hard
+        ? `${API_BASE_URL}/api/super-admin/admins/${deleteId}?hard=1`
+        : `${API_BASE_URL}/api/super-admin/admins/${deleteId}`;
+      const response = await fetch(url, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
-        }
+        },
+        body: JSON.stringify(hard ? { confirmEmail: options?.confirmEmail } : {}),
       });
 
       if (response.ok) {
         const deleteResult = await response.json();
         
-        // Wait a moment to ensure database cleanup is complete
         await new Promise(resolve => setTimeout(resolve, 500));
-        
-        // Refresh the admins list from the server to ensure deleted admin is removed
-        const fetchResponse = await fetch(`${API_BASE_URL}/api/super-admin/admins`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        });
-        
-        if (fetchResponse.ok) {
-          const fetchData = await fetchResponse.json();
-          if (Array.isArray(fetchData)) {
-            setAdmins(fetchData.map(mapAdminState));
-          } else if (fetchData.data && Array.isArray(fetchData.data)) {
-            setAdmins(fetchData.data.map(mapAdminState));
-          } else {
-            // Fallback: filter from local state
-            setAdmins((admins || []).filter(
-              (a) => a?.id !== deleteId && a?.schoolId !== deleteId && a?.schoolId !== schoolId
-            ));
-          }
-        } else {
-          // Fallback: filter from local state
-          setAdmins((admins || []).filter(
-            (a) => a?.id !== deleteId && a?.schoolId !== deleteId && a?.schoolId !== schoolId
-          ));
-        }
-        
+        await refreshAdminsAfterMutation(token || '', deleteId, schoolId);
+        setSchoolActionTarget(null);
+        setHardDeleteEmail('');
+
         toast({
-          title: deleteResult?.soft ? 'School deactivated' : 'Success',
+          title: deleteResult?.soft ? 'School deactivated' : 'School permanently deleted',
           description: deleteResult?.soft
             ? (deleteResult.message ||
-              'School login deactivated. Students and teachers were kept. Reactivate this school instead of creating a new one with the same email.')
+              'School login deactivated. Students and teachers were kept. Use Reactivate instead of creating a new school with the same email.')
             : (deleteResult?.message ||
-              'School and all associated data deleted successfully.'),
+              'School and all associated data deleted permanently.'),
         });
         
         // Dispatch custom event to notify dashboard to refresh admin summary
@@ -1478,6 +1537,7 @@ export default function AdminManagement() {
       });
     } finally {
       setIsDeletingAdmin(false);
+      setIsHardDeletingAdmin(false);
     }
   };
 
@@ -3008,13 +3068,13 @@ export default function AdminManagement() {
       {/* Search Bar */}
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
         <div className="relative flex-1 max-w-md">
-          <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 sm:h-5 sm:w-5 text-gray-400" />
+          <SearchIcon className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
           <Input
             type="text"
             placeholder="Search by school, contact, email, city, state, board…"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="px-0 pl-10 sm:pl-11"
+            className="h-11 pl-11 pr-3 text-sm sm:h-12 sm:text-base"
             aria-label="Search schools"
           />
         </div>
@@ -3227,11 +3287,26 @@ export default function AdminManagement() {
                     >
                       <EditIcon className="h-3 w-3 sm:h-4 sm:w-4" />
                     </Button>
+                    {(admin?.status || 'inactive') !== 'active' ? (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => void handleReactivateAdmin(admin)}
+                        className="text-emerald-700 hover:text-emerald-800 hover:bg-emerald-50"
+                        title="Reactivate school"
+                      >
+                        Reactivate
+                      </Button>
+                    ) : null}
                     <Button 
                       size="sm" 
                       variant="outline" 
-                      onClick={() => handleDeleteAdmin(admin?.id || '', admin?.schoolId)}
+                      onClick={() => {
+                        setHardDeleteEmail('');
+                        setSchoolActionTarget(admin);
+                      }}
                       className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                      title="Deactivate or permanently delete"
                     >
                       <TrashIcon className="h-3 w-3 sm:h-4 sm:w-4" />
                     </Button>
@@ -3272,6 +3347,106 @@ export default function AdminManagement() {
         </Card>
       )}
 
+      <Dialog
+        open={Boolean(schoolActionTarget)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setSchoolActionTarget(null);
+            setHardDeleteEmail('');
+          }
+        }}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Remove school</DialogTitle>
+            <DialogDescription>
+              Trash used to say “Deleting” while only deactivating login. Choose deactivate
+              (keeps students and teachers) or a permanent wipe.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 text-sm">
+            <p className="font-medium text-slate-900">
+              {schoolActionTarget?.schoolName || schoolActionTarget?.name || 'School'}
+            </p>
+            <p className="break-all text-slate-600">{schoolActionTarget?.email}</p>
+            {(schoolActionTarget?.status || 'inactive') !== 'active' ? (
+              <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-amber-900">
+                This school is already inactive. Reactivate it instead of creating a duplicate.
+              </p>
+            ) : (
+              <p className="text-slate-600">
+                Deactivate turns off login and keeps all school data. Permanent delete cannot be
+                undone.
+              </p>
+            )}
+            <div className="space-y-1.5">
+              <Label htmlFor="hard-delete-email">Type school email to permanently delete</Label>
+              <Input
+                id="hard-delete-email"
+                value={hardDeleteEmail}
+                onChange={(e) => setHardDeleteEmail(e.target.value)}
+                placeholder={schoolActionTarget?.email || 'school@example.com'}
+                autoComplete="off"
+                className="h-11 text-sm"
+              />
+            </div>
+          </div>
+          <DialogFooter className="flex-col gap-2 sm:flex-col sm:space-x-0">
+            {(schoolActionTarget?.status || 'inactive') !== 'active' ? (
+              <Button
+                type="button"
+                className="w-full bg-emerald-600 hover:bg-emerald-700"
+                onClick={() => schoolActionTarget && void handleReactivateAdmin(schoolActionTarget)}
+              >
+                Reactivate school
+              </Button>
+            ) : (
+              <Button
+                type="button"
+                className="w-full"
+                onClick={() =>
+                  void handleDeleteAdmin(
+                    schoolActionTarget?.id || '',
+                    schoolActionTarget?.schoolId
+                  )
+                }
+              >
+                Deactivate school
+              </Button>
+            )}
+            <Button
+              type="button"
+              variant="destructive"
+              className="w-full"
+              disabled={
+                hardDeleteEmail.trim().toLowerCase() !==
+                String(schoolActionTarget?.email || '').trim().toLowerCase()
+              }
+              onClick={() =>
+                void handleDeleteAdmin(
+                  schoolActionTarget?.id || '',
+                  schoolActionTarget?.schoolId,
+                  { hard: true, confirmEmail: hardDeleteEmail }
+                )
+              }
+            >
+              Permanently delete
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full"
+              onClick={() => {
+                setSchoolActionTarget(null);
+                setHardDeleteEmail('');
+              }}
+            >
+              Cancel
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {isMutationBusy && (
         <div
           className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40"
@@ -3287,7 +3462,9 @@ export default function AdminManagement() {
                 : isUpdatingAdmin
                   ? "Updating school…"
                   : isDeletingAdmin
-                    ? "Deleting school…"
+                    ? isHardDeletingAdmin
+                      ? "Permanently deleting school…"
+                      : "Deactivating school…"
                     : "Loading…"}
             </p>
           </div>

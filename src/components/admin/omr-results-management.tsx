@@ -390,7 +390,7 @@ export default function OmrResultsManagement({ variant = 'school-admin' }: OmrRe
   }, [students]);
 
   const formatStudentLabel = (s: StudentOption) =>
-    `${s.fullName || s.email}${s.classNumber ? ` (${s.classNumber}${s.section || ''})` : ''}`;
+    `${s.fullName || s.email}${s.classNumber ? ` (${s.classNumber}${s.section ? `-${s.section}` : ''})` : ''}`;
 
   const resolveAssignValue = (rowId: string) => {
     const raw = assignDrafts[rowId] || '';
@@ -747,7 +747,7 @@ export default function OmrResultsManagement({ variant = 'school-admin' }: OmrRe
         </div>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className={cn('grid gap-3', readOnly ? 'sm:grid-cols-2' : 'sm:grid-cols-3')}>
         <Card className="rounded-xl border-slate-200 shadow-none">
           <CardContent className="p-4">
             <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Batches</p>
@@ -760,12 +760,14 @@ export default function OmrResultsManagement({ variant = 'school-admin' }: OmrRe
             <p className="mt-1 text-2xl font-bold text-slate-900">{batchMeta?.rowCount ?? 0}</p>
           </CardContent>
         </Card>
+        {!readOnly ? (
         <Card className="rounded-xl border-slate-200 shadow-none">
           <CardContent className="p-4">
             <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Unassigned</p>
             <p className="mt-1 text-2xl font-bold text-amber-700">{unassignedCount}</p>
           </CardContent>
         </Card>
+        ) : null}
       </div>
 
       <Card className="rounded-xl border-slate-200 shadow-none overflow-hidden">
@@ -777,11 +779,11 @@ export default function OmrResultsManagement({ variant = 'school-admin' }: OmrRe
                 <span className="ml-2 font-normal text-slate-500">· {batchMeta.testTitle}</span>
               ) : null}
             </CardTitle>
-            {unassignedCount > 0 ? (
+            {unassignedCount > 0 && !readOnly ? (
               <Badge className="w-fit bg-amber-100 text-amber-900 hover:bg-amber-100">
                 {unassignedCount} candidates need student mapping
               </Badge>
-            ) : batchMeta ? (
+            ) : batchMeta && !readOnly ? (
               <Badge className="w-fit bg-emerald-100 text-emerald-800 hover:bg-emerald-100">
                 <CheckCircle2 className="mr-1 h-3.5 w-3.5" />
                 All assigned
@@ -804,6 +806,7 @@ export default function OmrResultsManagement({ variant = 'school-admin' }: OmrRe
               className={cn(
                 'h-10 rounded-lg',
                 filterUnassigned ? 'bg-amber-600 text-white hover:bg-amber-700' : 'border-slate-200',
+                readOnly && 'hidden',
               )}
               onClick={() => setFilterUnassigned((v) => !v)}
             >
@@ -1089,9 +1092,22 @@ export default function OmrResultsManagement({ variant = 'school-admin' }: OmrRe
                   onChange={(e) => setFile(e.target.files?.[0] || null)}
                 />
                 {file ? (
-                  <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800">
-                    {file.name}
-                  </p>
+                  <div className="flex items-center justify-between gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2">
+                    <p className="min-w-0 truncate text-xs text-emerald-800">{file.name}</p>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 shrink-0 text-xs text-red-700 hover:bg-red-50 hover:text-red-800"
+                      onClick={() => {
+                        setFile(null);
+                        const input = document.getElementById('omr-csv') as HTMLInputElement | null;
+                        if (input) input.value = '';
+                      }}
+                    >
+                      Remove
+                    </Button>
+                  </div>
                 ) : null}
               </div>
               <DialogFooter className="gap-2">

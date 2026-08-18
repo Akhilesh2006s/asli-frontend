@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useLocation, Link } from 'wouter';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
@@ -21,8 +21,6 @@ import {
   School,
 } from 'lucide-react';
 import { API_BASE_URL } from '@/lib/api-config';
-import { formatIitCategoryLabel } from '@/lib/products';
-import { useProductCategories } from '@/hooks/use-product-categories';
 import {
   CURRICULUM_BOARD_OPTIONS,
   INDIVIDUAL_CLASS_OPTIONS,
@@ -30,13 +28,13 @@ import {
   INDIVIDUAL_SUBJECT_OPTIONS,
   INDIVIDUAL_TRIAL_DAYS,
 } from '@/lib/individual-signup';
+import { classNumbersFromLabel, IIT_TRACK_SPECS, tracksForClass } from '@/lib/iit-track-specs';
 import { cn } from '@/lib/utils';
 
 type RoleType = 'student' | 'teacher';
 
 const Register = () => {
   const [, setLocation] = useLocation();
-  const { codes: iitCategoryCodes, labelMap: iitLabelMap } = useProductCategories();
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -57,6 +55,29 @@ const Register = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    const classParam = params.get('class') || '';
+    const trackParam = String(params.get('track') || '').toUpperCase();
+    const packageParam = String(params.get('package') || '').toLowerCase();
+    if (!classParam && !trackParam && !packageParam) return;
+    setFormData((prev) => {
+      const next = { ...prev };
+      if (classParam) next.classNumber = classParam;
+      if (trackParam && IIT_TRACK_SPECS.some((t) => t.code === trackParam)) {
+        next.iitCategories = [trackParam];
+      }
+      if (packageParam === 'iit' && !next.interestedCourses.includes('IIT Foundation')) {
+        next.interestedCourses = [...next.interestedCourses, 'IIT Foundation'];
+      }
+      if (packageParam === 'board' && !next.interestedCourses.includes('Board Exams')) {
+        next.interestedCourses = [...next.interestedCourses, 'Board Exams'];
+      }
+      return next;
+    });
+  }, []);
 
   const toggleInList = (key: 'interestedCourses' | 'interestedSubjects' | 'iitCategories', value: string) => {
     setFormData((prev) => {
@@ -297,7 +318,15 @@ const Register = () => {
                   <Label>Class {formData.role === 'student' ? '*' : '(optional)'}</Label>
                   <Select
                     value={formData.classNumber || undefined}
-                    onValueChange={(v) => setFormData({ ...formData, classNumber: v })}
+                    onValueChange={(v) => {
+                      const n = classNumbersFromLabel(v);
+                      const allowed = new Set(tracksForClass(n).map((t) => t.code as string));
+                      setFormData({
+                        ...formData,
+                        classNumber: v,
+                        iitCategories: formData.iitCategories.filter((c) => allowed.has(c)),
+                      });
+                    }}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select class" />
@@ -363,29 +392,44 @@ const Register = () => {
 
               <div className="space-y-2 rounded-xl border border-slate-200 bg-slate-50/80 p-4">
                 <Label className="text-sm font-semibold text-slate-900">
-                  IIT product tracks (optional)
+                  IIT material (Asli Prep Alpha / Beta / Gamma)
                 </Label>
                 <p className="text-xs text-slate-500">
-                  Pick the product tracks you want access to. Leave empty for general curriculum only.
+                  Optional for Board-only. If you pick a track, Vidya, quizzes and practice exams follow that Asli Prep
+                  book for your class.
                 </p>
-                <div className="mt-2 flex flex-wrap gap-3">
-                  {iitCategoryCodes.map((cat) => {
-                    const checked = formData.iitCategories.includes(cat);
+                <div className="mt-3 grid gap-2">
+                  {IIT_TRACK_SPECS.map((spec) => {
+                    const classN = classNumbersFromLabel(formData.classNumber);
+                    const allowed = !classN || spec.classNumbers.includes(classN);
+                    const checked = formData.iitCategories.includes(spec.code);
                     return (
                       <label
-                        key={cat}
+                        key={spec.code}
                         className={cn(
-                          'flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm',
+                          'flex cursor-pointer items-start gap-3 rounded-xl border px-3 py-3 text-sm',
                           checked
                             ? 'border-sky-300 bg-sky-50 text-sky-950'
                             : 'border-slate-200 bg-white text-slate-700',
+                          !allowed && 'cursor-not-allowed opacity-45',
                         )}
                       >
                         <Checkbox
+                          className="mt-0.5"
+                          disabled={!allowed}
                           checked={checked}
-                          onCheckedChange={() => toggleInList('iitCategories', cat)}
+                          onCheckedChange={() => {
+                            if (!allowed) return;
+                            toggleInList('iitCategories', spec.code);
+                          }}
                         />
-                        IIT {formatIitCategoryLabel(cat, iitLabelMap)}
+                        <span>
+                          <span className="block font-semibold">
+                            {spec.book}{' '}
+                            <span className="font-normal text-slate-500">· {spec.classes}</span>
+                          </span>
+                          <span className="mt-0.5 block text-xs text-slate-500">{spec.forWhom}</span>
+                        </span>
                       </label>
                     );
                   })}

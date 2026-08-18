@@ -35,6 +35,7 @@ import {
 } from '@/components/ui/dialog';
 import { API_BASE_URL } from '@/lib/api-config';
 import { getAuthToken } from '@/lib/auth-utils';
+import { renderMarkdown } from '@/lib/render-teacher-markdown';
 import {
   examOptionsAsText,
   resolveAnswerListForQuestion,
@@ -248,14 +249,17 @@ function QuestionPaperCard({
         <div className="text-right shrink-0 text-[11px] text-gray-500">
           <p className="font-semibold text-gray-800">{question.classCorrectPct}% class correct</p>
           <p>
-            {question.correct}✓ · {question.wrong}✗ · {question.unattempted} blank
+            {question.correct} correct · {question.wrong} incorrect · {question.unattempted} blank
           </p>
         </div>
       </div>
 
-      <p className="text-sm sm:text-base text-gray-900 leading-relaxed mb-4">
-        {question.questionText || `Question ${question.questionNumber}`}
-      </p>
+      <div
+        className="prose prose-sm max-w-none text-sm sm:text-base text-gray-900 leading-relaxed mb-4"
+        dangerouslySetInnerHTML={{
+          __html: renderMarkdown(question.questionText || `Question ${question.questionNumber}`),
+        }}
+      />
 
       {qType === 'assertion-reason' || question.assertionText ? (
         <div className="mb-4 space-y-2 text-sm text-gray-800">
@@ -600,7 +604,7 @@ export function TeacherExamQuestionAnalytics({
                           </div>
                           <p className="text-[11px] text-gray-500 mt-1 pl-6">
                             {s.attempted
-                              ? `${s.percentage != null ? Number(s.percentage).toFixed(1) : '—'}% · ${s.correctAnswers}✓ ${s.wrongAnswers}✗`
+                              ? `${s.percentage != null ? Number(s.percentage).toFixed(1) : '—'}% · ${s.correctAnswers} correct ${s.wrongAnswers} incorrect`
                               : 'Not attempted'}
                           </p>
                         </button>

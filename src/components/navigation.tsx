@@ -163,6 +163,7 @@ export default function Navigation() {
 
   const individualNavItems = [
     { path: "/learning-paths", label: "Learning", icon: BookOpen },
+    { path: "/student-exams", label: "Practice Exams", icon: FileText },
     { path: "/student/tools/flashcard-generator", label: "Flashcards", icon: Layers },
     { path: "/student/tools/smart-qa-practice-generator", label: "Practice", icon: Brain },
     { path: "/student/tools/smart-study-guide-generator", label: "Study Guide", icon: Sparkles },

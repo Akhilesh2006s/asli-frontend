@@ -324,7 +324,15 @@ export function GenerationRecordsList({
                   {row.productCategory ? (
                     <Badge
                       variant="outline"
-                      className="text-micro h-5 shrink-0 border-sky-200 bg-sky-50 text-sky-800"
+                      className={`text-micro h-5 shrink-0 ${
+                        String(row.productCategory).toUpperCase() === 'ALPHA'
+                          ? 'border-orange-200 bg-orange-50 text-orange-800'
+                          : String(row.productCategory).toUpperCase() === 'BETA'
+                            ? 'border-violet-200 bg-violet-50 text-violet-800'
+                            : String(row.productCategory).toUpperCase() === 'GAMMA'
+                              ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+                              : 'border-sky-200 bg-sky-50 text-sky-800'
+                      }`}
                     >
                       {row.productCategory.charAt(0) + row.productCategory.slice(1).toLowerCase()}
                     </Badge>

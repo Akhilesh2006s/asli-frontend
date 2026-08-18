@@ -29,6 +29,7 @@ import { useSuperAdminDrawerNav } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 import type { SuperAdminView } from "@/lib/super-admin-views";
+import { ContactSupportLink } from "@/components/ContactSupportLink";
 
 export type { SuperAdminView };
 
@@ -164,7 +165,7 @@ export function SuperAdminSidebar({ currentView, onViewChange, user, onLogout }:
           onViewChange(item.id as SuperAdminView);
           setMobileOpen(false);
         }}
-        title={compact ? item.label : undefined}
+        title={item.label}
         className={cn(
           "group relative w-full flex items-center gap-2 lg:gap-3 overflow-hidden rounded-2xl transition-all duration-200 text-left",
           compact
@@ -192,8 +193,8 @@ export function SuperAdminSidebar({ currentView, onViewChange, user, onLogout }:
         </span>
         <span
           className={cn(
-            "relative min-w-0 leading-snug break-words",
-            compact ? "hidden lg:block flex-1 truncate" : "flex-1",
+            "relative min-w-0 leading-snug whitespace-normal break-words",
+            compact ? "hidden lg:block flex-1" : "flex-1",
           )}
         >
           {item.label}
@@ -255,8 +256,9 @@ export function SuperAdminSidebar({ currentView, onViewChange, user, onLogout }:
           {NAV_SECTIONS.map((section) => (
             <div key={section.title} className="pt-1 first:pt-0">
               <p
+                title={section.title}
                 className={cn(
-                  "px-3 pb-1.5 pt-3 text-[10px] font-black uppercase tracking-[0.18em] text-slate-500/90",
+                  "px-3 pb-1.5 pt-3 text-[10px] font-black uppercase tracking-wide text-slate-500/90 whitespace-normal break-words",
                   !useDrawerNav && "hidden lg:block",
                 )}
               >
@@ -304,17 +306,13 @@ export function SuperAdminSidebar({ currentView, onViewChange, user, onLogout }:
             <LogOut className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0 lg:mr-3" />
             <span className={cn(!useDrawerNav && "hidden lg:inline")}>Logout</span>
           </button>
-          <a
-            href="mailto:info@aslilearn.ai?subject=AsliLearn%20support%20request"
+          <ContactSupportLink
             className={cn(
-              "w-full flex items-center rounded-xl transition-colors text-slate-700 border border-sky-100/80 bg-white/95 hover:bg-gradient-to-r hover:from-sky-50 hover:to-orange-50 hover:text-slate-900 shadow-sm",
-              "px-3 py-2.5 text-xs sm:text-sm font-bold",
-              !useDrawerNav && "justify-center lg:justify-start",
+              "w-full justify-center rounded-xl border-sky-100/80 bg-white/95 px-3 py-2.5 text-xs font-bold text-slate-700 shadow-sm hover:bg-gradient-to-r hover:from-sky-50 hover:to-orange-50 hover:text-slate-900 sm:text-sm lg:justify-start",
+              !useDrawerNav && "px-2 lg:px-3",
             )}
-          >
-            <span className={cn(!useDrawerNav && "hidden lg:inline")}>Contact Support</span>
-            <span className={cn(useDrawerNav ? "hidden" : "lg:hidden")}>?</span>
-          </a>
+            labelClassName={cn(!useDrawerNav && "hidden lg:inline")}
+          />
         </div>
       </div>
     </div>

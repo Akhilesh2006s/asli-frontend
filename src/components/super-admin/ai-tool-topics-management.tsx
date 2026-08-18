@@ -1063,20 +1063,10 @@ export default function AiToolTopicsManagement() {
             <div className="mt-4 flex flex-col gap-3 border-t pt-4">
               <p className="text-xs text-slate-500 break-words leading-relaxed">
                 {selectedTopic
-                  ? `Selected topic: ${selectedTopic} — use “Add Sub Topic” to add more sub-topics.`
+                  ? `Selected topic: ${selectedTopic} — use “Add Sub Topic” in the toolbar to add more sub-topics.`
                   : 'Select a topic to add sub-topics or view records below.'}
               </p>
               <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-              <Button
-                type="button"
-                variant="outline"
-                className="w-full sm:w-auto justify-center border-violet-300 text-violet-700 hover:bg-violet-50 whitespace-normal h-auto min-h-9 py-2"
-                disabled={!selectedTopic}
-                onClick={openAddSubTopic}
-              >
-                <Plus className="mr-2 h-4 w-4 shrink-0" />
-                Add Sub Topic to Selected
-              </Button>
               <Button
                 type="button"
                 variant="outline"

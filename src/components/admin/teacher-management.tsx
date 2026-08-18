@@ -39,7 +39,8 @@ import {
   FileSpreadsheet,
   Loader2,
   Eye,
-  EyeOff
+  EyeOff,
+  Pencil
 } from 'lucide-react';
 import { AdminTeacherDailyDialog } from '@/components/admin/AdminTeacherDailyDialog';
 import { Trophy } from 'lucide-react';
@@ -672,7 +673,13 @@ const TeacherManagement = () => {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify(editingTeacher)
+        body: JSON.stringify({
+          fullName: editingTeacher.fullName,
+          phone: editingTeacher.phone,
+          department: editingTeacher.department,
+          qualifications: editingTeacher.qualifications,
+          isActive: editingTeacher.isActive,
+        })
       });
 
       if (response.ok) {
@@ -1430,6 +1437,7 @@ Jane Smith,jane.smith@school.edu,TeacherPass2,1234567891,Science,MSc in Chemistr
                     </Label>
                     <Input
                       id="fullName"
+                      autoComplete="off"
                       value={newTeacher.fullName}
                       onChange={(e) => setNewTeacher({ ...newTeacher, fullName: e.target.value })}
                       className="border-orange-200 focus:border-orange-400 rounded-xl"
@@ -1444,7 +1452,7 @@ Jane Smith,jane.smith@school.edu,TeacherPass2,1234567891,Science,MSc in Chemistr
                       id="email"
                       type="email"
                       inputMode="email"
-                      autoComplete="email"
+                      autoComplete="off"
                       placeholder="name@school.com"
                       value={newTeacher.email}
                       onChange={(e) => setNewTeacher({ ...newTeacher, email: e.target.value })}
@@ -1460,7 +1468,7 @@ Jane Smith,jane.smith@school.edu,TeacherPass2,1234567891,Science,MSc in Chemistr
                       id="phone"
                       type="tel"
                       inputMode="tel"
-                      autoComplete="tel"
+                      autoComplete="off"
                       placeholder="10-digit mobile number"
                       value={newTeacher.phone}
                       onChange={(e) =>
@@ -1495,6 +1503,7 @@ Jane Smith,jane.smith@school.edu,TeacherPass2,1234567891,Science,MSc in Chemistr
                       <Input
                         id="password"
                         type={showNewTeacherPassword ? 'text' : 'password'}
+                        autoComplete="new-password"
                         value={newTeacher.password}
                         onChange={(e) => setNewTeacher({ ...newTeacher, password: e.target.value })}
                         className="border-orange-200 focus:border-orange-400 rounded-xl px-0 pl-3 pr-10 sm:pr-12"
@@ -1566,11 +1575,11 @@ Jane Smith,jane.smith@school.edu,TeacherPass2,1234567891,Science,MSc in Chemistr
                             <CardContent className="p-2">
                               <div className="flex items-center justify-between">
                                 <div className="flex-1 min-w-0">
-                                  <p className={`font-semibold text-xs truncate ${isSelected ? 'text-white' : 'text-gray-900'}`}>
+                                  <p className={`font-semibold text-xs whitespace-normal break-words ${isSelected ? 'text-white' : 'text-gray-900'}`}>
                                     {subject.name}
                                   </p>
                                   {subject.code && (
-                                    <p className={`text-xs mt-0.5 truncate ${isSelected ? 'text-purple-100' : 'text-gray-600'}`}>
+                                    <p className={`text-xs mt-0.5 whitespace-normal break-words ${isSelected ? 'text-purple-100' : 'text-gray-600'}`}>
                                       {subject.code}
                                     </p>
                                   )}
@@ -1721,7 +1730,7 @@ Jane Smith,jane.smith@school.edu,TeacherPass2,1234567891,Science,MSc in Chemistr
                     <h4 className="font-bold text-gray-900 text-xs sm:text-sm mb-2">Subjects:</h4>
                     <div className="flex flex-wrap gap-2 min-h-[1.75rem] items-start">
                       {dedupeSubjectsForDisplay(teacherSubjects).map((subject) => (
-                        <Badge key={subject.id} className={`bg-gradient-to-r ${gradient} text-white border-0 rounded-lg px-3 py-1 text-xs font-medium`}>
+                        <Badge key={subject.id} className={`bg-gradient-to-r ${gradient} text-white border-0 rounded-lg px-3 py-1 text-xs font-medium whitespace-normal break-words max-w-full`}>
                           {subject.label}
                         </Badge>
                       ))}
@@ -1761,6 +1770,18 @@ Jane Smith,jane.smith@school.edu,TeacherPass2,1234567891,Science,MSc in Chemistr
 
                   <div className="flex items-center justify-between pt-4 border-t border-gray-200 mt-auto">
                     <div className="flex items-center space-x-2">
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        className={adminBtn.secondary}
+                        onClick={() => {
+                          setEditingTeacher(teacher);
+                          setIsEditDialogOpen(true);
+                        }}
+                        title="Edit teacher"
+                      >
+                        <Pencil className="w-3 h-3 sm:w-4 sm:h-4" />
+                      </Button>
                       <Button 
                         size="sm" 
                         variant="outline" 
@@ -1819,6 +1840,97 @@ Jane Smith,jane.smith@school.edu,TeacherPass2,1234567891,Science,MSc in Chemistr
           subtitle="Empower. Inspire. Educate."
           icon={<Trophy className="h-6 w-6" />}
         />
+
+        <Dialog
+          open={isEditDialogOpen}
+          onOpenChange={(open) => {
+            setIsEditDialogOpen(open);
+            if (!open) setEditingTeacher(null);
+          }}
+        >
+          <DialogContent className="max-w-lg bg-white/95 border-orange-200">
+            <DialogHeader>
+              <DialogTitle>Edit teacher</DialogTitle>
+              <DialogDescription>
+                Update contact details. Use Assign Class / Assign subjects for timetable mapping.
+              </DialogDescription>
+            </DialogHeader>
+            {editingTeacher ? (
+              <form onSubmit={handleEditTeacher} className="space-y-3">
+                <div>
+                  <Label htmlFor="edit-teacher-name">Full name</Label>
+                  <Input
+                    id="edit-teacher-name"
+                    autoComplete="off"
+                    value={editingTeacher.fullName}
+                    onChange={(e) =>
+                      setEditingTeacher({ ...editingTeacher, fullName: e.target.value })
+                    }
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="edit-teacher-email">Email</Label>
+                  <Input
+                    id="edit-teacher-email"
+                    value={editingTeacher.email}
+                    readOnly
+                    className="bg-slate-50"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="edit-teacher-phone">Phone</Label>
+                  <Input
+                    id="edit-teacher-phone"
+                    autoComplete="off"
+                    value={editingTeacher.phone || ''}
+                    onChange={(e) =>
+                      setEditingTeacher({
+                        ...editingTeacher,
+                        phone: sanitizePhoneTyping(e.target.value),
+                      })
+                    }
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="edit-teacher-dept">Department</Label>
+                  <Input
+                    id="edit-teacher-dept"
+                    autoComplete="off"
+                    value={editingTeacher.department || ''}
+                    onChange={(e) =>
+                      setEditingTeacher({ ...editingTeacher, department: e.target.value })
+                    }
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="edit-teacher-qual">Qualifications</Label>
+                  <Textarea
+                    id="edit-teacher-qual"
+                    value={editingTeacher.qualifications || ''}
+                    onChange={(e) =>
+                      setEditingTeacher({ ...editingTeacher, qualifications: e.target.value })
+                    }
+                    rows={3}
+                  />
+                </div>
+                <div className="flex justify-end gap-2 pt-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setIsEditDialogOpen(false);
+                      setEditingTeacher(null);
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button type="submit">Save changes</Button>
+                </div>
+              </form>
+            ) : null}
+          </DialogContent>
+        </Dialog>
 
         {/* Subject Assignment Dialog */}
         <Dialog open={isAssignDialogOpen} onOpenChange={setIsAssignDialogOpen}>

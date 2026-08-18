@@ -14,6 +14,7 @@ import {
   Library,
   Lightbulb,
   LineChart,
+  Link2,
   MessageSquare,
   Play,
   School,
@@ -26,6 +27,7 @@ import {
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { MarketingNav, MarketingFooter } from "@/components/marketing/MarketingShell";
 import { usePageSeo } from "@/components/marketing/seo";
+import { IIT_TOOLS_LINKED_TO_BOOKS, IIT_TRACK_SPECS } from "@/lib/iit-track-specs";
 
 const HERO_PHOTO = "/file_000000009ae082079e1d3de4f3bd3a3e.png";
 const GROUP_PHOTO = "/file_00000000411c8206be42efa220120ba0.png";
@@ -817,6 +819,58 @@ export default function Homepage() {
         </div>
       </section>
 
+      {/* IIT materials used on the platform */}
+      <section id="iit-materials" className="scroll-mt-24 bg-[#f4f7fb] py-12 sm:py-20 lg:py-24">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <Reveal>
+            <p className="text-center text-xs font-bold uppercase tracking-[0.18em] text-sky-700">
+              IIT materials we use
+            </p>
+            <h2 className="mt-3 text-center font-display text-[1.65rem] font-extrabold text-[#0a1f44] sm:text-3xl md:text-4xl">
+              Asli Prep Alpha, Beta &amp; Gamma — and the tools follow the book
+            </h2>
+            <p className="mx-auto mt-4 max-w-3xl text-center text-sm leading-relaxed text-slate-600 sm:text-base">
+              Individual students pick one Asli Prep IIT book for their class. Vidya, daily quizzes, worksheets and
+              practice exams are generated from that same chapter — not a separate IIT syllabus.
+            </p>
+          </Reveal>
+          <div className="mt-10 grid gap-4 md:grid-cols-3">
+            {IIT_TRACK_SPECS.map((spec) => (
+              <article key={spec.code} className={`rounded-2xl border bg-white p-5 shadow-sm ${spec.tone.border}`}>
+                <p className={`text-xs font-bold uppercase tracking-wide ${spec.tone.badge}`}>{spec.classes}</p>
+                <h3 className="mt-1 font-display text-xl font-bold text-slate-900">{spec.book}</h3>
+                <p className="mt-2 text-sm text-slate-600">{spec.headline}</p>
+              </article>
+            ))}
+          </div>
+          <div className="mt-6 grid gap-3 sm:grid-cols-2">
+            {IIT_TOOLS_LINKED_TO_BOOKS.map((item) => (
+              <div key={item.title} className="flex gap-3 rounded-xl border border-slate-200 bg-white p-4">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-sky-100 text-sky-700">
+                  <Link2 className="h-4 w-4" />
+                </span>
+                <div>
+                  <p className="font-semibold text-slate-900">{item.title}</p>
+                  <p className="mt-1 text-sm text-slate-600">{item.body}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="mt-8 flex flex-wrap justify-center gap-3">
+            <Link href="/resources">
+              <Button className="h-11 rounded-full bg-sky-500 px-6 font-semibold text-white hover:bg-sky-600">
+                See IIT books &amp; tools
+              </Button>
+            </Link>
+            <Link href="/pricing">
+              <Button variant="outline" className="h-11 rounded-full px-6 font-semibold">
+                Choose Alpha, Beta or Gamma
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </section>
+
       {/* Pricing */}
       <section id="pricing" className="scroll-mt-24 py-12 sm:py-20 lg:py-24">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -830,7 +884,7 @@ export default function Homepage() {
             <article className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_16px_40px_-24px_rgba(10,31,68,0.35)]">
               <div className="bg-[#0a1f44] px-5 py-4 text-white sm:px-6 sm:py-5">
                 <h3 className="font-display text-lg font-bold sm:text-xl">Student Plan</h3>
-                <p className="mt-0.5 text-sm text-white/70">Board + IIT</p>
+                <p className="mt-0.5 text-sm text-white/70">Board or IIT Alpha / Beta / Gamma</p>
               </div>
               <div className="px-5 py-5 sm:px-6 sm:py-6">
                 <p className="font-display text-2xl font-extrabold text-sky-600 sm:text-3xl">
@@ -843,7 +897,8 @@ export default function Homepage() {
                   {[
                     "Access to all videos & notes",
                     "AI Tutor — 10 queries/day",
-                    "Practice tests & quizzes",
+                    "Practice exams matched to your class",
+                    "IIT tools tied to Asli Prep Alpha / Beta / Gamma",
                     "Progress reports & analytics",
                     "Community access",
                   ].map((f) => (
@@ -853,9 +908,9 @@ export default function Homepage() {
                     </li>
                   ))}
                 </ul>
-                <Link href="/auth/register" className="mt-8 block">
+                <Link href="/pricing" className="mt-8 block">
                   <Button className="h-12 w-full rounded-full bg-sky-500 text-base font-semibold text-white hover:bg-sky-600">
-                    Start 7-Day Free Trial
+                    Choose class &amp; IIT book
                   </Button>
                 </Link>
               </div>

@@ -33,7 +33,7 @@ export async function openAiToolRecordPdf(id: string): Promise<void> {
 
   const filename =
     filenameFromContentDisposition(res.headers.get("Content-Disposition")) ||
-    `AsliLearn-AI-Content.pdf`;
+    `AsliLearn-AI-Content-${id.slice(-8)}-${Date.now()}.pdf`;
   const blob = await res.blob();
   const url = URL.createObjectURL(blob);
 

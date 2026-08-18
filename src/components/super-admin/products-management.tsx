@@ -327,7 +327,6 @@ export default function ProductsManagement() {
                   setForm((p) => ({
                     ...p,
                     label,
-                    code: p.code || normalizeCategoryCode(label),
                   }));
                 }}
                 placeholder="e.g. Delta"
@@ -361,7 +360,7 @@ export default function ProductsManagement() {
             </Button>
             <Button disabled={saving} onClick={() => void createCategory()}>
               {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-              Add category
+              Create
             </Button>
           </DialogFooter>
         </DialogContent>

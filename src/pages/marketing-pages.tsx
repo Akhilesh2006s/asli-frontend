@@ -10,7 +10,7 @@ import {
   ClipboardList,
   FileText,
   Flame,
-  GraduationCap,
+  Link2,
   PlayCircle,
   School,
   Sparkles,
@@ -20,6 +20,12 @@ import {
 } from "lucide-react";
 import { MarketingShell, MarketingPageHero } from "@/components/marketing/MarketingShell";
 import { usePageSeo } from "@/components/marketing/seo";
+import { IndividualPlanCheckout } from "@/components/b2c/IndividualPlanCheckout";
+import {
+  CLASS_TRACK_MATRIX,
+  IIT_TOOLS_LINKED_TO_BOOKS,
+  IIT_TRACK_SPECS,
+} from "@/lib/iit-track-specs";
 
 export default function FeaturesPage() {
   usePageSeo({
@@ -127,62 +133,63 @@ export function PlatformPage() {
 
 export function PricingPage() {
   usePageSeo({
-    title: "Pricing | Board, Board + IIT and Teacher Plans — AsliLearn.ai",
+    title: "Pricing | Board, Board + IIT Alpha/Beta/Gamma — AsliLearn.ai",
     description:
-      "AsliLearn.ai pricing: Board Learning ₹99/month, Board + IIT Foundation ₹249/month, Teacher Plan ₹3,999/year. Institutional plans on request.",
+      "AsliLearn.ai pricing: Board Learning ₹99/month, IIT Foundation ₹249/month with Asli Prep Alpha, Beta or Gamma books by class. Teacher Plan ₹3,999/year.",
     path: "/pricing",
   });
-  const plans = [
-    {
-      name: "Board Learning",
-      price: "₹99/month",
-      per: "per child",
-      items: ["Board-aligned videos and notes", "Concept explanations", "Practice and assessments", "Progress tracking"],
-    },
-    {
-      name: "Board + IIT Foundation",
-      price: "₹249/month",
-      per: "per child",
-      items: [
-        "Everything in Board Learning",
-        "IIT Foundation concepts",
-        "Higher-order practice",
-        "Foundation assessments",
-      ],
-    },
-    {
-      name: "Teacher Plan",
-      price: "₹3,999/year",
-      per: "per teacher",
-      items: ["AI Tutor", "Teaching resources", "Assessment creation", "AI-assisted grading", "Class analytics", "Priority support"],
-    },
-  ];
   return (
     <MarketingShell>
       <MarketingPageHero
         eyebrow="Pricing"
-        title="Clear plans for learners and teachers"
-        subtitle="Customised institutional and school-wide plans are available on request."
+        title="Pick your class, then pick the IIT book"
+        subtitle="Board learning at ₹99/month, or IIT Foundation at ₹249/month with Asli Prep Alpha, Beta or Gamma — class-wise, so quizzes and AI tools follow that material."
       />
-      <section className="mx-auto grid max-w-7xl gap-6 px-4 py-14 sm:px-6 md:grid-cols-3 lg:px-8">
-        {plans.map((p) => (
-          <article key={p.name} className="flex flex-col rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h2 className="font-display text-xl font-bold text-slate-900">{p.name}</h2>
-            <p className="mt-2 font-display text-3xl font-extrabold text-sky-700">{p.price}</p>
-            <p className="text-sm text-slate-500">{p.per}</p>
-            <ul className="mt-5 flex-1 space-y-2">
-              {p.items.map((i) => (
-                <li key={i} className="flex gap-2 text-sm text-slate-700">
-                  <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
-                  {i}
-                </li>
-              ))}
-            </ul>
-            <Link href="/book-a-demo" className="mt-6">
-              <Button className="w-full rounded-full bg-sky-500 text-white hover:bg-sky-600">Get Started</Button>
-            </Link>
-          </article>
-        ))}
+      <section className="mx-auto max-w-3xl px-4 py-10 sm:px-6 lg:px-8">
+        <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-8">
+          <IndividualPlanCheckout variant="card" />
+        </div>
+      </section>
+      <section className="mx-auto max-w-7xl px-4 pb-14 sm:px-6 lg:px-8">
+        <h2 className="font-display text-xl font-bold text-slate-900 sm:text-2xl">Class-wise IIT materials</h2>
+        <p className="mt-2 max-w-2xl text-sm text-slate-600">
+          You choose one Asli Prep book for the child’s class. Vidya, daily quizzes, worksheets and practice
+          exams all pull from that same book.
+        </p>
+        <div className="mt-6 overflow-x-auto rounded-2xl border border-slate-200">
+          <table className="w-full min-w-[32rem] text-left text-sm">
+            <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500">
+              <tr>
+                <th className="px-4 py-3">Class</th>
+                <th className="px-4 py-3">Recommended book</th>
+                <th className="px-4 py-3">Also available</th>
+              </tr>
+            </thead>
+            <tbody>
+              {CLASS_TRACK_MATRIX.map((row) => {
+                const rec = IIT_TRACK_SPECS.find((t) => t.code === row.recommended);
+                const also = row.also
+                  .map((code) => IIT_TRACK_SPECS.find((t) => t.code === code)?.book)
+                  .filter(Boolean)
+                  .join(', ');
+                return (
+                  <tr key={row.classNumber} className="border-t border-slate-100">
+                    <td className="px-4 py-3 font-semibold text-slate-900">Class {row.classNumber}</td>
+                    <td className="px-4 py-3 text-slate-700">{rec?.book}</td>
+                    <td className="px-4 py-3 text-slate-600">{also || '—'}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+        <p className="mt-8 text-center text-sm text-slate-500">
+          Teacher Plan is ₹3,999/year. School-wide plans are quoted separately —{' '}
+          <Link href="/book-a-demo" className="font-semibold text-sky-700 hover:underline">
+            book a demo
+          </Link>
+          .
+        </p>
       </section>
     </MarketingShell>
   );
@@ -266,11 +273,11 @@ export function ResourcesPage() {
     },
     {
       q: "What is the difference between the two packages?",
-      a: "The ₹99/month Board Package focuses on Board content, quizzes and practice. The ₹249/month IIT Foundation Package includes everything in Board, plus digital Alpha/Beta books, JEE/NEET/Olympiad content and advanced mock tests.",
+      a: "The ₹99/month Board Package focuses on Board content, quizzes and practice exams. The ₹249/month IIT Foundation Package includes everything in Board, plus the digital Asli Prep Alpha, Beta or Gamma book for that class, with every IIT tool linked to that book.",
     },
     {
-      q: "What is the difference between Alpha and Beta?",
-      a: "Alpha supports Classes 6–8 with strong CBSE fundamentals and early Foundation exposure. Beta supports Classes 6–10 with a deeper, exam-focused JEE, NEET and Olympiad pathway.",
+      q: "What IIT materials does AsliLearn.ai use?",
+      a: "We use Asli Prep Alpha (Classes 6–8), Asli Prep Beta (Classes 6–10) and Asli Prep Gamma (Classes 8–10). Vidya, daily quizzes, worksheets and practice exams are generated from the same chapter in the book you select — they are not a separate IIT syllabus.",
     },
     {
       q: "Does AsliLearn.ai cover Board exams too?",
@@ -287,7 +294,7 @@ export function ResourcesPage() {
       <MarketingPageHero
         eyebrow="Asli Prep × AsliLearn.ai"
         title="Every Asli Prep Book Comes Alive on AsliLearn.ai"
-        subtitle="Alpha and Beta are more than textbooks—they guide the quizzes, mock tests and AI lessons students use every day."
+        subtitle="Alpha, Beta and Gamma are the Asli Prep IIT books we use. Quizzes, Vidya, worksheets and practice exams all follow the same chapter in that book."
       >
         <a href="#learning-tracks">
           <Button className="h-11 rounded-full bg-sky-500 px-6 font-semibold text-white hover:bg-sky-600">
@@ -343,10 +350,10 @@ export function ResourcesPage() {
                 ₹249<span className="text-base font-medium text-white/60">/month</span>
               </p>
               <p className="mt-4 text-white/75">
-                Everything in Board, plus digital Alpha/Beta books and advanced Foundation preparation.
+                Everything in Board, plus the digital Asli Prep Alpha / Beta / Gamma book for the child's class.
               </p>
               <ul className="mt-5 space-y-2">
-                {["Digital Alpha/Beta books", "JEE, NEET & Olympiad content", "Advanced mock tests"].map((item) => (
+                {["Digital Asli Prep Alpha / Beta / Gamma books", "IIT tools tied to that book chapter", "JEE, NEET & Olympiad practice exams"].map((item) => (
                   <li key={item} className="flex items-center gap-2 text-sm font-medium text-white/90">
                     <CheckCircle2 className="h-4 w-4 text-emerald-400" /> {item}
                   </li>
@@ -379,59 +386,58 @@ export function ResourcesPage() {
               A clear pathway from strong fundamentals to advanced preparation
             </h2>
           </div>
-          <div className="mt-10 grid gap-6 lg:grid-cols-2">
-            <article className="rounded-3xl border border-blue-200 bg-gradient-to-br from-blue-50 to-white p-6 sm:p-8">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-600 text-white">
-                <BookOpen className="h-6 w-6" />
-              </div>
-              <p className="mt-5 text-xs font-bold uppercase tracking-wide text-blue-700">Classes 6–8</p>
-              <h3 className="mt-1 font-display text-2xl font-bold text-slate-950">Asli Prep Alpha</h3>
-              <p className="mt-2 font-medium text-blue-800">Build Board fundamentals and early competitive readiness.</p>
-              <p className="mt-4 leading-relaxed text-slate-600">
-                Alpha follows the CBSE curriculum chapter by chapter while introducing beginner-level Olympiad,
-                JEE and NEET Foundation thinking.
-              </p>
-              <ul className="mt-6 space-y-3">
-                {[
-                  "CBSE-aligned chapter practice",
-                  "Concept videos and Vidya AI explanations",
-                  "Daily quizzes matched to current chapters",
-                  "Foundation-level Olympiad and JEE/NEET questions",
-                ].map((item) => (
-                  <li key={item} className="flex gap-2 text-sm text-slate-700">
-                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-blue-600" /> {item}
-                  </li>
-                ))}
-              </ul>
-            </article>
-            <article className="rounded-3xl border border-emerald-200 bg-gradient-to-br from-emerald-50 to-white p-6 sm:p-8">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-600 text-white">
-                <GraduationCap className="h-6 w-6" />
-              </div>
-              <p className="mt-5 text-xs font-bold uppercase tracking-wide text-emerald-700">Classes 6–10</p>
-              <h3 className="mt-1 font-display text-2xl font-bold text-slate-950">Asli Prep Beta</h3>
-              <p className="mt-2 font-medium text-emerald-800">Go deeper with an advanced, exam-focused pathway.</p>
-              <p className="mt-4 leading-relaxed text-slate-600">
-                Beta is designed for students ready to move beyond the Board syllabus and build serious JEE, NEET
-                and Olympiad readiness through Class 10.
-              </p>
-              <ul className="mt-6 space-y-3">
-                {[
-                  "Board plus advanced competitive problem sets",
-                  "Higher-difficulty adaptive practice",
-                  "Previous-year-question banks",
-                  "Class-wise progression from 6 through 10",
-                ].map((item) => (
-                  <li key={item} className="flex gap-2 text-sm text-slate-700">
-                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" /> {item}
-                  </li>
-                ))}
-              </ul>
-            </article>
+          <div className="mt-10 grid gap-6 lg:grid-cols-3">
+            {IIT_TRACK_SPECS.map((spec) => (
+              <article key={spec.code} className={`rounded-3xl border p-6 sm:p-8 ${spec.tone.border} ${spec.tone.bg}`}>
+                <div className={`flex h-12 w-12 items-center justify-center rounded-2xl ${spec.tone.icon}`}>
+                  <BookOpen className="h-6 w-6" />
+                </div>
+                <p className={`mt-5 text-xs font-bold uppercase tracking-wide ${spec.tone.badge}`}>{spec.classes}</p>
+                <h3 className="mt-1 font-display text-2xl font-bold text-slate-950">{spec.book}</h3>
+                <p className="mt-2 font-medium text-slate-800">{spec.headline}</p>
+                <p className="mt-4 leading-relaxed text-slate-600">{spec.body}</p>
+                <p className="mt-3 text-sm text-slate-500">{spec.forWhom}</p>
+                <ul className="mt-6 space-y-3">
+                  {spec.points.map((item) => (
+                    <li key={item} className="flex gap-2 text-sm text-slate-700">
+                      <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" /> {item}
+                    </li>
+                  ))}
+                </ul>
+              </article>
+            ))}
           </div>
           <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm leading-relaxed text-amber-950">
-            <strong>Choosing for Classes 6–8?</strong> Choose Alpha for a steady Board-first foundation. Choose
-            Beta when the student is ready for deeper, faster-paced competitive preparation.
+            <strong>Class-wise pick:</strong> Class 6–7 usually start with Alpha. Class 8 can take Alpha, Beta or
+            Gamma. Classes 9–10 use Beta or Gamma. The IIT tools on AsliLearn.ai (Vidya, quizzes, notes, mock tests)
+            always read from the book you choose — they are not a separate syllabus.
+          </div>
+        </div>
+      </section>
+
+      <section className="border-y border-slate-100 bg-white px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
+        <div className="mx-auto max-w-7xl">
+          <div className="mx-auto max-w-3xl text-center">
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-sky-700">IIT tools ↔ IIT books</p>
+            <h2 className="mt-3 font-display text-2xl font-bold text-slate-900 sm:text-4xl">
+              Every IIT tool is connected to the Asli Prep material
+            </h2>
+            <p className="mt-4 text-slate-600">
+              We do not mix random question banks into an Alpha or Beta student. If the child is on Asli Prep Beta
+              Class 8 Chemistry Chapter 2, Vidya, the daily quiz, worksheets and the practice exam all use that
+              chapter.
+            </p>
+          </div>
+          <div className="mt-10 grid gap-4 sm:grid-cols-2">
+            {IIT_TOOLS_LINKED_TO_BOOKS.map((item) => (
+              <article key={item.title} className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-100 text-sky-700">
+                  <Link2 className="h-5 w-5" />
+                </div>
+                <h3 className="mt-3 font-display text-lg font-bold text-slate-900">{item.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-slate-600">{item.body}</p>
+              </article>
+            ))}
           </div>
         </div>
       </section>

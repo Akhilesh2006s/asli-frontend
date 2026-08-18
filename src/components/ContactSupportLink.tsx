@@ -15,6 +15,7 @@ const SUPPORT_EMAIL = "info@aslilearn.ai";
 type ContactSupportLinkProps = {
   className?: string;
   compact?: boolean;
+  labelClassName?: string;
 };
 
 /**
@@ -26,7 +27,7 @@ type ContactSupportLinkProps = {
  * It now opens a panel that always shows the address and can copy it, with
  * opening the mail app offered as one route rather than the only one.
  */
-export function ContactSupportLink({ className, compact = false }: ContactSupportLinkProps) {
+export function ContactSupportLink({ className, compact = false, labelClassName }: ContactSupportLinkProps) {
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
 
@@ -54,7 +55,9 @@ export function ContactSupportLink({ className, compact = false }: ContactSuppor
         )}
       >
         <Mail className="h-4 w-4 shrink-0 text-orange-500" aria-hidden="true" />
-        {compact ? "Support" : "Contact Support"}
+        <span className={cn(labelClassName)}>
+          {compact ? "Support" : "Contact Support"}
+        </span>
       </button>
 
       <Dialog open={open} onOpenChange={setOpen}>

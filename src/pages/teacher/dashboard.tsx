@@ -3355,14 +3355,18 @@ const TeacherDashboard = () => {
                                                   <Button
                                                     size="sm"
                                                     variant="outline"
-                                                    onClick={(e) => {
-                                                      e.stopPropagation();
-                                                      window.open(homework.fileUrl, '_blank');
-                                                    }}
+                                                    asChild
                                                     className="bg-blue-50 text-blue-700 hover:bg-blue-100 border-blue-200"
                                                   >
-                                                    <FileText className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
-                                                    View Homework File
+                                                    <a
+                                                      href={homework.fileUrl}
+                                                      target="_blank"
+                                                      rel="noopener noreferrer"
+                                                      onClick={(e) => e.stopPropagation()}
+                                                    >
+                                                      <FileText className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
+                                                      View Homework File
+                                                    </a>
                                                   </Button>
                                                 </div>
                                               )}
@@ -3408,14 +3412,18 @@ const TeacherDashboard = () => {
                                                         <Button
                                                           size="sm"
                                                           variant="outline"
-                                                          onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            window.open(submission.submissionLink, '_blank');
-                                                          }}
+                                                          asChild
                                                           className="bg-purple-50 text-purple-700 hover:bg-purple-100 border-purple-200"
                                                         >
-                                                          <Eye className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
-                                                          View Submission
+                                                          <a
+                                                            href={submission.submissionLink}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            onClick={(e) => e.stopPropagation()}
+                                                          >
+                                                            <Eye className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
+                                                            View Submission
+                                                          </a>
                                                         </Button>
                                                       </div>
                                                     </div>
@@ -3609,14 +3617,18 @@ const TeacherDashboard = () => {
                                                       <Button
                                                         size="sm"
                                                         variant="outline"
-                                                        onClick={(e) => {
-                                                          e.stopPropagation();
-                                                          window.open(submission.submissionLink, '_blank');
-                                                        }}
+                                                        asChild
                                                         className="bg-purple-50 text-purple-700 hover:bg-purple-100 border-purple-200"
                                                       >
-                                                        <Eye className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
-                                                        View
+                                                        <a
+                                                          href={submission.submissionLink}
+                                                          target="_blank"
+                                                          rel="noopener noreferrer"
+                                                          onClick={(e) => e.stopPropagation()}
+                                                        >
+                                                          <Eye className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
+                                                          View
+                                                        </a>
                                                       </Button>
                                                     </div>
                                                   </div>

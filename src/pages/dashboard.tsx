@@ -2566,8 +2566,25 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Teachers report + Homework — school-only; hidden for B2C/individual students */}
-        {!isIndividualAccount(user) && (
+        {/* Practice exams for B2C; school students keep Teachers report + Homework */}
+        {isIndividualAccount(user) ? (
+          <div className="mb-responsive relative z-10 grid grid-cols-1 gap-4 lg:grid-cols-2">
+            <DashboardNavCard
+              href="/student-exams"
+              title="Practice Exams"
+              description="Class-wise practice papers on your Board or Asli Prep Alpha / Beta / Gamma track."
+              tone="orange"
+              icon={<FileText className="h-7 w-7 sm:h-8 sm:w-8" />}
+            />
+            <DashboardNavCard
+              href="/pricing"
+              title="Your IIT book"
+              description="Confirm Alpha, Beta or Gamma so quizzes and Vidya stay tied to that material."
+              tone="purple"
+              icon={<Target className="h-7 w-7 sm:h-8 sm:w-8" />}
+            />
+          </div>
+        ) : (
           <div className="mb-responsive relative z-10 grid grid-cols-1 gap-4 lg:grid-cols-2">
             <DashboardNavCard
               href="/student/teachers-report"

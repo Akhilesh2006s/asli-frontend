@@ -30,6 +30,17 @@ export function formatInlineMarkdown(t: string): string {
     }
   });
 
+  formatted = formatted.replace(/\\sqrt\{([^}]+)\}/g, (match, inner) => {
+    try {
+      return katex.renderToString(`\\sqrt{${inner}}`, {
+        displayMode: false,
+        throwOnError: false,
+      });
+    } catch {
+      return match;
+    }
+  });
+
   formatted = formatted.replace(/```([\s\S]*?)```/g, '<pre class="bg-gray-100 p-4 rounded-lg overflow-x-auto mb-2 text-sm font-mono"><code>$1</code></pre>');
 
   formatted = formatted.replace(/`([^`]+)`/g, (match, codeContent: string) => {

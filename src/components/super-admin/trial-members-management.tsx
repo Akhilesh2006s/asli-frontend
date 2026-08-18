@@ -175,6 +175,7 @@ export default function TrialMembersManagement() {
   });
   const [editForm, setEditForm] = useState({
     trialDays: '7',
+    extendDays: '',
     subscriptionStatus: 'trial',
     trialAllowedContentTypes: [] as string[],
     trialAllowedAiTools: [] as string[],
@@ -223,6 +224,7 @@ export default function TrialMembersManagement() {
       : '';
     setEditForm({
       trialDays: String(Math.max(1, m.trialDaysLeft || 7)),
+      extendDays: '',
       subscriptionStatus: m.subscriptionStatus || 'trial',
       trialAllowedContentTypes: [...(m.trialAllowedContentTypes || [])],
       trialAllowedAiTools: [...(m.trialAllowedAiTools || [])],
@@ -981,7 +983,8 @@ export default function TrialMembersManagement() {
                 <div>
                   <h3 className="text-sm font-semibold text-slate-900">1. Trial length</h3>
                   <p className="mt-0.5 text-xs text-slate-600">
-                    Instantly start a new trial, or add days to the current end date.
+                    Presets fill the days field only. Click Save &amp; reset trial days in the
+                    footer to apply.
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -990,10 +993,10 @@ export default function TrialMembersManagement() {
                       key={d}
                       type="button"
                       size="sm"
-                      variant="outline"
+                      variant={String(d) === String(editForm.trialDays) ? 'default' : 'outline'}
                       className="bg-white"
                       disabled={saving}
-                      onClick={() => void saveMember({ resetTrial: true, trialDays: d })}
+                      onClick={() => setEditForm((p) => ({ ...p, trialDays: String(d) }))}
                     >
                       {d} days
                     </Button>
@@ -1001,23 +1004,23 @@ export default function TrialMembersManagement() {
                 </div>
                 <div className="flex flex-wrap gap-2 border-t border-slate-200/80 pt-3">
                   <span className="w-full text-xs font-medium text-slate-500 sm:w-auto sm:self-center">
-                    Extend current trial:
+                    Extend current trial (apply with Save restrictions):
                   </span>
                   <Button
                     type="button"
                     size="sm"
-                    variant="secondary"
+                    variant={editForm.extendDays === '1' ? 'default' : 'secondary'}
                     disabled={saving}
-                    onClick={() => void saveMember({ extendDays: 1 })}
+                    onClick={() => setEditForm((p) => ({ ...p, extendDays: p.extendDays === '1' ? '' : '1' }))}
                   >
                     +1 day
                   </Button>
                   <Button
                     type="button"
                     size="sm"
-                    variant="secondary"
+                    variant={editForm.extendDays === '7' ? 'default' : 'secondary'}
                     disabled={saving}
-                    onClick={() => void saveMember({ extendDays: 7 })}
+                    onClick={() => setEditForm((p) => ({ ...p, extendDays: p.extendDays === '7' ? '' : '7' }))}
                   >
                     +7 days
                   </Button>
@@ -1279,7 +1282,12 @@ export default function TrialMembersManagement() {
               type="button"
               variant="secondary"
               disabled={saving}
-              onClick={() => void saveMember()}
+              onClick={() => {
+                const extra: Record<string, unknown> = {};
+                const extend = parseInt(editForm.extendDays, 10);
+                if (Number.isFinite(extend) && extend > 0) extra.extendDays = extend;
+                void saveMember(extra);
+              }}
             >
               Save restrictions
             </Button>

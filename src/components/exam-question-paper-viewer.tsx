@@ -107,11 +107,13 @@ function RichTextBlock({ text, className }: { text: string; className?: string }
   if (!text.trim()) return null;
   const hasMarkdown =
     text.includes('|') ||
+    text.includes('$') ||
+    text.includes('\\sqrt') ||
     /^\s*#{1,6}\s/m.test(text) ||
     /\*\*[^*]+\*\*/.test(text) ||
     /^\s*[-*•]\s/m.test(text) ||
     /^\s*\d+\.\s/m.test(text);
-  if (hasMarkdown) {
+  if (hasMarkdown || /\\[a-zA-Z]+/.test(text)) {
     return (
       <div
         className={cn(
@@ -161,12 +163,14 @@ function QuestionCard({
   return (
     <article className="rounded-lg border border-indigo-100 bg-gradient-to-br from-white to-indigo-50/20 p-3 shadow-sm">
       <div className="mb-1.5 flex items-start justify-between gap-2">
-        <p className="text-base font-semibold text-slate-900">
+        <div className="text-base font-semibold text-slate-900">
           <span className="mr-1.5 inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded bg-indigo-700 px-1 text-micro font-bold text-white">
             {qNo}
           </span>
-          {questionText}
-        </p>
+          <span className="inline">
+            <RichTextBlock text={questionText} className="inline prose-p:inline prose-p:m-0" />
+          </span>
+        </div>
         {question.marks != null ? (
           <Badge className="shrink-0 border-0 bg-indigo-100 text-indigo-800 hover:bg-indigo-100">
             {question.marks} m
@@ -187,7 +191,9 @@ function QuestionCard({
                 <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-xs font-bold text-indigo-800">
                   {label}
                 </span>
-                <span className="min-w-0 flex-1 pt-0.5">{text}</span>
+                <span className="min-w-0 flex-1 pt-0.5">
+                  <RichTextBlock text={text} className="prose-p:m-0 prose-p:leading-snug" />
+                </span>
               </li>
             );
           })}
@@ -196,7 +202,8 @@ function QuestionCard({
 
       {showAnswer && question.answer ? (
         <p className="mt-2 rounded-md bg-emerald-50 px-2 py-1 text-xs text-emerald-800">
-          <span className="font-semibold">Answer:</span> {question.answer}
+          <span className="font-semibold">Answer:</span>{' '}
+          <RichTextBlock text={question.answer} className="inline prose-p:inline prose-p:m-0" />
         </p>
       ) : null}
 

@@ -5,17 +5,23 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { API_BASE_URL } from '@/lib/api-config';
 import { clearAuthData, getAuthToken } from '@/lib/auth-utils';
 import { INDIVIDUAL_TRIAL_DAYS } from '@/lib/individual-signup';
+import { IndividualPlanCheckout } from '@/components/b2c/IndividualPlanCheckout';
 import { CreditCard, Clock, LogOut } from 'lucide-react';
 
 /**
  * Shown when an individual trial has ended and payment is required.
+ * Lets the student pick class + Alpha / Beta / Gamma before paying.
  */
 export default function SubscribePage() {
   const [, setLocation] = useLocation();
   const [user, setUser] = useState<{
+    _id?: string;
+    id?: string;
     fullName?: string;
     email?: string;
     role?: string;
+    classNumber?: string;
+    iitCategories?: string[];
     trialEndsAt?: string;
     trialDaysLeft?: number;
     paymentRequired?: boolean;
@@ -43,7 +49,6 @@ export default function SubscribePage() {
         const u = data.user || data;
         setUser(u);
         if (u?.isIndividualAccount && !u?.paymentRequired) {
-          // Still on trial or paid — send them to their dashboard
           if (u.role === 'teacher') setLocation('/teacher/dashboard');
           else setLocation('/dashboard');
         }
@@ -68,17 +73,19 @@ export default function SubscribePage() {
     );
   }
 
+  const initialTrack = Array.isArray(user?.iitCategories) ? String(user.iitCategories[0] || '') : '';
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-100 via-white to-orange-50 p-4 2xl:p-8 board:p-12">
-      <Card className="w-full max-w-lg border-slate-200 shadow-lg 2xl:max-w-xl board:max-w-2xl board:shadow-2xl">
+      <Card className="w-full max-w-2xl border-slate-200 shadow-lg 2xl:max-w-3xl board:shadow-2xl">
         <CardHeader className="space-y-2 text-center board:space-y-3 board:px-10 board:pt-10">
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-orange-100 text-orange-700 board:h-14 board:w-14">
             <CreditCard className="h-6 w-6 board:h-7 board:w-7" />
           </div>
-          <CardTitle className="text-xl board:text-3xl">Your free trial has ended</CardTitle>
+          <CardTitle className="text-xl board:text-3xl">Choose your class and IIT material</CardTitle>
           <p className="text-sm text-slate-600 board:text-base">
-            Hi {user?.fullName || 'there'} — your {INDIVIDUAL_TRIAL_DAYS}-day ASLILEARN trial is over.
-            Subscribe to keep using your individual {user?.role || 'account'}.
+            Hi {user?.fullName || 'there'} — your {INDIVIDUAL_TRIAL_DAYS}-day trial has ended. Pick Alpha, Beta or
+            Gamma for your class so Vidya, quizzes and practice exams stay tied to the matching Asli Prep book.
           </p>
         </CardHeader>
         <CardContent className="space-y-4 board:space-y-5 board:px-10 board:pb-10">
@@ -94,23 +101,18 @@ export default function SubscribePage() {
             </div>
           </div>
 
-          <p className="text-sm text-slate-600">
-            Complete payment to unlock AI tools, content, and your selected products / subjects
-            again. For school plans, contact us for institutional pricing.
-          </p>
+          <IndividualPlanCheckout
+            userId={user?._id || user?.id || null}
+            initialClass={user?.classNumber || ''}
+            initialTrack={initialTrack}
+            initialPackage={initialTrack ? 'iit' : 'board'}
+          />
 
-          <div className="flex flex-col gap-2 sm:flex-row">
-            <Link href="/contact" className="flex-1">
-              <Button className="h-11 w-full bg-gradient-to-r from-orange-500 to-sky-500 text-white">
-                Contact to subscribe
-              </Button>
-            </Link>
-            <Link href="/#pricing" className="flex-1">
-              <Button variant="outline" className="h-11 w-full">
-                View pricing
-              </Button>
-            </Link>
-          </div>
+          <Link href="/resources">
+            <Button variant="ghost" className="w-full text-slate-600">
+              See which IIT books and tools you get
+            </Button>
+          </Link>
 
           <Button variant="ghost" className="w-full text-slate-600" onClick={handleLogout}>
             <LogOut className="mr-2 h-4 w-4" />

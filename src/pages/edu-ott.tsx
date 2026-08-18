@@ -502,9 +502,13 @@ export default function EduOTT() {
         video.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (video.description || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
         video.subject.toLowerCase().includes(searchTerm.toLowerCase());
-      return matchesSearch;
+      const matchesSubject = !selectedSubject ||
+        video.subject === selectedSubject ||
+        (video.subjectName || '').toLowerCase().includes(selectedSubject.toLowerCase()) ||
+        video.subject.toLowerCase() === selectedSubject.toLowerCase();
+      return matchesSearch && matchesSubject;
     });
-  }, [videos, searchTerm]);
+  }, [videos, searchTerm, selectedSubject]);
 
   const subjectGroups = useMemo((): SubjectGroup[] => {
     const map = new Map<string, SubjectGroup>();

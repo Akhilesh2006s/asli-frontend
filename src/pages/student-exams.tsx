@@ -44,6 +44,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { useToast } from '@/hooks/use-toast';
 import { dedupeStudentExamResults } from '@/lib/dedupe-exam-results';
 import { getUserIdFromAuthToken, getAuthToken } from '@/lib/auth-utils';
+import { isIndividualAccount } from '@/lib/individual-signup';
 import { readLocalExamDraft } from '@/lib/exam-attempt-draft';
 
 /** Accent schemes for exam cards — full colored border + tinted meta icons */
@@ -221,6 +222,7 @@ export default function StudentExams() {
       (typeof user?.assignedClass === 'object' ? user?.assignedClass?.classNumber : '') ||
       ''
   );
+  const isB2cStudent = isIndividualAccount(user);
 
   /** Stable id for React Query keys so another user's cached exam/results never flash after login switch. */
   const studentId =
@@ -555,21 +557,26 @@ export default function StudentExams() {
 
   const availableActiveExams = useMemo(
     () =>
-      subjectFilteredExams.filter((exam: Exam) => {
-        const examId = String(exam._id || '');
-        if (!examId) return false;
-        const used = attemptCountByExamId.get(examId) || 0;
-        if (used >= getMaxAttemptsForExam(exam)) return false;
-        const hydratedQuestionCount = Array.isArray(exam.questions) ? exam.questions.length : 0;
-        if (hydratedQuestionCount <= 0) return false;
-        if (exam.isActive === false) return false;
-        // Keep ended exams visible only when there is saved progress to resume/submit.
-        if (exam.hasInProgressDraft || exam.forceSubmitDraft) return true;
-        const now = new Date();
-        const startDate = new Date(exam.startDate);
-        const endDate = new Date(exam.endDate);
-        return now >= startDate && now <= endDate;
-      }),
+      subjectFilteredExams
+        .filter((exam: Exam) => {
+          const examId = String(exam._id || '');
+          if (!examId) return false;
+          const used = attemptCountByExamId.get(examId) || 0;
+          if (used >= getMaxAttemptsForExam(exam)) return false;
+          const hydratedQuestionCount = Array.isArray(exam.questions) ? exam.questions.length : 0;
+          if (hydratedQuestionCount <= 0) return false;
+          if (exam.isActive === false) return false;
+          if (exam.hasInProgressDraft || exam.forceSubmitDraft) return true;
+          const now = new Date();
+          const startDate = new Date(exam.startDate);
+          const endDate = new Date(exam.endDate);
+          return now >= startDate && now <= endDate;
+        })
+        .sort((a, b) => {
+          if (a.examType === 'practice' && b.examType !== 'practice') return -1;
+          if (a.examType !== 'practice' && b.examType === 'practice') return 1;
+          return 0;
+        }),
     [subjectFilteredExams, attemptCountByExamId]
   );
 
@@ -1104,15 +1111,17 @@ export default function StudentExams() {
           <div className="relative z-[1] max-w-2xl">
             <p className="inline-flex items-center gap-2 rounded-full bg-white/70 px-3 py-1 text-sm font-bold uppercase tracking-[0.12em] text-orange-700">
               <Trophy className="h-4 w-4" aria-hidden="true" />
-              Exams
+              {isB2cStudent ? 'Practice exams' : 'Exams'}
             </p>
             <h1 className="mt-4 font-display text-3xl font-extrabold leading-tight tracking-tight text-ink sm:text-4xl lg:text-[2.75rem]">
-              Test yourself.
+              {isB2cStudent ? 'Keep practising.' : 'Test yourself.'}
               <br />
               <span className="text-orange-600">Track every step.</span>
             </h1>
             <p className="mt-3 max-w-xl text-lg leading-relaxed text-ink-soft">
-              Take practice exams, review your attempts and see where you rank.
+              {isB2cStudent
+                ? 'Take class-wise practice exams tied to your Board or Asli Prep Alpha / Beta / Gamma track. Attempt, review, and come back — this is how you stay on the platform.'
+                : 'Take practice exams, review your attempts and see where you rank.'}
             </p>
             <div className="mt-6 flex flex-wrap gap-3">
               {[
@@ -1200,7 +1209,7 @@ export default function StudentExams() {
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-3 sm:space-y-4 lg:space-y-6">
           <TabsList className="grid w-full grid-cols-1 sm:grid-cols-2 md:grid-cols-4">
-            <TabsTrigger value="available">Available Exams</TabsTrigger>
+            <TabsTrigger value="available">{isB2cStudent ? 'Practice papers' : 'Available Exams'}</TabsTrigger>
             <TabsTrigger value="attempted">Attempted Exams</TabsTrigger>
             <TabsTrigger value="ranking">My Rankings</TabsTrigger>
             <TabsTrigger value="upcoming">Upcoming</TabsTrigger>
@@ -1307,14 +1316,17 @@ export default function StudentExams() {
             {availableActiveExams.length === 0 && (
               <div className="text-center py-12">
                 <BookOpen className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-2">No Available Exams</h3>
+                <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-2">
+                  {isB2cStudent ? 'No practice exams open right now' : 'No Available Exams'}
+                </h3>
                 <p className="text-gray-600">
-                  No active exams for
-                  {studentClassNumber ? ` Class ${studentClassNumber}` : ' your class'}{' '}
-                  are open right now
-                  {subjectFilteredExams.some((e) => getExamStatus(e).status === 'upcoming')
-                    ? '. Check the Upcoming tab for scheduled exams.'
-                    : '. Scheduled Super Admin exams appear here when they match your school, board, and class, and questions have been uploaded.'}
+                  {isB2cStudent
+                    ? `Practice papers for${studentClassNumber ? ` Class ${studentClassNumber}` : ' your class'} appear here when Super Admin publishes a public practice exam for your Board or IIT track.`
+                    : `No active exams for${studentClassNumber ? ` Class ${studentClassNumber}` : ' your class'} are open right now${
+                        subjectFilteredExams.some((e) => getExamStatus(e).status === 'upcoming')
+                          ? '. Check the Upcoming tab for scheduled exams.'
+                          : '. Scheduled Super Admin exams appear here when they match your school, board, and class, and questions have been uploaded.'
+                      }`}
                 </p>
               </div>
             )}

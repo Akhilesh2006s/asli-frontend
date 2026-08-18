@@ -22,7 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { BellIcon, UsersIcon, Users2, TrendingUpIcon, BookIcon, UserPlusIcon, BookPlusIcon, SettingsIcon, DownloadIcon, HomeIcon, CrownIcon, BarChart3Icon, ArrowUpRightIcon, ArrowDownRightIcon, StarIcon, TargetIcon, BrainIcon, ZapIcon, AlertTriangleIcon, TrendingDownIcon, RefreshCw, Sparkles, MessageSquare, Clock, Plus, Monitor, Grid3x3, Shield, Search, Camera, PieChart, User, Download, Circle, Square, Bot, UploadIcon, BrainCircuitIcon, AlertTriangle, KeyRound, Loader2 } from "lucide-react";
+import { BellIcon, UsersIcon, Users2, TrendingUpIcon, BookIcon, UserPlusIcon, BookPlusIcon, SettingsIcon, DownloadIcon, HomeIcon, CrownIcon, BarChart3Icon, ArrowUpRightIcon, ArrowDownRightIcon, StarIcon, TargetIcon, BrainIcon, ZapIcon, AlertTriangleIcon, TrendingDownIcon, RefreshCw, Sparkles, MessageSquare, Clock, Plus, Monitor, Grid3x3, Shield, Search, Camera, PieChart, User, Download, Circle, Square, Bot, UploadIcon, BrainCircuitIcon, AlertTriangle, KeyRound, Loader2, Eye, EyeOff } from "lucide-react";
 import { LineChart, Line, PieChart as RechartsPieChart, Pie, Cell, ResponsiveContainer, AreaChart, Area } from "recharts";
 import { useToast } from "@/hooks/use-toast";
 import { API_BASE_URL } from "@/lib/api-config";
@@ -115,6 +115,11 @@ export default function SuperAdminDashboard() {
     confirmPassword: "",
   });
   const [changingPassword, setChangingPassword] = useState(false);
+  const [showPasswordFields, setShowPasswordFields] = useState({
+    current: false,
+    next: false,
+    confirm: false,
+  });
 
   const VIDYA_PREFS_KEY = "superAdminVidyaPrefs";
 
@@ -1039,40 +1044,91 @@ export default function SuperAdminDashboard() {
           <form onSubmit={handleChangePassword} className="mx-auto max-w-md space-y-4">
             <div className="space-y-1.5">
               <Label htmlFor="sa-current-password">Current password</Label>
-              <Input
-                id="sa-current-password"
-                type="password"
-                autoComplete="current-password"
-                value={passwordForm.currentPassword}
-                onChange={(e) =>
-                  setPasswordForm((p) => ({ ...p, currentPassword: e.target.value }))
-                }
-              />
+              <div className="relative">
+                <Input
+                  id="sa-current-password"
+                  type={showPasswordFields.current ? "text" : "password"}
+                  autoComplete="current-password"
+                  value={passwordForm.currentPassword}
+                  onChange={(e) =>
+                    setPasswordForm((p) => ({ ...p, currentPassword: e.target.value }))
+                  }
+                  className="pr-11"
+                />
+                <button
+                  type="button"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-800"
+                  onClick={() =>
+                    setShowPasswordFields((p) => ({ ...p, current: !p.current }))
+                  }
+                  aria-label={showPasswordFields.current ? "Hide current password" : "Show current password"}
+                >
+                  {showPasswordFields.current ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="sa-new-password">New password</Label>
-              <Input
-                id="sa-new-password"
-                type="password"
-                autoComplete="new-password"
-                value={passwordForm.newPassword}
-                onChange={(e) =>
-                  setPasswordForm((p) => ({ ...p, newPassword: e.target.value }))
-                }
-              />
+              <div className="relative">
+                <Input
+                  id="sa-new-password"
+                  type={showPasswordFields.next ? "text" : "password"}
+                  autoComplete="new-password"
+                  value={passwordForm.newPassword}
+                  onChange={(e) =>
+                    setPasswordForm((p) => ({ ...p, newPassword: e.target.value }))
+                  }
+                  className="pr-11"
+                />
+                <button
+                  type="button"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-800"
+                  onClick={() => setShowPasswordFields((p) => ({ ...p, next: !p.next }))}
+                  aria-label={showPasswordFields.next ? "Hide new password" : "Show new password"}
+                >
+                  {showPasswordFields.next ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
               <p className="text-xs text-slate-500">At least 8 characters</p>
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="sa-confirm-password">Confirm new password</Label>
-              <Input
-                id="sa-confirm-password"
-                type="password"
-                autoComplete="new-password"
-                value={passwordForm.confirmPassword}
-                onChange={(e) =>
-                  setPasswordForm((p) => ({ ...p, confirmPassword: e.target.value }))
-                }
-              />
+              <div className="relative">
+                <Input
+                  id="sa-confirm-password"
+                  type={showPasswordFields.confirm ? "text" : "password"}
+                  autoComplete="new-password"
+                  value={passwordForm.confirmPassword}
+                  onChange={(e) =>
+                    setPasswordForm((p) => ({ ...p, confirmPassword: e.target.value }))
+                  }
+                  className="pr-11"
+                />
+                <button
+                  type="button"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-800"
+                  onClick={() =>
+                    setShowPasswordFields((p) => ({ ...p, confirm: !p.confirm }))
+                  }
+                  aria-label={
+                    showPasswordFields.confirm ? "Hide confirm password" : "Show confirm password"
+                  }
+                >
+                  {showPasswordFields.confirm ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
             </div>
             <Button
               type="submit"

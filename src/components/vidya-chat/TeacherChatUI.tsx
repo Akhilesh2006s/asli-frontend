@@ -1,6 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, BookOpen, CircleHelp, ClipboardCheck, Image as ImageIcon, Loader2, Mic, Send, Sparkles } from "lucide-react";
+import { ArrowRight, BookOpen, CircleHelp, ClipboardCheck, Image as ImageIcon, Loader2, Mic, Send, Sparkles, Trash2 } from "lucide-react";
 import { useState } from "react";
 import type { UseVidyaChatResult } from "./types";
 
@@ -92,17 +92,30 @@ export function TeacherChatUI({ model, className }: TeacherChatUIProps) {
   return (
     <div className={`${className ?? ""} mx-auto flex h-full min-h-0 w-full max-w-4xl flex-col overflow-hidden rounded-3xl border border-ink/10 bg-white shadow-elevated`}>
       <div className={`border-b border-ink/10 px-5 py-5 sm:px-7 ${modeUi.header}`}>
-        <div className="flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white shadow-sm">
-            <ModeIcon className="h-6 w-6 text-teal-green-700" />
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white shadow-sm">
+              <ModeIcon className="h-6 w-6 text-teal-green-700" />
+            </div>
+            <div>
+              <p className="mb-0.5 flex items-center gap-1 text-mini font-bold uppercase tracking-[0.14em] text-teal-green-700">
+                <Sparkles className="h-3.5 w-3.5" />
+                Interactive AI
+              </p>
+              <h3 className="font-display text-xl font-bold text-ink sm:text-2xl">{modeUi.title}</h3>
+            </div>
           </div>
-          <div>
-            <p className="mb-0.5 flex items-center gap-1 text-mini font-bold uppercase tracking-[0.14em] text-teal-green-700">
-              <Sparkles className="h-3.5 w-3.5" />
-              Interactive AI
-            </p>
-            <h3 className="font-display text-xl font-bold text-ink sm:text-2xl">{modeUi.title}</h3>
-          </div>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="shrink-0"
+            onClick={model.clearChat}
+            disabled={model.isPending || model.isClearingChat || model.displayMessages.length === 0}
+          >
+            <Trash2 className="mr-2 h-4 w-4" />
+            {model.isClearingChat ? "Clearing..." : "Clear Chat"}
+          </Button>
         </div>
         <p className="mt-2 text-base text-muted-foreground">{modeUi.subtitle}</p>
       </div>
@@ -112,7 +125,7 @@ export function TeacherChatUI({ model, className }: TeacherChatUIProps) {
           <button
             type="button"
             onClick={() => setTeachingTab("desk")}
-            className={`rounded-xl px-3 py-3 text-base font-semibold transition-all hover:-translate-y-0.5 active:scale-[0.98] ${
+            className={`rounded-xl px-3 py-3 text-base font-semibold transition-all active:scale-[0.98] ${
               teachingTab === "desk" ? modeUi.activeTab : "text-ink/65 hover:bg-white"
             }`}
           >
@@ -121,7 +134,7 @@ export function TeacherChatUI({ model, className }: TeacherChatUIProps) {
           <button
             type="button"
             onClick={() => setTeachingTab("lesson")}
-            className={`rounded-xl px-3 py-3 text-base font-semibold transition-all hover:-translate-y-0.5 active:scale-[0.98] ${
+            className={`rounded-xl px-3 py-3 text-base font-semibold transition-all active:scale-[0.98] ${
               teachingTab === "lesson" ? modeUi.activeTab : "text-ink/65 hover:bg-white"
             }`}
           >
@@ -130,7 +143,7 @@ export function TeacherChatUI({ model, className }: TeacherChatUIProps) {
           <button
             type="button"
             onClick={() => setTeachingTab("quiz")}
-            className={`rounded-xl px-3 py-3 text-base font-semibold transition-all hover:-translate-y-0.5 active:scale-[0.98] ${
+            className={`rounded-xl px-3 py-3 text-base font-semibold transition-all active:scale-[0.98] ${
               teachingTab === "quiz" ? modeUi.activeTab : "text-ink/65 hover:bg-white"
             }`}
           >
@@ -146,14 +159,14 @@ export function TeacherChatUI({ model, className }: TeacherChatUIProps) {
           <div className="flex flex-wrap gap-2">
             <button
               type="button"
-              className={`rounded-xl border px-3 py-2 text-[0.9375rem] font-semibold transition-all hover:-translate-y-0.5 active:scale-[0.98] ${modeUi.quickA.className}`}
+              className={`rounded-xl border px-3 py-2 text-[0.9375rem] font-semibold transition-all active:scale-[0.98] ${modeUi.quickA.className}`}
               onClick={() => model.onPromptClick(modeUi.quickA.prompt)}
             >
               {modeUi.quickA.label}
             </button>
             <button
               type="button"
-              className={`rounded-xl border px-3 py-2 text-[0.9375rem] font-semibold transition-all hover:-translate-y-0.5 active:scale-[0.98] ${modeUi.quickB.className}`}
+              className={`rounded-xl border px-3 py-2 text-[0.9375rem] font-semibold transition-all active:scale-[0.98] ${modeUi.quickB.className}`}
               onClick={() => model.onPromptClick(modeUi.quickB.prompt)}
             >
               {modeUi.quickB.label}
@@ -178,7 +191,7 @@ export function TeacherChatUI({ model, className }: TeacherChatUIProps) {
                   type="button"
                   key={question}
                   onClick={() => model.onPromptClick(question)}
-                  className={`group flex min-h-20 items-center justify-between gap-3 rounded-2xl border px-5 py-4 text-left text-base font-semibold text-ink transition-all hover:-translate-y-1 hover:shadow-elevated active:scale-[0.99] ${
+                  className={`group flex min-h-20 items-center justify-between gap-3 rounded-2xl border px-5 py-4 text-left text-base font-semibold text-ink transition-all hover:shadow-elevated active:scale-[0.99] ${
                     index % 3 === 0
                       ? "border-teal-green-100 bg-teal-green-50 hover:border-teal-green-300"
                       : index % 3 === 1

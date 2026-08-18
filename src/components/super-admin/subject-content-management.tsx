@@ -534,8 +534,12 @@ function resolveContentCardPreview(content: ContentItem, fileUrl: string): Conte
   return { kind: 'icon', contentType: content.type };
 }
 
-async function renderPdfPageToDataUrl(pdf: pdfjs.PDFDocumentProxy): Promise<string> {
-  const page = await pdf.getPage(1);
+async function renderPdfPageToDataUrl(
+  pdf: pdfjs.PDFDocumentProxy,
+  pageNumber = 1
+): Promise<string> {
+  const safePage = Math.min(Math.max(1, Math.floor(pageNumber) || 1), pdf.numPages || 1);
+  const page = await pdf.getPage(safePage);
   const baseViewport = page.getViewport({ scale: 1 });
   const targetWidth = 560;
   const scale = targetWidth / baseViewport.width;
@@ -581,11 +585,21 @@ async function pdfFetchUrlReachable(fetchUrl: string): Promise<boolean> {
   }
 }
 
-async function renderPdfFirstPageDataUrlFromFile(file: File): Promise<string> {
+async function inspectPdfPageCount(file: File): Promise<number> {
   const data = await file.arrayBuffer();
   const pdf = await pdfjs.getDocument({ data }).promise;
   try {
-    return await renderPdfPageToDataUrl(pdf);
+    return pdf.numPages || 1;
+  } finally {
+    await pdf.destroy();
+  }
+}
+
+async function renderPdfFirstPageDataUrlFromFile(file: File, pageNumber = 1): Promise<string> {
+  const data = await file.arrayBuffer();
+  const pdf = await pdfjs.getDocument({ data }).promise;
+  try {
+    return await renderPdfPageToDataUrl(pdf, pageNumber);
   } finally {
     await pdf.destroy();
   }
@@ -775,6 +789,9 @@ export default function SubjectContentManagement() {
     module: '',
   });
   const [selectedUploadFile, setSelectedUploadFile] = useState<File | null>(null);
+  const [uploadInputKey, setUploadInputKey] = useState(0);
+  const [pdfCoverPage, setPdfCoverPage] = useState(1);
+  const [pdfPageCount, setPdfPageCount] = useState<number | null>(null);
   const [isUploadingFile, setIsUploadingFile] = useState(false);
 
   const [isSavingSubject, setIsSavingSubject] = useState(false);
@@ -785,6 +802,31 @@ export default function SubjectContentManagement() {
   const [failedThumbnailIds, setFailedThumbnailIds] = useState<Set<string>>(new Set());
   /** In-page preview instead of opening files in a new browser tab. */
   const [contentPreviewItem, setContentPreviewItem] = useState<ContentItem | null>(null);
+
+  const clearSelectedUploadFile = () => {
+    setSelectedUploadFile(null);
+    setUploadInputKey((k) => k + 1);
+    setPdfCoverPage(1);
+    setPdfPageCount(null);
+  };
+
+  const onPickUploadFile = (file: File | null) => {
+    setSelectedUploadFile(file);
+    if (file && (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf'))) {
+      void inspectPdfPageCount(file)
+        .then((n) => {
+          setPdfPageCount(n);
+          setPdfCoverPage(1);
+        })
+        .catch(() => {
+          setPdfPageCount(null);
+          setPdfCoverPage(1);
+        });
+    } else {
+      setPdfPageCount(null);
+      setPdfCoverPage(1);
+    }
+  };
   /** Pinned class/subject while Edit Content dialog is open (avoids sidebar auto-select override). */
   const [editContentContext, setEditContentContext] = useState<{
     classLabel: string;
@@ -1822,7 +1864,7 @@ export default function SubjectContentManagement() {
     });
     setEditingContentId(null);
     setEditContentContext(null);
-    setSelectedUploadFile(null);
+    clearSelectedUploadFile();
     setIsAddContentOpen(true);
   };
 
@@ -1867,6 +1909,9 @@ export default function SubjectContentManagement() {
       module: videoNumberOnly(content.module || ''),
     });
     setSelectedUploadFile(null);
+    setUploadInputKey((k) => k + 1);
+    setPdfCoverPage(1);
+    setPdfPageCount(null);
     setIsAddContentOpen(true);
   };
 
@@ -2202,7 +2247,10 @@ export default function SubjectContentManagement() {
           selectedUploadFile.name.toLowerCase().endsWith('.pdf');
         if (isPdfUpload) {
           try {
-            const thumbDataUrl = await renderPdfFirstPageDataUrlFromFile(selectedUploadFile);
+            const thumbDataUrl = await renderPdfFirstPageDataUrlFromFile(
+              selectedUploadFile,
+              pdfCoverPage
+            );
             const uploadedThumb = await uploadContentThumbnailJpeg(thumbDataUrl, token || '');
             if (uploadedThumb) nextThumbnailUrl = uploadedThumb;
           } catch (thumbErr) {
@@ -2214,7 +2262,7 @@ export default function SubjectContentManagement() {
           fileUrl: uploadedUrl,
           thumbnailUrl: nextThumbnailUrl || prev.thumbnailUrl,
         }));
-        setSelectedUploadFile(null);
+        clearSelectedUploadFile();
         toast({
           title: 'Uploaded',
           description: isPdfUpload && nextThumbnailUrl
@@ -3218,7 +3266,7 @@ export default function SubjectContentManagement() {
           if (!open) {
             setEditingContentId(null);
             setEditContentContext(null);
-            setSelectedUploadFile(null);
+            clearSelectedUploadFile();
           }
         }}
       >
@@ -3320,6 +3368,9 @@ export default function SubjectContentManagement() {
                       module: value === 'Video' ? prev.module : '',
                     }));
                     setSelectedUploadFile(null);
+                    setUploadInputKey((k) => k + 1);
+                    setPdfCoverPage(1);
+                    setPdfPageCount(null);
                   }}
                 >
                   <SelectTrigger>
@@ -3459,12 +3510,10 @@ export default function SubjectContentManagement() {
                   <div className="mt-2 flex flex-col gap-2">
                     <div className="flex flex-col sm:flex-row gap-2">
                       <Input
+                        key={`audio-upload-${uploadInputKey}`}
                         type="file"
                         accept={getUploadAcceptForContentType('Audio')}
-                        onChange={(e) => {
-                          const file = e.target.files?.[0] || null;
-                          setSelectedUploadFile(file);
-                        }}
+                        onChange={(e) => onPickUploadFile(e.target.files?.[0] || null)}
                         className="cursor-pointer text-xs sm:text-sm"
                       />
                       <Button
@@ -3482,7 +3531,31 @@ export default function SubjectContentManagement() {
                           'Upload'
                         )}
                       </Button>
+                      {selectedUploadFile ? (
+                        <Button type="button" variant="ghost" onClick={clearSelectedUploadFile}>
+                          Remove file
+                        </Button>
+                      ) : null}
                     </div>
+                    {pdfPageCount != null ? (
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Label htmlFor="pdf-cover-page-audio">Cover page</Label>
+                        <Input
+                          id="pdf-cover-page-audio"
+                          type="number"
+                          min={1}
+                          max={pdfPageCount}
+                          value={pdfCoverPage}
+                          onChange={(e) =>
+                            setPdfCoverPage(
+                              Math.min(pdfPageCount, Math.max(1, parseInt(e.target.value, 10) || 1))
+                            )
+                          }
+                          className="h-9 w-24"
+                        />
+                        <span className="text-xs text-gray-500">of {pdfPageCount}</span>
+                      </div>
+                    ) : null}
                     <p
                       className={`text-xs ${selectedUploadFile ? 'text-orange-700 font-medium' : 'text-gray-500'}`}
                     >
@@ -3507,16 +3580,14 @@ export default function SubjectContentManagement() {
                 <div className="mt-2 flex flex-col gap-2">
                   <div className="flex flex-col sm:flex-row gap-2">
                     <Input
+                      key={`file-upload-${uploadInputKey}`}
                       type="file"
                       accept={
                         isUploadType(contentForm.type)
                           ? getUploadAcceptForContentType(contentForm.type)
                           : '.pdf,.doc,.docx'
                       }
-                      onChange={(e) => {
-                        const file = e.target.files?.[0] || null;
-                        setSelectedUploadFile(file);
-                      }}
+                      onChange={(e) => onPickUploadFile(e.target.files?.[0] || null)}
                       className="cursor-pointer text-xs sm:text-sm"
                     />
                     <Button
@@ -3534,7 +3605,33 @@ export default function SubjectContentManagement() {
                         'Upload'
                       )}
                     </Button>
+                    {selectedUploadFile ? (
+                      <Button type="button" variant="ghost" onClick={clearSelectedUploadFile}>
+                        Remove file
+                      </Button>
+                    ) : null}
                   </div>
+                  {pdfPageCount != null ? (
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Label htmlFor="pdf-cover-page">Cover page</Label>
+                      <Input
+                        id="pdf-cover-page"
+                        type="number"
+                        min={1}
+                        max={pdfPageCount}
+                        value={pdfCoverPage}
+                        onChange={(e) =>
+                          setPdfCoverPage(
+                            Math.min(pdfPageCount, Math.max(1, parseInt(e.target.value, 10) || 1))
+                          )
+                        }
+                        className="h-9 w-24"
+                      />
+                      <span className="text-xs text-gray-500">
+                        Page {pdfCoverPage} of {pdfPageCount}
+                      </span>
+                    </div>
+                  ) : null}
                   <p
                     className={`text-xs ${
                       normalizeServerContentFileUrl(contentForm.fileUrl)

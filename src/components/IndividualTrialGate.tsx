@@ -12,6 +12,8 @@ const SKIP_PATHS = [
   '/privacy',
   '/terms',
   '/contact',
+  '/pricing',
+  '/resources',
   '/#pricing',
 ];
 

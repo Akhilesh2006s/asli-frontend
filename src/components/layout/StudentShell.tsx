@@ -88,7 +88,9 @@ export function StudentShell({
   // B2C / individual students have no school, so hide school-only features
   // (Offline Results + Timetable) from the sidebar.
   const nav = isIndividualAccount(user)
-    ? studentNav.filter((item) => item.id !== "results" && item.id !== "timetable")
+    ? studentNav
+        .filter((item) => item.id !== "results" && item.id !== "timetable")
+        .map((item) => (item.id === "exams" ? { ...item, label: "Practice Exams" } : item))
     : studentNav;
 
   const handleLogout = async () => {
