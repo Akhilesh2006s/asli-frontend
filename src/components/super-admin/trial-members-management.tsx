@@ -990,19 +990,27 @@ export default function TrialMembersManagement() {
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  {QUICK_TRIAL_DAYS.map((d) => (
+                  {QUICK_TRIAL_DAYS.map((d) => {
+                    const selected = String(d) === String(editForm.trialDays);
+                    return (
                     <Button
                       key={d}
                       type="button"
                       size="sm"
-                      variant={String(d) === String(editForm.trialDays) ? 'default' : 'outline'}
-                      className="bg-white"
+                      variant={selected ? 'default' : 'outline'}
+                      className={cn(
+                        'transition-colors',
+                        selected
+                          ? 'bg-violet-600 text-white hover:bg-violet-700'
+                          : 'bg-white text-slate-700 hover:bg-slate-100',
+                      )}
                       disabled={saving}
                       onClick={() => setEditForm((p) => ({ ...p, trialDays: String(d) }))}
                     >
                       {d} days
                     </Button>
-                  ))}
+                    );
+                  })}
                 </div>
                 <div className="flex flex-wrap gap-2 border-t border-slate-200/80 pt-3">
                   <span className="w-full text-xs font-medium text-slate-500 sm:w-auto sm:self-center">
@@ -1012,6 +1020,11 @@ export default function TrialMembersManagement() {
                     type="button"
                     size="sm"
                     variant={editForm.extendDays === '1' ? 'default' : 'secondary'}
+                    className={cn(
+                      editForm.extendDays === '1'
+                        ? 'bg-violet-600 text-white hover:bg-violet-700'
+                        : 'bg-slate-100 text-slate-700 hover:bg-slate-200',
+                    )}
                     disabled={saving}
                     onClick={() => setEditForm((p) => ({ ...p, extendDays: p.extendDays === '1' ? '' : '1' }))}
                   >
@@ -1021,6 +1034,11 @@ export default function TrialMembersManagement() {
                     type="button"
                     size="sm"
                     variant={editForm.extendDays === '7' ? 'default' : 'secondary'}
+                    className={cn(
+                      editForm.extendDays === '7'
+                        ? 'bg-violet-600 text-white hover:bg-violet-700'
+                        : 'bg-slate-100 text-slate-700 hover:bg-slate-200',
+                    )}
                     disabled={saving}
                     onClick={() => setEditForm((p) => ({ ...p, extendDays: p.extendDays === '7' ? '' : '7' }))}
                   >
@@ -1033,7 +1051,7 @@ export default function TrialMembersManagement() {
                     onClick={() => {
                       const extend = parseInt(editForm.extendDays, 10);
                       if (!Number.isFinite(extend) || extend <= 0) return;
-                      void saveMember({ extendDays: extend });
+                      void saveMember({ extendDays: extend, subscriptionStatus: 'trial' });
                     }}
                   >
                     Save extension
@@ -1058,6 +1076,7 @@ export default function TrialMembersManagement() {
                     onClick={() =>
                       void saveMember({
                         resetTrial: true,
+                        subscriptionStatus: 'trial',
                         trialDays: Math.max(1, parseInt(editForm.trialDays, 10) || 7),
                       })
                     }
@@ -1294,6 +1313,7 @@ export default function TrialMembersManagement() {
               onClick={() =>
                 void saveMember({
                   resetTrial: true,
+                  subscriptionStatus: 'trial',
                   trialDays: Math.max(1, parseInt(editForm.trialDays, 10) || 7),
                 })
               }
@@ -1305,12 +1325,7 @@ export default function TrialMembersManagement() {
               type="button"
               variant="secondary"
               disabled={saving}
-              onClick={() => {
-                const extra: Record<string, unknown> = {};
-                const extend = parseInt(editForm.extendDays, 10);
-                if (Number.isFinite(extend) && extend > 0) extra.extendDays = extend;
-                void saveMember(extra);
-              }}
+              onClick={() => void saveMember()}
             >
               Save restrictions
             </Button>
