@@ -110,6 +110,8 @@ interface TeacherStats {
   totalStudents: number;
   totalClasses: number;
   totalVideos: number;
+  learningPathVideos?: number;
+  iitVideos?: number;
   averagePerformance: number;
   recentActivity: any[];
 }
@@ -256,6 +258,8 @@ const TeacherDashboard = () => {
     totalStudents: 0,
     totalClasses: 0,
     totalVideos: 0,
+    learningPathVideos: 0,
+    iitVideos: 0,
     totalAssessments: 0,
     averagePerformance: 0,
     recentActivity: []
@@ -808,12 +812,6 @@ const TeacherDashboard = () => {
           });
           
           setEduottVideos(videosWithSubjects);
-          
-          // Update stats with video count
-          setStats(prev => ({
-            ...prev,
-            totalVideos: videosWithSubjects.length
-          }));
         } else {
           console.error('Failed to fetch videos:', response.status);
           setEduottVideos([]);
@@ -1898,6 +1896,8 @@ const TeacherDashboard = () => {
             totalStudents: statsData.totalStudents ?? studentsData.length ?? 0,
             totalClasses: statsData.totalClasses ?? assignedClassesData.length ?? 0,
             totalVideos: statsData.totalVideos ?? videosData.length ?? 0,
+            learningPathVideos: statsData.learningPathVideos ?? 0,
+            iitVideos: statsData.iitVideos ?? 0,
             totalAssessments: statsData.totalAssessments ?? 0,
             averagePerformance: statsData.averagePerformance ?? 0,
             recentActivity: data.data.recentActivity || []
@@ -2324,11 +2324,15 @@ const TeacherDashboard = () => {
                 <StatCard
                   label="Videos"
                   value={String(stats.totalVideos)}
-                  caption="Content available"
+                  caption={
+                    (stats.learningPathVideos || 0) + (stats.iitVideos || 0) > 0
+                      ? `Learning paths ${stats.learningPathVideos ?? 0} + IIT ${stats.iitVideos ?? 0}`
+                      : 'Learning paths + IIT videos'
+                  }
                   icon={Play}
                   tone="teal"
                   motif="play"
-                  onClick={() => selectDashboardSubTab('eduott')}
+                  onClick={() => selectDashboardSubTab('learning-paths')}
                 />
               </div>
 
