@@ -445,21 +445,9 @@ export default function Homepage() {
                 variant="outline"
                 className="h-11 w-full rounded-full border border-white/55 bg-transparent px-6 text-sm font-semibold text-white hover:bg-white/10 hover:text-white sm:h-12 sm:w-auto sm:text-base"
               >
-                <a
-                  href="/#platform"
-                  className="w-full sm:w-auto"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    window.history.pushState(null, "", "/#platform");
-                    window.setTimeout(() => {
-                      document
-                        .getElementById("platform")
-                        ?.scrollIntoView({ behavior: "smooth", block: "start" });
-                    }, 80);
-                  }}
-                >
+                <Link href="/platform" className="w-full sm:w-auto">
                   Explore the Platform
-                </a>
+                </Link>
               </Button>
             </div>
             <div

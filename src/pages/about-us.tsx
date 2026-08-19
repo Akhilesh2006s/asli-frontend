@@ -112,7 +112,7 @@ export default function AboutUsPage() {
         </div>
         <div className="rounded-2xl border border-slate-200 bg-slate-50 p-6 sm:p-8">
           <p className="text-base leading-relaxed text-slate-700">
-            Under the leadership of Directors <strong>Kakani Veera Brahamam</strong> and{" "}
+            Under the leadership of Directors <strong>Kakani Veera Brahmam</strong> and{" "}
             <strong>Kakani Harish</strong>, AsliLearn.ai has been built with a clear purpose: to make quality
             learning more personalised, teaching more powerful and academic progress more measurable.
           </p>
@@ -177,7 +177,7 @@ export default function AboutUsPage() {
         <h2 className="font-display text-2xl font-bold text-slate-900 sm:text-3xl">Leadership</h2>
         <div className="mt-8 grid gap-6 md:grid-cols-2">
           <article className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h3 className="font-display text-xl font-bold text-slate-900">Kakani Veera Brahamam</h3>
+            <h3 className="font-display text-xl font-bold text-slate-900">Kakani Veera Brahmam</h3>
             <p className="mt-1 text-sm font-semibold text-emerald-700">Director</p>
             <p className="mt-3 text-sm leading-relaxed text-slate-600">
               An educator and education-media leader committed to improving learning resources, teacher support

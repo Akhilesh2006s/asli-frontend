@@ -14,7 +14,11 @@ const SKIP_PATHS = [
   '/contact',
   '/pricing',
   '/resources',
-  '/#pricing',
+  '/features',
+  '/platform',
+  '/about-us',
+  '/faq',
+  '/book-a-demo',
 ];
 
 /**

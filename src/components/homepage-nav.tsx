@@ -31,14 +31,14 @@ const HomepageNav = () => {
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-8">
-            <Link href="/#features" className="text-gray-600 hover:text-gray-900 transition-colors">
+            <Link href="/features" className="text-gray-600 hover:text-gray-900 transition-colors">
               Features
             </Link>
-            <Link href="/#about" className="text-gray-600 hover:text-gray-900 transition-colors">
+            <Link href="/about-us" className="text-gray-600 hover:text-gray-900 transition-colors">
               About
             </Link>
-            <Link href="/#testimonials" className="text-gray-600 hover:text-gray-900 transition-colors">
-              Testimonials
+            <Link href="/platform" className="text-gray-600 hover:text-gray-900 transition-colors">
+              Platform
             </Link>
             <div className="flex items-center space-x-4">
               <Link href="/auth/login">
@@ -80,25 +80,25 @@ const HomepageNav = () => {
           >
             <div className="flex flex-col space-y-4">
               <Link 
-                href="/#features" 
+                href="/features" 
                 className="text-gray-600 hover:text-gray-900 transition-colors"
                 onClick={() => setIsMenuOpen(false)}
               >
                 Features
               </Link>
               <Link 
-                href="/#about" 
+                href="/about-us" 
                 className="text-gray-600 hover:text-gray-900 transition-colors"
                 onClick={() => setIsMenuOpen(false)}
               >
                 About
               </Link>
               <Link 
-                href="/#testimonials" 
+                href="/platform" 
                 className="text-gray-600 hover:text-gray-900 transition-colors"
                 onClick={() => setIsMenuOpen(false)}
               >
-                Testimonials
+                Platform
               </Link>
               <div className="flex flex-col space-y-2 pt-4 border-t border-gray-200">
                 <Link href="/auth/login" onClick={() => setIsMenuOpen(false)}>

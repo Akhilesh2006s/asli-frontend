@@ -1,49 +1,13 @@
-import { useEffect, useState, type MouseEvent, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Facebook, Instagram, Linkedin, Menu, X } from "lucide-react";
 import { MARKETING_NAV } from "@/components/marketing/seo";
 import { cn } from "@/lib/utils";
 
-function scrollToSectionHash(hash: string) {
-  const id = hash.replace(/^#/, "").trim();
-  if (!id) return;
-  // Wait a frame so the mobile drawer can close / layout settle
-  window.setTimeout(() => {
-    document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
-  }, 80);
-}
-
-/** Home section links like /#pricing — scroll on the landing page instead of a blank feel. */
-function useMarketingSectionNav(closeMobile?: () => void) {
-  const [location] = useLocation();
-
-  return (href: string) => (event: MouseEvent<HTMLAnchorElement>) => {
-    closeMobile?.();
-
-    if (!href.startsWith("/#")) return;
-
-    const hash = href.slice(1); // #features
-    const onHome = location === "/" || location === "";
-
-    event.preventDefault();
-
-    if (onHome) {
-      if (window.location.hash !== hash) {
-        window.history.pushState(null, "", `/${hash}`);
-      }
-      scrollToSectionHash(hash);
-      return;
-    }
-
-    // From another page: hard-navigate so homepage mounts with the hash (SPA hash is flaky in wouter)
-    window.location.assign(href);
-  };
-}
-
 export function MarketingNav({ scrolled = false }: { scrolled?: boolean }) {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const onSectionNav = useMarketingSectionNav(() => setMobileOpen(false));
+  const [location] = useLocation();
 
   useEffect(() => {
     if (!mobileOpen) return;
@@ -78,17 +42,17 @@ export function MarketingNav({ scrolled = false }: { scrolled?: boolean }) {
 
         <div className="hidden items-center gap-6 lg:flex">
           {MARKETING_NAV.map((link) => (
-            <a
+            <Link
               key={link.href}
               href={link.href}
-              onClick={onSectionNav(link.href)}
               className={cn(
                 "text-sm font-medium transition-colors",
                 scrolled ? "text-slate-600 hover:text-slate-900" : "text-white/80 hover:text-white",
+                location === link.href && (scrolled ? "text-slate-900" : "text-white"),
               )}
             >
               {link.label}
-            </a>
+            </Link>
           ))}
         </div>
 
@@ -127,14 +91,14 @@ export function MarketingNav({ scrolled = false }: { scrolled?: boolean }) {
         <div className="max-h-[min(100dvh-4rem,36rem)] overflow-y-auto border-t border-white/10 bg-[#050d24] px-4 py-3 lg:hidden">
           <div className="flex flex-col">
             {MARKETING_NAV.map((link) => (
-              <a
+              <Link
                 key={link.href}
                 href={link.href}
-                onClick={onSectionNav(link.href)}
+                onClick={() => setMobileOpen(false)}
                 className="flex min-h-12 items-center border-b border-white/10 py-3 text-base font-medium text-white/90 active:bg-white/5"
               >
                 {link.label}
-              </a>
+              </Link>
             ))}
             <div className="mt-4 grid grid-cols-2 gap-2 pb-2 sm:hidden">
               <Button
@@ -181,9 +145,9 @@ export function MarketingFooter() {
           <ul className="space-y-2.5 text-sm text-white/80">
             {MARKETING_NAV.slice(0, 4).map((l) => (
               <li key={l.href}>
-                <a href={l.href} className="hover:text-white">
+                <Link href={l.href} className="hover:text-white">
                   {l.label}
-                </a>
+                </Link>
               </li>
             ))}
           </ul>
