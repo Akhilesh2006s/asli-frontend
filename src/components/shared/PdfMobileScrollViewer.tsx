@@ -625,11 +625,11 @@ const PdfMobileScrollViewer = forwardRef<PdfMobileScrollViewerHandle, PdfMobileS
     <div className={`relative h-full w-full ${className}`}>
       <div
         ref={scrollRef}
-        className={`pdf-book-scroll hide-scrollbar h-full w-full touch-manipulation overscroll-y-contain ${
+        className={`pdf-book-scroll h-full w-full touch-manipulation overscroll-y-contain ${
           scrollLocked
             ? 'overflow-hidden'
             : 'overflow-y-auto overflow-x-auto'
-        }`}
+        } ${anyZoomed ? '' : 'hide-scrollbar'}`}
         style={{
           WebkitOverflowScrolling: 'touch',
           scrollSnapType: scrollLocked || anyZoomed ? undefined : 'y mandatory',

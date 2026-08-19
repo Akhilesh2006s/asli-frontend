@@ -142,7 +142,7 @@ export function IndividualPlanCheckout({
   const [, setLocation] = useLocation();
   const billingRole = String(role || '').toLowerCase() === 'teacher' ? 'teacher' : 'student';
   const [classLabel, setClassLabel] = useState(initialClass || 'Class 6');
-  const [packageType, setPackageType] = useState<PlanPackage>(initialPackage === 'iit' ? 'iit' : initialPackage === 'both' ? 'both' : 'board');
+  const [packageType, setPackageType] = useState<PlanPackage>(initialPackage === 'iit' || initialPackage === 'both' ? 'both' : 'board');
   const classNumber = classNumbersFromLabel(classLabel) || 6;
   const allowedTracks = tracksForClass(classNumber);
   const defaultTrack = (allowedTracks.some((t) => t.code === initialTrack)
@@ -195,7 +195,6 @@ export function IndividualPlanCheckout({
     () =>
       ([
         ['board', asPack(plans[billingRole].board)],
-        ['iit', asPack(plans[billingRole].iit)],
         ['both', asPack(plans[billingRole].both)],
       ] as const),
     [billingRole, plans],

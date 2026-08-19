@@ -264,7 +264,7 @@ const PdfPagePinchFrame = forwardRef<PdfPagePinchFrameHandle, Props>(function Pd
   return (
     <div
       ref={frameRef}
-      className="pdf-page-pinch-frame shrink-0 select-none overflow-hidden rounded-sm bg-transparent shadow-[0_18px_50px_-28px_rgba(15,23,42,0.55)] transition-[width,height] duration-150 ease-out"
+      className={`pdf-page-pinch-frame shrink-0 select-none rounded-sm bg-transparent shadow-[0_18px_50px_-28px_rgba(15,23,42,0.55)] transition-[width,height] duration-150 ease-out ${zoomed ? 'overflow-visible' : 'overflow-hidden'}`}
       data-pdf-zoomed={zoomed ? 'true' : 'false'}
       style={{
         width: `${frameW}px`,
