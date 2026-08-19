@@ -1,11 +1,12 @@
 import { useEffect, useState, type ReactNode } from "react";
+import { CreditCard } from "lucide-react";
 
 import { AppShell } from "@/components/layout/AppShell";
 import {
   FloatingParticles,
   InteractiveBackground,
 } from "@/components/background/InteractiveBackground";
-import { studentNav } from "@/lib/app-nav";
+import { studentNav, type NavItem } from "@/lib/app-nav";
 import { getSchoolBranding } from "@/lib/school-branding";
 import { isIndividualAccount } from "@/lib/individual-signup";
 import { showTrialUpgrade } from "@/lib/individual-subscription";
@@ -89,10 +90,13 @@ export function StudentShell({
 
   // B2C / individual students have no school, so hide school-only features
   // (Offline Results + Timetable) from the sidebar.
-  const nav = isIndividualAccount(user)
-    ? studentNav
-        .filter((item) => item.id !== "results" && item.id !== "timetable")
-        .map((item) => (item.id === "exams" ? { ...item, label: "Practice Exams" } : item))
+  const nav: NavItem[] = isIndividualAccount(user)
+    ? [
+        ...studentNav
+          .filter((item) => item.id !== "results" && item.id !== "timetable")
+          .map((item) => (item.id === "exams" ? { ...item, label: "Practice Exams" } : item)),
+        { id: "subscription", label: "Subscription", icon: CreditCard, href: "/auth/subscribe" },
+      ]
     : studentNav;
 
   const handleLogout = async () => {

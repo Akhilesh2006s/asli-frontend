@@ -1,8 +1,9 @@
 import { useEffect, useState, type ReactNode } from "react";
+import { CreditCard } from "lucide-react";
 import { useLocation } from "wouter";
 
 import { AppShell } from "@/components/layout/AppShell";
-import { teacherNav } from "@/lib/app-nav";
+import { teacherNav, type NavItem } from "@/lib/app-nav";
 import { getSchoolBranding } from "@/lib/school-branding";
 import { API_BASE_URL } from "@/lib/api-config";
 import { showTrialUpgrade } from "@/lib/individual-subscription";
@@ -72,6 +73,9 @@ export function TeacherShell({
 
   const branding = getSchoolBranding(user);
   const name = getTeacherDisplayName(user);
+  const nav: NavItem[] = user?.isIndividualAccount
+    ? [...teacherNav, { id: "subscription", label: "Subscription", icon: CreditCard, href: "/auth/subscribe" }]
+    : teacherNav;
 
   const handleLogout = async () => {
     try {
@@ -93,7 +97,7 @@ export function TeacherShell({
 
   return (
     <AppShell
-      nav={teacherNav}
+      nav={nav}
       orgName={branding?.schoolName || "AsliLearn AI"}
       orgSubtitle="Teacher Portal"
       orgLogoUrl={branding?.schoolLogo || undefined}
