@@ -27,6 +27,14 @@ import {
   computeProfileOverviewStats,
   getExamIdFromResult,
 } from "@/lib/profile-overview-stats";
+import { IndividualSubscriptionReceiptCard } from "@/components/b2c/IndividualSubscriptionReceipt";
+import { TrialUpgradeBanner } from "@/components/b2c/TrialUpgradeBanner";
+import {
+  receiptFromUser,
+  showActiveReceipt,
+  showTrialUpgrade,
+} from "@/lib/individual-subscription";
+import { Link } from "wouter";
 
 // User ID now comes from authenticated user (/api/auth/me)
 
@@ -547,6 +555,41 @@ export default function Profile() {
             </div>
           </CardContent>
         </Card>
+
+        {user?.isIndividualAccount ? (
+          <div className="mb-6 space-y-4">
+            {showTrialUpgrade(user) ? (
+              <TrialUpgradeBanner
+                daysLeft={user.trialDaysLeft}
+                trialEndsAt={user.trialEndsAt}
+              />
+            ) : null}
+            {showActiveReceipt(user) && receiptFromUser(user) ? (
+              <div className="space-y-3">
+                <IndividualSubscriptionReceiptCard receipt={receiptFromUser(user)!} />
+                <Link href="/auth/subscribe">
+                  <Button variant="outline" className="w-full border-sky-200 text-sky-700 hover:bg-sky-50 sm:w-auto">
+                    Manage or upgrade plan
+                  </Button>
+                </Link>
+              </div>
+            ) : null}
+            {!showActiveReceipt(user) && !showTrialUpgrade(user) && user.paymentRequired ? (
+              <Card className="border-orange-200 bg-orange-50">
+                <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center">
+                  <div className="flex-1 text-sm text-orange-900">
+                    Your trial has ended. Subscribe to continue using AsliLearn.
+                  </div>
+                  <Link href="/auth/subscribe">
+                    <Button size="sm" className="w-full bg-orange-600 hover:bg-orange-700 sm:w-auto">
+                      View plans
+                    </Button>
+                  </Link>
+                </CardContent>
+              </Card>
+            ) : null}
+          </div>
+        ) : null}
 
         <div className="space-y-3 sm:space-y-4 lg:space-y-6 sm:p-6 lg:p-8">
                 {profileSettingsSection}

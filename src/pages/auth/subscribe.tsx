@@ -6,11 +6,12 @@ import { API_BASE_URL } from '@/lib/api-config';
 import { clearAuthData, getAuthToken } from '@/lib/auth-utils';
 import { INDIVIDUAL_TRIAL_DAYS } from '@/lib/individual-signup';
 import { IndividualPlanCheckout } from '@/components/b2c/IndividualPlanCheckout';
+import { IndividualSubscriptionReceiptCard } from '@/components/b2c/IndividualSubscriptionReceipt';
+import { receiptFromUser, showActiveReceipt } from '@/lib/individual-subscription';
 import { CreditCard, Clock, LogOut } from 'lucide-react';
 
 /**
- * Shown when an individual trial has ended and payment is required.
- * Boards ₹99/month, IIT ₹249/month (students) or ₹3999/year (teachers), or both.
+ * Individual billing hub for trial, expired, and active subscribers.
  */
 export default function SubscribePage() {
   const [, setLocation] = useLocation();
@@ -26,6 +27,8 @@ export default function SubscribePage() {
     trialDaysLeft?: number;
     paymentRequired?: boolean;
     subscriptionStatus?: string;
+    trialActive?: boolean;
+    canSubscribeEarly?: boolean;
   } | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -49,10 +52,6 @@ export default function SubscribePage() {
         const data = await res.json();
         const u = data.user || data;
         setUser(u);
-        if (u?.isIndividualAccount && !u?.paymentRequired) {
-          if (u.role === 'teacher') setLocation('/teacher/dashboard');
-          else setLocation('/dashboard');
-        }
       } catch {
         setLocation('/auth/login');
       } finally {
@@ -75,6 +74,11 @@ export default function SubscribePage() {
   }
 
   const initialTrack = Array.isArray(user?.iitCategories) ? String(user.iitCategories[0] || '') : '';
+  const onTrial = Boolean(user?.trialActive && user?.canSubscribeEarly);
+  const existingReceipt = receiptFromUser(user);
+  const showReceipt = showActiveReceipt(user) && existingReceipt;
+  const isActive = user?.subscriptionStatus === 'active' && !user?.paymentRequired;
+  const title = isActive ? 'Manage your plan' : 'Choose Boards, IIT, or both';
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-100 via-white to-orange-50 p-4 2xl:p-8 board:p-12">
@@ -83,25 +87,41 @@ export default function SubscribePage() {
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-orange-100 text-orange-700 board:h-14 board:w-14">
             <CreditCard className="h-6 w-6 board:h-7 board:w-7" />
           </div>
-          <CardTitle className="text-xl board:text-3xl">Choose Boards, IIT, or both</CardTitle>
+          <CardTitle className="text-xl board:text-3xl">{title}</CardTitle>
           <p className="text-sm text-slate-600 board:text-base">
-            Hi {user?.fullName || 'there'} — your {INDIVIDUAL_TRIAL_DAYS}-day trial has ended. Pick Boards, IIT
-            Foundation (Alpha/Beta), or both. Monthly and yearly prices (including any yearly discount) are shown
-            on the plan below.
+            Hi {user?.fullName || 'there'} —{' '}
+            {isActive
+              ? 'your subscription is active. You can review your recent payments, renew early, or upgrade to a bigger plan anytime.'
+              : onTrial
+              ? `you still have ${user?.trialDaysLeft ?? 0} day${user?.trialDaysLeft === 1 ? '' : 's'} on your free trial. Subscribe now to lock in Boards, IIT, or both — no need to wait until expiry.`
+              : `your ${INDIVIDUAL_TRIAL_DAYS}-day trial has ended. Pick Boards, IIT Foundation (Alpha/Beta), or both. Monthly and yearly prices are below.`}
           </p>
         </CardHeader>
         <CardContent className="space-y-4 board:space-y-5 board:px-10 board:pb-10">
           <div className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950">
             <Clock className="mt-0.5 h-4 w-4 shrink-0" />
             <div>
-              <p className="font-medium">Trial status: expired</p>
-              {user?.trialEndsAt && (
+              <p className="font-medium">
+                {isActive ? 'Subscription status: active' : `Trial status: ${onTrial ? 'active' : 'expired'}`}
+              </p>
+              {isActive && existingReceipt?.validUntil ? (
+                <p className="mt-1 text-xs">
+                  Current renewal date: {new Date(existingReceipt.validUntil).toLocaleDateString()}
+                </p>
+              ) : onTrial && user?.trialDaysLeft != null ? (
+                <p className="mt-1 text-xs">{user.trialDaysLeft} day{user.trialDaysLeft === 1 ? '' : 's'} remaining</p>
+              ) : null}
+              {!isActive && user?.trialEndsAt && (
                 <p className="mt-1 text-xs">
                   Ended on {new Date(user.trialEndsAt).toLocaleDateString()}
                 </p>
               )}
             </div>
           </div>
+
+          {showReceipt && existingReceipt ? (
+            <IndividualSubscriptionReceiptCard receipt={existingReceipt} />
+          ) : null}
 
           <IndividualPlanCheckout
             userId={user?._id || user?.id || null}
@@ -111,6 +131,21 @@ export default function SubscribePage() {
             initialClass={user?.classNumber || ''}
             initialTrack={initialTrack}
             initialPackage={initialTrack ? 'iit' : 'board'}
+            onPaid={async () => {
+              try {
+                const token = getAuthToken();
+                const res = await fetch(`${API_BASE_URL}/api/auth/me`, {
+                  headers: { Authorization: `Bearer ${token}` },
+                  credentials: 'include',
+                });
+                if (res.ok) {
+                  const data = await res.json();
+                  setUser(data.user || data);
+                }
+              } catch {
+                /* receipt dialog still shows payment details */
+              }
+            }}
           />
 
           <Link href="/resources">

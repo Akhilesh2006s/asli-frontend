@@ -4,6 +4,16 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { CheckCircle2, GraduationCap } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { IndividualSubscriptionReceiptCard } from '@/components/b2c/IndividualSubscriptionReceipt';
+import type { SubscriptionReceipt } from '@/lib/individual-subscription';
 import { cn } from '@/lib/utils';
 import { API_BASE_URL } from '@/lib/api-config';
 import { authJsonHeaders } from '@/lib/auth-utils';
@@ -117,6 +127,7 @@ export function IndividualPlanCheckout({
   userName,
   userEmail,
   variant = 'page',
+  onPaid,
 }: {
   initialClass?: string;
   initialTrack?: string;
@@ -126,6 +137,7 @@ export function IndividualPlanCheckout({
   userName?: string;
   userEmail?: string;
   variant?: 'page' | 'card';
+  onPaid?: () => void;
 }) {
   const [, setLocation] = useLocation();
   const billingRole = String(role || '').toLowerCase() === 'teacher' ? 'teacher' : 'student';
@@ -144,6 +156,7 @@ export function IndividualPlanCheckout({
   const [billingPeriod, setBillingPeriod] = useState<'month' | 'year'>(
     billingRole === 'teacher' && (packageType === 'iit' || packageType === 'both') ? 'year' : 'month',
   );
+  const [paidReceipt, setPaidReceipt] = useState<SubscriptionReceipt | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -295,6 +308,12 @@ export function IndividualPlanCheckout({
             const verifyJson = await verifyRes.json();
             if (!verifyRes.ok || !verifyJson.success) {
               throw new Error(verifyJson.message || 'Payment succeeded but could not activate the plan.');
+            }
+            if (verifyJson.receipt) {
+              setPaidReceipt(verifyJson.receipt as SubscriptionReceipt);
+              onPaid?.();
+              setSaving(false);
+              return;
             }
             window.location.href = verifyJson.redirect || (billingRole === 'teacher' ? '/teacher/dashboard' : '/dashboard');
           } catch (e) {
@@ -553,6 +572,27 @@ export function IndividualPlanCheckout({
           ) : null}
         </div>
       </div>
+
+      <Dialog open={Boolean(paidReceipt)} onOpenChange={(open) => !open && setPaidReceipt(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Payment successful</DialogTitle>
+            <DialogDescription>Save these details for your records. Access continues until the valid-until date.</DialogDescription>
+          </DialogHeader>
+          {paidReceipt ? <IndividualSubscriptionReceiptCard receipt={paidReceipt} className="border-0 shadow-none" /> : null}
+          <DialogFooter>
+            <Button
+              className="w-full bg-sky-600 hover:bg-sky-700"
+              onClick={() => {
+                const dest = billingRole === 'teacher' ? '/teacher/dashboard' : '/dashboard';
+                window.location.href = dest;
+              }}
+            >
+              Continue to dashboard
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
