@@ -6,6 +6,7 @@ import {
 } from "@/components/ui/collapsible";
 import { Badge } from "@/components/ui/badge";
 import { ChevronDown, GraduationCap, Loader2 } from "lucide-react";
+import { compareClassLabels } from "@/lib/super-admin-curriculum-classes";
 import { fetchBranch, scopeParams, type BranchItem } from "./api";
 import { SubjectSection } from "./SubjectSection";
 
@@ -34,7 +35,10 @@ export function ClassSection({
       setError(null);
       try {
         const r = await fetchBranch({ ...scopeParams(board, productCategory), toolName });
-        setClasses(r.data.items || []);
+        const items = [...(r.data.items || [])].sort((a, b) =>
+          compareClassLabels(a.value, b.value),
+        );
+        setClasses(items);
       } catch (e: unknown) {
         setClasses([]);
         setError(e instanceof Error ? e.message : "Failed to load classes");
