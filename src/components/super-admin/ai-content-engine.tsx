@@ -3496,6 +3496,7 @@ export default function AIContentEngine() {
         classId: selectedClass,
         subjectId: selectedSubject,
         topicId: selectedTopic,
+        v: '7',
       });
       if (board) qs.set("board", board);
       const res = await fetch(`${API_BASE_URL}/api/curriculum/subtopics?${qs.toString()}`, { headers: authHeaders(), credentials: "include" });
