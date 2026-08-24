@@ -38,7 +38,7 @@ function touchDistance(touches: TouchList): number {
 
 /**
  * Page grows on screen when zoomed (frame expands) — immersive, no white card clip.
- * Pinch / Ctrl+wheel / +/- zoom; pan via parent scroll or drag.
+ * Pinch / Ctrl+wheel / +/- zoom; pan via parent scroll (mouse drag + one-finger touch).
  */
 const PdfPagePinchFrame = forwardRef<PdfPagePinchFrameHandle, Props>(function PdfPagePinchFrame(
   { pageWidth, pageHeight, onZoomChange, children },
@@ -47,8 +47,32 @@ const PdfPagePinchFrame = forwardRef<PdfPagePinchFrameHandle, Props>(function Pd
   const frameRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(MIN_SCALE);
   const scaleRef = useRef(MIN_SCALE);
-  const pinchRef = useRef({ startDistance: 0, startScale: MIN_SCALE });
-  const dragRef = useRef<{ active: boolean; x: number; y: number; scrollEl: HTMLElement | null; left: number; top: number }>({
+  const pinchRef = useRef({ startDistance: 0, startScale: MIN_SCALE, pinching: false });
+  const dragRef = useRef<{
+    active: boolean;
+    pointerId: number | null;
+    x: number;
+    y: number;
+    scrollEl: HTMLElement | null;
+    left: number;
+    top: number;
+  }>({
+    active: false,
+    pointerId: null,
+    x: 0,
+    y: 0,
+    scrollEl: null,
+    left: 0,
+    top: 0,
+  });
+  const touchPanRef = useRef<{
+    active: boolean;
+    x: number;
+    y: number;
+    scrollEl: HTMLElement | null;
+    left: number;
+    top: number;
+  }>({
     active: false,
     x: 0,
     y: 0,
@@ -67,7 +91,14 @@ const PdfPagePinchFrame = forwardRef<PdfPagePinchFrameHandle, Props>(function Pd
     while (el) {
       const style = window.getComputedStyle(el);
       const oy = style.overflowY;
-      if (oy === 'auto' || oy === 'scroll' || el.classList.contains('pdf-book-scroll')) {
+      const ox = style.overflowX;
+      if (
+        oy === 'auto' ||
+        oy === 'scroll' ||
+        ox === 'auto' ||
+        ox === 'scroll' ||
+        el.classList.contains('pdf-book-scroll')
+      ) {
         return el;
       }
       el = el.parentElement;
@@ -145,33 +176,102 @@ const PdfPagePinchFrame = forwardRef<PdfPagePinchFrameHandle, Props>(function Pd
     const frame = frameRef.current;
     if (!frame) return;
 
+    const beginScrollDrag = (clientX: number, clientY: number) => {
+      const scrollEl = findScrollParent();
+      if (!scrollEl || scaleRef.current <= ZOOM_EPSILON) return false;
+      dragRef.current = {
+        active: true,
+        pointerId: null,
+        x: clientX,
+        y: clientY,
+        scrollEl,
+        left: scrollEl.scrollLeft,
+        top: scrollEl.scrollTop,
+      };
+      frame.style.cursor = 'grabbing';
+      return true;
+    };
+
+    const moveScrollDrag = (clientX: number, clientY: number) => {
+      const { active, scrollEl, x, y, left, top } = dragRef.current;
+      if (!active || !scrollEl) return;
+      scrollEl.scrollLeft = left - (clientX - x);
+      scrollEl.scrollTop = top - (clientY - y);
+    };
+
+    const endScrollDrag = () => {
+      dragRef.current.active = false;
+      dragRef.current.pointerId = null;
+      frame.style.cursor = scaleRef.current > ZOOM_EPSILON ? 'grab' : 'zoom-in';
+    };
+
     const onTouchStart = (event: TouchEvent) => {
       if (event.touches.length >= 2) {
         event.preventDefault();
         pinchRef.current = {
           startDistance: touchDistance(event.touches),
           startScale: scaleRef.current,
+          pinching: true,
         };
+        touchPanRef.current.active = false;
         onZoomChange(true);
+        return;
+      }
+      // One-finger pan while zoomed (parent scroll).
+      if (event.touches.length === 1 && scaleRef.current > ZOOM_EPSILON) {
+        const t = event.touches[0];
+        const scrollEl = findScrollParent();
+        touchPanRef.current = {
+          active: true,
+          x: t.clientX,
+          y: t.clientY,
+          scrollEl,
+          left: scrollEl?.scrollLeft ?? 0,
+          top: scrollEl?.scrollTop ?? 0,
+        };
       }
     };
 
     const onTouchMove = (event: TouchEvent) => {
-      if (event.touches.length < 2) return;
-      event.preventDefault();
-      const { startDistance, startScale } = pinchRef.current;
-      if (startDistance <= 0) {
-        pinchRef.current = {
-          startDistance: touchDistance(event.touches),
-          startScale: scaleRef.current,
-        };
+      if (event.touches.length >= 2) {
+        event.preventDefault();
+        const { startDistance, startScale } = pinchRef.current;
+        if (startDistance <= 0) {
+          pinchRef.current = {
+            startDistance: touchDistance(event.touches),
+            startScale: scaleRef.current,
+            pinching: true,
+          };
+          return;
+        }
+        applyScale(startScale * (touchDistance(event.touches) / startDistance));
         return;
       }
-      applyScale(startScale * (touchDistance(event.touches) / startDistance));
+
+      if (
+        event.touches.length === 1 &&
+        touchPanRef.current.active &&
+        scaleRef.current > ZOOM_EPSILON &&
+        !pinchRef.current.pinching
+      ) {
+        event.preventDefault();
+        const t = event.touches[0];
+        const { scrollEl, x, y, left, top } = touchPanRef.current;
+        if (!scrollEl) return;
+        scrollEl.scrollLeft = left - (t.clientX - x);
+        scrollEl.scrollTop = top - (t.clientY - y);
+      }
     };
 
     const onTouchEnd = (event: TouchEvent) => {
-      if (event.touches.length > 0) return;
+      if (event.touches.length > 0) {
+        if (event.touches.length === 1) {
+          pinchRef.current.pinching = false;
+        }
+        return;
+      }
+      pinchRef.current.pinching = false;
+      touchPanRef.current.active = false;
       if (scaleRef.current <= ZOOM_EPSILON) resetZoom();
       const now = Date.now();
       if (now - lastTapRef.current <= DOUBLE_TAP_MS) {
@@ -196,42 +296,48 @@ const PdfPagePinchFrame = forwardRef<PdfPagePinchFrameHandle, Props>(function Pd
     const onPointerDown = (event: PointerEvent) => {
       if (event.pointerType === 'touch' || event.button !== 0) return;
       if (scaleRef.current <= ZOOM_EPSILON) return;
-      const scrollEl = findScrollParent();
-      frame.setPointerCapture(event.pointerId);
-      dragRef.current = {
-        active: true,
-        x: event.clientX,
-        y: event.clientY,
-        scrollEl,
-        left: scrollEl?.scrollLeft ?? 0,
-        top: scrollEl?.scrollTop ?? 0,
-      };
-      frame.style.cursor = 'grabbing';
+      event.preventDefault();
+      if (!beginScrollDrag(event.clientX, event.clientY)) return;
+      dragRef.current.pointerId = event.pointerId;
+      try {
+        frame.setPointerCapture(event.pointerId);
+      } catch {
+        /* ignore */
+      }
     };
 
     const onPointerMove = (event: PointerEvent) => {
       if (!dragRef.current.active || event.pointerType === 'touch') return;
-      const { scrollEl, x, y, left, top } = dragRef.current;
-      if (!scrollEl) return;
-      scrollEl.scrollLeft = left - (event.clientX - x);
-      scrollEl.scrollTop = top - (event.clientY - y);
+      event.preventDefault();
+      moveScrollDrag(event.clientX, event.clientY);
     };
 
     const onPointerUp = (event: PointerEvent) => {
       if (event.pointerType === 'touch') return;
-      dragRef.current.active = false;
+      if (
+        dragRef.current.pointerId != null &&
+        event.pointerId !== dragRef.current.pointerId
+      ) {
+        return;
+      }
       try {
-        frame.releasePointerCapture(event.pointerId);
+        if (dragRef.current.pointerId != null) {
+          frame.releasePointerCapture(dragRef.current.pointerId);
+        }
       } catch {
         /* ignore */
       }
-      frame.style.cursor = scaleRef.current > ZOOM_EPSILON ? 'grab' : 'zoom-in';
+      endScrollDrag();
     };
 
     const onDblClick = (event: MouseEvent) => {
       event.preventDefault();
       if (scaleRef.current > ZOOM_EPSILON) resetZoom();
       else applyScale(2);
+    };
+
+    const onDragStart = (event: DragEvent) => {
+      event.preventDefault();
     };
 
     frame.addEventListener('touchstart', onTouchStart, { passive: false });
@@ -244,6 +350,7 @@ const PdfPagePinchFrame = forwardRef<PdfPagePinchFrameHandle, Props>(function Pd
     frame.addEventListener('pointerup', onPointerUp);
     frame.addEventListener('pointercancel', onPointerUp);
     frame.addEventListener('dblclick', onDblClick);
+    frame.addEventListener('dragstart', onDragStart);
 
     return () => {
       frame.removeEventListener('touchstart', onTouchStart);
@@ -256,6 +363,7 @@ const PdfPagePinchFrame = forwardRef<PdfPagePinchFrameHandle, Props>(function Pd
       frame.removeEventListener('pointerup', onPointerUp);
       frame.removeEventListener('pointercancel', onPointerUp);
       frame.removeEventListener('dblclick', onDblClick);
+      frame.removeEventListener('dragstart', onDragStart);
     };
   }, [applyScale, findScrollParent, onZoomChange, resetZoom]);
 

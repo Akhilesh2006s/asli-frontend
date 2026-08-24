@@ -152,7 +152,8 @@ export function useVidyaChat({
         },
       });
       if (!response.ok) throw new Error("Failed to fetch chat sessions");
-      return response.json();
+      const data = await response.json();
+      return Array.isArray(data?.sessions) ? data.sessions : [];
     },
     refetchInterval: isDatabaseBackedAssistant ? false : 2000,
     enabled: Boolean(userId) && !isDatabaseBackedAssistant,

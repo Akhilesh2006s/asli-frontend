@@ -190,7 +190,14 @@ function PdfPageCanvas({
 }: {
   canvasRef: RefObject<HTMLCanvasElement | null>;
 }) {
-  return <canvas ref={canvasRef} className="block max-w-none" style={{ display: 'block' }} />;
+  return (
+    <canvas
+      ref={canvasRef}
+      className="pointer-events-none block max-w-none"
+      draggable={false}
+      style={{ display: 'block' }}
+    />
+  );
 }
 
 type PdfMobilePageProps = {
@@ -357,8 +364,10 @@ function PdfMobilePage({
     <div
       ref={slotRef}
       data-page={pageNum}
-      className={`pdf-page-slot flex shrink-0 snap-start snap-always justify-center px-1 py-2 sm:px-2 sm:py-3${
-        pageZoomed ? ' w-max min-w-full items-start' : ` w-full${fillViewport ? ' items-center' : ''}`
+      className={`pdf-page-slot flex shrink-0 snap-start snap-always px-1 py-2 sm:px-2 sm:py-3${
+        pageZoomed
+          ? ' w-max min-w-full items-start justify-start'
+          : ` w-full justify-center${fillViewport ? ' items-center' : ''}`
       }`}
       style={slotStyle}
     >
@@ -570,6 +579,71 @@ const PdfMobileScrollViewer = forwardRef<PdfMobileScrollViewerHandle, PdfMobileS
       host.removeEventListener('scroll', onScroll);
     };
   }, [persistPage]);
+
+  useEffect(() => {
+    const host = scrollRef.current;
+    if (!host || !anyZoomed) return;
+
+    const drag = {
+      active: false,
+      x: 0,
+      y: 0,
+      left: 0,
+      top: 0,
+      pointerId: -1,
+    };
+
+    const onPointerDown = (event: PointerEvent) => {
+      if (event.pointerType === 'touch' || event.button !== 0) return;
+      // Let the page frame handle its own drag; still allow gray-area pans.
+      const target = event.target as HTMLElement | null;
+      if (target?.closest?.('.pdf-page-pinch-frame')) return;
+      drag.active = true;
+      drag.x = event.clientX;
+      drag.y = event.clientY;
+      drag.left = host.scrollLeft;
+      drag.top = host.scrollTop;
+      drag.pointerId = event.pointerId;
+      host.style.cursor = 'grabbing';
+      try {
+        host.setPointerCapture(event.pointerId);
+      } catch {
+        /* ignore */
+      }
+      event.preventDefault();
+    };
+
+    const onPointerMove = (event: PointerEvent) => {
+      if (!drag.active || event.pointerId !== drag.pointerId) return;
+      host.scrollLeft = drag.left - (event.clientX - drag.x);
+      host.scrollTop = drag.top - (event.clientY - drag.y);
+      event.preventDefault();
+    };
+
+    const onPointerUp = (event: PointerEvent) => {
+      if (event.pointerId !== drag.pointerId) return;
+      drag.active = false;
+      host.style.cursor = 'grab';
+      try {
+        host.releasePointerCapture(event.pointerId);
+      } catch {
+        /* ignore */
+      }
+    };
+
+    host.style.cursor = 'grab';
+    host.addEventListener('pointerdown', onPointerDown);
+    host.addEventListener('pointermove', onPointerMove);
+    host.addEventListener('pointerup', onPointerUp);
+    host.addEventListener('pointercancel', onPointerUp);
+    return () => {
+      host.style.cursor = '';
+      host.removeEventListener('pointerdown', onPointerDown);
+      host.removeEventListener('pointermove', onPointerMove);
+      host.removeEventListener('pointerup', onPointerUp);
+      host.removeEventListener('pointercancel', onPointerUp);
+    };
+  }, [anyZoomed]);
 
   const goToPage = useCallback(
     (page: number) => {

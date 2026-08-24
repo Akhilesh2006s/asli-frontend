@@ -291,7 +291,7 @@ export default function AITutor() {
       
       if (response.ok) {
         const data = await response.json();
-        return data.data || data || [];
+        return Array.isArray(data?.sessions) ? data.sessions : [];
       }
       return [];
     },
