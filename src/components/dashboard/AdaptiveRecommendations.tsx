@@ -74,12 +74,20 @@ interface AdaptiveCard {
 
 interface AdaptiveApiPayload {
   cards: AdaptiveCard[];
+  dailyPlan?: AdaptiveDailyPlan | null;
   meta?: {
     generatedAt?: string;
     reason?: string;
     examResultsAnalyzed?: number;
     libraryItemsLoaded?: number;
   };
+}
+
+interface AdaptiveDailyPlan {
+  subjectName: string;
+  focusTopic: string;
+  reason: string;
+  steps: Array<{ key: string; title: string; description: string; navigatePath: string }>;
 }
 
 function parseAdaptivePayload(json: Record<string, unknown>): AdaptiveApiPayload {
@@ -98,7 +106,8 @@ function parseAdaptivePayload(json: Record<string, unknown>): AdaptiveApiPayload
     payload && typeof payload === 'object' && 'meta' in payload
       ? (payload as AdaptiveApiPayload).meta
       : undefined;
-  return { cards, meta };
+  const dailyPlan = (payload as AdaptiveApiPayload)?.dailyPlan || null;
+  return { cards, meta, dailyPlan };
 }
 
 function getSubjectIcon(name: string) {
@@ -189,6 +198,7 @@ export default function AdaptiveRecommendations(_props: AdaptiveRecommendationsP
   const [, setLocation] = useLocation();
   const [cards, setCards] = useState<AdaptiveCard[]>([]);
   const [meta, setMeta] = useState<AdaptiveApiPayload['meta']>();
+  const [dailyPlan, setDailyPlan] = useState<AdaptiveDailyPlan | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [previewItem, setPreviewItem] = useState<RecommendedItem | null>(null);
@@ -214,11 +224,13 @@ export default function AdaptiveRecommendations(_props: AdaptiveRecommendationsP
       const payload = parseAdaptivePayload(json);
       setCards(payload.cards);
       setMeta(payload.meta);
+      setDailyPlan(payload.dailyPlan || null);
     } catch (e) {
       console.error('Adaptive learning fetch failed:', e);
       setError(e instanceof Error ? e.message : 'Could not load recommendations');
       setCards([]);
       setMeta(undefined);
+      setDailyPlan(null);
     } finally {
       setLoading(false);
     }
@@ -356,6 +368,26 @@ export default function AdaptiveRecommendations(_props: AdaptiveRecommendationsP
       <Card className="bg-gradient-to-br from-purple-50 via-blue-50 to-teal-50 border-2 border-purple-200 shadow-xl">
         <CardHeader>{headerBlock}</CardHeader>
         <CardContent className="space-y-3 sm:space-y-4 lg:space-y-6">
+          {dailyPlan ? (
+            <div className="rounded-xl border border-indigo-200 bg-white/90 p-4 shadow-sm">
+              <div className="mb-3 flex items-start gap-2">
+                <Brain className="mt-0.5 h-5 w-5 text-indigo-600" />
+                <div>
+                  <p className="font-semibold text-gray-900">Today’s plan: {dailyPlan.focusTopic}</p>
+                  <p className="text-xs text-gray-500">{dailyPlan.reason}</p>
+                </div>
+              </div>
+              <div className="grid gap-2 md:grid-cols-3">
+                {dailyPlan.steps.map((step, index) => (
+                  <button key={step.key} type="button" onClick={() => setLocation(step.navigatePath)} className="rounded-lg border border-indigo-100 bg-indigo-50/60 p-3 text-left transition hover:border-indigo-300 hover:bg-indigo-50">
+                    <p className="text-xs font-bold uppercase tracking-wide text-indigo-600">Step {index + 1}</p>
+                    <p className="mt-1 text-sm font-semibold text-gray-900">{step.title}</p>
+                    <p className="mt-1 text-xs text-gray-500">{step.description}</p>
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : null}
           {cards.map((rec) => {
             const displayContent = capAdaptiveRecommendationsPerSubject(rec.recommendedContent ?? []);
             const hasContent = displayContent.length > 0;

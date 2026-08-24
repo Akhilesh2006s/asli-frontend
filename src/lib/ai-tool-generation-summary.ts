@@ -11,6 +11,9 @@ export type AiToolGenerationMeta = {
   subTopic?: string;
   board?: string;
   gradeLevel?: string;
+  practiceExamId?: string;
+  practiceExamPath?: string;
+  practiceQuestionCount?: number;
 };
 
 export function buildAiToolGenerationSummary(

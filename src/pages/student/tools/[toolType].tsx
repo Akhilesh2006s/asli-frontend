@@ -728,6 +728,7 @@ export default function StudentToolPage() {
   const isMyStudyDecks = apiToolType === 'my-study-decks';
   const isFlashcardGenerator = apiToolType === 'flashcard-generator';
   const isMockTest = apiToolType === 'mock-test-builder';
+  const createsPracticeExam = isMockTest || apiToolType === 'smart-qa-practice-generator';
 
   const viewerRecord = useMemo(
     () =>
@@ -2143,6 +2144,16 @@ export default function StudentToolPage() {
             actions={
               generatedContent ? (
                 <div className="flex w-full flex-wrap gap-2">
+                  {createsPracticeExam && responseMeta?.practiceExamId ? (
+                    <Button
+                      size="sm"
+                      onClick={() => setLocation(responseMeta.practiceExamPath || `/student-exams?examId=${responseMeta.practiceExamId}`)}
+                      className="shrink-0"
+                    >
+                      <ClipboardList className="h-4 w-4" />
+                      Start Practice Exam
+                    </Button>
+                  ) : null}
                   <Button variant="outline" size="sm" onClick={handleCopy} className="shrink-0 bg-white">
                     {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                     {copied ? 'Copied' : 'Copy'}
@@ -2211,4 +2222,3 @@ export default function StudentToolPage() {
     </StudentShell>
   );
 }
-

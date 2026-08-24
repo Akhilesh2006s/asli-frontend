@@ -299,6 +299,10 @@ export function useVidyaChat({
       }
 
       if (isStudentMentorMode) {
+        const historyPayload = localMessagesRef.current
+          .filter((m) => m.role === "user" || m.role === "assistant")
+          .slice(-12)
+          .map((m) => ({ role: m.role, content: String(m.content || "").slice(0, 4000) }));
         const response = await fetch(`${API_BASE_URL}/api/vidya/student/chat`, {
           method: "POST",
           headers: {
@@ -308,6 +312,7 @@ export function useVidyaChat({
           body: JSON.stringify({
             message: data.message,
             studentId: userId,
+            history: historyPayload,
           }),
         });
 

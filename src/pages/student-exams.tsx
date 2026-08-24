@@ -104,6 +104,7 @@ interface Exam {
   title: string;
   description: string;
   examType: 'weekend' | 'mains' | 'advanced' | 'practice';
+  b2cPastPractice?: boolean;
   classNumber?: string;
   assignedClasses?: string[];
   duration: number;
@@ -570,7 +571,7 @@ export default function StudentExams() {
           const now = new Date();
           const startDate = new Date(exam.startDate);
           const endDate = new Date(exam.endDate);
-          return now >= startDate && now <= endDate;
+          return exam.b2cPastPractice === true || (now >= startDate && now <= endDate);
         })
         .sort((a, b) => {
           if (a.examType === 'practice' && b.examType !== 'practice') return -1;
@@ -930,6 +931,9 @@ export default function StudentExams() {
   };
 
   const getExamStatus = (exam: Exam) => {
+    if (exam.b2cPastPractice === true) {
+      return { status: 'active', color: 'bg-green-100 text-green-700' };
+    }
     const now = new Date();
     const startDate = new Date(exam.startDate);
     const endDate = new Date(exam.endDate);
