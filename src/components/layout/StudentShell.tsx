@@ -9,8 +9,6 @@ import {
 import { studentNav, type NavItem } from "@/lib/app-nav";
 import { getSchoolBranding } from "@/lib/school-branding";
 import { isIndividualAccount } from "@/lib/individual-signup";
-import { showTrialUpgrade } from "@/lib/individual-subscription";
-import { TrialUpgradeBanner } from "@/components/b2c/TrialUpgradeBanner";
 import { API_BASE_URL } from "@/lib/api-config";
 import {
   clearAuthData,
@@ -135,14 +133,6 @@ export function StudentShell({
           <FloatingParticles />
         </div>
         <div className={cn("relative z-10", contentClassName)}>
-          {showTrialUpgrade(user) ? (
-            <div className="px-4 pt-4 sm:px-6">
-              <TrialUpgradeBanner
-                daysLeft={user?.trialDaysLeft}
-                trialEndsAt={user?.trialEndsAt}
-              />
-            </div>
-          ) : null}
           {children}
         </div>
       </div>

@@ -63,6 +63,28 @@ interface StudyTimeData {
   weekStart: string;
 }
 
+function repairCorruptedDay(day: DailyData, now: number): void {
+  if (!day) return;
+  // Older tracker versions stored the exact 12-hour guard value after an
+  // orphaned tab was reopened. It is a corruption sentinel, not study time.
+  if ((Number(day.totalMinutes) || 0) >= CORRUPTED_DAILY_CAP_MINUTES) {
+    day.totalMinutes = 0;
+    day.sessions = [];
+    day.lastUpdate = now;
+    return;
+  }
+  if (!Array.isArray(day.sessions) || day.sessions.length === 0) return;
+  const open = day.sessions[day.sessions.length - 1];
+  if (open.endTime || now - open.startTime <= MAX_CONTINUOUS_SESSION_MS) return;
+  const creditedMinutes = Math.min(
+    MAX_ORPHAN_SESSION_MINUTES,
+    Math.max(0, Math.floor((now - open.startTime) / 60000)),
+  );
+  day.totalMinutes = (Number(day.totalMinutes) || 0) + creditedMinutes;
+  open.endTime = open.startTime + creditedMinutes * 60000;
+  day.lastUpdate = now;
+}
+
 /**
  * Get start of week (Monday)
  */
@@ -81,6 +103,7 @@ function getStudyTimeData(): StudyTimeData {
   const stored = localStorage.getItem(STORAGE_KEY);
   const TODAY_KEY = new Date().toDateString();
   const WEEK_START = getStartOfWeek(new Date()).toDateString();
+  const now = Date.now();
   
   let studyTimeData: StudyTimeData = {
     dailyData: {},
@@ -113,13 +136,15 @@ function getStudyTimeData(): StudyTimeData {
   if (!studyTimeData.dailyData) {
     studyTimeData.dailyData = {};
   }
+
+  Object.values(studyTimeData.dailyData).forEach((day) => repairCorruptedDay(day, now));
   
       // If it's a new day, initialize today's data
       if (!studyTimeData.dailyData[TODAY_KEY]) {
         studyTimeData.dailyData[TODAY_KEY] = {
           totalMinutes: 0,
           sessions: [],
-          lastUpdate: Date.now()
+          lastUpdate: now
         };
       } else {
         // Ensure sessions array exists for existing data
@@ -497,3 +522,6 @@ export function getWeeklyStudyData(): { [dateKey: string]: number } {
   return weeklyData;
 }
 
+const MAX_CONTINUOUS_SESSION_MS = 30 * 60 * 1000;
+const MAX_ORPHAN_SESSION_MINUTES = 5;
+const CORRUPTED_DAILY_CAP_MINUTES = 12 * 60;

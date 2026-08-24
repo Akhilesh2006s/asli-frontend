@@ -106,6 +106,8 @@ import { useTimetableEntries } from '@/hooks/useTimetable';
 import { format, startOfMonth, endOfMonth, startOfWeek, addDays, parseISO } from 'date-fns';
 import { getUser as getStoredUser, getStudentDisplayName, getAuthToken } from '@/lib/auth-utils';
 import { isIndividualAccount } from '@/lib/individual-signup';
+import { showTrialUpgrade } from '@/lib/individual-subscription';
+import { TrialUpgradeBanner } from '@/components/b2c/TrialUpgradeBanner';
 import StudentShell from '@/components/layout/StudentShell';
 import StatCard from '@/components/dashboard/StatCard';
 import { fetchAuthUser, peekCachedAuthUser } from '@/lib/auth-session';
@@ -480,11 +482,12 @@ export default function Dashboard() {
   }, [homeworkSubmissions]);
   const [studyTimeToday, setStudyTimeToday] = useState<number>(() => {
     const cached = initialDashboardStatsCache?.studyTimeToday ?? 0;
-    return Math.max(cached, getTodayStudyTime());
+    return Math.max(cached >= MAX_STUDY_MINUTES_PER_DAY ? 0 : cached, getTodayStudyTime());
   });
   const [studyTimeThisWeek, setStudyTimeThisWeek] = useState<number>(() => {
     const cached = initialDashboardStatsCache?.studyTimeThisWeek ?? 0;
-    return Math.max(cached, getWeeklyStudyTime());
+    const cachedToday = initialDashboardStatsCache?.studyTimeToday ?? 0;
+    return Math.max(cachedToday >= MAX_STUDY_MINUTES_PER_DAY ? 0 : cached, getWeeklyStudyTime());
   });
   const [weeklyStudyData, setWeeklyStudyData] = useState<{ [key: string]: number }>({}); // Daily study time in minutes
   const sessionTimeBaselineRef = useRef(buildSessionTimeBaselineFromCache());
@@ -1966,6 +1969,15 @@ export default function Dashboard() {
     <StudentShell>
       <div>
         <div className="relative w-full">
+
+        {showTrialUpgrade(user) ? (
+          <div className="relative z-10 mb-6">
+            <TrialUpgradeBanner
+              daysLeft={user?.trialDaysLeft}
+              trialEndsAt={user?.trialEndsAt}
+            />
+          </div>
+        ) : null}
 
         {/* Welcome Section */}
         <div className="relative z-10 mb-6">

@@ -18,7 +18,6 @@ import {
   FileText,
   Key,
   ClipboardList,
-  CheckCircle2,
   Layout,
   ArrowRight,
   Sparkles
@@ -99,13 +98,6 @@ export default function AITutor() {
       icon: BookMarked,
       color: 'from-pink-400 to-pink-500',
       description: 'Create personalized flashcards for revision'
-    },
-    {
-      id: 'mock-test-builder',
-      name: 'Mock Test Builder',
-      icon: CheckCircle2,
-      color: 'from-red-400 to-red-500',
-      description: 'Generate mock tests with exam-style questions'
     },
     {
       id: 'project-idea-lab',

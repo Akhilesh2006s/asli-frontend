@@ -11,6 +11,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import StudentShell from "@/components/layout/StudentShell";
 import { 
   Clock, 
@@ -23,7 +24,8 @@ import {
   Target,
   Award,
   TrendingUp,
-  Eye
+  Eye,
+  Sparkles
 } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLocation } from 'wouter';
@@ -46,6 +48,7 @@ import { dedupeStudentExamResults } from '@/lib/dedupe-exam-results';
 import { getUserIdFromAuthToken, getAuthToken } from '@/lib/auth-utils';
 import { isIndividualAccount } from '@/lib/individual-signup';
 import { readLocalExamDraft } from '@/lib/exam-attempt-draft';
+import { useCurriculumCascade } from '@/hooks/use-curriculum-cascade';
 
 /** Accent schemes for exam cards — full colored border + tinted meta icons */
 const EXAM_CARD_SCHEMES = [
@@ -127,6 +130,13 @@ interface Exam {
   resumesRemaining?: number;
 }
 
+function removeInternalAccountLabels(value: unknown): string {
+  return String(value || '')
+    .replace(/\bB2C\b\s*/gi, '')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+}
+
 interface ExamResult {
   _id?: string;
   examId: string;
@@ -195,6 +205,12 @@ export default function StudentExams() {
   const [startingExamId, setStartingExamId] = useState<string | null>(null);
   const [postExamVidyaPrompt, setPostExamVidyaPrompt] = useState('');
   const [postExamPromptId, setPostExamPromptId] = useState<string | null>(null);
+  const [showGenerateExam, setShowGenerateExam] = useState(false);
+  const [generateBoard, setGenerateBoard] = useState('CBSE');
+  const [generateSubject, setGenerateSubject] = useState('');
+  const [generateTopic, setGenerateTopic] = useState('');
+  const [generateQuestionCount, setGenerateQuestionCount] = useState('10');
+  const [isGeneratingExam, setIsGeneratingExam] = useState(false);
   /** Per-exam selected attempt row id on Attempted Exams cards */
   const [selectedAttemptByExam, setSelectedAttemptByExam] = useState<Record<string, string>>({});
   const pendingOpenExamIdRef = useRef<string | null>(null);
@@ -208,10 +224,12 @@ export default function StudentExams() {
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    const examId = new URLSearchParams(window.location.search).get('examId');
+    const searchParams = new URLSearchParams(window.location.search);
+    const examId = searchParams.get('examId');
     if (examId?.trim()) {
       pendingOpenExamIdRef.current = examId.trim();
     }
+    if (searchParams.get('generate') === '1') setShowGenerateExam(true);
   }, []);
 
   const preserveScrollOnFilterChange = (setter: (value: string) => void, value: string) => {
@@ -224,6 +242,37 @@ export default function StudentExams() {
       ''
   );
   const isB2cStudent = isIndividualAccount(user);
+  const examGeneratorCascade = useCurriculumCascade(
+    studentClassNumber ? `Class ${studentClassNumber}` : undefined,
+    generateSubject || undefined,
+    generateTopic || undefined,
+    generateBoard,
+  );
+
+  const generatePersonalExam = async () => {
+    setIsGeneratingExam(true);
+    try {
+      const response = await apiFetch('/api/student/exams/generate-personal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          board: generateBoard,
+          subject: generateSubject,
+          topic: generateTopic,
+          questionCount: Number(generateQuestionCount),
+          classNumber: studentClassNumber,
+        }),
+      });
+      const json = await response.json();
+      if (!response.ok || !json?.data?.examId) throw new Error(json?.message || 'Could not generate exam');
+      toast({ title: 'Exam ready', description: `${json.data.questionCount} saved questions collected.` });
+      window.location.assign(`/student-exams?examId=${json.data.examId}`);
+    } catch (error) {
+      toast({ title: 'Could not generate exam', description: error instanceof Error ? error.message : 'Please try again.', variant: 'destructive' });
+    } finally {
+      setIsGeneratingExam(false);
+    }
+  };
 
   /** Stable id for React Query keys so another user's cached exam/results never flash after login switch. */
   const studentId =
@@ -406,7 +455,13 @@ export default function StudentExams() {
   });
 
   // Ensure exams is always an array
-  const exams = Array.isArray(examsData) ? examsData : [];
+  const exams = Array.isArray(examsData)
+    ? examsData.map((exam: Exam) => ({
+        ...exam,
+        title: removeInternalAccountLabels(exam.title) || 'Exam',
+        description: removeInternalAccountLabels(exam.description),
+      }))
+    : [];
 
   /** Deep-link from Adaptive Learning recommendations */
   useEffect(() => {
@@ -1127,6 +1182,12 @@ export default function StudentExams() {
                 ? 'Take class-wise practice exams tied to your Board or Asli Prep Alpha / Beta / Gamma track. Attempt, review, and come back — this is how you stay on the platform.'
                 : 'Take practice exams, review your attempts and see where you rank.'}
             </p>
+            {isB2cStudent ? (
+              <Button className="mt-5 bg-orange-600 text-white hover:bg-orange-700" onClick={() => setShowGenerateExam(true)}>
+                <Sparkles className="h-4 w-4" />
+                Generate Exam
+              </Button>
+            ) : null}
             <div className="mt-6 flex flex-wrap gap-3">
               {[
                 { value: availableActiveExams.length, label: availableActiveExams.length === 1 ? 'Available exam' : 'Available exams', Icon: Target },
@@ -1145,6 +1206,22 @@ export default function StudentExams() {
             </div>
           </div>
         </div>
+
+        <Dialog open={showGenerateExam} onOpenChange={setShowGenerateExam}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle>Generate your exam</DialogTitle>
+              <DialogDescription>Build a scored exam from questions already available for your class and topic.</DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-2">
+              <div className="grid gap-1.5"><Label>Board / Track</Label><Select value={generateBoard} onValueChange={(value) => { setGenerateBoard(value); setGenerateSubject(''); setGenerateTopic(''); }}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="CBSE">CBSE</SelectItem><SelectItem value="IIT">IIT</SelectItem></SelectContent></Select></div>
+              <div className="grid gap-1.5"><Label>Subject</Label><Select value={generateSubject} onValueChange={(value) => { setGenerateSubject(value); setGenerateTopic(''); }}><SelectTrigger><SelectValue placeholder={examGeneratorCascade.loadingSubjects ? 'Loading subjects...' : 'Select subject'} /></SelectTrigger><SelectContent>{examGeneratorCascade.subjects.map((item) => <SelectItem key={item} value={item}>{item}</SelectItem>)}</SelectContent></Select></div>
+              <div className="grid gap-1.5"><Label>Topic</Label><Select value={generateTopic} onValueChange={setGenerateTopic} disabled={!generateSubject || examGeneratorCascade.loadingTopics}><SelectTrigger className="overflow-hidden [&>span]:truncate"><SelectValue placeholder={examGeneratorCascade.loadingTopics ? 'Loading topics...' : 'Select topic'} /></SelectTrigger><SelectContent>{examGeneratorCascade.topics.map((item) => <SelectItem key={item} value={item}>{item}</SelectItem>)}</SelectContent></Select></div>
+              <div className="grid gap-1.5"><Label>Number of questions</Label><Select value={generateQuestionCount} onValueChange={setGenerateQuestionCount}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{['10','15','20'].map((item) => <SelectItem key={item} value={item}>{item} questions</SelectItem>)}</SelectContent></Select></div>
+              <Button onClick={generatePersonalExam} disabled={!generateSubject || !generateTopic || isGeneratingExam}>{isGeneratingExam ? 'Collecting saved questions...' : 'Generate and start exam'}</Button>
+            </div>
+          </DialogContent>
+        </Dialog>
 
         <div className="mb-8">
           <div className="flex flex-wrap items-center gap-2">
@@ -1325,11 +1402,11 @@ export default function StudentExams() {
                 </h3>
                 <p className="text-gray-600">
                   {isB2cStudent
-                    ? `Practice papers for${studentClassNumber ? ` Class ${studentClassNumber}` : ' your class'} appear here when Super Admin publishes a public practice exam for your Board or IIT track.`
+                    ? `Practice papers for${studentClassNumber ? ` Class ${studentClassNumber}` : ' your class'} appear here when they are available for your Board or IIT track.`
                     : `No active exams for${studentClassNumber ? ` Class ${studentClassNumber}` : ' your class'} are open right now${
                         subjectFilteredExams.some((e) => getExamStatus(e).status === 'upcoming')
                           ? '. Check the Upcoming tab for scheduled exams.'
-                          : '. Scheduled Super Admin exams appear here when they match your school, board, and class, and questions have been uploaded.'
+                          : '. Scheduled exams appear here when they match your school, board, and class, and questions are available.'
                       }`}
                 </p>
               </div>
