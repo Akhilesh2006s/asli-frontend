@@ -377,6 +377,7 @@ function PdfMobilePage({
           pageWidth={baseWidth}
           pageHeight={baseHeight}
           onZoomChange={handlePageZoom}
+          scrollParentRef={scrollRoot}
         >
           <PdfPageCanvas canvasRef={canvasRef} />
         </PdfPagePinchFrame>
@@ -593,18 +594,22 @@ const PdfMobileScrollViewer = forwardRef<PdfMobileScrollViewerHandle, PdfMobileS
       pointerId: -1,
     };
 
-    const onPointerDown = (event: PointerEvent) => {
-      if (event.pointerType === 'touch' || event.button !== 0) return;
-      // Let the page frame handle its own drag; still allow gray-area pans.
-      const target = event.target as HTMLElement | null;
-      if (target?.closest?.('.pdf-page-pinch-frame')) return;
+    const startFromEvent = (clientX: number, clientY: number, pointerId: number) => {
       drag.active = true;
-      drag.x = event.clientX;
-      drag.y = event.clientY;
+      drag.x = clientX;
+      drag.y = clientY;
       drag.left = host.scrollLeft;
       drag.top = host.scrollTop;
-      drag.pointerId = event.pointerId;
+      drag.pointerId = pointerId;
       host.style.cursor = 'grabbing';
+    };
+
+    const onPointerDown = (event: PointerEvent) => {
+      if (event.button !== 0) return;
+      const target = event.target as HTMLElement | null;
+      // Page frame handles its own drag; still allow gray-area pans (mouse + touch).
+      if (target?.closest?.('.pdf-page-pinch-frame')) return;
+      startFromEvent(event.clientX, event.clientY, event.pointerId);
       try {
         host.setPointerCapture(event.pointerId);
       } catch {
@@ -699,14 +704,17 @@ const PdfMobileScrollViewer = forwardRef<PdfMobileScrollViewerHandle, PdfMobileS
     <div className={`relative h-full w-full ${className}`}>
       <div
         ref={scrollRef}
-        className={`pdf-book-scroll h-full w-full touch-manipulation overscroll-y-contain ${
+        className={`pdf-book-scroll h-full w-full overscroll-contain ${
           scrollLocked
             ? 'overflow-hidden'
             : 'overflow-y-auto overflow-x-auto'
-        } ${anyZoomed ? '' : 'hide-scrollbar'}`}
+        } ${anyZoomed ? '' : 'hide-scrollbar touch-pan-y'}`}
         style={{
           WebkitOverflowScrolling: 'touch',
-          scrollSnapType: scrollLocked || anyZoomed ? undefined : 'y mandatory',
+          // Disable page snap while zoomed so 2D pan is smooth.
+          scrollSnapType: scrollLocked || anyZoomed ? 'none' : 'y mandatory',
+          // Native 2D scroll for gray areas; page frame still owns pinch/drag via JS.
+          touchAction: anyZoomed ? 'pan-x pan-y' : 'pan-y',
         }}
       >
         {Array.from({ length: totalPages }, (_, index) => {

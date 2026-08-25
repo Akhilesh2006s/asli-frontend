@@ -6,6 +6,7 @@ import {
   useRef,
   useState,
   type ReactNode,
+  type RefObject,
 } from 'react';
 
 const MIN_SCALE = 1;
@@ -27,6 +28,8 @@ type Props = {
   pageHeight: number;
   onZoomChange: (zoomed: boolean, scale?: number) => void;
   children: ReactNode;
+  /** Preferred scroll host for pan (avoids fragile parent walk). */
+  scrollParentRef?: RefObject<HTMLElement | null>;
 };
 
 function touchDistance(touches: TouchList): number {
@@ -37,11 +40,11 @@ function touchDistance(touches: TouchList): number {
 }
 
 /**
- * Page grows on screen when zoomed (frame expands) — immersive, no white card clip.
- * Pinch / Ctrl+wheel / +/- zoom; pan via parent scroll (mouse drag + one-finger touch).
+ * Page grows on screen when zoomed. Pinch / Ctrl+wheel / +/- zoom;
+ * pan via the scroll parent (mouse drag + one-finger touch) in all directions.
  */
 const PdfPagePinchFrame = forwardRef<PdfPagePinchFrameHandle, Props>(function PdfPagePinchFrame(
-  { pageWidth, pageHeight, onZoomChange, children },
+  { pageWidth, pageHeight, onZoomChange, children, scrollParentRef },
   ref,
 ) {
   const frameRef = useRef<HTMLDivElement>(null);
@@ -87,6 +90,9 @@ const PdfPagePinchFrame = forwardRef<PdfPagePinchFrameHandle, Props>(function Pd
   const frameH = Math.max(1, Math.round(pageHeight * scale));
 
   const findScrollParent = useCallback((): HTMLElement | null => {
+    const preferred = scrollParentRef?.current ?? null;
+    if (preferred) return preferred;
+
     let el: HTMLElement | null = frameRef.current?.parentElement ?? null;
     while (el) {
       const style = window.getComputedStyle(el);
@@ -104,7 +110,7 @@ const PdfPagePinchFrame = forwardRef<PdfPagePinchFrameHandle, Props>(function Pd
       el = el.parentElement;
     }
     return null;
-  }, []);
+  }, [scrollParentRef]);
 
   const applyScale = useCallback(
     (next: number) => {
@@ -114,16 +120,18 @@ const PdfPagePinchFrame = forwardRef<PdfPagePinchFrameHandle, Props>(function Pd
       setScale(clamped);
       onZoomChange(clamped > ZOOM_EPSILON, clamped);
 
-      // Keep the page centered in the scroll parent while it grows/shrinks.
+      // Keep the focal point centered in the scroll parent while the page grows/shrinks.
       requestAnimationFrame(() => {
         const scrollEl = findScrollParent();
         const frame = frameRef.current;
         if (!scrollEl || !frame || prev <= 0) return;
         const ratio = clamped / prev;
+        const frameRect = frame.getBoundingClientRect();
+        const scrollRect = scrollEl.getBoundingClientRect();
         const viewCX = scrollEl.scrollLeft + scrollEl.clientWidth / 2;
         const viewCY = scrollEl.scrollTop + scrollEl.clientHeight / 2;
-        const frameLeft = frame.offsetLeft;
-        const frameTop = frame.offsetTop;
+        const frameLeft = frameRect.left - scrollRect.left + scrollEl.scrollLeft;
+        const frameTop = frameRect.top - scrollRect.top + scrollEl.scrollTop;
         const relX = viewCX - frameLeft;
         const relY = viewCY - frameTop;
         scrollEl.scrollLeft = frameLeft + relX * ratio - scrollEl.clientWidth / 2;
@@ -217,17 +225,19 @@ const PdfPagePinchFrame = forwardRef<PdfPagePinchFrameHandle, Props>(function Pd
         onZoomChange(true);
         return;
       }
-      // One-finger pan while zoomed (parent scroll).
       if (event.touches.length === 1 && scaleRef.current > ZOOM_EPSILON) {
         const t = event.touches[0];
         const scrollEl = findScrollParent();
+        if (!scrollEl) return;
+        // Own the gesture so the browser does not steal vertical page-snap scroll.
+        event.preventDefault();
         touchPanRef.current = {
           active: true,
           x: t.clientX,
           y: t.clientY,
           scrollEl,
-          left: scrollEl?.scrollLeft ?? 0,
-          top: scrollEl?.scrollTop ?? 0,
+          left: scrollEl.scrollLeft,
+          top: scrollEl.scrollTop,
         };
       }
     };
@@ -308,6 +318,12 @@ const PdfPagePinchFrame = forwardRef<PdfPagePinchFrameHandle, Props>(function Pd
 
     const onPointerMove = (event: PointerEvent) => {
       if (!dragRef.current.active || event.pointerType === 'touch') return;
+      if (
+        dragRef.current.pointerId != null &&
+        event.pointerId !== dragRef.current.pointerId
+      ) {
+        return;
+      }
       event.preventDefault();
       moveScrollDrag(event.clientX, event.clientY);
     };
@@ -349,6 +365,7 @@ const PdfPagePinchFrame = forwardRef<PdfPagePinchFrameHandle, Props>(function Pd
     frame.addEventListener('pointermove', onPointerMove);
     frame.addEventListener('pointerup', onPointerUp);
     frame.addEventListener('pointercancel', onPointerUp);
+    frame.addEventListener('lostpointercapture', onPointerUp);
     frame.addEventListener('dblclick', onDblClick);
     frame.addEventListener('dragstart', onDragStart);
 
@@ -362,6 +379,7 @@ const PdfPagePinchFrame = forwardRef<PdfPagePinchFrameHandle, Props>(function Pd
       frame.removeEventListener('pointermove', onPointerMove);
       frame.removeEventListener('pointerup', onPointerUp);
       frame.removeEventListener('pointercancel', onPointerUp);
+      frame.removeEventListener('lostpointercapture', onPointerUp);
       frame.removeEventListener('dblclick', onDblClick);
       frame.removeEventListener('dragstart', onDragStart);
     };
@@ -377,11 +395,14 @@ const PdfPagePinchFrame = forwardRef<PdfPagePinchFrameHandle, Props>(function Pd
       style={{
         width: `${frameW}px`,
         height: `${frameH}px`,
+        // When zoomed, own all gestures so 2D pan is not stolen by page snap / parents.
         touchAction: zoomed ? 'none' : 'pan-y',
         cursor: zoomed ? 'grab' : 'zoom-in',
         zIndex: zoomed ? 5 : 1,
+        WebkitUserSelect: 'none',
+        userSelect: 'none',
       }}
-      aria-label="PDF page — zoom expands on screen"
+      aria-label="PDF page — pinch or Ctrl+scroll to zoom, drag to pan"
       title="Ctrl+scroll or +/- to zoom · drag to pan when zoomed"
     >
       <div

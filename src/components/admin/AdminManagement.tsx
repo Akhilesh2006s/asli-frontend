@@ -21,6 +21,19 @@ import {
   sanitizePincodeInput,
   schoolAddressFieldError,
 } from "@/lib/contact-validation";
+import {
+  defaultSchoolRoleAccess,
+  schoolRoleAccessFromAdmin,
+  buildRoleAccessPayload,
+  validateRoleAccessState,
+  SCHOOL_PORTAL_FEATURE_IDS,
+  isUnlimitedPortalAccess,
+  type SchoolRoleAccessState,
+} from "@/lib/school-role-access";
+import {
+  SchoolRoleAccessPanel,
+  type RoleKey,
+} from "@/components/admin/SchoolRoleAccessPanel";
 
 /** Visible borders/background on white dialogs (muted/40 was nearly invisible). */
 const SCHOOL_FORM_FIELD_CLASS =
@@ -31,153 +44,6 @@ const SCHOOL_DIALOG_CONTENT_CLASS =
   "flex max-h-[min(100dvh,100svh)] w-[min(96vw,42rem)] max-w-[min(96vw,42rem)] translate-x-[-50%] translate-y-[-50%] flex-col gap-0 overflow-hidden p-0 sm:max-h-[94vh] sm:w-[min(94vw,56rem)] sm:max-w-[min(94vw,56rem)] md:w-[min(92vw,64rem)] md:max-w-[min(92vw,64rem)] lg:w-[min(90vw,72rem)] lg:max-w-[min(90vw,72rem)] xl:w-[min(88vw,80rem)] xl:max-w-[min(88vw,80rem)] 2xl:w-[min(86vw,88rem)] 2xl:max-w-[min(86vw,88rem)]";
 
 const SCHOOL_FORM_GRID_CLASS = "grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3";
-
-const DEFAULT_SCHOOL_VIDYA_USAGE = {
-  vidyaUsageMode: 'unlimited' as 'unlimited' | 'limited',
-  vidyaLimitChatbot: false,
-  vidyaLimitTools: false,
-  vidyaChatPerDay: 10,
-  vidyaGenerationsPerDay: 10,
-};
-
-type SchoolVidyaUsageFields = typeof DEFAULT_SCHOOL_VIDYA_USAGE;
-
-function SchoolVidyaUsageControls({
-  idPrefix,
-  value,
-  onChange,
-}: {
-  idPrefix: string;
-  value: SchoolVidyaUsageFields;
-  onChange: (next: SchoolVidyaUsageFields) => void;
-}) {
-  const limited = value.vidyaUsageMode === 'limited';
-  return (
-    <div className="space-y-3 rounded-lg border border-sky-100 bg-sky-50/50 p-4">
-      <div>
-        <h4 className="text-sm font-semibold text-slate-900">Vidya usage limits</h4>
-        <p className="mt-1 text-xs text-slate-600">
-          Unlimited = no daily caps. Limited = choose chatbot, AI tools, or both, and set how many
-          each student/teacher may use per 24 hours (rolling reset).
-        </p>
-      </div>
-      <div className="flex flex-wrap gap-2">
-        <Button
-          type="button"
-          size="sm"
-          variant={value.vidyaUsageMode === 'unlimited' ? 'default' : 'outline'}
-          className={cn(
-            value.vidyaUsageMode === 'unlimited' && 'bg-emerald-600 hover:bg-emerald-700',
-          )}
-          onClick={() =>
-            onChange({
-              ...value,
-              vidyaUsageMode: 'unlimited',
-              vidyaLimitChatbot: false,
-              vidyaLimitTools: false,
-            })
-          }
-        >
-          Vidya unlimited
-        </Button>
-        <Button
-          type="button"
-          size="sm"
-          variant={limited ? 'default' : 'outline'}
-          className={cn(limited && 'bg-amber-600 hover:bg-amber-700')}
-          onClick={() =>
-            onChange({
-              ...value,
-              vidyaUsageMode: 'limited',
-              vidyaLimitChatbot: value.vidyaLimitChatbot || !value.vidyaLimitTools,
-              vidyaLimitTools: value.vidyaLimitTools,
-            })
-          }
-        >
-          Vidya limited
-        </Button>
-      </div>
-
-      {limited ? (
-        <div className="space-y-3 rounded-md border border-amber-200/80 bg-white/80 p-3">
-          <p className="text-xs font-medium text-slate-700">Apply limits to</p>
-          <div className="flex flex-col gap-2 sm:flex-row sm:gap-6">
-            <label className="flex items-center gap-2 text-sm text-slate-800">
-              <Checkbox
-                id={`${idPrefix}-limit-chat`}
-                checked={value.vidyaLimitChatbot}
-                onCheckedChange={(c) =>
-                  onChange({ ...value, vidyaLimitChatbot: c === true })
-                }
-              />
-              Vidya AI chatbot
-            </label>
-            <label className="flex items-center gap-2 text-sm text-slate-800">
-              <Checkbox
-                id={`${idPrefix}-limit-tools`}
-                checked={value.vidyaLimitTools}
-                onCheckedChange={(c) =>
-                  onChange({ ...value, vidyaLimitTools: c === true })
-                }
-              />
-              AI tools (generations)
-            </label>
-          </div>
-          {!value.vidyaLimitChatbot && !value.vidyaLimitTools ? (
-            <p className="text-xs text-amber-700">
-              Select at least one: chatbot and/or AI tools.
-            </p>
-          ) : null}
-          <div className="grid gap-3 sm:grid-cols-2">
-            {value.vidyaLimitChatbot ? (
-              <div className="space-y-1.5">
-                <Label htmlFor={`${idPrefix}-chat-per-day`}>Chats per day (24h)</Label>
-                <Input
-                  id={`${idPrefix}-chat-per-day`}
-                  type="number"
-                  min={1}
-                  max={10000}
-                  className={SCHOOL_FORM_FIELD_CLASS}
-                  value={value.vidyaChatPerDay}
-                  onChange={(e) =>
-                    onChange({
-                      ...value,
-                      vidyaChatPerDay: Math.max(1, Math.floor(Number(e.target.value) || 1)),
-                    })
-                  }
-                />
-              </div>
-            ) : null}
-            {value.vidyaLimitTools ? (
-              <div className="space-y-1.5">
-                <Label htmlFor={`${idPrefix}-gen-per-day`}>Generations per day (24h)</Label>
-                <Input
-                  id={`${idPrefix}-gen-per-day`}
-                  type="number"
-                  min={1}
-                  max={10000}
-                  className={SCHOOL_FORM_FIELD_CLASS}
-                  value={value.vidyaGenerationsPerDay}
-                  onChange={(e) =>
-                    onChange({
-                      ...value,
-                      vidyaGenerationsPerDay: Math.max(
-                        1,
-                        Math.floor(Number(e.target.value) || 1),
-                      ),
-                    })
-                  }
-                />
-              </div>
-            ) : null}
-          </div>
-        </div>
-      ) : (
-        <p className="text-xs text-emerald-800">No daily Vidya chat or generation caps for this school.</p>
-      )}
-    </div>
-  );
-}
 
 function syncIitTracksForClassRange<T extends {
   iitCategories: string[];
@@ -316,6 +182,17 @@ interface Admin {
   secondaryContactPhone?: string;
   schoolDetails?: SchoolDetailsForm;
   permissions: string[];
+  teacherPermissions?: string[];
+  studentPermissions?: string[];
+  vidyaEnabledForAdmins?: boolean;
+  vidyaEnabledForTeachers?: boolean;
+  vidyaEnabledForStudents?: boolean;
+  vidyaRolePolicies?: Record<string, any>;
+  vidyaUsageMode?: 'unlimited' | 'limited';
+  vidyaLimitChatbot?: boolean;
+  vidyaLimitTools?: boolean;
+  vidyaChatPerDay?: number;
+  vidyaGenerationsPerDay?: number;
   status: string;
   joinDate: string;
   licensedStudents?: number;
@@ -368,98 +245,6 @@ const isValidOptionalPhone = (phone: string) => {
   const digits = sanitizePhoneInput(phone);
   return digits.length === 0 || digits.length === 10;
 };
-
-/** Admin portal modules — `id` must match backend `ALLOWED_SCHOOL_PORTAL_PERMISSIONS` in superAdminValidator.js */
-const SCHOOL_PORTAL_MODULE_GROUPS: {
-  category: string;
-  modules: { id: string; title: string; description: string }[];
-}[] = [
-  {
-    category: "Core",
-    modules: [
-      {
-        id: "User Management",
-        title: "User management",
-        description: "Students, teachers, classes, and class dashboards.",
-      },
-      {
-        id: "Content Management",
-        title: "Content management",
-        description: "Subjects, curriculum content, uploads, and learning materials.",
-      },
-      {
-        id: "Analytics",
-        title: "Analytics",
-        description: "Overview stats, performance metrics, and reports.",
-      },
-    ],
-  },
-  {
-    category: "Teaching & learning",
-    modules: [
-      {
-        id: "Exam Management",
-        title: "Exam management",
-        description: "Exam visibility, scheduling, and exam-related tools.",
-      },
-      {
-        id: "Learning Paths",
-        title: "Learning paths",
-        description: "Structured learning paths and progression.",
-      },
-      {
-        id: "School Calendar",
-        title: "School calendar",
-        description: "Calendar events and school schedule.",
-      },
-      {
-        id: "Vidya AI",
-        title: "Vidya AI",
-        description: "AI tutor / assistant for the school portal.",
-      },
-      {
-        id: "Edu OTT",
-        title: "Edu OTT & video",
-        description: "Video library and Edu OTT content.",
-      },
-    ],
-  },
-  {
-    category: "Account & billing",
-    modules: [
-      {
-        id: "Subscriptions",
-        title: "Subscriptions",
-        description: "Plans, billing, and subscription management.",
-      },
-      {
-        id: "Settings",
-        title: "Settings",
-        description: "School profile and portal configuration.",
-      },
-    ],
-  },
-];
-
-const SCHOOL_PORTAL_FEATURE_IDS = SCHOOL_PORTAL_MODULE_GROUPS.flatMap((g) => g.modules.map((m) => m.id));
-
-function isUnlimitedPortalAccess(perms: string[] | undefined): boolean {
-  if (!perms || perms.length === 0) return true;
-  const set = new Set(perms);
-  return SCHOOL_PORTAL_FEATURE_IDS.every((f) => set.has(f));
-}
-
-function resolvePortalPermissions(
-  mode: "unlimited" | "limited",
-  selected: string[]
-): string[] {
-  if (mode === "unlimited") return [...SCHOOL_PORTAL_FEATURE_IDS];
-  return SCHOOL_PORTAL_FEATURE_IDS.filter((f) => selected.includes(f));
-}
-
-function portalCheckboxId(prefix: string, moduleId: string) {
-  return `${prefix}-${moduleId.replace(/[^a-zA-Z0-9]+/g, "-").replace(/^-|-$/g, "")}`;
-}
 
 /** Values stored as `curriculumBoard` / non–Asli Prep `board`. */
 const FALLBACK_CURRICULUM_BOARD_CODES = ["CBSE", "STATE", "SSC", "ICSE", "IB", "CAMBRIDGE"] as const;
@@ -626,12 +411,11 @@ export default function AdminManagement() {
     secondaryContactPerson: '',
     secondaryContactPhone: '',
     schoolDetails: emptySchoolDetails(),
-    accessMode: 'unlimited' as 'unlimited' | 'limited',
-    limitedFeatures: [...SCHOOL_PORTAL_FEATURE_IDS] as string[],
-    vidyaEnabledForTeachers: true,
-    vidyaEnabledForStudents: true,
-    ...DEFAULT_SCHOOL_VIDYA_USAGE,
   });
+  const [newRoleAccess, setNewRoleAccess] = useState<SchoolRoleAccessState>(() =>
+    defaultSchoolRoleAccess()
+  );
+  const [newRoleTab, setNewRoleTab] = useState<RoleKey>('admin');
   const [showNewAdminPassword, setShowNewAdminPassword] = useState(false);
   const [showEditPasswordChange, setShowEditPasswordChange] = useState(false);
   const [editNewPassword, setEditNewPassword] = useState("");
@@ -664,12 +448,11 @@ export default function AdminManagement() {
     secondaryContactPhone: '',
     schoolDetails: emptySchoolDetails(),
     isActive: true,
-    accessMode: 'unlimited' as 'unlimited' | 'limited',
-    limitedFeatures: [...SCHOOL_PORTAL_FEATURE_IDS] as string[],
-    vidyaEnabledForTeachers: true,
-    vidyaEnabledForStudents: true,
-    ...DEFAULT_SCHOOL_VIDYA_USAGE,
   });
+  const [editRoleAccess, setEditRoleAccess] = useState<SchoolRoleAccessState>(() =>
+    defaultSchoolRoleAccess()
+  );
+  const [editRoleTab, setEditRoleTab] = useState<RoleKey>('admin');
   const [isUploadingAddLogo, setIsUploadingAddLogo] = useState(false);
   const [isUploadingEditLogo, setIsUploadingEditLogo] = useState(false);
   const mapAdminState = (admin: any): Admin => {
@@ -911,26 +694,11 @@ export default function AdminManagement() {
       return;
     }
 
-    if (
-      newAdmin.accessMode === "limited" &&
-      resolvePortalPermissions("limited", newAdmin.limitedFeatures).length === 0
-    ) {
+    const roleAccessError = validateRoleAccessState(newRoleAccess);
+    if (roleAccessError) {
       toast({
-        title: "Portal access",
-        description: "Select at least one module for limited access, or choose unlimited access.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (
-      newAdmin.vidyaUsageMode === 'limited' &&
-      !newAdmin.vidyaLimitChatbot &&
-      !newAdmin.vidyaLimitTools
-    ) {
-      toast({
-        title: "Vidya usage limits",
-        description: "Select chatbot and/or AI tools, or choose Vidya unlimited.",
+        title: "Role access",
+        description: roleAccessError,
         variant: "destructive",
       });
       return;
@@ -989,14 +757,7 @@ export default function AdminManagement() {
         secondaryContactPerson: newAdmin.secondaryContactPerson?.trim() || '',
         secondaryContactPhone: sanitizePhoneInput(newAdmin.secondaryContactPhone),
         pin: sanitizePincodeInput(newAdmin.pin),
-        permissions: resolvePortalPermissions(newAdmin.accessMode, newAdmin.limitedFeatures),
-        vidyaEnabledForTeachers: newAdmin.vidyaEnabledForTeachers,
-        vidyaEnabledForStudents: newAdmin.vidyaEnabledForStudents,
-        vidyaUsageMode: newAdmin.vidyaUsageMode,
-        vidyaLimitChatbot: newAdmin.vidyaLimitChatbot,
-        vidyaLimitTools: newAdmin.vidyaLimitTools,
-        vidyaChatPerDay: newAdmin.vidyaChatPerDay,
-        vidyaGenerationsPerDay: newAdmin.vidyaGenerationsPerDay,
+        ...buildRoleAccessPayload(newRoleAccess),
         schoolDetails: {
           ...sd,
           state: newAdmin.state
@@ -1047,12 +808,9 @@ export default function AdminManagement() {
           secondaryContactPerson: '',
           secondaryContactPhone: '',
           schoolDetails: emptySchoolDetails(),
-          accessMode: "unlimited",
-          limitedFeatures: [...SCHOOL_PORTAL_FEATURE_IDS],
-          vidyaEnabledForTeachers: true,
-          vidyaEnabledForStudents: true,
-          ...DEFAULT_SCHOOL_VIDYA_USAGE,
         });
+        setNewRoleAccess(defaultSchoolRoleAccess());
+        setNewRoleTab('admin');
         setShowNewAdminPassword(false);
         setIsAddDialogOpen(false);
         toast({
@@ -1147,8 +905,6 @@ export default function AdminManagement() {
     resetEditPasswordUi();
     setEditingAdmin(admin);
     const sd = admin.schoolDetails || emptySchoolDetails();
-    const perms = admin.permissions || [];
-    const unlimited = isUnlimitedPortalAccess(perms);
     const rawCurriculum =
       admin.curriculumBoard ||
       (isAssignableCurriculumCode(admin.board) ? String(admin.board).toUpperCase().trim() : "");
@@ -1179,24 +935,9 @@ export default function AdminManagement() {
       secondaryContactPhone: sanitizePhoneInput(admin.secondaryContactPhone || ''),
       schoolDetails: { ...emptySchoolDetails(), ...sd },
       isActive: admin.status === 'active' || admin.status === 'Active',
-      accessMode: unlimited ? "unlimited" : "limited",
-      limitedFeatures: unlimited
-        ? [...SCHOOL_PORTAL_FEATURE_IDS]
-        : SCHOOL_PORTAL_FEATURE_IDS.filter((f) => perms.includes(f)),
-      vidyaEnabledForTeachers: admin.vidyaEnabledForTeachers !== false,
-      vidyaEnabledForStudents: admin.vidyaEnabledForStudents !== false,
-      vidyaUsageMode:
-        String(admin.vidyaUsageMode || 'unlimited').toLowerCase() === 'limited'
-          ? 'limited'
-          : 'unlimited',
-      vidyaLimitChatbot: Boolean(admin.vidyaLimitChatbot),
-      vidyaLimitTools: Boolean(admin.vidyaLimitTools),
-      vidyaChatPerDay: Math.max(1, Math.floor(Number(admin.vidyaChatPerDay) || 10)),
-      vidyaGenerationsPerDay: Math.max(
-        1,
-        Math.floor(Number(admin.vidyaGenerationsPerDay) || 10),
-      ),
     });
+    setEditRoleAccess(schoolRoleAccessFromAdmin(admin));
+    setEditRoleTab('admin');
     setIsEditDialogOpen(true);
   };
 
@@ -1230,26 +971,11 @@ export default function AdminManagement() {
       return;
     }
 
-    if (
-      editAdmin.accessMode === "limited" &&
-      resolvePortalPermissions("limited", editAdmin.limitedFeatures).length === 0
-    ) {
+    const roleAccessError = validateRoleAccessState(editRoleAccess);
+    if (roleAccessError) {
       toast({
-        title: "Portal access",
-        description: "Select at least one module for limited access, or choose unlimited access.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (
-      editAdmin.vidyaUsageMode === 'limited' &&
-      !editAdmin.vidyaLimitChatbot &&
-      !editAdmin.vidyaLimitTools
-    ) {
-      toast({
-        title: "Vidya usage limits",
-        description: "Select chatbot and/or AI tools, or choose Vidya unlimited.",
+        title: "Role access",
+        description: roleAccessError,
         variant: "destructive",
       });
       return;
@@ -1317,14 +1043,7 @@ export default function AdminManagement() {
             state: editAdmin.state
           },
           isActive: editAdmin.isActive,
-          permissions: resolvePortalPermissions(editAdmin.accessMode, editAdmin.limitedFeatures),
-          vidyaEnabledForTeachers: editAdmin.vidyaEnabledForTeachers,
-          vidyaEnabledForStudents: editAdmin.vidyaEnabledForStudents,
-          vidyaUsageMode: editAdmin.vidyaUsageMode,
-          vidyaLimitChatbot: editAdmin.vidyaLimitChatbot,
-          vidyaLimitTools: editAdmin.vidyaLimitTools,
-          vidyaChatPerDay: editAdmin.vidyaChatPerDay,
-          vidyaGenerationsPerDay: editAdmin.vidyaGenerationsPerDay,
+          ...buildRoleAccessPayload(editRoleAccess),
         }),
       });
 
@@ -1370,12 +1089,9 @@ export default function AdminManagement() {
           secondaryContactPhone: '',
           schoolDetails: emptySchoolDetails(),
           isActive: true,
-          accessMode: "unlimited",
-          limitedFeatures: [...SCHOOL_PORTAL_FEATURE_IDS],
-          vidyaEnabledForTeachers: true,
-          vidyaEnabledForStudents: true,
-          ...DEFAULT_SCHOOL_VIDYA_USAGE,
         });
+        setEditRoleAccess(defaultSchoolRoleAccess());
+        setEditRoleTab('admin');
         toast({
           title: "Success",
           description: "School updated successfully",
@@ -2099,166 +1815,15 @@ export default function AdminManagement() {
                 </div>
               </div>
 
-              <p className="mb-3 mt-8 text-xs sm:text-sm font-semibold text-gray-900">Admin portal access</p>
-              <div className="rounded-lg border border-slate-200 bg-slate-50/90 px-4 py-4">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="space-y-1">
-                    <p className="text-xs sm:text-sm text-gray-800">Limited vs unlimited</p>
-                    <p className="text-xs text-gray-600">
-                      Unlimited turns on every admin portal module. Limited lets you choose which modules this school can use.
-                    </p>
-                  </div>
-                  <div className="flex shrink-0 items-center gap-3">
-                    <span
-                      className={cn(
-                        "text-xs sm:text-sm",
-                        newAdmin.accessMode === "limited" ? "font-semibold text-gray-900" : "text-gray-500"
-                      )}
-                    >
-                      Limited
-                    </span>
-                    <Switch
-                      checked={newAdmin.accessMode === "unlimited"}
-                      onCheckedChange={(checked) =>
-                        setNewAdmin({
-                          ...newAdmin,
-                          accessMode: checked ? "unlimited" : "limited",
-                          limitedFeatures: checked
-                            ? [...SCHOOL_PORTAL_FEATURE_IDS]
-                            : newAdmin.limitedFeatures.length > 0
-                              ? newAdmin.limitedFeatures
-                              : [...SCHOOL_PORTAL_FEATURE_IDS],
-                        })
-                      }
-                      aria-label="Toggle unlimited portal access"
-                    />
-                    <span
-                      className={cn(
-                        "text-xs sm:text-sm",
-                        newAdmin.accessMode === "unlimited" ? "font-semibold text-orange-800" : "text-gray-500"
-                      )}
-                    >
-                      Unlimited
-                    </span>
-                  </div>
-                </div>
-                {newAdmin.accessMode === "limited" && (
-                  <div className="mt-4 border-t border-slate-200/80 pt-4 space-y-4">
-                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                      <p className="text-xs font-medium text-gray-700">Modules for this school</p>
-                      <div className="flex flex-wrap gap-2">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          className="h-8 text-xs"
-                          onClick={() =>
-                            setNewAdmin({ ...newAdmin, limitedFeatures: [...SCHOOL_PORTAL_FEATURE_IDS] })
-                          }
-                        >
-                          Select all
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 text-xs"
-                          onClick={() => setNewAdmin({ ...newAdmin, limitedFeatures: [] })}
-                        >
-                          Clear all
-                        </Button>
-                      </div>
-                    </div>
-                    <div className="space-y-5">
-                      {SCHOOL_PORTAL_MODULE_GROUPS.map((group) => (
-                        <div key={group.category}>
-                          <p className="mb-2 text-mini font-semibold uppercase tracking-wide text-slate-500">
-                            {group.category}
-                          </p>
-                          <div className="grid gap-2 grid-cols-1 lg:grid-cols-2">
-                            {group.modules.map((mod) => {
-                              const cid = portalCheckboxId("add-portal", mod.id);
-                              return (
-                                <div
-                                  key={mod.id}
-                                  className="flex gap-3 rounded-lg border border-slate-200/90 bg-white p-3 shadow-sm"
-                                >
-                                  <Checkbox
-                                    id={cid}
-                                    className="mt-0.5 shrink-0"
-                                    checked={newAdmin.limitedFeatures.includes(mod.id)}
-                                    onCheckedChange={(c) => {
-                                      const on = c === true;
-                                      const next = new Set(newAdmin.limitedFeatures);
-                                      if (on) next.add(mod.id);
-                                      else next.delete(mod.id);
-                                      setNewAdmin({
-                                        ...newAdmin,
-                                        limitedFeatures: Array.from(next),
-                                      });
-                                    }}
-                                  />
-                                  <div className="min-w-0 flex-1 space-y-0.5">
-                                    <Label htmlFor={cid} className="cursor-pointer text-xs sm:text-sm font-medium text-slate-900">
-                                      {mod.title}
-                                    </Label>
-                                    <p className="text-xs leading-snug text-slate-600">{mod.description}</p>
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                            <div className="mt-8">
+                <SchoolRoleAccessPanel
+                  idPrefix="new-role-access"
+                  value={newRoleAccess}
+                  onChange={setNewRoleAccess}
+                  activeRole={newRoleTab}
+                  onActiveRoleChange={setNewRoleTab}
+                />
               </div>
-
-              <div className="space-y-3 rounded-lg border border-orange-100 bg-orange-50/40 p-4">
-                <div>
-                  <h4 className="text-sm font-semibold text-slate-900">Vidya AI chatbot access</h4>
-                  <p className="mt-1 text-xs text-slate-600">
-                    Turn the Vidya chatbot on or off for teachers and students. AI tools remain available when chat is off.
-                  </p>
-                </div>
-                <div className="flex items-center justify-between gap-3">
-                  <Label htmlFor="new-vidya-teachers" className="text-sm text-slate-800">
-                    Vidya chatbot for teachers
-                  </Label>
-                  <Switch
-                    id="new-vidya-teachers"
-                    checked={newAdmin.vidyaEnabledForTeachers}
-                    onCheckedChange={(checked) =>
-                      setNewAdmin({ ...newAdmin, vidyaEnabledForTeachers: checked === true })
-                    }
-                  />
-                </div>
-                <div className="flex items-center justify-between gap-3">
-                  <Label htmlFor="new-vidya-students" className="text-sm text-slate-800">
-                    Vidya chatbot for students
-                  </Label>
-                  <Switch
-                    id="new-vidya-students"
-                    checked={newAdmin.vidyaEnabledForStudents}
-                    onCheckedChange={(checked) =>
-                      setNewAdmin({ ...newAdmin, vidyaEnabledForStudents: checked === true })
-                    }
-                  />
-                </div>
-              </div>
-
-              <SchoolVidyaUsageControls
-                idPrefix="new-vidya-usage"
-                value={{
-                  vidyaUsageMode: newAdmin.vidyaUsageMode,
-                  vidyaLimitChatbot: newAdmin.vidyaLimitChatbot,
-                  vidyaLimitTools: newAdmin.vidyaLimitTools,
-                  vidyaChatPerDay: newAdmin.vidyaChatPerDay,
-                  vidyaGenerationsPerDay: newAdmin.vidyaGenerationsPerDay,
-                }}
-                onChange={(next) => setNewAdmin({ ...newAdmin, ...next })}
-              />
             </div>
             <div className="flex shrink-0 justify-end gap-3 border-t bg-background px-4 sm:px-6 lg:px-8 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
               <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
@@ -2868,166 +2433,15 @@ export default function AdminManagement() {
                 </div>
               </div>
 
-              <p className="mb-3 mt-8 text-xs sm:text-sm font-semibold text-gray-900">Admin portal access</p>
-              <div className="rounded-lg border border-slate-200 bg-slate-50/90 px-4 py-4">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="space-y-1">
-                    <p className="text-xs sm:text-sm text-gray-800">Limited vs unlimited</p>
-                    <p className="text-xs text-gray-600">
-                      Unlimited turns on every admin portal module. Limited lets you choose which modules this school can use.
-                    </p>
-                  </div>
-                  <div className="flex shrink-0 items-center gap-3">
-                    <span
-                      className={cn(
-                        "text-xs sm:text-sm",
-                        editAdmin.accessMode === "limited" ? "font-semibold text-gray-900" : "text-gray-500"
-                      )}
-                    >
-                      Limited
-                    </span>
-                    <Switch
-                      checked={editAdmin.accessMode === "unlimited"}
-                      onCheckedChange={(checked) =>
-                        setEditAdmin({
-                          ...editAdmin,
-                          accessMode: checked ? "unlimited" : "limited",
-                          limitedFeatures: checked
-                            ? [...SCHOOL_PORTAL_FEATURE_IDS]
-                            : editAdmin.limitedFeatures.length > 0
-                              ? editAdmin.limitedFeatures
-                              : [...SCHOOL_PORTAL_FEATURE_IDS],
-                        })
-                      }
-                      aria-label="Toggle unlimited portal access"
-                    />
-                    <span
-                      className={cn(
-                        "text-xs sm:text-sm",
-                        editAdmin.accessMode === "unlimited" ? "font-semibold text-orange-800" : "text-gray-500"
-                      )}
-                    >
-                      Unlimited
-                    </span>
-                  </div>
-                </div>
-                {editAdmin.accessMode === "limited" && (
-                  <div className="mt-4 border-t border-slate-200/80 pt-4 space-y-4">
-                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                      <p className="text-xs font-medium text-gray-700">Modules for this school</p>
-                      <div className="flex flex-wrap gap-2">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          className="h-8 text-xs"
-                          onClick={() =>
-                            setEditAdmin({ ...editAdmin, limitedFeatures: [...SCHOOL_PORTAL_FEATURE_IDS] })
-                          }
-                        >
-                          Select all
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 text-xs"
-                          onClick={() => setEditAdmin({ ...editAdmin, limitedFeatures: [] })}
-                        >
-                          Clear all
-                        </Button>
-                      </div>
-                    </div>
-                    <div className="space-y-5">
-                      {SCHOOL_PORTAL_MODULE_GROUPS.map((group) => (
-                        <div key={group.category}>
-                          <p className="mb-2 text-mini font-semibold uppercase tracking-wide text-slate-500">
-                            {group.category}
-                          </p>
-                          <div className="grid gap-2 grid-cols-1 lg:grid-cols-2">
-                            {group.modules.map((mod) => {
-                              const cid = portalCheckboxId("edit-portal", mod.id);
-                              return (
-                                <div
-                                  key={mod.id}
-                                  className="flex gap-3 rounded-lg border border-slate-200/90 bg-white p-3 shadow-sm"
-                                >
-                                  <Checkbox
-                                    id={cid}
-                                    className="mt-0.5 shrink-0"
-                                    checked={editAdmin.limitedFeatures.includes(mod.id)}
-                                    onCheckedChange={(c) => {
-                                      const on = c === true;
-                                      const next = new Set(editAdmin.limitedFeatures);
-                                      if (on) next.add(mod.id);
-                                      else next.delete(mod.id);
-                                      setEditAdmin({
-                                        ...editAdmin,
-                                        limitedFeatures: Array.from(next),
-                                      });
-                                    }}
-                                  />
-                                  <div className="min-w-0 flex-1 space-y-0.5">
-                                    <Label htmlFor={cid} className="cursor-pointer text-xs sm:text-sm font-medium text-slate-900">
-                                      {mod.title}
-                                    </Label>
-                                    <p className="text-xs leading-snug text-slate-600">{mod.description}</p>
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                            <div className="mt-8">
+                <SchoolRoleAccessPanel
+                  idPrefix="edit-role-access"
+                  value={editRoleAccess}
+                  onChange={setEditRoleAccess}
+                  activeRole={editRoleTab}
+                  onActiveRoleChange={setEditRoleTab}
+                />
               </div>
-
-              <div className="space-y-3 rounded-lg border border-orange-100 bg-orange-50/40 p-4">
-                <div>
-                  <h4 className="text-sm font-semibold text-slate-900">Vidya AI chatbot access</h4>
-                  <p className="mt-1 text-xs text-slate-600">
-                    Turn the Vidya chatbot on or off for teachers and students. AI tools remain available when chat is off.
-                  </p>
-                </div>
-                <div className="flex items-center justify-between gap-3">
-                  <Label htmlFor="edit-vidya-teachers" className="text-sm text-slate-800">
-                    Vidya chatbot for teachers
-                  </Label>
-                  <Switch
-                    id="edit-vidya-teachers"
-                    checked={editAdmin.vidyaEnabledForTeachers}
-                    onCheckedChange={(checked) =>
-                      setEditAdmin({ ...editAdmin, vidyaEnabledForTeachers: checked === true })
-                    }
-                  />
-                </div>
-                <div className="flex items-center justify-between gap-3">
-                  <Label htmlFor="edit-vidya-students" className="text-sm text-slate-800">
-                    Vidya chatbot for students
-                  </Label>
-                  <Switch
-                    id="edit-vidya-students"
-                    checked={editAdmin.vidyaEnabledForStudents}
-                    onCheckedChange={(checked) =>
-                      setEditAdmin({ ...editAdmin, vidyaEnabledForStudents: checked === true })
-                    }
-                  />
-                </div>
-              </div>
-
-              <SchoolVidyaUsageControls
-                idPrefix="edit-vidya-usage"
-                value={{
-                  vidyaUsageMode: editAdmin.vidyaUsageMode,
-                  vidyaLimitChatbot: editAdmin.vidyaLimitChatbot,
-                  vidyaLimitTools: editAdmin.vidyaLimitTools,
-                  vidyaChatPerDay: editAdmin.vidyaChatPerDay,
-                  vidyaGenerationsPerDay: editAdmin.vidyaGenerationsPerDay,
-                }}
-                onChange={(next) => setEditAdmin({ ...editAdmin, ...next })}
-              />
             </div>
             <div className="flex shrink-0 justify-end gap-3 border-t bg-background px-4 sm:px-6 lg:px-8 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
               <Button
@@ -3159,7 +2573,7 @@ export default function AdminManagement() {
                       <p className="text-xs sm:text-sm text-gray-500 break-all leading-snug">{admin?.email || 'No email'}</p>
                     )}
                     <div className="mt-1 flex flex-wrap gap-1">
-                      {isUnlimitedPortalAccess(admin.permissions) ? (
+                      {isUnlimitedPortalAccess(admin.permissions, SCHOOL_PORTAL_FEATURE_IDS) ? (
                         <Badge
                           variant="outline"
                           className="border-emerald-200 bg-emerald-50 text-xs text-emerald-900 break-all max-w-full"

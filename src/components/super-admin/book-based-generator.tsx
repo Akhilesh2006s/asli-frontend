@@ -1079,7 +1079,7 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
             <div className="min-w-0 space-y-1 xl:min-w-[13.5rem]">
               <Label className="text-xs">Board</Label>
               <Select value={board} onValueChange={handleBoardChange}>
-                <SelectTrigger className="h-10 [&>span]:whitespace-nowrap [&>span]:break-normal [&>span]:truncate">
+                <SelectTrigger className="h-10 overflow-hidden">
                   <SelectValue placeholder={boardOptionsForSelect.length ? "Select board" : "Loading…"} />
                 </SelectTrigger>
                 <SelectContent>
@@ -1099,7 +1099,7 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
                   onValueChange={handleCategoryChange}
                   disabled={!board}
                 >
-                  <SelectTrigger className="h-10 [&>span]:whitespace-nowrap [&>span]:break-normal [&>span]:truncate">
+                  <SelectTrigger className="h-10 overflow-hidden">
                     <SelectValue placeholder={!board ? "Board first" : "General"} />
                   </SelectTrigger>
                   <SelectContent>
@@ -1115,7 +1115,7 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
             <div className="min-w-0 space-y-1">
               <Label className="text-xs">Class</Label>
               <Select value={classNumber} onValueChange={handleClassChange} disabled={!board || loadingClasses}>
-                <SelectTrigger className="h-10 [&>span]:whitespace-nowrap [&>span]:break-normal [&>span]:truncate">
+                <SelectTrigger className="h-10 overflow-hidden">
                   <SelectValue placeholder={!board ? "Board first" : loadingClasses ? "Loading…" : "Class"} />
                 </SelectTrigger>
                 <SelectContent>
@@ -1126,7 +1126,7 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
             <div className="min-w-0 space-y-1">
               <Label className="text-xs">Subject</Label>
               <Select value={subject} onValueChange={handleSubjectChange} disabled={!classNumber || loadingSubjects}>
-                <SelectTrigger className="h-10 [&>span]:whitespace-nowrap [&>span]:break-normal [&>span]:truncate">
+                <SelectTrigger className="h-10 overflow-hidden">
                   <SelectValue
                     placeholder={
                       !classNumber
@@ -1149,7 +1149,7 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
             <div className="min-w-0 space-y-1">
               <Label className="text-xs">Topic</Label>
               <Select value={topic} onValueChange={handleTopicChange} disabled={!subject || loadingTopics}>
-                <SelectTrigger className="h-10 [&>span]:whitespace-nowrap [&>span]:break-normal [&>span]:truncate">
+                <SelectTrigger className="h-10 overflow-hidden">
                   <SelectValue placeholder={!subject ? "Subject first" : loadingTopics ? "Loading…" : "Topic"} />
                 </SelectTrigger>
                 <SelectContent>
@@ -1167,7 +1167,7 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
                 }}
                 disabled={!topic || loadingSubtopics}
               >
-                <SelectTrigger className="h-10 [&>span]:whitespace-nowrap [&>span]:break-normal [&>span]:truncate">
+                <SelectTrigger className="h-10 overflow-hidden">
                   <SelectValue
                     placeholder={
                       !topic

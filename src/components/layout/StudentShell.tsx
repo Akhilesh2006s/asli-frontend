@@ -7,6 +7,11 @@ import {
   InteractiveBackground,
 } from "@/components/background/InteractiveBackground";
 import { studentNav, type NavItem } from "@/lib/app-nav";
+import {
+  STUDENT_FEATURE_TO_NAV,
+  STUDENT_PORTAL_FEATURE_IDS,
+  filterNavByFeatures,
+} from "@/lib/school-role-access";
 import { getSchoolBranding } from "@/lib/school-branding";
 import { isIndividualAccount } from "@/lib/individual-signup";
 import { API_BASE_URL } from "@/lib/api-config";
@@ -95,7 +100,12 @@ export function StudentShell({
           .map((item) => (item.id === "exams" ? { ...item, label: "Practice Exams" } : item)),
         { id: "subscription", label: "Subscription", icon: CreditCard, href: "/auth/subscribe" },
       ]
-    : studentNav;
+    : filterNavByFeatures(
+        studentNav,
+        user?.portalFeatures,
+        STUDENT_PORTAL_FEATURE_IDS,
+        STUDENT_FEATURE_TO_NAV
+      );
 
   const handleLogout = async () => {
     try {

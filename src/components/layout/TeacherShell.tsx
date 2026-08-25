@@ -4,6 +4,11 @@ import { useLocation } from "wouter";
 
 import { AppShell } from "@/components/layout/AppShell";
 import { teacherNav, type NavItem } from "@/lib/app-nav";
+import {
+  TEACHER_FEATURE_TO_NAV,
+  TEACHER_PORTAL_FEATURE_IDS,
+  filterNavByFeatures,
+} from "@/lib/school-role-access";
 import { getSchoolBranding } from "@/lib/school-branding";
 import { API_BASE_URL } from "@/lib/api-config";
 import { showTrialUpgrade } from "@/lib/individual-subscription";
@@ -73,9 +78,17 @@ export function TeacherShell({
 
   const branding = getSchoolBranding(user);
   const name = getTeacherDisplayName(user);
-  const nav: NavItem[] = user?.isIndividualAccount
+  const baseNav: NavItem[] = user?.isIndividualAccount
     ? [...teacherNav, { id: "subscription", label: "Subscription", icon: CreditCard, href: "/auth/subscribe" }]
     : teacherNav;
+  const nav = user?.isIndividualAccount
+    ? baseNav
+    : filterNavByFeatures(
+        baseNav,
+        user?.portalFeatures,
+        TEACHER_PORTAL_FEATURE_IDS,
+        TEACHER_FEATURE_TO_NAV
+      );
 
   const handleLogout = async () => {
     try {

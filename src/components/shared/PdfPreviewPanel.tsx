@@ -1185,7 +1185,7 @@ export default function PdfPreviewPanel({
           <p className="text-xs font-medium text-stone-600 sm:text-sm">
             {useIframeFallback
               ? 'Use the scrollbar to move through pages'
-              : '↑↓ pages · Ctrl+scroll or +/− to zoom · drag page (or gray area) to pan'}
+              : '↑↓ pages · Ctrl+scroll or +/− to zoom · drag anywhere to pan when zoomed'}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">

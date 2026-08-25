@@ -3,6 +3,11 @@ import { useLocation } from "wouter";
 
 import { AppShell } from "@/components/layout/AppShell";
 import { adminNav } from "@/lib/app-nav";
+import {
+  ADMIN_FEATURE_TO_NAV,
+  SCHOOL_PORTAL_FEATURE_IDS,
+  filterNavByFeatures,
+} from "@/lib/school-role-access";
 import { getSchoolBranding } from "@/lib/school-branding";
 import { API_BASE_URL } from "@/lib/api-config";
 import {
@@ -69,6 +74,12 @@ export function AdminShell({
   const branding = getSchoolBranding(user);
   const name =
     user?.fullName || user?.name || user?.email?.split("@")[0] || "Admin";
+  const nav = filterNavByFeatures(
+    adminNav,
+    user?.portalFeatures || user?.permissions,
+    SCHOOL_PORTAL_FEATURE_IDS,
+    ADMIN_FEATURE_TO_NAV
+  );
 
   const handleLogout = async () => {
     try {
@@ -92,7 +103,7 @@ export function AdminShell({
 
   return (
     <AppShell
-      nav={adminNav}
+      nav={nav}
       orgName={branding?.schoolName || "AsliLearn AI"}
       orgSubtitle="Admin Portal"
       orgLogoUrl={branding?.schoolLogo || undefined}
