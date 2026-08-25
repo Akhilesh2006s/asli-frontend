@@ -24,7 +24,6 @@ import {
   UserPlus,
   FileSpreadsheet,
   CheckCircle,
-  XCircle,
   Mail,
   Phone,
   Eye,
@@ -133,13 +132,11 @@ const UserManagement = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
-  const [isDeleteAllDialogOpen, setIsDeleteAllDialogOpen] = useState(false);
   const [selectedClassFilter, setSelectedClassFilter] = useState<string>('all');
   const [selectedSectionFilter, setSelectedSectionFilter] = useState<string>('all');
   const [studentViewMode, setStudentViewMode] = useState<'all' | 'class-wise' | 'section-wise'>('class-wise');
   const [collapsedClasses, setCollapsedClasses] = useState<Record<string, boolean>>({});
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({});
-  const [deleteAllConfirmStep, setDeleteAllConfirmStep] = useState(1);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -562,33 +559,6 @@ const UserManagement = () => {
   };
 
 
-  const handleDeleteAllStudents = async () => {
-    try {
-      const token = getAuthToken();
-      const response = await fetch(`${API_BASE_URL}/api/admin/users/delete-all`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ confirm: 'DELETE ALL' }),
-      });
-
-      if (response.ok) {
-        setStudents([]);
-        setIsDeleteAllDialogOpen(false);
-        setDeleteAllConfirmStep(1);
-        notify('All students have been deleted successfully!');
-      } else {
-        const errorData = await response.json();
-        notify(`Failed to delete all students: ${errorData.message || 'Unknown error'}`);
-      }
-    } catch (error) {
-      console.error('Failed to delete all students:', error);
-      notify('Failed to delete all students. Please try again.');
-    }
-  };
-
   const handleExportStudents = () => {
     const rows = filteredStudents.map((student) => ({
       name: student.name || '',
@@ -619,11 +589,6 @@ const UserManagement = () => {
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
-  };
-
-  const resetDeleteAllDialog = () => {
-    setDeleteAllConfirmStep(1);
-    setIsDeleteAllDialogOpen(false);
   };
 
   const formatSectionLabel = (sectionRaw: string) => {
@@ -1283,89 +1248,6 @@ const UserManagement = () => {
               </DialogContent>
             </Dialog>
             
-            {/* Delete All Students Button */}
-            <Dialog open={isDeleteAllDialogOpen} onOpenChange={setIsDeleteAllDialogOpen}>
-              <DialogTrigger asChild>
-                <Button size="default" variant="outline" className={adminBtn.danger}>
-                  <Trash2 className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
-                  Delete All Students
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-md bg-white/80 border-red-200 backdrop-blur-xl">
-                <DialogHeader>
-                  <DialogTitle className="text-lg sm:text-xl font-semibold text-red-900">
-                    {deleteAllConfirmStep === 1 ? 'Delete All Students' : 'Final Confirmation'}
-                  </DialogTitle>
-                  <DialogDescription className="text-red-700">
-                    {deleteAllConfirmStep === 1 
-                      ? 'This action will permanently delete ALL students from the system. This cannot be undone.'
-                      : 'Are you absolutely sure you want to delete ALL students? This is your final warning.'
-                    }
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4">
-                  {deleteAllConfirmStep === 1 ? (
-                    <>
-                      <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                        <div className="flex items-center space-x-2 text-red-800">
-                          <XCircle className="w-4 h-4 sm:w-5 sm:h-5" />
-                          <span className="font-medium">Warning: This will delete {students.length} students</span>
-                        </div>
-                      </div>
-                      <div className="flex justify-end space-x-3">
-                        <Button 
-                          type="button" 
-                          variant="outline" 
-                          onClick={resetDeleteAllDialog}
-                          className="rounded-xl border-red-200 text-red-800 hover:bg-red-50 backdrop-blur-sm"
-                        >
-                          Cancel
-                        </Button>
-                        <Button 
-                          type="button"
-                          onClick={() => setDeleteAllConfirmStep(2)}
-                          className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 rounded-xl backdrop-blur-sm"
-                        >
-                          Continue
-                        </Button>
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <div className="bg-red-100 border-2 border-red-300 rounded-lg p-4">
-                        <div className="flex items-center space-x-2 text-red-900">
-                          <XCircle className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6" />
-                          <span className="font-bold">FINAL WARNING</span>
-                        </div>
-                        <p className="text-red-800 mt-2">
-                          You are about to permanently delete ALL {students.length} students. 
-                          This action cannot be undone and will remove all student data from the system.
-                        </p>
-                      </div>
-                      <div className="flex justify-end space-x-3">
-                        <Button 
-                          type="button" 
-                          variant="outline" 
-                          onClick={() => setDeleteAllConfirmStep(1)}
-                          className="rounded-xl border-red-200 text-red-800 hover:bg-red-50 backdrop-blur-sm"
-                        >
-                          Go Back
-                        </Button>
-                        <Button 
-                          type="button"
-                          onClick={handleDeleteAllStudents}
-                          className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 rounded-xl backdrop-blur-sm"
-                        >
-                          <Trash2 className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
-                          DELETE ALL STUDENTS
-                        </Button>
-                      </div>
-                    </>
-                  )}
-                </div>
-              </DialogContent>
-            </Dialog>
-
           </div>
         </div>
           </div>

@@ -584,9 +584,7 @@ export default function AdminManagement() {
   const [editingAdmin, setEditingAdmin] = useState<Admin | null>(null);
   const [isUpdatingAdmin, setIsUpdatingAdmin] = useState(false);
   const [isDeletingAdmin, setIsDeletingAdmin] = useState(false);
-  const [isHardDeletingAdmin, setIsHardDeletingAdmin] = useState(false);
   const [schoolActionTarget, setSchoolActionTarget] = useState<Admin | null>(null);
-  const [hardDeleteEmail, setHardDeleteEmail] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const DEFAULT_CURRICULUM_BOARD = "CBSE";
 
@@ -1465,8 +1463,7 @@ export default function AdminManagement() {
 
   const handleDeleteAdmin = async (
     adminId: string,
-    schoolId?: string,
-    options?: { hard?: boolean; confirmEmail?: string }
+    schoolId?: string
   ) => {
     if (isDeletingAdmin) return;
 
@@ -1480,34 +1477,17 @@ export default function AdminManagement() {
       return;
     }
 
-    const hard = Boolean(options?.hard);
-    if (hard) {
-      const expected = String(schoolActionTarget?.email || '').trim().toLowerCase();
-      const typed = String(options?.confirmEmail || '').trim().toLowerCase();
-      if (!expected || typed !== expected) {
-        toast({
-          title: 'Type the school email to confirm',
-          description: 'Permanent delete requires the exact school login email.',
-          variant: 'destructive',
-        });
-        return;
-      }
-    }
-
     setIsDeletingAdmin(true);
-    setIsHardDeletingAdmin(hard);
     try {
       const token = getAuthToken();
-      const url = hard
-        ? `${API_BASE_URL}/api/super-admin/admins/${deleteId}?hard=1`
-        : `${API_BASE_URL}/api/super-admin/admins/${deleteId}`;
+      const url = `${API_BASE_URL}/api/super-admin/admins/${deleteId}`;
       const response = await fetch(url, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(hard ? { confirmEmail: options?.confirmEmail } : {}),
+        body: JSON.stringify({}),
       });
 
       if (response.ok) {
@@ -1516,7 +1496,6 @@ export default function AdminManagement() {
         await new Promise(resolve => setTimeout(resolve, 500));
         await refreshAdminsAfterMutation(token || '', deleteId, schoolId);
         setSchoolActionTarget(null);
-        setHardDeleteEmail('');
 
         toast({
           title: deleteResult?.soft ? 'School deactivated' : 'School permanently deleted',
@@ -1542,7 +1521,6 @@ export default function AdminManagement() {
       });
     } finally {
       setIsDeletingAdmin(false);
-      setIsHardDeletingAdmin(false);
     }
   };
 
@@ -3377,8 +3355,8 @@ export default function AdminManagement() {
             </DialogTitle>
             <DialogDescription>
               {schoolActionTarget && !isSchoolActive(schoolActionTarget)
-                ? 'This school is deactivated (login off). Reactivate it, or type the email below to permanently delete it.'
-                : 'Trash does not wipe data by default. Choose deactivate (keeps students and teachers) or a permanent wipe.'}
+                ? 'This school is deactivated and all of its data is preserved. You can reactivate it.'
+                : 'Deactivate turns off the school login while preserving students, teachers, classes and academic history.'}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 text-sm">
@@ -3392,21 +3370,9 @@ export default function AdminManagement() {
               </p>
             ) : (
               <p className="text-slate-600">
-                Deactivate turns off login and keeps all school data. Permanent delete cannot be
-                undone.
+                Deactivate turns off login and keeps all school data available for recovery.
               </p>
             )}
-            <div className="space-y-1.5">
-              <Label htmlFor="hard-delete-email">Type school email to permanently delete</Label>
-              <Input
-                id="hard-delete-email"
-                value={hardDeleteEmail}
-                onChange={(e) => setHardDeleteEmail(e.target.value)}
-                placeholder={schoolActionTarget?.email || 'school@example.com'}
-                autoComplete="off"
-                className="h-11 text-sm"
-              />
-            </div>
           </div>
           <DialogFooter className="flex-col gap-2 sm:flex-col sm:space-x-0">
             {schoolActionTarget && !isSchoolActive(schoolActionTarget) ? (
@@ -3433,29 +3399,10 @@ export default function AdminManagement() {
             )}
             <Button
               type="button"
-              variant="destructive"
-              className="w-full"
-              disabled={
-                hardDeleteEmail.trim().toLowerCase() !==
-                String(schoolActionTarget?.email || '').trim().toLowerCase()
-              }
-              onClick={() =>
-                void handleDeleteAdmin(
-                  schoolActionTarget?.id || '',
-                  schoolActionTarget?.schoolId,
-                  { hard: true, confirmEmail: hardDeleteEmail }
-                )
-              }
-            >
-              Permanently delete
-            </Button>
-            <Button
-              type="button"
               variant="outline"
               className="w-full"
               onClick={() => {
                 setSchoolActionTarget(null);
-                setHardDeleteEmail('');
               }}
             >
               Cancel
@@ -3479,9 +3426,7 @@ export default function AdminManagement() {
                 : isUpdatingAdmin
                   ? "Updating school…"
                   : isDeletingAdmin
-                    ? isHardDeletingAdmin
-                      ? "Permanently deleting school…"
-                      : "Deactivating school…"
+                    ? "Deactivating school…"
                     : "Loading…"}
             </p>
           </div>
