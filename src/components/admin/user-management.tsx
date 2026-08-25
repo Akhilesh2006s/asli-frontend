@@ -163,6 +163,10 @@ const UserManagement = () => {
   });
   const [isRiskAnalysisModalOpen, setIsRiskAnalysisModalOpen] = useState(false);
   const [selectedStudentForAnalysis, setSelectedStudentForAnalysis] = useState<Student | null>(null);
+  const [isDeleteAllDialogOpen, setIsDeleteAllDialogOpen] = useState(false);
+  const [deleteAllStep, setDeleteAllStep] = useState<1 | 2>(1);
+  const [deleteAllConfirmation, setDeleteAllConfirmation] = useState('');
+  const [isDeletingAll, setIsDeletingAll] = useState(false);
 
   useEffect(() => {
     fetchStudents();
@@ -486,6 +490,33 @@ const UserManagement = () => {
     } catch (error) {
       console.error('Failed to delete student:', error);
       notify('Failed to delete student. Please try again.', 'destructive');
+    }
+  };
+
+  const handleDeleteAllStudents = async () => {
+    const phrase = `DELETE ${students.length} STUDENTS`;
+    if (deleteAllConfirmation.trim().toUpperCase() !== phrase) return;
+    setIsDeletingAll(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/admin/users/delete-all`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${getAuthToken()}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ expectedCount: students.length, confirmation: phrase }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || 'Failed to remove students');
+      setIsDeleteAllDialogOpen(false);
+      setDeleteAllStep(1);
+      setDeleteAllConfirmation('');
+      await Promise.all([fetchStudents(), refreshSeats()]);
+      notify(data.message || 'Students removed from the active directory.');
+    } catch (error) {
+      notify(error instanceof Error ? error.message : 'Failed to remove students.', 'destructive');
+    } finally {
+      setIsDeletingAll(false);
     }
   };
 
@@ -1413,12 +1444,84 @@ const UserManagement = () => {
           )}
         </motion.div>
 
+        <details className="mx-auto mt-6 max-w-md text-center text-xs text-slate-400">
+          <summary className="cursor-pointer select-none hover:text-slate-600">Student data settings</summary>
+          <div className="mt-3 rounded-xl border border-red-100 bg-red-50/60 p-4">
+            <p className="mb-3 text-red-700">
+              Danger zone: remove every student from this school's active directory.
+            </p>
+            <Button
+              type="button"
+              variant="outline"
+              className="border-red-200 text-red-700 hover:bg-red-100"
+              disabled={students.length === 0}
+              onClick={() => {
+                setDeleteAllStep(1);
+                setDeleteAllConfirmation('');
+                setIsDeleteAllDialogOpen(true);
+              }}
+            >
+              <Trash2 className="mr-2 h-4 w-4" /> Remove all students
+            </Button>
+          </div>
+        </details>
+
         <AdminFooterBanner
           title="Every student. Every step. Every success."
           subtitle="Together we build a brighter future."
           icon={<Trophy className="h-6 w-6" />}
         />
       </div>
+
+      <Dialog
+        open={isDeleteAllDialogOpen}
+        onOpenChange={(open) => {
+          setIsDeleteAllDialogOpen(open);
+          if (!open) {
+            setDeleteAllStep(1);
+            setDeleteAllConfirmation('');
+          }
+        }}
+      >
+        <DialogContent className="max-w-md border-red-200 bg-white">
+          <DialogHeader>
+            <DialogTitle className="text-red-800">
+              {deleteAllStep === 1 ? 'Remove all students?' : 'Final confirmation'}
+            </DialogTitle>
+            <DialogDescription>
+              {deleteAllStep === 1
+                ? `This removes ${students.length} students from this school's active directory. Records remain recoverable.`
+                : `Type DELETE ${students.length} STUDENTS exactly to continue.`}
+            </DialogDescription>
+          </DialogHeader>
+          {deleteAllStep === 2 && (
+            <Input
+              value={deleteAllConfirmation}
+              onChange={(event) => setDeleteAllConfirmation(event.target.value)}
+              placeholder={`DELETE ${students.length} STUDENTS`}
+              autoComplete="off"
+              className="border-red-200"
+            />
+          )}
+          <div className="flex justify-end gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => deleteAllStep === 2 ? setDeleteAllStep(1) : setIsDeleteAllDialogOpen(false)}
+            >
+              {deleteAllStep === 2 ? 'Go back' : 'Cancel'}
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              disabled={isDeletingAll || (deleteAllStep === 2 && deleteAllConfirmation.trim().toUpperCase() !== `DELETE ${students.length} STUDENTS`)}
+              onClick={() => deleteAllStep === 1 ? setDeleteAllStep(2) : handleDeleteAllStudents()}
+            >
+              {isDeletingAll ? 'Removing…' : deleteAllStep === 1 ? 'Continue' : 'Remove all students'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Assign Class Dialog */}
       <Dialog open={isAssignClassDialogOpen} onOpenChange={setIsAssignClassDialogOpen}>
