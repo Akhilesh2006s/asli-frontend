@@ -431,6 +431,7 @@ const TeacherDashboard = () => {
     students?: any[];
   }>({ homeworks: [], students: [] });
   const [isLoadingSubmissions, setIsLoadingSubmissions] = useState(false);
+  const [deletingHomeworkId, setDeletingHomeworkId] = useState<string | null>(null);
   const [expandedHomework, setExpandedHomework] = useState<Set<string>>(new Set());
   const [expandedStudent, setExpandedStudent] = useState<Set<string>>(new Set());
   const [expandedSubmissionClasses, setExpandedSubmissionClasses] = useState<Set<string>>(
@@ -1394,6 +1395,47 @@ const TeacherDashboard = () => {
       notify(message);
     } finally {
       setIsCreatingHomework(false);
+    }
+  };
+
+  const handleDeleteHomework = async (homework: any) => {
+    const homeworkId = homework?._id || homework?.id;
+    if (!homeworkId) return;
+    const ok = await confirm({
+      title: 'Delete this homework?',
+      description: `Are you sure you want to delete "${homework.title || 'this homework'}"? Students will no longer see it.`,
+      confirmLabel: 'Delete',
+      destructive: true,
+    });
+    if (!ok) return;
+
+    setDeletingHomeworkId(String(homeworkId));
+    try {
+      const token = getAuthToken();
+      const response = await fetch(`${API_BASE_URL}/api/teacher/homework/${homeworkId}`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      const data = await response.json().catch(() => ({} as { success?: boolean; message?: string }));
+      if (response.ok && data.success) {
+        setHomeworkSubmissions((prev) => ({
+          ...prev,
+          homeworks: (prev.homeworks || []).filter((item: any) => {
+            const id = item?.homework?._id || item?.homework?.id || item?._id;
+            return String(id) !== String(homeworkId);
+          }),
+        }));
+        notify('Homework deleted successfully.');
+      } else {
+        notify(data.message || 'Failed to delete homework.');
+      }
+    } catch (error) {
+      console.error('Delete homework error:', error);
+      notify('Failed to delete homework. Please try again.');
+    } finally {
+      setDeletingHomeworkId(null);
     }
   };
 
@@ -3359,12 +3401,12 @@ const TeacherDashboard = () => {
                                               {homework.description && (
                                                 <p className="text-xs sm:text-sm text-gray-600 mt-2 italic">{homework.description}</p>
                                               )}
-                                              {homework.fileUrl && (
-                                                <div
-                                                  className="mt-2"
-                                                  onClick={(e) => e.stopPropagation()}
-                                                  onPointerDown={(e) => e.stopPropagation()}
-                                                >
+                                              <div
+                                                className="mt-2 flex flex-wrap items-center gap-2"
+                                                onClick={(e) => e.stopPropagation()}
+                                                onPointerDown={(e) => e.stopPropagation()}
+                                              >
+                                                {homework.fileUrl ? (
                                                   <Button
                                                     type="button"
                                                     size="sm"
@@ -3378,8 +3420,22 @@ const TeacherDashboard = () => {
                                                     <FileText className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
                                                     View Homework File
                                                   </Button>
-                                                </div>
-                                              )}
+                                                ) : null}
+                                                <Button
+                                                  type="button"
+                                                  size="sm"
+                                                  variant="outline"
+                                                  className="bg-red-50 text-red-700 hover:bg-red-100 border-red-200"
+                                                  disabled={deletingHomeworkId === String(homeworkId)}
+                                                  onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    void handleDeleteHomework(homework);
+                                                  }}
+                                                >
+                                                  <Trash2 className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
+                                                  {deletingHomeworkId === String(homeworkId) ? 'Deleting…' : 'Delete'}
+                                                </Button>
+                                              </div>
                                             </div>
                                             <ChevronDown
                                               className={`w-4 h-4 sm:w-5 sm:h-5 text-gray-500 transition-transform ${isExpanded ? 'transform rotate-180' : ''}`}
