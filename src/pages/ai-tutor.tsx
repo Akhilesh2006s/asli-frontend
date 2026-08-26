@@ -495,20 +495,18 @@ export default function AITutor() {
                 />
               </div>
 
-              <div className="mt-6 grid gap-3 sm:grid-cols-3">
+              <div className="mt-6 grid grid-cols-3 gap-2 sm:gap-3">
                 {[
                   {
                     Icon: BookMarked,
                     title: 'Learn',
-                    copy: 'Understand Concepts Clearly',
-                    iconBg: 'bg-sky-100',
-                    iconColor: 'text-sky-700',
-                    card: 'border-sky-100 bg-sky-50/90',
+                    iconBg: 'bg-violet-100',
+                    iconColor: 'text-violet-700',
+                    card: 'border-violet-100 bg-violet-50/90',
                   },
                   {
                     Icon: Brain,
                     title: 'Practise',
-                    copy: 'Questions, Flashcards & Tests',
                     iconBg: 'bg-emerald-100',
                     iconColor: 'text-emerald-700',
                     card: 'border-emerald-100 bg-emerald-50/90',
@@ -516,16 +514,15 @@ export default function AITutor() {
                   {
                     Icon: Calendar,
                     title: 'Prepare',
-                    copy: 'Study Guides, Projects & Plans',
                     iconBg: 'bg-amber-100',
                     iconColor: 'text-amber-800',
                     card: 'border-amber-100 bg-amber-50/90',
                   },
-                ].map(({ Icon, title, copy, iconBg, iconColor, card }) => (
+                ].map(({ Icon, title, iconBg, iconColor, card }) => (
                   <div
                     key={title}
                     className={cn(
-                      'flex items-start gap-3 rounded-2xl border px-4 py-3 shadow-sm backdrop-blur',
+                      'flex min-w-0 items-center justify-center gap-2 rounded-2xl border px-2 py-3 shadow-sm backdrop-blur sm:justify-start sm:gap-3 sm:px-4',
                       card
                     )}
                   >
@@ -538,10 +535,7 @@ export default function AITutor() {
                     >
                       <Icon className="h-[1.15rem] w-[1.15rem]" aria-hidden="true" />
                     </span>
-                    <span className="leading-tight">
-                      <span className="block text-sm font-bold text-ink">{title}</span>
-                      <span className="block text-sm text-muted-foreground">{copy}</span>
-                    </span>
+                    <span className="truncate text-sm font-bold text-ink">{title}</span>
                   </div>
                 ))}
               </div>
