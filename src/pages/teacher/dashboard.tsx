@@ -1412,12 +1412,17 @@ const TeacherDashboard = () => {
     setDeletingHomeworkId(String(homeworkId));
     try {
       const token = getAuthToken();
-      const response = await fetch(`${API_BASE_URL}/api/teacher/homework/${homeworkId}`, {
+      const headers = { Authorization: `Bearer ${token}` };
+      let response = await fetch(`${API_BASE_URL}/api/teacher/homework/${homeworkId}`, {
         method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers,
       });
+      if (response.status === 404) {
+        response = await fetch(`${API_BASE_URL}/api/teacher/homework/${homeworkId}/delete`, {
+          method: 'POST',
+          headers,
+        });
+      }
       const data = await response.json().catch(() => ({} as { success?: boolean; message?: string }));
       if (response.ok && data.success) {
         setHomeworkSubmissions((prev) => ({
@@ -3373,30 +3378,35 @@ const TeacherDashboard = () => {
                                         >
                                           <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                                             <div className="flex-1 min-w-0">
-                                              <div className="flex flex-wrap items-center gap-2 mb-2">
-                                                <h4 className="font-semibold text-gray-900 break-words">{homework.title || 'Untitled Homework'}</h4>
-                                                {isOverdue && (
-                                                  <Badge className="bg-red-100 text-red-800 shrink-0">Overdue</Badge>
-                                                )}
-                                                {deadline && deadline >= new Date() && (
-                                                  <Badge className="bg-yellow-100 text-yellow-800 shrink-0">Active</Badge>
-                                                )}
-                                              </div>
-                                              <div className="flex flex-wrap items-center gap-4 text-xs sm:text-sm text-gray-600">
-                                                <span className="font-medium">Subject: {homework.subject?.name || homework.subject || 'N/A'}</span>
-                                                {homework.classNumber && (
-                                                  <Badge variant="outline" className="bg-gray-50">
-                                                    Class: {homework.classNumber}
-                                                  </Badge>
-                                                )}
-                                                {homework.topic && (
-                                                  <span className="text-gray-500">Topic: {homework.topic}</span>
-                                                )}
-                                                {deadline && (
-                                                  <span className={isOverdue ? 'text-red-600 font-medium' : 'text-gray-700'}>
-                                                    Deadline: {deadline.toLocaleDateString()} {deadline.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                              <h4 className="font-semibold text-gray-900 truncate">{homework.title || 'Untitled Homework'}</h4>
+                                              <div
+                                                className="mt-1.5 flex items-center gap-3 overflow-x-auto whitespace-nowrap text-xs sm:text-sm text-gray-600 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                                                data-no-title-case
+                                              >
+                                                <span className="inline-flex items-center gap-1.5 shrink-0">
+                                                  <BookOpen className="h-3.5 w-3.5 text-violet-600" />
+                                                  <span className="font-medium text-gray-800">{homework.subject?.name || homework.subject || 'N/A'}</span>
+                                                </span>
+                                                {homework.classNumber ? (
+                                                  <span className="inline-flex items-center gap-1.5 shrink-0">
+                                                    <GraduationCap className="h-3.5 w-3.5 text-blue-600" />
+                                                    <span>Class {homework.classNumber}</span>
                                                   </span>
-                                                )}
+                                                ) : null}
+                                                {homework.topic ? (
+                                                  <span className="inline-flex items-center gap-1.5 shrink-0">
+                                                    <Layers className="h-3.5 w-3.5 text-amber-600" />
+                                                    <span>{homework.topic}</span>
+                                                  </span>
+                                                ) : null}
+                                                {deadline ? (
+                                                  <span className={`inline-flex items-center gap-1.5 shrink-0 ${isOverdue ? 'font-medium text-red-600' : 'text-gray-700'}`}>
+                                                    <Clock className={`h-3.5 w-3.5 ${isOverdue ? 'text-red-600' : 'text-emerald-600'}`} />
+                                                    <span>
+                                                      {deadline.toLocaleDateString()} {deadline.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                    </span>
+                                                  </span>
+                                                ) : null}
                                               </div>
                                               {homework.description && (
                                                 <p className="text-xs sm:text-sm text-gray-600 mt-2 italic">{homework.description}</p>
