@@ -25,7 +25,9 @@ import {
   Award,
   TrendingUp,
   Eye,
-  Sparkles
+  Sparkles,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLocation } from 'wouter';
@@ -121,6 +123,7 @@ interface Exam {
   subject?: 'maths' | 'physics' | 'chemistry' | 'biology';
   subjects?: Array<'maths' | 'physics' | 'chemistry' | 'biology'>;
   maxAttempts?: number;
+  hideAvailabilityDates?: boolean;
   hasInProgressDraft?: boolean;
   canResumeExam?: boolean;
   forceSubmitDraft?: boolean;
@@ -211,6 +214,7 @@ export default function StudentExams() {
   const [generateTopic, setGenerateTopic] = useState('');
   const [generateQuestionCount, setGenerateQuestionCount] = useState('10');
   const [isGeneratingExam, setIsGeneratingExam] = useState(false);
+  const [showAllAvailableExams, setShowAllAvailableExams] = useState(false);
   /** Per-exam selected attempt row id on Attempted Exams cards */
   const [selectedAttemptByExam, setSelectedAttemptByExam] = useState<Record<string, string>>({});
   const pendingOpenExamIdRef = useRef<string | null>(null);
@@ -349,7 +353,9 @@ export default function StudentExams() {
   };
 
   const getMaxAttemptsForExam = (exam: Exam): number =>
-    Math.max(1, Number(exam.maxAttempts) || 1);
+    exam.hideAvailabilityDates
+      ? Math.min(5, Math.max(1, Number(exam.maxAttempts) || 5))
+      : Math.max(1, Number(exam.maxAttempts) || 1);
 
   // Reset states when component mounts
   useEffect(() => {
@@ -634,6 +640,10 @@ export default function StudentExams() {
           return 0;
         }),
     [subjectFilteredExams, attemptCountByExamId]
+  );
+  const visibleAvailableExams = useMemo(
+    () => (showAllAvailableExams ? availableActiveExams : availableActiveExams.slice(0, 3)),
+    [availableActiveExams, showAllAvailableExams]
   );
 
   // One card per exam — keep only the latest attempt for the Attempted Exams grid.
@@ -1299,7 +1309,7 @@ export default function StudentExams() {
           {/* Available Exams */}
           <TabsContent value="available" className="space-y-3 overflow-visible sm:space-y-4 lg:space-y-6">
             <div className="grid grid-cols-1 items-stretch gap-4 overflow-visible p-1 sm:grid-cols-2 sm:gap-5 sm:p-2 md:grid-cols-2 lg:grid-cols-3 lg:gap-6">
-              {availableActiveExams.map((exam: Exam, index: number) => {
+              {visibleAvailableExams.map((exam: Exam, index: number) => {
                 const status = getExamStatus(exam);
                 const colorScheme = EXAM_CARD_SCHEMES[index % EXAM_CARD_SCHEMES.length];
                 const classLabels = getExamClassLabelsForStudent(exam, studentClassNumber);
@@ -1353,12 +1363,14 @@ export default function StudentExams() {
                           <BookOpen className={`h-3.5 w-3.5 sm:h-4 sm:w-4 mr-2 shrink-0 ${colorScheme.iconBook}`} />
                           <span>{hydratedQuestionCount} questions • {exam.totalMarks} marks</span>
                         </div>
-                        <div className="flex items-center">
-                          <Calendar className={`h-3.5 w-3.5 sm:h-4 sm:w-4 mr-2 shrink-0 ${colorScheme.iconCalendar}`} />
-                          <span className="text-xs">
-                            {new Date(exam.startDate).toLocaleDateString()} - {new Date(exam.endDate).toLocaleDateString()}
-                          </span>
-                        </div>
+                        {!exam.hideAvailabilityDates && (
+                          <div className="flex items-center">
+                            <Calendar className={`h-3.5 w-3.5 sm:h-4 sm:w-4 mr-2 shrink-0 ${colorScheme.iconCalendar}`} />
+                            <span className="text-xs">
+                              {new Date(exam.startDate).toLocaleDateString()} - {new Date(exam.endDate).toLocaleDateString()}
+                            </span>
+                          </div>
+                        )}
                         <div className="flex items-center text-xs font-medium">
                           <Target className={`h-3.5 w-3.5 sm:h-4 sm:w-4 mr-2 shrink-0 ${colorScheme.iconTarget}`} />
                           <span>
@@ -1393,6 +1405,23 @@ export default function StudentExams() {
                 );
               })}
             </div>
+
+            {availableActiveExams.length > 3 && (
+              <div className="flex justify-center px-1">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full max-w-sm gap-2"
+                  onClick={() => setShowAllAvailableExams((value) => !value)}
+                  aria-expanded={showAllAvailableExams}
+                >
+                  {showAllAvailableExams ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                  {showAllAvailableExams
+                    ? 'Show fewer tests'
+                    : `Show ${availableActiveExams.length - 3} more tests`}
+                </Button>
+              </div>
+            )}
 
             {availableActiveExams.length === 0 && (
               <div className="text-center py-12">

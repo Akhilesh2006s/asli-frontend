@@ -1245,7 +1245,7 @@ export default function SuperAdminAiGenerator() {
           <div className="min-w-0 space-y-1">
             <Label>Topic</Label>
             <Select value={topic} onValueChange={handleTopicChange} disabled={!classNumber || !subject || loadingTopics}>
-              <SelectTrigger className="overflow-hidden">
+              <SelectTrigger>
                 <SelectValue placeholder={!subject ? "Select class & subject first" : (loadingTopics ? "Loading topics..." : "Select topic")} />
               </SelectTrigger>
               <SelectContent>
@@ -1272,7 +1272,7 @@ export default function SuperAdminAiGenerator() {
           <div className="min-w-0 space-y-1 sm:col-span-2 lg:col-span-4">
             <Label>Sub Topic</Label>
             <Select value={subTopic} onValueChange={setSubTopic} disabled={!topic || loadingSubtopics}>
-              <SelectTrigger className="overflow-hidden">
+              <SelectTrigger>
                 <SelectValue placeholder={!topic ? "Select topic first" : (loadingSubtopics ? "Loading sub topics..." : "Select sub topic")} />
               </SelectTrigger>
               <SelectContent>{subtopics.map((st) => <SelectItem key={st} value={st}>{st}</SelectItem>)}</SelectContent>

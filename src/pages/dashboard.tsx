@@ -422,7 +422,13 @@ export default function Dashboard() {
         bootstrapAppliedRef.current = true;
 
         if (bootstrap.user) {
-          setUser(bootstrap.user);
+          // Bootstrap intentionally contains a compact user payload. Merge it
+          // with /auth/me so B2C/account-access flags are never discarded.
+          setUser((current: any) => ({
+            ...(current || {}),
+            ...(authUser || {}),
+            ...bootstrap.user,
+          }));
           const op = (bootstrap.user as { overallProgress?: number }).overallProgress;
           if (op !== undefined && op !== null) setOverallProgress(Number(op));
         }
@@ -1023,17 +1029,43 @@ export default function Dashboard() {
               const localTodayKey = getLocalIsoDateKey();
               const weekly = data.data.weeklyData || {};
               const todayFromWeekly = Number(weekly[localTodayKey]) || 0;
+              const cachedStats = dashboardStatsCacheRef.current;
               const backendToday = Math.max(
                 Number(data.data.today) || 0,
                 todayFromWeekly,
+                Number(cachedStats?.backendToday) || 0,
+                Number(cachedStats?.studyTimeToday) || 0,
+                localAtLoad.today,
+              );
+              const backendWeek = Math.max(
+                Number(data.data.thisWeek) || 0,
+                Number(cachedStats?.backendWeek) || 0,
+                Number(cachedStats?.studyTimeThisWeek) || 0,
+                localAtLoad.thisWeek,
+                backendToday,
               );
               sessionTimeBaselineRef.current = {
                 useBackend: true,
                 backendToday,
-                backendWeek: data.data.thisWeek || 0,
+                backendWeek,
                 localTodayAtLoad: localAtLoad.today,
                 localWeekAtLoad: localAtLoad.thisWeek,
               };
+
+              // If the browser has a newer cumulative value than the API, repair
+              // today's server row immediately instead of waiting for the 5-minute sync.
+              const apiToday = Math.max(Number(data.data.today) || 0, todayFromWeekly);
+              if (backendToday > apiToday) {
+                void fetch(`${API_BASE_URL}/api/student/session-time`, {
+                  method: 'POST',
+                  headers: {
+                    Authorization: `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({ date: localTodayKey, totalMinutes: backendToday }),
+                  keepalive: true,
+                }).catch(() => null);
+              }
 
               if (data.data.weeklyData) {
                 const convertedWeeklyData: { [key: string]: number } = {};

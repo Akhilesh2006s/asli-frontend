@@ -25,7 +25,8 @@ const SelectTrigger = React.forwardRef<
   <SelectPrimitive.Trigger
     ref={ref}
     className={cn(
-      "flex h-11 min-h-11 w-full min-w-0 items-center justify-between gap-2 overflow-hidden rounded-lg border border-slate-300 bg-white px-3 text-sm font-medium text-slate-800 shadow-sm outline-none ring-offset-0 transition-[color,background-color,box-shadow] data-[placeholder]:font-normal data-[placeholder]:text-slate-400 focus-visible:border-indigo-blue-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-blue-500/20 focus-visible:ring-offset-0 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:opacity-60 [&>span]:min-w-0 [&>span]:flex-1 [&>span]:truncate [&>span]:whitespace-nowrap [&>span]:text-left [&>span]:leading-snug",
+      // Grow with content so long chapter names stay fully readable inside the box
+      "flex min-h-11 w-full min-w-0 items-start justify-between gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm font-medium text-slate-800 shadow-sm outline-none ring-offset-0 transition-[color,background-color,box-shadow] data-[placeholder]:font-normal data-[placeholder]:text-slate-400 focus-visible:border-indigo-blue-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-blue-500/20 focus-visible:ring-offset-0 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:opacity-60 [&>span]:min-w-0 [&>span]:flex-1 [&>span]:whitespace-normal [&>span]:break-words [&>span]:text-left [&>span]:leading-snug [&>svg]:mt-0.5 [&>svg]:shrink-0",
       className
     )}
     {...props}

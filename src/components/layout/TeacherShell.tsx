@@ -78,8 +78,12 @@ export function TeacherShell({
 
   const branding = getSchoolBranding(user);
   const name = getTeacherDisplayName(user);
+  const individualTeacherHiddenNav = new Set(["classes", "students", "calendar", "results", "reports"]);
   const baseNav: NavItem[] = user?.isIndividualAccount
-    ? [...teacherNav, { id: "subscription", label: "Subscription", icon: CreditCard, href: "/auth/subscribe" }]
+    ? [
+        ...teacherNav.filter((item) => !individualTeacherHiddenNav.has(item.id)),
+        { id: "subscription", label: "Subscription", icon: CreditCard, href: "/auth/subscribe" },
+      ]
     : teacherNav;
   const nav = user?.isIndividualAccount
     ? baseNav

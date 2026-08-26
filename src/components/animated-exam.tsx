@@ -12,6 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { getAuthToken, getUser, getUserIdFromAuthToken } from '@/lib/auth-utils';
 import { AuthenticatedUploadImage } from '@/components/AuthenticatedUploadImage';
 import { MatchColumnsTable } from '@/components/exam/MatchColumnsTable';
+import ExamMathText from '@/components/exam/ExamMathText';
 import {
   Clock, 
   CheckCircle, 
@@ -1690,7 +1691,7 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
 
                       {arDisplay.showQuestionText && arDisplay.questionText ? (
                         <p className="text-sm sm:text-base text-gray-900 mb-4 leading-relaxed">
-                          {normalizeExamText(arDisplay.questionText, currentQuestion.subject)}
+                          <ExamMathText text={normalizeExamText(arDisplay.questionText, currentQuestion.subject)} />
                         </p>
                       ) : null}
                       </div>
@@ -1759,7 +1760,7 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
                                 isSelected ? 'font-semibold text-slate-900' : 'text-slate-700'
                               }`}
                             >
-                              {optionText}
+                              <ExamMathText text={optionText} />
                             </Label>
                             {isSelected ? (
                               <CheckCircle className="h-5 w-5 shrink-0 text-emerald-500" />
@@ -1817,7 +1818,7 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
                                   : 'text-gray-700 hover:text-gray-900'
                               }`}
                             >
-                              {optionText}
+                              <ExamMathText text={optionText} />
                             </Label>
                           </div>
                         );

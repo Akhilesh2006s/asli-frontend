@@ -6,7 +6,23 @@ export type DashboardStatsCache = {
   backendWeek: number;
   totalTodos: number;
   completedTodos: number;
+  dateKey?: string;
+  weekStartKey?: string;
 };
+
+function localDateKey(date = new Date()): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+function localWeekStartKey(date = new Date()): string {
+  const monday = new Date(date);
+  const day = monday.getDay();
+  monday.setDate(monday.getDate() - (day === 0 ? 6 : day - 1));
+  return localDateKey(monday);
+}
 
 function getCacheKey(): string | null {
   try {
@@ -35,6 +51,28 @@ export function readDashboardStatsCache(): DashboardStatsCache | null {
     ) {
       return null;
     }
+    const today = localDateKey();
+    const weekStart = localWeekStartKey();
+    if (parsed.weekStartKey && parsed.weekStartKey !== weekStart) {
+      return {
+        ...parsed,
+        studyTimeToday: 0,
+        studyTimeThisWeek: 0,
+        backendToday: 0,
+        backendWeek: 0,
+        dateKey: today,
+        weekStartKey: weekStart,
+      };
+    }
+    if (parsed.dateKey && parsed.dateKey !== today) {
+      return {
+        ...parsed,
+        studyTimeToday: 0,
+        backendToday: 0,
+        dateKey: today,
+        weekStartKey: weekStart,
+      };
+    }
     return parsed;
   } catch {
     return null;
@@ -57,7 +95,12 @@ export function writeDashboardStatsCache(
     };
     sessionStorage.setItem(
       key,
-      JSON.stringify({ ...existing, ...patch })
+      JSON.stringify({
+        ...existing,
+        ...patch,
+        dateKey: localDateKey(),
+        weekStartKey: localWeekStartKey(),
+      })
     );
   } catch {
     // ignore quota / parse errors

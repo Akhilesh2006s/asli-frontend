@@ -90,10 +90,12 @@ export function StudentShell({
   }, []);
 
   const branding = getSchoolBranding(user);
+  const individualStudent = isIndividualAccount(user);
+  const studentDisplayName = getStudentDisplayName(user) || "Student";
 
   // B2C / individual students have no school, so hide school-only features
   // (Offline Results + Timetable) from the sidebar.
-  const nav: NavItem[] = isIndividualAccount(user)
+  const nav: NavItem[] = individualStudent
     ? [
         ...studentNav
           .filter((item) => item.id !== "results" && item.id !== "timetable")
@@ -130,11 +132,11 @@ export function StudentShell({
   return (
     <AppShell
       nav={nav}
-      orgName={branding?.schoolName || "AsliLearn AI"}
-      orgSubtitle="Student Portal"
-      orgLogoUrl={branding?.schoolLogo || undefined}
+      orgName={individualStudent ? studentDisplayName : branding?.schoolName || "AsliLearn AI"}
+      orgSubtitle={individualStudent ? "Individual Student · AsliLearn AI" : "Student Portal"}
+      orgLogoUrl={individualStudent ? undefined : branding?.schoolLogo || undefined}
       homeHref="/dashboard"
-      user={{ name: getStudentDisplayName(user) || "Student", role: "Student" }}
+      user={{ name: studentDisplayName, role: "Student" }}
       onLogout={handleLogout}
     >
       <div className="student-school-surface relative isolate min-h-full">

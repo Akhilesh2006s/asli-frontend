@@ -1149,7 +1149,7 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
             <div className="min-w-0 space-y-1">
               <Label className="text-xs">Topic</Label>
               <Select value={topic} onValueChange={handleTopicChange} disabled={!subject || loadingTopics}>
-                <SelectTrigger className="h-10 overflow-hidden">
+                <SelectTrigger>
                   <SelectValue placeholder={!subject ? "Subject first" : loadingTopics ? "Loading…" : "Topic"} />
                 </SelectTrigger>
                 <SelectContent>
@@ -1167,7 +1167,7 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
                 }}
                 disabled={!topic || loadingSubtopics}
               >
-                <SelectTrigger className="h-10 overflow-hidden">
+                <SelectTrigger>
                   <SelectValue
                     placeholder={
                       !topic
