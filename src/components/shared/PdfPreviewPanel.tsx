@@ -637,6 +637,10 @@ export default function PdfPreviewPanel({
       if (!shouldTrapKeys()) return;
 
       const key = e.key;
+      const isZoomInKey = key === '+' || key === '=' || key === 'Add';
+      const isZoomOutKey = key === '-' || key === '_' || key === 'Subtract';
+      const isResetZoomKey = key === '0';
+
       if (
         key !== 'ArrowDown' &&
         key !== 'ArrowUp' &&
@@ -646,7 +650,10 @@ export default function PdfPreviewPanel({
         key !== 'PageUp' &&
         key !== ' ' &&
         key !== 'Home' &&
-        key !== 'End'
+        key !== 'End' &&
+        !isZoomInKey &&
+        !isZoomOutKey &&
+        !isResetZoomKey
       ) {
         return;
       }
@@ -655,7 +662,13 @@ export default function PdfPreviewPanel({
       e.preventDefault();
       e.stopPropagation();
 
-      if (key === 'ArrowDown') {
+      if (isZoomInKey) {
+        mobileViewerRef.current?.zoomIn();
+      } else if (isZoomOutKey) {
+        mobileViewerRef.current?.zoomOut();
+      } else if (isResetZoomKey) {
+        mobileViewerRef.current?.resetZoom();
+      } else if (key === 'ArrowDown') {
         scrollReaderCanvas(0, lineStep());
       } else if (key === 'ArrowUp') {
         scrollReaderCanvas(0, -lineStep());

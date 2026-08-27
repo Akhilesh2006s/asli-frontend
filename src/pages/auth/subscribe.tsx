@@ -8,7 +8,7 @@ import { INDIVIDUAL_TRIAL_DAYS } from '@/lib/individual-signup';
 import { IndividualPlanCheckout } from '@/components/b2c/IndividualPlanCheckout';
 import { IndividualSubscriptionReceiptCard } from '@/components/b2c/IndividualSubscriptionReceipt';
 import { receiptFromUser, showActiveReceipt } from '@/lib/individual-subscription';
-import { CreditCard, Clock, LogOut } from 'lucide-react';
+import { ArrowLeft, CreditCard, Clock, LogOut } from 'lucide-react';
 
 /**
  * Individual billing hub for trial, expired, and active subscribers.
@@ -65,6 +65,14 @@ export default function SubscribePage() {
     setLocation('/auth/login');
   };
 
+  const handleBack = () => {
+    if (window.history.length > 1) {
+      window.history.back();
+      return;
+    }
+    setLocation(user?.role === 'teacher' ? '/teacher/dashboard' : '/dashboard');
+  };
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-50 text-slate-600">
@@ -83,6 +91,12 @@ export default function SubscribePage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-100 via-white to-orange-50 p-4 2xl:p-8 board:p-12">
       <Card className="w-full max-w-2xl border-slate-200 shadow-lg 2xl:max-w-3xl board:shadow-2xl">
+        <div className="px-4 pt-4 sm:px-6 board:px-10 board:pt-8">
+          <Button variant="ghost" className="gap-2 px-2 text-slate-700" onClick={handleBack}>
+            <ArrowLeft className="h-4 w-4" />
+            Back
+          </Button>
+        </div>
         <CardHeader className="space-y-2 text-center board:space-y-3 board:px-10 board:pt-10">
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-orange-100 text-orange-700 board:h-14 board:w-14">
             <CreditCard className="h-6 w-6 board:h-7 board:w-7" />

@@ -84,6 +84,7 @@ const PdfPagePinchFrame = forwardRef<PdfPagePinchFrameHandle, Props>(function Pd
     top: 0,
   });
   const lastTapRef = useRef(0);
+  const clickZoomTimerRef = useRef<number | null>(null);
 
   const zoomed = scale > ZOOM_EPSILON;
   const frameW = Math.max(1, Math.round(pageWidth * scale));
@@ -116,26 +117,32 @@ const PdfPagePinchFrame = forwardRef<PdfPagePinchFrameHandle, Props>(function Pd
     (next: number) => {
       const clamped = Math.min(MAX_SCALE, Math.max(MIN_SCALE, next));
       const prev = scaleRef.current;
+      const scrollEl = findScrollParent();
+      const frame = frameRef.current;
+      let anchorX = 0;
+      let anchorY = 0;
+      if (scrollEl && frame && prev > 0) {
+        const frameRect = frame.getBoundingClientRect();
+        const scrollRect = scrollEl.getBoundingClientRect();
+        const frameLeft = frameRect.left - scrollRect.left + scrollEl.scrollLeft;
+        const frameTop = frameRect.top - scrollRect.top + scrollEl.scrollTop;
+        anchorX = scrollEl.scrollLeft + scrollEl.clientWidth / 2 - frameLeft;
+        anchorY = scrollEl.scrollTop + scrollEl.clientHeight / 2 - frameTop;
+      }
       scaleRef.current = clamped;
       setScale(clamped);
       onZoomChange(clamped > ZOOM_EPSILON, clamped);
 
       // Keep the focal point centered in the scroll parent while the page grows/shrinks.
       requestAnimationFrame(() => {
-        const scrollEl = findScrollParent();
-        const frame = frameRef.current;
         if (!scrollEl || !frame || prev <= 0) return;
         const ratio = clamped / prev;
         const frameRect = frame.getBoundingClientRect();
         const scrollRect = scrollEl.getBoundingClientRect();
-        const viewCX = scrollEl.scrollLeft + scrollEl.clientWidth / 2;
-        const viewCY = scrollEl.scrollTop + scrollEl.clientHeight / 2;
         const frameLeft = frameRect.left - scrollRect.left + scrollEl.scrollLeft;
         const frameTop = frameRect.top - scrollRect.top + scrollEl.scrollTop;
-        const relX = viewCX - frameLeft;
-        const relY = viewCY - frameTop;
-        scrollEl.scrollLeft = frameLeft + relX * ratio - scrollEl.clientWidth / 2;
-        scrollEl.scrollTop = frameTop + relY * ratio - scrollEl.clientHeight / 2;
+        scrollEl.scrollLeft = frameLeft + anchorX * ratio - scrollEl.clientWidth / 2;
+        scrollEl.scrollTop = frameTop + anchorY * ratio - scrollEl.clientHeight / 2;
       });
     },
     [onZoomChange, findScrollParent],
@@ -159,7 +166,7 @@ const PdfPagePinchFrame = forwardRef<PdfPagePinchFrameHandle, Props>(function Pd
     (dx: number, dy: number) => {
       const scrollEl = findScrollParent();
       if (!scrollEl) return;
-      scrollEl.scrollBy({ left: -dx, top: -dy, behavior: 'auto' });
+      scrollEl.scrollBy({ left: dx, top: dy, behavior: 'auto' });
     },
     [findScrollParent],
   );
@@ -348,8 +355,24 @@ const PdfPagePinchFrame = forwardRef<PdfPagePinchFrameHandle, Props>(function Pd
 
     const onDblClick = (event: MouseEvent) => {
       event.preventDefault();
+      if (clickZoomTimerRef.current != null) {
+        window.clearTimeout(clickZoomTimerRef.current);
+        clickZoomTimerRef.current = null;
+      }
       if (scaleRef.current > ZOOM_EPSILON) resetZoom();
       else applyScale(2);
+    };
+
+    const onClick = (event: MouseEvent) => {
+      // The page advertises a zoom-in cursor at fit size, so a normal click
+      // should zoom. Double-click remains the quick zoom/reset gesture.
+      if (scaleRef.current > ZOOM_EPSILON || event.detail > 1) return;
+      event.preventDefault();
+      if (clickZoomTimerRef.current != null) window.clearTimeout(clickZoomTimerRef.current);
+      clickZoomTimerRef.current = window.setTimeout(() => {
+        clickZoomTimerRef.current = null;
+        if (scaleRef.current <= ZOOM_EPSILON) applyScale(1 + ZOOM_STEP);
+      }, DOUBLE_TAP_MS);
     };
 
     const onDragStart = (event: DragEvent) => {
@@ -367,9 +390,14 @@ const PdfPagePinchFrame = forwardRef<PdfPagePinchFrameHandle, Props>(function Pd
     frame.addEventListener('pointercancel', onPointerUp);
     frame.addEventListener('lostpointercapture', onPointerUp);
     frame.addEventListener('dblclick', onDblClick);
+    frame.addEventListener('click', onClick);
     frame.addEventListener('dragstart', onDragStart);
 
     return () => {
+      if (clickZoomTimerRef.current != null) {
+        window.clearTimeout(clickZoomTimerRef.current);
+        clickZoomTimerRef.current = null;
+      }
       frame.removeEventListener('touchstart', onTouchStart);
       frame.removeEventListener('touchmove', onTouchMove);
       frame.removeEventListener('touchend', onTouchEnd);
@@ -381,6 +409,7 @@ const PdfPagePinchFrame = forwardRef<PdfPagePinchFrameHandle, Props>(function Pd
       frame.removeEventListener('pointercancel', onPointerUp);
       frame.removeEventListener('lostpointercapture', onPointerUp);
       frame.removeEventListener('dblclick', onDblClick);
+      frame.removeEventListener('click', onClick);
       frame.removeEventListener('dragstart', onDragStart);
     };
   }, [applyScale, findScrollParent, onZoomChange, resetZoom]);
