@@ -108,15 +108,7 @@ const CLASS_OPTIONS = ['Class 6', 'Class 7', 'Class 8', 'Class 9', 'Class 10'];
 
 const WHOLE_CHAPTER_VALUE = '__WHOLE_CHAPTER__';
 
-const DEFAULT_QUESTION_COUNTS = {
-  countMcq: '5',
-  countVsaq: '3',
-  countSaq: '3',
-  countLaq: '1',
-  countFib: '2',
-};
-
-const CHAPTER_COMPOSITION_TOOLS = new Set([
+const FIXED_TWENTY_QUESTION_TOOLS = new Set([
   'worksheet-mcq-generator',
   'exam-question-paper-generator',
 ]);
@@ -143,11 +135,6 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
       { name: 'subject', label: 'Subject *', type: 'select', required: true },
       { name: 'topic', label: 'Topic *', type: 'select', required: true, placeholder: 'Select topic', isNCERT: true },
       { name: 'subTopic', label: 'Sub Topic (Optional)', type: 'select', required: false, placeholder: 'Whole chapter', isCascadeSubtopic: true },
-      { name: 'countMcq', label: 'MCQs', type: 'number', required: false, placeholder: '5' },
-      { name: 'countVsaq', label: 'VSAQs', type: 'number', required: false, placeholder: '3' },
-      { name: 'countSaq', label: 'SAQs', type: 'number', required: false, placeholder: '3' },
-      { name: 'countLaq', label: 'LAQs', type: 'number', required: false, placeholder: '1' },
-      { name: 'countFib', label: 'Fill Blanks', type: 'number', required: false, placeholder: '2' },
     ]
   },
   'concept-mastery-helper': {
@@ -241,11 +228,6 @@ const TOOL_CONFIGS: Record<string, ToolConfig> = {
       { name: 'subject', label: 'Subject *', type: 'select', required: true },
       { name: 'topic', label: 'Topic *', type: 'select', required: true, placeholder: 'Select topic', isNCERT: true },
       { name: 'subTopic', label: 'Sub Topic (Optional)', type: 'select', required: false, placeholder: 'Whole chapter', isCascadeSubtopic: true },
-      { name: 'countMcq', label: 'MCQs', type: 'number', required: false, placeholder: '5' },
-      { name: 'countVsaq', label: 'VSAQs', type: 'number', required: false, placeholder: '3' },
-      { name: 'countSaq', label: 'SAQs', type: 'number', required: false, placeholder: '3' },
-      { name: 'countLaq', label: 'LAQs', type: 'number', required: false, placeholder: '1' },
-      { name: 'countFib', label: 'Fill Blanks', type: 'number', required: false, placeholder: '2' },
     ]
   },
 };
@@ -531,19 +513,6 @@ export default function TeacherToolPage() {
       setFormParams((prev) => ({ ...prev, board: fallback }));
     }
   }, [boardOptions, formParams.board, isAsliPrepExclusive, schoolBoardName]);
-
-  useEffect(() => {
-    if (!CHAPTER_COMPOSITION_TOOLS.has(toolType)) return;
-    setFormParams((prev) => ({
-      ...DEFAULT_QUESTION_COUNTS,
-      ...prev,
-      countMcq: prev.countMcq ?? DEFAULT_QUESTION_COUNTS.countMcq,
-      countVsaq: prev.countVsaq ?? DEFAULT_QUESTION_COUNTS.countVsaq,
-      countSaq: prev.countSaq ?? DEFAULT_QUESTION_COUNTS.countSaq,
-      countLaq: prev.countLaq ?? DEFAULT_QUESTION_COUNTS.countLaq,
-      countFib: prev.countFib ?? DEFAULT_QUESTION_COUNTS.countFib,
-    }));
-  }, [toolType]);
 
   // Keep subject free for delivery — language/tool pairing is not a UI gate.
   useEffect(() => {}, [toolType, formParams.subject, formParams.subjects]);
@@ -924,16 +893,6 @@ export default function TeacherToolPage() {
         formParams.productCategory === 'NONE' ? '' : formParams.productCategory,
       );
 
-      const questionComposition = CHAPTER_COMPOSITION_TOOLS.has(toolType)
-        ? {
-            mcq: parseInt(String(formParams.countMcq || '0'), 10) || 0,
-            vsaq: parseInt(String(formParams.countVsaq || '0'), 10) || 0,
-            saq: parseInt(String(formParams.countSaq || '0'), 10) || 0,
-            laq: parseInt(String(formParams.countLaq || '0'), 10) || 0,
-            fib: parseInt(String(formParams.countFib || '0'), 10) || 0,
-          }
-        : undefined;
-
       const requestBody = {
         toolType,
         ...formParams,
@@ -941,13 +900,14 @@ export default function TeacherToolPage() {
         subject: selectedSubject,
         topic: selectedTopic,
         section: selectedSection,
-        questionCount: formParams.questionCount
-          ? parseInt(String(formParams.questionCount), 10)
-          : undefined,
+        questionCount: FIXED_TWENTY_QUESTION_TOOLS.has(toolType)
+          ? 20
+          : formParams.questionCount
+            ? parseInt(String(formParams.questionCount), 10)
+            : undefined,
         duration: formParams.duration ? parseInt(String(formParams.duration), 10) : undefined,
         subTopic: selectedSubTopic,
         productCategory: productCategory || '',
-        questionComposition,
         board: selectedBoard,
         gradeLevel: selectedClass,
         chapterScope: !selectedSubTopic,
@@ -1949,4 +1909,3 @@ export default function TeacherToolPage() {
     </AiToolGeneratePageChrome>
   );
 }
-

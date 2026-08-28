@@ -147,6 +147,15 @@ export function stripAiGeneratorLeakage(text: string): string {
   if (!s) return '';
 
   s = truncateAtEarliestMarker(s, PROMPT_LEAK_MARKERS, 32);
+  s = truncateAtEarliestMarker(
+    s,
+    [
+      /\b(?:the\s+)?(?:alpha|beta|gamma)\s+version\s+of\s+asli\s+prep\s+foundation(?:\s+material)?\b/i,
+      /\babout\s+asli\s+prep(?:\s+foundation)?\b/i,
+      /\basli\s+prep\s+foundation\s+material\s+is\s+designed\b/i,
+    ],
+    16,
+  );
   s = stripPromptValidationLoops(s);
 
   s = s.replace(

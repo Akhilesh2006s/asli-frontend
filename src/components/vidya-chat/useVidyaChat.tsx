@@ -348,6 +348,7 @@ export function useVidyaChat({
           },
           body: JSON.stringify({
             message: data.message,
+            history: historyPayload,
           }),
         });
 
