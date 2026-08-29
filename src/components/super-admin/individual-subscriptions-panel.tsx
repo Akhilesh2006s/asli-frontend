@@ -15,6 +15,13 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { API_BASE_URL } from '@/lib/api-config';
 import IndividualPlanRatesPanel from '@/components/super-admin/IndividualPlanRatesPanel';
+import { GraduationCap, Loader2, RefreshCw, Search, UserRound } from 'lucide-react';
+
+type PaymentRow = {
+  id: string; name: string; email: string; role: string; schoolName?: string; classNumber?: string;
+  isSchoolManaged?: boolean; paidAt?: string | null; amountInr: number; method?: string; source?: string;
+  reference?: string; packageLabel?: string; period?: string; validUntil?: string | null; status?: string;
+};
 
 type PaidMember = {
   id: string;
@@ -78,22 +85,31 @@ export default function IndividualSubscriptionsPanel() {
   const [members, setMembers] = useState<PaidMember[]>([]);
   const [summary, setSummary] = useState<Summary | null>(null);
   const [search, setSearch] = useState('');
+  const [payments, setPayments] = useState<PaymentRow[]>([]);
+  const [paymentSummary, setPaymentSummary] = useState<any>(null);
+  const [scope, setScope] = useState<'all' | 'b2c' | 'school'>('all');
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [paidRes, allRes] = await Promise.all([
+      const [paidRes, allRes, paymentsRes] = await Promise.all([
         fetch(`${API_BASE_URL}/api/super-admin/trial-members?status=paid`, {
           headers: authHeaders(),
         }),
         fetch(`${API_BASE_URL}/api/super-admin/trial-members?status=all`, {
           headers: authHeaders(),
         }),
+        fetch(`${API_BASE_URL}/api/super-admin/subscription-payments`, { headers: authHeaders() }),
       ]);
       const paidJson = await paidRes.json().catch(() => ({}));
       const allJson = await allRes.json().catch(() => ({}));
+      const paymentsJson = await paymentsRes.json().catch(() => ({}));
       if (!paidRes.ok || !paidJson?.success) {
         throw new Error(paidJson?.message || 'Failed to load individual subscriptions');
+      }
+      if (paymentsRes.ok && paymentsJson?.success) {
+        setPayments(Array.isArray(paymentsJson.payments) ? paymentsJson.payments : []);
+        setPaymentSummary(paymentsJson.summary || null);
       }
       setMembers(Array.isArray(paidJson.data?.members) ? paidJson.data.members : []);
       if (allJson?.success && allJson.data?.summary) {
@@ -125,9 +141,34 @@ export default function IndividualSubscriptionsPanel() {
     );
   }, [members, search]);
 
+  const filteredPayments = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return payments.filter((p) => {
+      if (scope === 'school' && !p.isSchoolManaged) return false;
+      if (scope === 'b2c' && p.isSchoolManaged) return false;
+      return !q || [p.name,p.email,p.schoolName,p.reference,p.method,p.packageLabel].filter(Boolean).join(' ').toLowerCase().includes(q);
+    });
+  }, [payments, search, scope]);
+
+  const exportPayments = () => {
+    const escape = (v: unknown) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+    const rows = [['Paid at','Name','Email','Role','Account','School','Class','Amount INR','Method','Reference','Plan','Valid until'], ...filteredPayments.map((p) => [p.paidAt,p.name,p.email,p.role,p.isSchoolManaged?'School student':'Individual',p.schoolName,p.classNumber,p.amountInr,p.method||p.source,p.reference,p.packageLabel,p.validUntil])];
+    const blob = new Blob([rows.map((row) => row.map(escape).join(',')).join('\n')], { type: 'text/csv;charset=utf-8' });
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='all-subscription-payments.csv'; a.click(); URL.revokeObjectURL(a.href);
+  };
+
   return (
     <div className="space-y-5">
       <IndividualPlanRatesPanel />
+
+      <Card>
+        <CardHeader className="space-y-3">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div><CardTitle>All subscription payments</CardTitle><CardDescription>Complete recorded ledger: individual students, individual teachers, and school students—online and offline.</CardDescription></div><Button variant="outline" onClick={exportPayments}>Export CSV</Button></div>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5"><div><p className="text-xs text-slate-500">Transactions</p><p className="text-2xl font-bold">{paymentSummary?.count ?? payments.length}</p></div><div><p className="text-xs text-slate-500">Total recorded</p><p className="text-2xl font-bold">{formatInr(paymentSummary?.revenueInr || 0)}</p></div><div><p className="text-xs text-slate-500">Online</p><p className="text-2xl font-bold">{paymentSummary?.onlinePayments ?? 0}</p></div><div><p className="text-xs text-slate-500">Offline</p><p className="text-2xl font-bold">{paymentSummary?.offlinePayments ?? 0}</p></div><div><p className="text-xs text-slate-500">School students</p><p className="text-2xl font-bold">{paymentSummary?.schoolPayments ?? 0}</p></div></div>
+          <div className="flex flex-wrap gap-2">{(['all','b2c','school'] as const).map((item)=><Button key={item} size="sm" variant={scope===item?'default':'outline'} onClick={()=>setScope(item)}>{item==='all'?'All payments':item==='b2c'?'Individual / B2C':'School students'}</Button>)}</div>
+        </CardHeader>
+        <CardContent>{loading?<div className="flex justify-center py-12"><Loader2 className="h-7 w-7 animate-spin"/></div>:filteredPayments.length===0?<p className="py-10 text-center text-sm text-slate-500">No recorded payments match this filter.</p>:<div className="overflow-x-auto rounded-md border"><Table><TableHeader><TableRow className="bg-slate-50"><TableHead>Paid on</TableHead><TableHead>Account</TableHead><TableHead>School / class</TableHead><TableHead>Plan</TableHead><TableHead>Amount</TableHead><TableHead>Method / reference</TableHead><TableHead>Valid until</TableHead></TableRow></TableHeader><TableBody>{filteredPayments.map((p)=><TableRow key={p.id}><TableCell>{formatDate(p.paidAt)}</TableCell><TableCell><p className="font-medium">{p.name}</p><p className="text-xs text-slate-500">{p.email}</p><Badge variant="outline" className="mt-1">{p.isSchoolManaged?'School student':p.role}</Badge></TableCell><TableCell><p>{p.schoolName||'Individual account'}</p><p className="text-xs text-slate-500">{p.classNumber||'—'}</p></TableCell><TableCell>{p.packageLabel||'—'}{p.period?<p className="text-xs text-slate-500">{p.period}</p>:null}</TableCell><TableCell className="font-semibold">{formatInr(p.amountInr)}</TableCell><TableCell><p className="capitalize">{p.method||p.source||'—'}</p><p className="max-w-48 break-all text-xs text-slate-500">{p.reference||'—'}</p></TableCell><TableCell>{formatDate(p.validUntil)}</TableCell></TableRow>)}</TableBody></Table></div>}</CardContent>
+      </Card>
 
       <Card className="border-emerald-100 bg-gradient-to-br from-emerald-50/80 to-white">
         <CardHeader className="pb-2">

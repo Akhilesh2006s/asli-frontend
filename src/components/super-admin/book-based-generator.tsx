@@ -326,6 +326,11 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
     return bookGroupMode === "class" ? groupBooksByClass(scoped) : groupBooksBySubject(scoped);
   }, [books, bookGroupMode, productCategory]);
 
+  const bookGroupFilterOptions = useMemo(
+    () => bookGroups.filter((group) => !/^IIT\s*·\s*Class\s*6$/i.test(group.label.trim())),
+    [bookGroups],
+  );
+
   const visibleBookGroups = useMemo(() => {
     if (bookGroupFilter === "__all__") return bookGroups;
     return bookGroups.filter((group) => group.key === bookGroupFilter);
@@ -921,7 +926,7 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
 
       {/* Step 1: Select textbook from library */}
       <Card className="border-violet-200/80">
-        <CardHeader>
+        <CardHeader className="pb-4 lg:pb-4">
           <CardTitle className="text-lg flex items-center gap-2">
             <FileText className="h-5 w-5 text-violet-600" />
             Step 1 — Select Textbook
@@ -930,7 +935,7 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
             Choose a book you already uploaded in Book Knowledge Base. Upload new PDFs there — not here.
           </p>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4 pt-0 lg:pt-0">
           {books.length === 0 && !booksLoading ? (
             <div className="rounded-xl border border-dashed border-violet-200 bg-violet-50/40 p-6 text-center space-y-3">
               <p className="text-sm text-slate-600">No textbooks indexed yet.</p>
@@ -945,11 +950,11 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
             </div>
           ) : (
             <>
-              <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+              <div className="grid gap-3 border-b border-slate-100 pb-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
                 <p className="text-sm font-medium text-slate-800">Your indexed textbooks</p>
-                <div className="flex flex-wrap items-center gap-2">
+                <div className="grid w-full grid-cols-1 gap-2 min-[460px]:grid-cols-2 sm:w-auto sm:grid-cols-[9.5rem_11rem_auto]">
                   <Select value={bookGroupMode} onValueChange={(v) => { setBookGroupMode(v as "class" | "subject"); setBookGroupFilter("__all__"); }}>
-                    <SelectTrigger className="h-8 w-[9.5rem] text-xs">
+                    <SelectTrigger className="h-10 w-full text-xs [&>span]:truncate">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -957,14 +962,14 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
                       <SelectItem value="subject">Group by subject</SelectItem>
                     </SelectContent>
                   </Select>
-                  {bookGroups.length > 1 ? (
+                  {bookGroupFilterOptions.length > 1 ? (
                     <Select value={bookGroupFilter} onValueChange={setBookGroupFilter}>
-                      <SelectTrigger className="h-8 w-[11rem] text-xs">
+                      <SelectTrigger className="h-10 w-full text-xs [&>span]:truncate">
                         <SelectValue placeholder="All groups" />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="__all__">All groups</SelectItem>
-                        {bookGroups.map((group) => (
+                        {bookGroupFilterOptions.map((group) => (
                           <SelectItem key={group.key} value={group.key}>
                             {group.label}
                           </SelectItem>
@@ -972,7 +977,7 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
                       </SelectContent>
                     </Select>
                   ) : null}
-                  <Button type="button" variant="outline" size="sm" onClick={() => { void loadBooks(); }}>
+                  <Button type="button" variant="outline" size="sm" className="h-10 min-[460px]:col-span-2 sm:col-span-1" onClick={() => { void loadBooks(); }}>
                     Refresh list
                   </Button>
                 </div>

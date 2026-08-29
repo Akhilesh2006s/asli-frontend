@@ -34,6 +34,7 @@ import {
   SchoolRoleAccessPanel,
   type RoleKey,
 } from "@/components/admin/SchoolRoleAccessPanel";
+import { SchoolStudentBillingPanel } from '@/components/admin/SchoolStudentBillingPanel';
 
 /** Visible borders/background on white dialogs (muted/40 was nearly invisible). */
 const SCHOOL_FORM_FIELD_CLASS =
@@ -198,6 +199,10 @@ interface Admin {
   licensedStudents?: number;
   licensedTeachers?: number;
   accountSeatsNotes?: string;
+  studentBillingEnabled?: boolean;
+  studentPaymentMode?: 'online' | 'offline' | 'both';
+  studentAnnualPriceInr?: number;
+  studentTrialDays?: number;
   stats: {
     students: number;
     teachers: number;
@@ -411,6 +416,10 @@ export default function AdminManagement() {
     secondaryContactPerson: '',
     secondaryContactPhone: '',
     schoolDetails: emptySchoolDetails(),
+    studentBillingEnabled: false,
+    studentPaymentMode: 'offline' as 'online' | 'offline' | 'both',
+    studentAnnualPriceInr: 0,
+    studentTrialDays: 15,
   });
   const [newRoleAccess, setNewRoleAccess] = useState<SchoolRoleAccessState>(() =>
     defaultSchoolRoleAccess()
@@ -448,6 +457,10 @@ export default function AdminManagement() {
     secondaryContactPhone: '',
     schoolDetails: emptySchoolDetails(),
     isActive: true,
+    studentBillingEnabled: false,
+    studentPaymentMode: 'offline' as 'online' | 'offline' | 'both',
+    studentAnnualPriceInr: 0,
+    studentTrialDays: 15,
   });
   const [editRoleAccess, setEditRoleAccess] = useState<SchoolRoleAccessState>(() =>
     defaultSchoolRoleAccess()
@@ -757,6 +770,10 @@ export default function AdminManagement() {
         secondaryContactPerson: newAdmin.secondaryContactPerson?.trim() || '',
         secondaryContactPhone: sanitizePhoneInput(newAdmin.secondaryContactPhone),
         pin: sanitizePincodeInput(newAdmin.pin),
+        studentBillingEnabled: newAdmin.studentBillingEnabled,
+        studentPaymentMode: newAdmin.studentPaymentMode,
+        studentAnnualPriceInr: newAdmin.studentAnnualPriceInr,
+        studentTrialDays: newAdmin.studentTrialDays,
         ...buildRoleAccessPayload(newRoleAccess),
         schoolDetails: {
           ...sd,
@@ -935,6 +952,10 @@ export default function AdminManagement() {
       secondaryContactPhone: sanitizePhoneInput(admin.secondaryContactPhone || ''),
       schoolDetails: { ...emptySchoolDetails(), ...sd },
       isActive: admin.status === 'active' || admin.status === 'Active',
+      studentBillingEnabled: Boolean(admin.studentBillingEnabled),
+      studentPaymentMode: admin.studentPaymentMode || 'offline',
+      studentAnnualPriceInr: Number(admin.studentAnnualPriceInr || 0),
+      studentTrialDays: Number(admin.studentTrialDays || 15),
     });
     setEditRoleAccess(schoolRoleAccessFromAdmin(admin));
     setEditRoleTab('admin');
@@ -1043,6 +1064,10 @@ export default function AdminManagement() {
             state: editAdmin.state
           },
           isActive: editAdmin.isActive,
+          studentBillingEnabled: editAdmin.studentBillingEnabled,
+          studentPaymentMode: editAdmin.studentPaymentMode,
+          studentAnnualPriceInr: editAdmin.studentAnnualPriceInr,
+          studentTrialDays: editAdmin.studentTrialDays,
           ...buildRoleAccessPayload(editRoleAccess),
         }),
       });
@@ -1823,6 +1848,12 @@ export default function AdminManagement() {
                   activeRole={newRoleTab}
                   onActiveRoleChange={setNewRoleTab}
                 />
+                {newRoleTab === 'student' && (
+                  <SchoolStudentBillingPanel
+                    value={newAdmin}
+                    onChange={(next) => setNewAdmin({ ...newAdmin, ...next })}
+                  />
+                )}
               </div>
             </div>
             <div className="flex shrink-0 justify-end gap-3 border-t bg-background px-4 sm:px-6 lg:px-8 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
@@ -2441,6 +2472,13 @@ export default function AdminManagement() {
                   activeRole={editRoleTab}
                   onActiveRoleChange={setEditRoleTab}
                 />
+                {editRoleTab === 'student' && (
+                  <SchoolStudentBillingPanel
+                    value={editAdmin}
+                    onChange={(next) => setEditAdmin({ ...editAdmin, ...next })}
+                    adminId={editingAdmin?.id}
+                  />
+                )}
               </div>
             </div>
             <div className="flex shrink-0 justify-end gap-3 border-t bg-background px-4 sm:px-6 lg:px-8 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">

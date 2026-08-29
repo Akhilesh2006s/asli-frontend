@@ -54,7 +54,7 @@ export function IndividualTrialGate({ children }: { children: React.ReactNode })
         }
         const data = await res.json();
         const user = data.user || data;
-        if (user?.isIndividualAccount && user?.paymentRequired) {
+        if ((user?.isIndividualAccount || user?.isSchoolManagedSubscription) && user?.paymentRequired) {
           if (pathOnly !== '/auth/subscribe') {
             setLocation('/auth/subscribe');
             return;

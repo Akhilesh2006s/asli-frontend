@@ -1,0 +1,24 @@
+import { useEffect, useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
+import { API_BASE_URL } from '@/lib/api-config';
+import { getAuthToken } from '@/lib/auth-utils';
+
+export type SchoolStudentBillingConfig = { studentBillingEnabled:boolean; studentPaymentMode:'online'|'offline'|'both'; studentAnnualPriceInr:number; studentTrialDays:number };
+export function SchoolStudentBillingPanel({ value, onChange, adminId }: { value:SchoolStudentBillingConfig; onChange:(v:SchoolStudentBillingConfig)=>void; adminId?:string }) {
+  const [data,setData]=useState<any>(null); const [busy,setBusy]=useState('');
+  const headers=()=>({Authorization:`Bearer ${getAuthToken()}`,'Content-Type':'application/json'});
+  const load=async()=>{if(!adminId)return;const r=await fetch(`${API_BASE_URL}/api/super-admin/admins/${adminId}/student-subscriptions`,{headers:headers()});if(r.ok)setData(await r.json());};
+  useEffect(()=>{void load();},[adminId]);
+  const activate=async(row:any)=>{setBusy(row.id);const r=await fetch(`${API_BASE_URL}/api/super-admin/admins/${adminId}/student-subscriptions/${row.id}/activate`,{method:'PATCH',headers:headers(),body:JSON.stringify({amountInr:value.studentAnnualPriceInr})});setBusy('');if(r.ok)void load();};
+  const download=async(format:'xlsx'|'pdf')=>{const r=await fetch(`${API_BASE_URL}/api/super-admin/admins/${adminId}/student-subscriptions/export?format=${format}`,{headers:headers()});if(!r.ok)return;const blob=await r.blob();const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`student-subscriptions.${format}`;a.click();URL.revokeObjectURL(a.href);};
+  return <div className="mt-4 space-y-4 rounded-xl border border-indigo-200 bg-indigo-50/60 p-4">
+    <div><h4 className="font-semibold text-slate-900">Student subscription validation</h4><p className="text-xs text-slate-600">Only school students are validated. Teachers and administrators are never charged.</p></div>
+    <div className="flex items-center justify-between rounded-lg bg-white p-3"><div><p className="text-sm font-medium">Require yearly student subscription</p><p className="text-xs text-slate-500">Students receive full access during their trial.</p></div><Switch checked={value.studentBillingEnabled} onCheckedChange={(v)=>onChange({...value,studentBillingEnabled:v})}/></div>
+    {value.studentBillingEnabled&&<div className="grid gap-4 sm:grid-cols-3"><div><Label>Payment method</Label><Select value={value.studentPaymentMode} onValueChange={(v:any)=>onChange({...value,studentPaymentMode:v})}><SelectTrigger><SelectValue/></SelectTrigger><SelectContent><SelectItem value="online">Online</SelectItem><SelectItem value="offline">Offline</SelectItem><SelectItem value="both">Online or offline</SelectItem></SelectContent></Select></div><div><Label>Yearly price (₹)</Label><Input type="number" min={0} value={value.studentAnnualPriceInr} onChange={(e)=>onChange({...value,studentAnnualPriceInr:Math.max(0,Number(e.target.value)||0)})}/></div><div><Label>Trial days</Label><Input type="number" min={1} max={365} value={value.studentTrialDays} onChange={(e)=>onChange({...value,studentTrialDays:Math.min(365,Math.max(1,Number(e.target.value)||15))})}/></div></div>}
+    {adminId&&data&&<div className="space-y-3 border-t border-indigo-200 pt-4"><div className="flex flex-wrap items-center justify-between gap-2"><p className="text-sm font-semibold">Students {data.summary?.total||0} · Paid {data.summary?.paid||0} · Trial {data.summary?.trial||0} · Expired {data.summary?.expired||0}</p><div className="flex gap-2"><Button type="button" size="sm" variant="outline" onClick={()=>download('xlsx')}>Export Excel</Button><Button type="button" size="sm" variant="outline" onClick={()=>download('pdf')}>Export PDF</Button></div></div><div className="max-h-64 overflow-auto rounded-lg border bg-white"><table className="w-full text-left text-xs"><thead className="sticky top-0 bg-slate-50"><tr><th className="p-2">Student</th><th className="p-2">Class</th><th className="p-2">Status</th><th className="p-2">Method</th><th className="p-2"></th></tr></thead><tbody>{data.students?.map((row:any)=><tr key={row.id} className="border-t"><td className="p-2"><p className="font-medium">{row.name}</p><p className="text-slate-500">{row.email}</p></td><td className="p-2">{row.class}{row.section?`-${row.section}`:''}</td><td className="p-2 capitalize">{row.status}</td><td className="p-2 capitalize">{row.paymentMode||'-'}</td><td className="p-2">{row.status!=='paid'&&<Button type="button" size="sm" disabled={busy===row.id} onClick={()=>activate(row)}>Mark paid</Button>}</td></tr>)}</tbody></table></div></div>}
+  </div>;
+}

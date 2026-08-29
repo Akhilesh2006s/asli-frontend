@@ -6,6 +6,7 @@ import { API_BASE_URL } from '@/lib/api-config';
 import { clearAuthData, getAuthToken } from '@/lib/auth-utils';
 import { INDIVIDUAL_TRIAL_DAYS } from '@/lib/individual-signup';
 import { IndividualPlanCheckout } from '@/components/b2c/IndividualPlanCheckout';
+import { SchoolStudentPlanCheckout } from '@/components/b2b/SchoolStudentPlanCheckout';
 import { IndividualSubscriptionReceiptCard } from '@/components/b2c/IndividualSubscriptionReceipt';
 import { receiptFromUser, showActiveReceipt } from '@/lib/individual-subscription';
 import { ArrowLeft, CreditCard, Clock, LogOut } from 'lucide-react';
@@ -29,6 +30,8 @@ export default function SubscribePage() {
     subscriptionStatus?: string;
     trialActive?: boolean;
     canSubscribeEarly?: boolean;
+    isSchoolManagedSubscription?: boolean;
+    schoolStudentAnnualPriceInr?: number;
   } | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -86,7 +89,8 @@ export default function SubscribePage() {
   const existingReceipt = receiptFromUser(user);
   const showReceipt = showActiveReceipt(user) && existingReceipt;
   const isActive = user?.subscriptionStatus === 'active' && !user?.paymentRequired;
-  const title = isActive ? 'Manage your plan' : 'Choose Boards, IIT, or both';
+  const schoolManaged = Boolean(user?.isSchoolManagedSubscription);
+  const title = isActive ? 'Manage your plan' : schoolManaged ? 'Activate your student plan' : 'Choose Boards, IIT, or both';
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-100 via-white to-orange-50 p-4 2xl:p-8 board:p-12">
@@ -106,6 +110,10 @@ export default function SubscribePage() {
             Hi {user?.fullName || 'there'} —{' '}
             {isActive
               ? 'your subscription is active. You can review your recent payments, renew early, or upgrade to a bigger plan anytime.'
+              : schoolManaged
+              ? onTrial
+                ? `you have ${user?.trialDaysLeft ?? 0} day${user?.trialDaysLeft === 1 ? '' : 's'} left in your school student trial. You can activate the yearly plan now.`
+                : 'your school student trial has ended. Activate the yearly plan to continue.'
               : onTrial
               ? `you still have ${user?.trialDaysLeft ?? 0} day${user?.trialDaysLeft === 1 ? '' : 's'} on your free trial. Subscribe now to lock in Boards, IIT, or both — no need to wait until expiry.`
               : `your ${INDIVIDUAL_TRIAL_DAYS}-day trial has ended. Pick Boards, IIT Foundation (Alpha/Beta), or both. Monthly and yearly prices are below.`}
@@ -137,7 +145,11 @@ export default function SubscribePage() {
             <IndividualSubscriptionReceiptCard receipt={existingReceipt} />
           ) : null}
 
-          <IndividualPlanCheckout
+          {schoolManaged ? <SchoolStudentPlanCheckout user={user} onPaid={async () => {
+            const token = getAuthToken();
+            const res = await fetch(`${API_BASE_URL}/api/auth/me`, { headers: { Authorization: `Bearer ${token}` }, credentials: 'include' });
+            if (res.ok) { const data = await res.json(); setUser(data.user || data); }
+          }} /> : <IndividualPlanCheckout
             userId={user?._id || user?.id || null}
             role={user?.role}
             userName={user?.fullName}
@@ -160,13 +172,13 @@ export default function SubscribePage() {
                 /* receipt dialog still shows payment details */
               }
             }}
-          />
+          />}
 
-          <Link href="/resources">
+          {!schoolManaged && <Link href="/resources">
             <Button variant="ghost" className="w-full text-slate-600">
               See which IIT books and tools you get
             </Button>
-          </Link>
+          </Link>}
 
           <Button variant="ghost" className="w-full text-slate-600" onClick={handleLogout}>
             <LogOut className="mr-2 h-4 w-4" />

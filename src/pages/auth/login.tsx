@@ -221,7 +221,7 @@ const Login = () => {
         const go = (path: string) => setLocation(path, { replace: true });
         if (data.user?.role === 'super-admin') {
           go('/super-admin/dashboard');
-        } else if (data.user?.paymentRequired && data.user?.isIndividualAccount) {
+        } else if (data.user?.paymentRequired && (data.user?.isIndividualAccount || data.user?.isSchoolManagedSubscription)) {
           go('/auth/subscribe');
         } else if (data.user?.role === 'admin') {
           go('/admin/dashboard');

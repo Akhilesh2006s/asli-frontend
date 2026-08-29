@@ -21,6 +21,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Eye, FileDown, Loader2, Pencil, Trash2 } from "lucide-react";
 import { API_BASE_URL } from "@/lib/api-config";
+import { networkErrorUserMessage, resilientFetch } from "@/lib/resilient-fetch";
 import { useToast } from "@/hooks/use-toast";
 import { useConfirm } from "@/hooks/use-confirm";
 import { GeneratorRecordViewer } from "@/components/super-admin/generator-record-viewer";
@@ -180,9 +181,12 @@ export function GeneratorRecordsPanel({
         };
       } | null = null;
       for (let attempt = 0; attempt < 3; attempt += 1) {
-        res = await fetch(`${API_BASE_URL}${apiPrefix}/records?${qs.toString()}`, {
+        res = await resilientFetch(`${API_BASE_URL}${apiPrefix}/records?${qs.toString()}`, {
           headers: authHeaders(),
           credentials: "include",
+          retries: 3,
+          retryDelayMs: 1200,
+          timeoutMs: 30_000,
         });
         json = await res.json().catch(() => null);
         if (res.status !== 429) break;
@@ -211,15 +215,9 @@ export function GeneratorRecordsPanel({
       );
       setEffectiveBoardOptions((prev) => mergeBoardOptions([...boardOptions, ...prev], boardsFromApi));
     } catch (error: unknown) {
-      setRecordsTree([]);
-      setRecordsTotal(0);
-      setRecordsLoadedCount(0);
-      setRecordsTruncated(false);
-      setRecordsStratified(false);
-      setBoardCounts([]);
       toast({
         title: "Records load failed",
-        description: error instanceof Error ? error.message : "Could not load records.",
+        description: networkErrorUserMessage(error),
         variant: "destructive",
       });
     } finally {

@@ -353,6 +353,9 @@ export default function SuperAdminAiGenerator() {
     current: number;
     total: number;
     phase?: string;
+    currentSubtopic?: string;
+    subtopicIndex?: number;
+    subtopicTotal?: number;
   } | null>(null);
   const [lastBatchSummary, setLastBatchSummary] = useState<{
     successCount: number;
@@ -760,17 +763,92 @@ export default function SuperAdminAiGenerator() {
       return;
     }
     const batchSize = parseBatchSize();
+    const selectedSubtopics = [subTopic, ...extraSubTopics.filter((s) => s && s !== subTopic)];
+    const expandedTargets = expandEachSubtopic && selectedSubtopics.length > 1
+      ? [...selectedSubtopics, "Whole chapter"]
+      : [];
+    const plannedTotal = expandedTargets.length > 0 ? batchSize * expandedTargets.length : batchSize;
     generateInFlightRef.current = true;
     setIsGenerating(true);
     setGenerationLocked(false);
     setGenerationProgress({
       current: 0,
-      total: batchSize,
-      phase: `Generating ${batchSize} with ${GENERATION_QUALITY_TIERS.find((t) => t.id === qualityTier)?.label || "Premium"} tier…`,
+      total: plannedTotal,
+      phase: `Preparing ${plannedTotal} records…`,
+      currentSubtopic: expandedTargets[0],
+      subtopicIndex: expandedTargets.length ? 1 : undefined,
+      subtopicTotal: expandedTargets.length || undefined,
     });
     if (!opts?.forceUnlock) setLastBatchSummary(null);
 
     try {
+      // Run expanded subtopics one at a time so the UI can show an accurate live
+      // subtopic name and cumulative record count instead of one opaque long request.
+      if (expandedTargets.length > 0) {
+        let completedRecords = 0;
+        let failedRecords = 0;
+        const allFailures: string[] = [];
+        let aggregateTokens = emptyTokenTotals();
+        const aggregateCalls: TokenCall[] = [];
+        let exchangeRateInr = 95.11;
+        for (let index = 0; index < expandedTargets.length; index += 1) {
+          const target = expandedTargets[index];
+          setGenerationProgress({
+            current: completedRecords,
+            total: plannedTotal,
+            currentSubtopic: target,
+            subtopicIndex: index + 1,
+            subtopicTotal: expandedTargets.length,
+            phase: `Generating ${target}`,
+          });
+          const payload = buildGenerationPayload(opts?.forceUnlock);
+          const targetPayload = {
+            ...payload,
+            subtopicName: target,
+            subTopics: target === "Whole chapter" ? selectedSubtopics : undefined,
+            expandSubtopics: false,
+            includeWholeChapter: false,
+            combineSubtopics: false,
+            chapterScope: target === "Whole chapter",
+          };
+          const targetRes = await resilientFetch(`${API_BASE_URL}/api/ai-generator/generate-batch`, {
+            method: "POST",
+            headers: { ...authHeaders(), "Content-Type": "application/json" },
+            body: JSON.stringify(targetPayload),
+            retries: 2,
+            retryDelayMs: 2500,
+            timeoutMs: 0,
+          });
+          const targetJson = await targetRes.json();
+          const saved = Number(targetJson?.data?.savedCount) || 0;
+          const failed = Number(targetJson?.data?.failedCount) || Math.max(0, batchSize - saved);
+          if (!targetRes.ok && saved === 0) throw new Error(targetJson?.message || `Generation failed for ${target}`);
+          completedRecords += saved;
+          failedRecords += failed;
+          allFailures.push(...(Array.isArray(targetJson?.data?.failures) ? targetJson.data.failures.map((f: string) => `${target}: ${f}`) : []));
+          const usage = targetJson?.data?.tokenUsage;
+          if (usage?.totals) aggregateTokens = mergeTokenTotals(aggregateTokens, usage.totals);
+          if (Array.isArray(usage?.calls)) aggregateCalls.push(...usage.calls);
+          exchangeRateInr = Number(targetJson?.data?.cost?.exchangeRateInr) || exchangeRateInr;
+          setGenerationProgress({
+            current: completedRecords,
+            total: plannedTotal,
+            currentSubtopic: target,
+            subtopicIndex: index + 1,
+            subtopicTotal: expandedTargets.length,
+            phase: index + 1 === expandedTargets.length ? "Complete" : `Saved ${saved}/${batchSize} for ${target}`,
+          });
+        }
+        const cost = computeGeminiCostFromTokenUsage({ totals: aggregateTokens, calls: aggregateCalls }, exchangeRateInr);
+        setLastBatchSummary({ successCount: completedRecords, failedCount: failedRecords, batchSize: plannedTotal,
+          mode: "expanded_subtopics", failures: allFailures, tokenUsage: aggregateTokens, cost,
+          perRecordCost: perRecordShareFromCost(cost, completedRecords || 1), boardUsed: board });
+        if (board && recordsBoardFilter !== "__all__" && recordsBoardFilter !== board) {
+          setRecordsBoardFilter(board); await loadRecords(board);
+        } else await loadRecords();
+        toast({ title: `${completedRecords}/${plannedTotal} records saved`, description: `${expandedTargets.length} subtopic batches completed.`, variant: failedRecords > 0 ? "destructive" : "default" });
+        return;
+      }
       // Long batches can run 2–5+ minutes; retry only brief gateway/DB blips (not mid-batch aborts).
       const res = await resilientFetch(`${API_BASE_URL}/api/ai-generator/generate-batch`, {
         method: "POST",
@@ -1400,6 +1478,14 @@ export default function SuperAdminAiGenerator() {
               <p className="mt-1 text-xs text-slate-500">
                 Only {GENERATION_RECORD_COUNT_MIN}–{MAX_GENERATION_BATCH_SIZE} allowed. Other values are not accepted.
               </p>
+              {expandEachSubtopic && extraSubTopics.length > 0 && isValidGenerationRecordCount(generationRecordCount) ? (
+                <p className="mt-2 rounded-md border border-blue-200 bg-blue-50 px-2.5 py-2 text-xs font-semibold text-blue-900">
+                  Planned total: {parseBatchSize() * (extraSubTopics.length + 2)} records
+                  <span className="block font-normal text-blue-700">
+                    {parseBatchSize()} records × {extraSubTopics.length + 1} subtopics + Whole chapter
+                  </span>
+                </p>
+              ) : null}
             </div>
             <label className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
               <Checkbox
@@ -1474,11 +1560,12 @@ export default function SuperAdminAiGenerator() {
                 </p>
               ) : null}
               {isGenerating && generationProgress ? (
-                <p className="w-full rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-xs leading-relaxed text-blue-900 break-words">
-                  {generationProgress.current > 0
-                    ? `${generationProgress.current}/${generationProgress.total} saved…`
-                    : generationProgress.phase || `Generating ${generationProgress.total}…`}
-                </p>
+                <div className="w-full space-y-1.5 rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-xs leading-relaxed text-blue-900">
+                  {generationProgress.currentSubtopic ? <p className="font-semibold break-words">Subtopic {generationProgress.subtopicIndex}/{generationProgress.subtopicTotal}: {generationProgress.currentSubtopic}</p> : null}
+                  <div className="flex flex-wrap justify-between gap-2"><span>{generationProgress.current}/{generationProgress.total} records completed</span><span>{Math.max(0, generationProgress.total-generationProgress.current)} remaining</span></div>
+                  <div className="h-2 overflow-hidden rounded-full bg-blue-100"><div className="h-full rounded-full bg-blue-600 transition-all" style={{width:`${Math.min(100,Math.round((generationProgress.current/generationProgress.total)*100))}%`}} /></div>
+                  <p className="text-blue-700">{generationProgress.phase}</p>
+                </div>
               ) : null}
             </div>
             {lastBatchSummary ? (

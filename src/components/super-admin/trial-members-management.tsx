@@ -36,6 +36,7 @@ import {
   Trash2,
   UserRound,
   GraduationCap,
+  ClipboardList,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -69,6 +70,8 @@ type TrialMember = {
   paymentRequired?: boolean;
   trialAllowedContentTypes: string[];
   trialAllowedAiTools: string[];
+  trialAssignedExams: string[];
+  trialExamAccessConfigured?: boolean;
   trialAdminNotes: string;
   trialPaymentAmount?: number | null;
   trialPaidAt?: string | null;
@@ -105,6 +108,17 @@ type Summary = {
   revenueInr?: number;
   students: number;
   teachers: number;
+};
+
+type ExamOption = {
+  _id: string;
+  title: string;
+  classNumber?: string;
+  assignedClasses?: string[];
+  subject?: string;
+  startDate?: string;
+  endDate?: string;
+  isActive?: boolean;
 };
 
 const QUICK_TRIAL_DAYS = [1, 3, 7, 14, 30];
@@ -158,9 +172,11 @@ export default function TrialMembersManagement() {
   const [members, setMembers] = useState<TrialMember[]>([]);
   const [summary, setSummary] = useState<Summary | null>(null);
   const [contentTypeOptions, setContentTypeOptions] = useState<string[]>([]);
+  const [examOptions, setExamOptions] = useState<ExamOption[]>([]);
+  const [examsLoading, setExamsLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('all');
-  const [roleFilter, setRoleFilter] = useState('all');
+  const [roleFilter, setRoleFilter] = useState('student');
   const [search, setSearch] = useState('');
   const [editing, setEditing] = useState<TrialMember | null>(null);
   const [saving, setSaving] = useState(false);
@@ -173,6 +189,7 @@ export default function TrialMembersManagement() {
   const [batchDefaults, setBatchDefaults] = useState({
     trialAllowedContentTypes: [] as string[],
     trialAllowedAiTools: [] as string[],
+    trialAssignedExams: [] as string[],
   });
   const [editForm, setEditForm] = useState({
     trialDays: '7',
@@ -218,6 +235,31 @@ export default function TrialMembersManagement() {
     void load();
   }, [load]);
 
+  useEffect(() => {
+    let active = true;
+    const loadExams = async () => {
+      setExamsLoading(true);
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/super-admin/exams`, { headers: authHeaders() });
+        const json = await res.json();
+        if (!res.ok || !json.success) throw new Error(json.message || 'Failed to load exams');
+        if (active) setExamOptions(Array.isArray(json.data) ? json.data : []);
+      } catch (e) {
+        if (active) {
+          toast({
+            title: 'Could not load exams for allotment',
+            description: e instanceof Error ? e.message : 'Unknown error',
+            variant: 'destructive',
+          });
+        }
+      } finally {
+        if (active) setExamsLoading(false);
+      }
+    };
+    void loadExams();
+    return () => { active = false; };
+  }, [toast]);
+
   const openEdit = (m: TrialMember) => {
     setEditing(m);
     const paidAtLocal = m.trialPaidAt
@@ -229,6 +271,7 @@ export default function TrialMembersManagement() {
       subscriptionStatus: m.subscriptionStatus || 'trial',
       trialAllowedContentTypes: [...(m.trialAllowedContentTypes || [])],
       trialAllowedAiTools: [...(m.trialAllowedAiTools || [])],
+      trialAssignedExams: [...(m.trialAssignedExams || [])],
       trialAdminNotes: m.trialAdminNotes || '',
       trialPaymentAmount:
         m.trialPaymentAmount != null && Number.isFinite(m.trialPaymentAmount)
@@ -267,6 +310,9 @@ export default function TrialMembersManagement() {
           subscriptionStatus: editForm.subscriptionStatus,
           trialAllowedContentTypes: editForm.trialAllowedContentTypes,
           trialAllowedAiTools: editForm.trialAllowedAiTools,
+          ...(editing.role === 'student'
+            ? { trialAssignedExams: editForm.trialAssignedExams }
+            : {}),
           trialAdminNotes: editForm.trialAdminNotes,
           isActive: editForm.isActive,
           ...paymentPayload(),
@@ -506,10 +552,41 @@ export default function TrialMembersManagement() {
         </div>
       </div>
 
+      <div className="sticky top-0 z-10 grid grid-cols-3 rounded-xl border border-slate-200 bg-slate-100/95 p-1 shadow-sm backdrop-blur" role="tablist" aria-label="Trial member role">
+        {[
+          { value: 'student', label: `Students${summary ? ` (${summary.students})` : ''}`, icon: UserRound },
+          { value: 'teacher', label: `Teachers${summary ? ` (${summary.teachers})` : ''}`, icon: GraduationCap },
+          { value: 'all', label: `All${summary ? ` (${summary.total})` : ''}`, icon: UserRound },
+        ].map((tab) => {
+          const Icon = tab.icon;
+          return (
+            <button
+              key={tab.value}
+              type="button"
+              role="tab"
+              aria-selected={roleFilter === tab.value}
+              onClick={() => {
+                setSelectedIds(new Set());
+                setRoleFilter(tab.value);
+              }}
+              className={cn(
+                'flex min-w-0 items-center justify-center gap-1 rounded-lg px-2 py-2.5 text-xs font-semibold transition sm:text-sm',
+                roleFilter === tab.value
+                  ? 'bg-white text-violet-700 shadow-sm'
+                  : 'text-slate-600 hover:text-slate-900',
+              )}
+            >
+              <Icon className="h-4 w-4 shrink-0" />
+              <span className="truncate">{tab.label}</span>
+            </button>
+          );
+        })}
+      </div>
+
       <IndividualPlanRatesPanel />
 
       {summary && (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 xl:grid-cols-7">
           {[
             { label: 'Total', value: summary.total },
             { label: 'Trial active', value: summary.trialActive },
@@ -574,19 +651,14 @@ export default function TrialMembersManagement() {
                 <SelectItem value="paid">Converted / Paid</SelectItem>
               </SelectContent>
             </Select>
-            <Select value={roleFilter} onValueChange={setRoleFilter}>
-              <SelectTrigger className="w-full sm:w-40">
-                <SelectValue placeholder="Role" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All roles</SelectItem>
-                <SelectItem value="student">Students</SelectItem>
-                <SelectItem value="teacher">Teachers</SelectItem>
-              </SelectContent>
-            </Select>
           </div>
 
-          <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50/80 p-4">
+          <details className="group rounded-xl border border-slate-200 bg-slate-50/80">
+            <summary className="cursor-pointer list-none px-4 py-3 text-sm font-medium text-slate-900">
+              Bulk content and AI-tool access
+              <span className="ml-2 text-xs font-normal text-slate-500">({selectedIds.size} selected)</span>
+            </summary>
+          <div className="space-y-3 border-t border-slate-200 p-4">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p className="text-sm font-medium text-slate-900">
@@ -649,6 +721,7 @@ export default function TrialMembersManagement() {
               ))}
             </div>
           </div>
+          </details>
 
           {loading ? (
             <div className="flex justify-center py-12 text-slate-500">
@@ -1263,6 +1336,81 @@ export default function TrialMembersManagement() {
                   </Button>
                 )}
               </section>
+
+              {editing.role === 'student' && (
+                <section className="space-y-3 rounded-xl border border-violet-200 bg-violet-50/40 p-4">
+                  <div className="flex items-start gap-2">
+                    <ClipboardList className="mt-0.5 h-4 w-4 shrink-0 text-violet-700" />
+                    <div>
+                      <h3 className="text-sm font-semibold text-slate-900">6. Exams allotted to this student</h3>
+                      <p className="mt-0.5 text-xs text-slate-600">
+                        Select the Super Admin exams this trial student may see. Saving an empty selection means no shared exams; their own generated practice exams remain available.
+                      </p>
+                    </div>
+                  </div>
+                  {examsLoading ? (
+                    <div className="flex items-center gap-2 py-4 text-sm text-slate-500">
+                      <Loader2 className="h-4 w-4 animate-spin" /> Loading exams…
+                    </div>
+                  ) : examOptions.length === 0 ? (
+                    <p className="rounded-lg border border-dashed border-slate-300 bg-white p-3 text-xs text-slate-500">
+                      No active Super Admin exams are available to allot.
+                    </p>
+                  ) : (
+                    <div className="max-h-64 space-y-2 overflow-y-auto rounded-lg border border-slate-200 bg-white p-2">
+                      {examOptions.map((exam) => {
+                        const checked = editForm.trialAssignedExams.includes(exam._id);
+                        const classes = Array.isArray(exam.assignedClasses) && exam.assignedClasses.length
+                          ? exam.assignedClasses.join(', ')
+                          : exam.classNumber || 'Class not set';
+                        return (
+                          <label
+                            key={exam._id}
+                            className={cn(
+                              'flex cursor-pointer items-start gap-2 rounded-lg border px-3 py-2.5 text-sm',
+                              checked ? 'border-violet-300 bg-violet-50' : 'border-slate-100 hover:bg-slate-50',
+                            )}
+                          >
+                            <Checkbox
+                              className="mt-0.5"
+                              checked={checked}
+                              onCheckedChange={() =>
+                                setEditForm((prev) => ({
+                                  ...prev,
+                                  trialAssignedExams: checked
+                                    ? prev.trialAssignedExams.filter((id) => id !== exam._id)
+                                    : [...prev.trialAssignedExams, exam._id],
+                                }))
+                              }
+                            />
+                            <span className="min-w-0">
+                              <span className="block font-medium text-slate-900">{exam.title}</span>
+                              <span className="block text-xs text-slate-500">
+                                {classes}{exam.subject ? ` · ${exam.subject}` : ''}
+                              </span>
+                            </span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  )}
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="text-xs font-medium text-violet-900">
+                      {editForm.trialAssignedExams.length} exam(s) selected
+                    </p>
+                    {editForm.trialAssignedExams.length > 0 && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setEditForm((prev) => ({ ...prev, trialAssignedExams: [] }))}
+                      >
+                        Clear selection
+                      </Button>
+                    )}
+                  </div>
+                </section>
+              )}
 
               <section className="space-y-1.5 rounded-xl border border-slate-200 bg-white p-4">
                 <Label htmlFor="trial-admin-notes" className="text-sm font-semibold text-slate-900">

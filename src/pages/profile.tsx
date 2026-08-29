@@ -556,7 +556,7 @@ export default function Profile() {
           </CardContent>
         </Card>
 
-        {user?.isIndividualAccount ? (
+        {(user?.isIndividualAccount || user?.isSchoolManagedSubscription) ? (
           <div className="mb-6 space-y-4">
             {showTrialUpgrade(user) ? (
               <TrialUpgradeBanner
@@ -691,5 +691,4 @@ export default function Profile() {
     </StudentShell>
   );
 }
-
 
