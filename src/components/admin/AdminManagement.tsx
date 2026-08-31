@@ -2733,7 +2733,6 @@ export default function AdminManagement() {
                       size="sm" 
                       variant="outline" 
                       onClick={() => {
-                        setHardDeleteEmail('');
                         setSchoolActionTarget(admin);
                       }}
                       className="text-red-600 hover:text-red-700 hover:bg-red-50"
@@ -2794,7 +2793,6 @@ export default function AdminManagement() {
         onOpenChange={(open) => {
           if (!open) {
             setSchoolActionTarget(null);
-            setHardDeleteEmail('');
           }
         }}
       >
