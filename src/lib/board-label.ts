@@ -6,6 +6,13 @@ export function normalizeBoardKey(raw?: string | null): string {
   if (!s) return '';
   const compact = s.toUpperCase().replace(/[\s/\\-]+/g, '');
   if (compact === 'CBSE' || compact === 'CBSC') return 'CBSE';
+  if (
+    compact === 'STATE' ||
+    compact === 'STATEBOARD' ||
+    compact === 'STATEBOARDGENERIC'
+  ) {
+    return 'STATE';
+  }
   if (compact.includes('IIT') || compact.includes('NEET') || compact.includes('JEE')) {
     return 'IIT/NEET';
   }
@@ -47,7 +54,7 @@ export function formatClassBoardLabel(classNum: string, board?: string | null): 
 
 export function parseClassBoardLabel(label: string): { classNum: string; board: string } {
   const raw = String(label || '').trim();
-  const withBoard = raw.match(/^Class\s+(\d+)\s*\(([^)]+)\)\s*$/i);
+  const withBoard = raw.match(/^Class\s+(\d+)\s*\((.+)\)\s*$/i);
   if (withBoard) {
     const boardRaw = withBoard[2].trim();
     const board =
