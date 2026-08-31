@@ -1521,7 +1521,7 @@ export default function SubjectContentManagement() {
     setNewClassDescription('');
     toast({
       title: 'Class added',
-      description: `${label} selected. Use Add Subject to add subjects for this class.`,
+      description: `Class ${num} selected. Use Add Subject to add subjects for this class.`,
     });
   };
 
@@ -2616,6 +2616,7 @@ export default function SubjectContentManagement() {
                 {displayClassOptions.map((label) => {
                   const isActive = label === selectedClassLabel;
                   const isDeleting = deletingClassLabel === label;
+                  const visibleClassNumber = parseClassBoardLabel(label).classNum;
                   return (
                     <div
                       key={label}
@@ -2633,7 +2634,9 @@ export default function SubjectContentManagement() {
                         }}
                         className="flex items-center justify-between flex-1 min-w-0 text-left"
                       >
-                        <div className="font-medium text-gray-900 truncate">{label}</div>
+                        <div className="font-medium text-gray-900 truncate">
+                          {visibleClassNumber ? `Class ${visibleClassNumber}` : label}
+                        </div>
                         <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400 shrink-0 ml-2" />
                       </button>
                       <Button
@@ -2669,7 +2672,7 @@ export default function SubjectContentManagement() {
               <CardTitle>Subjects under Class</CardTitle>
               <p className="text-xs sm:text-sm text-gray-500">
                 {selectedClassLabel
-                  ? `Showing subjects for ${selectedClassLabel} · ${
+                  ? `Showing subjects for Class ${selectedClassNumber} · ${
                       selectedProductCategory
                         ? `IIT ${formatIitCategoryLabel(selectedProductCategory, iitLabelMap)}`
                         : 'General'
@@ -3162,7 +3165,7 @@ export default function SubjectContentManagement() {
           <div className="space-y-4">
             <div>
               <Label>Class</Label>
-              <Input value={selectedClassLabel ?? ''} disabled />
+              <Input value={selectedClassNumber ? `Class ${selectedClassNumber}` : ''} disabled />
             </div>
             <div>
               <Label>Syllabus</Label>
@@ -3274,7 +3277,7 @@ export default function SubjectContentManagement() {
           <div className="space-y-4">
             <div>
               <Label>Class</Label>
-              <Input value={selectedClassLabel ?? ''} disabled />
+              <Input value={selectedClassNumber ? `Class ${selectedClassNumber}` : ''} disabled />
             </div>
             <div>
               <Label>Syllabus</Label>
@@ -3404,7 +3407,9 @@ export default function SubjectContentManagement() {
                   value={
                     editingContentId && editContentContext
                       ? editContentContext.classLabel
-                      : selectedClassLabel ?? ''
+                      : selectedClassNumber
+                        ? `Class ${selectedClassNumber}`
+                        : ''
                   }
                   disabled
                 />

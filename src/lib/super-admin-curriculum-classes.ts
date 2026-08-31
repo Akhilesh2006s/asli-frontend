@@ -32,7 +32,9 @@ export function loadCurriculumClasses(): CurriculumClassEntry[] {
 export function saveCurriculumClass(entry: CurriculumClassEntry): boolean {
   if (typeof window === 'undefined') return false;
   const existing = loadCurriculumClasses();
-  if (existing.some((c) => c.classNumber === entry.classNumber)) {
+  // The same grade can exist under multiple boards. The internal label carries
+  // the board scope even though the UI only displays "Class 6".
+  if (existing.some((c) => c.label === entry.label)) {
     return false;
   }
   localStorage.setItem(
