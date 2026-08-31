@@ -375,6 +375,7 @@ export default function AdminManagement() {
   const [isUpdatingAdmin, setIsUpdatingAdmin] = useState(false);
   const [isDeletingAdmin, setIsDeletingAdmin] = useState(false);
   const [schoolActionTarget, setSchoolActionTarget] = useState<Admin | null>(null);
+  const [hardDeleteEmail, setHardDeleteEmail] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const DEFAULT_CURRICULUM_BOARD = "CBSE";
 
@@ -1204,7 +1205,8 @@ export default function AdminManagement() {
 
   const handleDeleteAdmin = async (
     adminId: string,
-    schoolId?: string
+    schoolId?: string,
+    hardDelete = false
   ) => {
     if (isDeletingAdmin) return;
 
@@ -1221,14 +1223,18 @@ export default function AdminManagement() {
     setIsDeletingAdmin(true);
     try {
       const token = getAuthToken();
-      const url = `${API_BASE_URL}/api/super-admin/admins/${deleteId}`;
+      const url = `${API_BASE_URL}/api/super-admin/admins/${deleteId}${hardDelete ? '?hard=1' : ''}`;
       const response = await fetch(url, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({}),
+        body: JSON.stringify(
+          hardDelete
+            ? { hardDelete: true, confirmEmail: hardDeleteEmail.trim() }
+            : {}
+        ),
       });
 
       if (response.ok) {
@@ -1237,6 +1243,7 @@ export default function AdminManagement() {
         await new Promise(resolve => setTimeout(resolve, 500));
         await refreshAdminsAfterMutation(token || '', deleteId, schoolId);
         setSchoolActionTarget(null);
+        setHardDeleteEmail('');
 
         toast({
           title: deleteResult?.soft ? 'School deactivated' : 'School permanently deleted',
@@ -2733,6 +2740,7 @@ export default function AdminManagement() {
                       size="sm" 
                       variant="outline" 
                       onClick={() => {
+                        setHardDeleteEmail('');
                         setSchoolActionTarget(admin);
                       }}
                       className="text-red-600 hover:text-red-700 hover:bg-red-50"
@@ -2793,6 +2801,7 @@ export default function AdminManagement() {
         onOpenChange={(open) => {
           if (!open) {
             setSchoolActionTarget(null);
+            setHardDeleteEmail('');
           }
         }}
       >
@@ -2815,9 +2824,23 @@ export default function AdminManagement() {
             </p>
             <p className="break-all text-slate-600">{schoolActionTarget?.email}</p>
             {(schoolActionTarget && !isSchoolActive(schoolActionTarget)) ? (
-              <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-amber-900">
-                This school is already inactive. Reactivate it instead of creating a duplicate.
-              </p>
+              <div className="space-y-3">
+                <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-red-900">
+                  Permanent deletion removes the school, its students, teachers, classes and academic data. This cannot be undone.
+                </p>
+                <div className="space-y-1.5">
+                  <Label htmlFor="hard-delete-school-email">
+                    Type the school email to confirm permanent deletion
+                  </Label>
+                  <Input
+                    id="hard-delete-school-email"
+                    value={hardDeleteEmail}
+                    onChange={(event) => setHardDeleteEmail(event.target.value)}
+                    placeholder={schoolActionTarget.email || 'School email'}
+                    autoComplete="off"
+                  />
+                </div>
+              </div>
             ) : (
               <p className="text-slate-600">
                 Deactivate turns off login and keeps all school data available for recovery.
@@ -2826,13 +2849,34 @@ export default function AdminManagement() {
           </div>
           <DialogFooter className="flex-col gap-2 sm:flex-col sm:space-x-0">
             {schoolActionTarget && !isSchoolActive(schoolActionTarget) ? (
-              <Button
-                type="button"
-                className="w-full bg-emerald-600 hover:bg-emerald-700"
-                onClick={() => schoolActionTarget && void handleReactivateAdmin(schoolActionTarget)}
-              >
-                Reactivate school
-              </Button>
+              <>
+                <Button
+                  type="button"
+                  variant="destructive"
+                  className="w-full"
+                  disabled={
+                    isDeletingAdmin ||
+                    hardDeleteEmail.trim().toLowerCase() !==
+                      String(schoolActionTarget.email || '').trim().toLowerCase()
+                  }
+                  onClick={() =>
+                    void handleDeleteAdmin(
+                      schoolActionTarget.id || '',
+                      schoolActionTarget.schoolId,
+                      true
+                    )
+                  }
+                >
+                  Permanently delete school
+                </Button>
+                <Button
+                  type="button"
+                  className="w-full bg-emerald-600 hover:bg-emerald-700"
+                  onClick={() => schoolActionTarget && void handleReactivateAdmin(schoolActionTarget)}
+                >
+                  Reactivate school
+                </Button>
+              </>
             ) : (
               <Button
                 type="button"
