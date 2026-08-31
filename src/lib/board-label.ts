@@ -12,7 +12,10 @@ export function normalizeBoardKey(raw?: string | null): string {
   if (compact === 'ASLIEXCLUSIVESCHOOLS' || compact === 'ASLIEXCLUSIVE') {
     return 'ASLI_EXCLUSIVE_SCHOOLS';
   }
-  return s.toUpperCase();
+  // UI labels turn stored board codes such as TG_BOARD into "Tg Board".
+  // Canonicalize generic separators so the display label maps back to the
+  // original code when classes are filtered after being added.
+  return s.toUpperCase().replace(/[\s-]+/g, '_');
 }
 
 /** Short label for UI, e.g. "IIT/NEET" → "IIT". */
