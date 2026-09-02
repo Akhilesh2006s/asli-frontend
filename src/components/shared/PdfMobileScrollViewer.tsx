@@ -421,6 +421,8 @@ type PdfMobileScrollViewerProps = {
   showPageHud?: boolean;
   /** Fires when the visible page changes (for external page controls). */
   onPageChange?: (page: number, totalPages: number) => void;
+  /** Reports the active page zoom so shared dashboard controls stay in sync. */
+  onZoomScaleChange?: (scale: number) => void;
   /** Book mode: each page slot fills the reader height so the next page does not peek in. */
   fillViewport?: boolean;
 };
@@ -436,6 +438,7 @@ const PdfMobileScrollViewer = forwardRef<PdfMobileScrollViewerHandle, PdfMobileS
       storageKey = '',
       showPageHud = false,
       onPageChange,
+      onZoomScaleChange,
       fillViewport = false,
     },
     ref,
@@ -477,13 +480,14 @@ const PdfMobileScrollViewer = forwardRef<PdfMobileScrollViewerHandle, PdfMobileS
     return () => ro.disconnect();
   }, [totalPages, pdf]);
 
-  const handleZoomChange = useCallback((pageNum: number, zoomed: boolean, _scale?: number) => {
+  const handleZoomChange = useCallback((pageNum: number, zoomed: boolean, scale = 1) => {
     if (zoomed) zoomedPagesRef.current.add(pageNum);
     else zoomedPagesRef.current.delete(pageNum);
     setAnyZoomed(zoomedPagesRef.current.size > 0);
+    if (pageNum === currentPage) onZoomScaleChange?.(zoomed ? scale : 1);
     // Keep parent scroll enabled while zoomed so the enlarged page can fill / pan the screen.
     setScrollLocked(false);
-  }, []);
+  }, [currentPage, onZoomScaleChange]);
 
   const persistPage = useCallback(
     (page: number) => {
@@ -491,8 +495,9 @@ const PdfMobileScrollViewer = forwardRef<PdfMobileScrollViewerHandle, PdfMobileS
       setCurrentPage(clamped);
       if (storageKey) writeStoredPdfPage(storageKey, clamped);
       onPageChange?.(clamped, totalPages);
+      onZoomScaleChange?.(zoomHandlesRef.current.get(clamped)?.getScale() ?? 1);
     },
-    [storageKey, totalPages, onPageChange],
+    [storageKey, totalPages, onPageChange, onZoomScaleChange],
   );
 
   // Notify parent of initial / restored page once.

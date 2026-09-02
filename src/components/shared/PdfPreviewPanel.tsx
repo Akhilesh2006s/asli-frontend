@@ -491,6 +491,7 @@ export default function PdfPreviewPanel({
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [readerPage, setReaderPage] = useState(1);
   const [readerPageCount, setReaderPageCount] = useState(0);
+  const [readerZoomScale, setReaderZoomScale] = useState(1);
   const [pageJumpDraft, setPageJumpDraft] = useState('1');
   const [iframeJumpPage, setIframeJumpPage] = useState(1);
   const pdfDocRef = useRef<pdfjs.PDFDocumentProxy | null>(null);
@@ -765,6 +766,7 @@ export default function PdfPreviewPanel({
     setPdfError(null);
     setReaderPage(start);
     setReaderPageCount(0);
+    setReaderZoomScale(1);
     setPageJumpDraft(String(start));
     setIframeJumpPage(start);
   }, [fileUrl, title]);
@@ -1211,6 +1213,7 @@ export default function PdfPreviewPanel({
                 onClick={() => mobileViewerRef.current?.zoomOut()}
                 aria-label="Zoom out"
                 title="Zoom out"
+                disabled={readerZoomScale <= 1.02}
               >
                 <ZoomOut className="h-4 w-4" />
               </Button>
@@ -1221,14 +1224,22 @@ export default function PdfPreviewPanel({
                 onClick={() => mobileViewerRef.current?.zoomIn()}
                 aria-label="Zoom in"
                 title="Zoom in"
+                disabled={readerZoomScale >= 3.24}
               >
                 <ZoomIn className="h-4 w-4" />
               </Button>
+              <span
+                className="min-w-12 text-center text-xs font-semibold tabular-nums text-stone-700"
+                aria-live="polite"
+                aria-label={`Zoom ${Math.round(readerZoomScale * 100)} percent`}
+              >
+                {Math.round(readerZoomScale * 100)}%
+              </span>
               <Button
                 type="button"
                 variant="ghost"
                 size="sm"
-                className="hidden sm:inline-flex"
+                disabled={readerZoomScale <= 1.02}
                 onClick={() => mobileViewerRef.current?.resetZoom()}
               >
                 Reset zoom
@@ -1291,6 +1302,7 @@ export default function PdfPreviewPanel({
                   setReaderPage(page);
                   setReaderPageCount(count);
                 }}
+                onZoomScaleChange={setReaderZoomScale}
                 className="h-full w-full"
               />
             ) : (
