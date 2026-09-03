@@ -1,5 +1,7 @@
 import { Fragment, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
+import { InlineMath } from "react-katex";
+import "katex/dist/katex.min.css";
 
 const SECTION_LABELS =
   "Shape|Uses|Rays|Type|Definition|Example|Examples|Worked example|Working|Check|Practice|Try this|Common mistake|Mistake|Recap|Image|Nature|Focus|Tip|Remember|Note|Key point|Key points|Real life|Real-life|Analogy";
@@ -11,6 +13,11 @@ const SECTION_LABELS =
 export function normalizeChatStructure(raw: string): string {
   if (!raw) return "";
   let text = String(raw).replace(/\r\n/g, "\n").replace(/\r/g, "\n").trim();
+  // Models sometimes wrap a display equation over several lines. Keep the
+  // delimited expression together so the line-oriented renderer can parse it.
+  text = text.replace(/\$([^$]*?(?:\\[A-Za-z]+|[_^])[^$]*?)\$/gs, (_m, formula) =>
+    `$${String(formula).replace(/\s*\n\s*/g, " ")}$`
+  );
 
   // Section rules / dividers
   text = text.replace(/\s*---+\s*/g, "\n\n");
@@ -51,7 +58,7 @@ export function normalizeChatStructure(raw: string): string {
   return text;
 }
 
-function renderInline(text: string, keyPrefix: string): ReactNode[] {
+function renderBold(text: string, keyPrefix: string): ReactNode[] {
   const nodes: ReactNode[] = [];
   const re = /(\*\*|__)(.+?)\1/g;
   let last = 0;
@@ -74,6 +81,30 @@ function renderInline(text: string, keyPrefix: string): ReactNode[] {
     nodes.push(<Fragment key={`${keyPrefix}-t-${i++}`}>{text.slice(last)}</Fragment>);
   }
   return nodes.length ? nodes : [text];
+}
+
+function renderInline(text: string, keyPrefix: string): ReactNode[] {
+  const nodes: ReactNode[] = [];
+  const math = /(\$\$[\s\S]+?\$\$|\\\[[\s\S]+?\\\]|\$[^$\n]+\$|\\\([^\n]*?\\\))/g;
+  let last = 0;
+  let match: RegExpExecArray | null;
+  let index = 0;
+  while ((match = math.exec(text)) !== null) {
+    if (match.index > last) nodes.push(...renderBold(text.slice(last, match.index), `${keyPrefix}-p-${index}`));
+    const token = match[0];
+    const expression = token.startsWith("$$") ? token.slice(2, -2)
+      : token.startsWith("$") ? token.slice(1, -1)
+        : token.slice(2, -2);
+    const display = token.startsWith("$$") || token.startsWith("\\[") || /\\(?:right)?arrow/.test(expression) || expression.length > 50;
+    nodes.push(
+      <span key={`${keyPrefix}-m-${index++}`} className={display ? "my-2 block max-w-full overflow-x-auto py-1" : "inline-block max-w-full overflow-x-auto align-middle"}>
+        <InlineMath math={expression.trim()} renderError={() => <code className="break-words">{expression}</code>} />
+      </span>
+    );
+    last = match.index + token.length;
+  }
+  if (last < text.length) nodes.push(...renderBold(text.slice(last), `${keyPrefix}-p-${index}`));
+  return nodes.length ? nodes : renderBold(text, keyPrefix);
 }
 
 function isBulletLine(line: string) {
