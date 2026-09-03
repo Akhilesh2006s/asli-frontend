@@ -359,6 +359,10 @@ export function useVidyaChat({
           body: JSON.stringify({
             message: data.message,
             history: historyPayload,
+            context: {
+              currentSubject: selectedSubjectRef.current,
+              currentTopic: data.context?.currentTopic ?? context?.currentTopic ?? "",
+            },
           }),
         });
 

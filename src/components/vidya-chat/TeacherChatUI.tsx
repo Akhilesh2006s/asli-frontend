@@ -1,7 +1,5 @@
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, BookOpen, CircleHelp, ClipboardCheck, Image as ImageIcon, Loader2, Mic, Send, Sparkles, Trash2 } from "lucide-react";
-import { useState } from "react";
 import type { UseVidyaChatResult } from "./types";
 
 interface TeacherChatUIProps {
@@ -77,8 +75,8 @@ const MODE_UI: Record<
 };
 
 export function TeacherChatUI({ model, className }: TeacherChatUIProps) {
-  const [teachingTab, setTeachingTab] = useState<TeachingTab>("desk");
-  const modeUi = MODE_UI[teachingTab];
+  const teachingTab: TeachingTab = "desk";
+  const modeUi = MODE_UI.desk;
   const ModeIcon = modeUi.Icon;
 
   if (model.isLoading) {
@@ -120,65 +118,17 @@ export function TeacherChatUI({ model, className }: TeacherChatUIProps) {
         <p className="mt-2 text-base text-muted-foreground">{modeUi.subtitle}</p>
       </div>
 
-      <div className="px-5 pt-5 sm:px-7">
-        <div className="grid grid-cols-3 gap-2 rounded-2xl bg-slate-100 p-1.5">
-          <button
-            type="button"
-            onClick={() => setTeachingTab("desk")}
-            className={`rounded-xl px-3 py-3 text-base font-semibold transition-all active:scale-[0.98] ${
-              teachingTab === "desk"
-                ? modeUi.activeTab
-                : "bg-transparent text-slate-800 hover:bg-white hover:text-slate-950"
-            }`}
-          >
-            Class desk
-          </button>
-          <button
-            type="button"
-            onClick={() => setTeachingTab("lesson")}
-            className={`rounded-xl px-3 py-3 text-base font-semibold transition-all active:scale-[0.98] ${
-              teachingTab === "lesson"
-                ? modeUi.activeTab
-                : "bg-transparent text-slate-800 hover:bg-white hover:text-slate-950"
-            }`}
-          >
-            Lesson
-          </button>
-          <button
-            type="button"
-            onClick={() => setTeachingTab("quiz")}
-            className={`rounded-xl px-3 py-3 text-base font-semibold transition-all active:scale-[0.98] ${
-              teachingTab === "quiz"
-                ? modeUi.activeTab
-                : "bg-transparent text-slate-800 hover:bg-white hover:text-slate-950"
-            }`}
-          >
-            Quiz
-          </button>
-        </div>
+      <div className="mx-5 mt-4 rounded-2xl border border-teal-green-200 bg-teal-green-50/70 p-3 sm:mx-7">
+        <label htmlFor="vidya-teacher-subject" className="mb-1.5 block text-sm font-semibold text-teal-green-900">
+          Teach using subject
+        </label>
+        <select id="vidya-teacher-subject" value={model.currentSubject}
+          onChange={event => model.setSelectedSubject(event.target.value)}
+          className="h-11 w-full rounded-xl border border-teal-green-200 bg-white px-3 text-base font-semibold text-slate-900 outline-none focus:ring-2 focus:ring-teal-green-300">
+          {model.subjectOptions.map(subject => <option key={subject} value={subject}>{subject}</option>)}
+        </select>
+        <p className="mt-1.5 text-xs text-slate-600">Vidya will keep lessons, explanations and quizzes inside this selected subject.</p>
       </div>
-
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-ink/10 bg-mist/70 px-4 py-3 mx-5 sm:mx-7">
-          <Badge className="border border-teal-green-200 bg-teal-green-50 px-3 py-1.5 text-[0.9375rem] text-teal-green-800 hover:bg-teal-green-50">
-            Class desk · live app data
-          </Badge>
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              className={`rounded-xl border px-3 py-2 text-[0.9375rem] font-semibold transition-all active:scale-[0.98] ${modeUi.quickA.className}`}
-              onClick={() => model.onPromptClick(modeUi.quickA.prompt)}
-            >
-              {modeUi.quickA.label}
-            </button>
-            <button
-              type="button"
-              className={`rounded-xl border px-3 py-2 text-[0.9375rem] font-semibold transition-all active:scale-[0.98] ${modeUi.quickB.className}`}
-              onClick={() => model.onPromptClick(modeUi.quickB.prompt)}
-            >
-              {modeUi.quickB.label}
-            </button>
-          </div>
-        </div>
 
       <div className="flex-1 overflow-y-auto px-5 py-5 sm:px-7">
         {model.displayMessages.length === 0 ? (
