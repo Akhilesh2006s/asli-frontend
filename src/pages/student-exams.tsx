@@ -1525,7 +1525,7 @@ export default function StudentExams() {
                                 setSelectedAttemptByExam((prev) => ({ ...prev, [examIdStr]: value }))
                               }
                             >
-                              <SelectTrigger className="h-9 border-slate-200 bg-white text-xs text-slate-800 shadow-none">
+                              <SelectTrigger className="h-auto min-h-11 items-center border-slate-200 bg-white py-2 text-xs text-slate-800 shadow-none [&>span]:whitespace-normal [&>svg]:mt-0">
                                 <SelectValue placeholder="Choose attempt" />
                               </SelectTrigger>
                               <SelectContent>

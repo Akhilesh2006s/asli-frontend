@@ -950,11 +950,11 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
             </div>
           ) : (
             <>
-              <div className="grid gap-3 border-b border-slate-100 pb-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3">
                 <p className="text-sm font-medium text-slate-800">Your indexed textbooks</p>
                 <div className="grid w-full grid-cols-1 gap-2 min-[460px]:grid-cols-2 sm:w-auto sm:grid-cols-[9.5rem_11rem_auto]">
                   <Select value={bookGroupMode} onValueChange={(v) => { setBookGroupMode(v as "class" | "subject"); setBookGroupFilter("__all__"); }}>
-                    <SelectTrigger className="h-10 w-full text-xs [&>span]:truncate">
+                    <SelectTrigger className="h-11 w-full items-center text-xs [&>span]:truncate [&>span]:whitespace-nowrap [&>svg]:mt-0">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -964,7 +964,7 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
                   </Select>
                   {bookGroupFilterOptions.length > 1 ? (
                     <Select value={bookGroupFilter} onValueChange={setBookGroupFilter}>
-                      <SelectTrigger className="h-10 w-full text-xs [&>span]:truncate">
+                      <SelectTrigger className="h-11 w-full items-center text-xs [&>span]:truncate [&>span]:whitespace-nowrap [&>svg]:mt-0">
                         <SelectValue placeholder="All groups" />
                       </SelectTrigger>
                       <SelectContent>

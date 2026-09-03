@@ -497,7 +497,7 @@ export default function IQRankBoostActivities() {
       </div>
 
       {/* Class Cards Grid — equal height tiles */}
-      <div className="grid auto-rows-fr grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+      <div className="grid auto-rows-fr grid-cols-[repeat(auto-fit,minmax(min(100%,250px),1fr))] gap-4">
         {[6, 7, 8, 9, 10].map((classNum) => {
           const classActivities = activities.filter(
             (a) => a.classNumber === classNum.toString() && !a.trialOnly,
@@ -1085,4 +1085,3 @@ export default function IQRankBoostActivities() {
     </div>
   );
 }
-

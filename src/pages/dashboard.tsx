@@ -2141,14 +2141,14 @@ export default function Dashboard() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             <Card className="lg:col-span-2 bg-white rounded-xl shadow-md">
               <CardHeader className="pb-3">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div className="flex flex-col gap-3">
                   <div className="min-w-0">
                     <CardTitle className="text-lg sm:text-xl font-bold text-gray-900">Study Calendar</CardTitle>
                     <p className="text-xs sm:text-sm text-gray-600 mt-1 break-words">
                       Click a date to see quizzes and exams
                     </p>
                   </div>
-                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 shrink-0">
+                  <div className="flex flex-wrap items-center gap-3">
                     <div className="flex items-center gap-2">
                       <Button
                         variant="outline"
@@ -2182,7 +2182,7 @@ export default function Dashboard() {
                         value={calendarJumpDate}
                         onChange={(e) => setCalendarJumpDate(e.target.value)}
                         aria-label="Jump to date"
-                        className="asli-date-input h-9 min-w-[10.5rem] rounded-md border border-gray-200 bg-white py-1.5 pl-3 pr-3 text-xs text-gray-700 sm:min-w-[11.5rem] sm:text-sm"
+                        className="asli-date-input h-9 w-full min-w-0 max-w-[12rem] rounded-md border border-gray-200 bg-white py-1.5 pl-3 pr-3 text-xs text-gray-700 sm:text-sm"
                       />
                       <Button size="sm" className="whitespace-nowrap" onClick={handleJumpToDate}>
                         Go

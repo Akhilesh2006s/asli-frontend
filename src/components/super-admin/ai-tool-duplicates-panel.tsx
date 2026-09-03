@@ -695,27 +695,27 @@ export default function AiToolDuplicatesPanel() {
           if (!open) setViewRecords([]);
         }}
       >
-        <DialogContent className="max-w-[min(96vw,1100px)] max-h-[90vh] overflow-hidden flex flex-col p-0 gap-0">
+        <DialogContent className="w-[96vw] max-w-[1440px] max-h-[90dvh] overflow-hidden flex flex-col p-0 gap-0">
           <DialogHeader className="px-4 py-3 border-b shrink-0">
             <DialogTitle className="text-base">
               {viewRecords.length > 1 ? "Compare records" : "Full record"}
             </DialogTitle>
           </DialogHeader>
           <div
-            className={`flex-1 overflow-y-auto p-4 ${
-              viewRecords.length > 1 ? "grid grid-cols-1 lg:grid-cols-2 gap-4" : ""
+            className={`min-h-0 flex-1 overflow-y-auto p-3 sm:p-4 ${
+              viewRecords.length > 1 ? "grid grid-cols-1 xl:grid-cols-2 items-start gap-4" : ""
             }`}
           >
             {viewRecords.map((rec) => (
               <div
                 key={rec.id}
-                className="rounded-xl border border-slate-200 bg-white overflow-hidden flex flex-col min-h-[200px]"
+                className="min-w-0 rounded-xl border border-slate-200 bg-white overflow-hidden flex flex-col min-h-[200px]"
               >
                 <div className="px-3 py-2 border-b bg-slate-50 text-sm font-medium text-slate-800 truncate">
                   {rec.title}
                   <span className="ml-2 text-mini font-mono text-slate-400">…{rec.id.slice(-8)}</span>
                 </div>
-                <div className="p-3 flex-1 overflow-y-auto max-h-[70vh]">
+                <div className="min-w-0 p-2 sm:p-3 flex-1 [&_.grid]:!grid-cols-1 [&_section>header]:flex-wrap [&_.ai-tool-section-body]:!p-3">
                   {rec.loading ? (
                     <div className="flex items-center gap-2 text-slate-500 text-sm py-8 justify-center">
                       <Loader2 className="w-4 h-4 animate-spin" />
