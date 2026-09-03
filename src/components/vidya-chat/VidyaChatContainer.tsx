@@ -12,7 +12,11 @@ interface VidyaChatContainerProps {
   className?: string;
 }
 
-export default function VidyaChatContainer({
+export default function VidyaChatContainer(props: VidyaChatContainerProps) {
+  return <ScopedVidyaChat key={`${props.role}:${props.userId}`} {...props} />;
+}
+
+function ScopedVidyaChat({
   userId,
   role,
   context,

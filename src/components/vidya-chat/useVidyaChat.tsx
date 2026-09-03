@@ -5,6 +5,7 @@ import { API_BASE_URL, apiFetch } from "@/lib/api-config";
 import { getAuthToken } from "@/lib/auth-utils";
 import { isLikelyMongoObjectId } from "@/lib/vidya-subjects";
 import { ChatMessageContent } from "./ChatMessageContent";
+import { preparePhoto } from "./preparePhoto";
 import type {
   AIChatContext,
   UseVidyaChatResult,
@@ -119,6 +120,7 @@ export function useVidyaChat({
 
   const [message, setMessage] = useState("");
   const [isListening, setIsListening] = useState(false);
+  const [preparingImage, setPreparingImage] = useState(false);
   const [localMessages, setLocalMessages] = useState<Message[]>([]);
   const [lastControlLatencyMs, setLastControlLatencyMs] = useState<number | null>(null);
   const [todayFocusAction, setTodayFocusAction] = useState("");
@@ -128,6 +130,8 @@ export function useVidyaChat({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const localMessagesRef = useRef<Message[]>([]);
+  const sendingRef = useRef(false);
+  const historyHydratedRef = useRef(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -170,7 +174,7 @@ export function useVidyaChat({
       const data = await response.json();
       return Array.isArray(data?.sessions) ? data.sessions : [];
     },
-    refetchInterval: isDatabaseBackedAssistant ? false : 2000,
+    refetchInterval: false,
     enabled: Boolean(userId) && !isDatabaseBackedAssistant,
   });
 
@@ -226,13 +230,12 @@ export function useVidyaChat({
 
   useEffect(() => {
     if (isDatabaseBackedAssistant) return;
-    if (
-      sessionMessages.length > 0 &&
-      (localMessages.length === 0 || sessionMessages.length > localMessages.length)
-    ) {
+    if (sessions === undefined || historyHydratedRef.current) return;
+    historyHydratedRef.current = true;
+    if (sessionMessages.length > 0 && !localMessagesRef.current.some(m => m.role === "user")) {
       setLocalMessages(sessionMessages);
     }
-  }, [isDatabaseBackedAssistant, sessionMessages, localMessages.length]);
+  }, [isDatabaseBackedAssistant, sessions, sessionMessages]);
 
   useEffect(() => {
     if (!isDatabaseBackedAssistant) return;
@@ -447,9 +450,8 @@ export function useVidyaChat({
         queryClient.invalidateQueries({ queryKey: ["/api/users", userId, "chat-sessions"] });
         setTimeout(() => refetch(), 1000);
       }
-      setMessage("");
     },
-    onError: (error: unknown) => {
+    onError: (error: unknown, variables) => {
       const msg = error instanceof Error ? error.message : "Failed to send message.";
       toast({
         title: "Error",
@@ -457,11 +459,13 @@ export function useVidyaChat({
         variant: "destructive",
       });
       setLocalMessages((prev) => prev.slice(0, -1));
+      setMessage(prev => prev || variables.message);
     },
+    onSettled: () => { sendingRef.current = false; },
   });
 
   const analyzeImageMutation = useMutation({
-    mutationFn: async (data: { image: string; context?: string }) => {
+    mutationFn: async (data: { image: string; mimeType: string; context?: string; history: ReturnType<typeof conversationPayload> }) => {
       const token = getAuthToken();
       const response = await fetch(`${API_BASE_URL}/api/ai-chat/analyze-image`, {
         method: "POST",
@@ -485,23 +489,26 @@ export function useVidyaChat({
       }
       return response.json();
     },
-    onSuccess: (data) => {
-      sendMessageMutation.mutate({
-        message: `Please analyze this image: ${data.analysis}`,
-        context: { ...context, currentSubject: selectedSubjectRef.current },
-      });
+    onSuccess: (data, variables) => {
+      setLocalMessages(prev => [...prev,
+        { role: "user", content: `[Uploaded image] ${variables.context || "Explain this image"}`, timestamp: new Date() },
+        { role: "assistant", content: String(data.analysis || data.message || "No readable answer was returned. Please retry with a clearer photo."), timestamp: new Date() },
+      ]);
     },
-    onError: () => {
+    onError: (error: unknown, variables) => {
+      setMessage(prev => prev || variables.context || "");
       toast({
         title: "Error",
-        description: "Failed to analyze image. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to analyze image. Please try again.",
         variant: "destructive",
       });
     },
+    onSettled: () => { sendingRef.current = false; },
   });
 
   const sendSpecificMessage = (text: string) => {
     if (!text.trim()) return;
+    if (sendingRef.current || analyzeImageMutation.isPending) return;
     const trimmed = text.trim();
     if (isDatabaseBackedAssistant && role === "admin") {
       const asksExamAnswers =
@@ -532,6 +539,8 @@ export function useVidyaChat({
       setMessage(trimmed);
       return;
     }
+    sendingRef.current = true;
+    setMessage("");
     sendMessageMutation.mutate({
       message: trimmed,
       context: {
@@ -617,24 +626,35 @@ export function useVidyaChat({
   }, [role, clearChatMutation.isPending]);
 
   const onPromptClick = (question: string) => {
-    setMessage(question);
-    setTimeout(() => sendSpecificMessage(question), 100);
+    sendSpecificMessage(question);
   };
 
   const handleImageUpload = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    e.target.value = "";
     if (!file) return;
+    if (sendingRef.current) return;
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type) || file.size > 5 * 1024 * 1024) {
+      toast({ title: "Choose a supported photo", description: "Use a JPEG, PNG or WebP image smaller than 5 MB.", variant: "destructive" });
+      return;
+    }
+    sendingRef.current = true;
+    const question = message.trim() || `Explain this educational image. Subject: ${selectedSubjectRef.current || "General Study"}.`;
+    setMessage("");
+    setPreparingImage(true);
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const base64 = event.target?.result as string;
-      const base64Data = base64.split(",")[1];
+    preparePhoto(file).then(base64Data => {
       analyzeImageMutation.mutate({
         image: base64Data,
-        context: `Subject: ${selectedSubjectRef.current || context?.currentSubject || "General Study"}. Please analyze this educational image and help me understand the concepts.`,
+        mimeType: "image/jpeg",
+        context: question,
+        history: conversationPayload(localMessagesRef.current),
       });
-    };
-    reader.readAsDataURL(file);
+    }).catch(error => {
+      sendingRef.current = false;
+      setMessage(prev => prev || question);
+      toast({ title: "Photo could not be read", description: error instanceof Error ? error.message : "Please select the photo again.", variant: "destructive" });
+    }).finally(() => setPreparingImage(false));
   };
 
   const handleVoiceInput = () => {
@@ -724,7 +744,7 @@ export function useVidyaChat({
     setMessage,
     isListening,
     isLoading,
-    isPending: sendMessageMutation.isPending || analyzeImageMutation.isPending,
+    isPending: preparingImage || sendMessageMutation.isPending || analyzeImageMutation.isPending,
     displayMessages,
     quickQuestions,
     inputPlaceholder,

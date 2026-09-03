@@ -50,7 +50,7 @@ export function StudentChatUI({ model, className }: StudentChatUIProps) {
 
   const hasNotifications =
     model.todayFocusAction || model.studyStreakMessage || model.proactivePrompt;
-  const showInsightsExpanded = hasNotifications && insightsOpen;
+  const showInsightsExpanded = Boolean(hasNotifications && insightsOpen);
 
   return (
     <div
@@ -223,6 +223,20 @@ export function StudentChatUI({ model, className }: StudentChatUIProps) {
       </div>
 
       <div className="shrink-0 border-t border-indigo-100/80 bg-white/95 px-3 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 backdrop-blur">
+        {hasMessages && (
+          <details open={!model.displayMessages.some(m => m.role === "user")} className="mb-2 text-xs text-slate-600">
+            <summary className="cursor-pointer py-1">Suggested questions</summary>
+            <div className="mt-2 flex max-h-32 flex-wrap gap-2 overflow-y-auto">
+              {model.quickQuestions.map(question => (
+                <button key={question} type="button" disabled={model.isPending}
+                  onClick={() => model.onPromptClick(question)}
+                  className="rounded-xl border border-indigo-100 px-3 py-2 text-left disabled:opacity-50">
+                  {question}
+                </button>
+              ))}
+            </div>
+          </details>
+        )}
         <div className="flex items-end gap-1.5 rounded-2xl border border-slate-200 bg-slate-50/80 px-2 py-1.5 shadow-sm focus-within:border-indigo-300 focus-within:bg-white focus-within:ring-2 focus-within:ring-indigo-100">
           <Button
             variant="ghost"
