@@ -653,75 +653,11 @@ const AdminDashboard = () => {
             </Suspense>
           )}
           {activeTab === 'vidya-ai' && (
-            <div className="space-y-3 sm:space-y-4 lg:space-y-6">
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.5 }}
-                className="space-y-5"
-              >
-                <div className="overflow-hidden rounded-3xl border border-indigo-300/30 bg-gradient-to-br from-[#2563eb] via-[#4f46e5] to-[#7c3aed] p-5 text-white shadow-[0_18px_42px_-26px_rgba(79,70,229,0.65)] sm:p-6">
-                  <div className="mb-2 flex items-center gap-3">
-                    <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/15 text-white shadow-sm ring-1 ring-white/20">
-                      <Sparkles className="h-5 w-5" />
-                    </div>
-                    <Badge className="border-white/20 bg-white/15 text-white hover:bg-white/15">
-                      School Operations
-                    </Badge>
-                  </div>
-                  <h2 className="font-display text-xl font-bold sm:text-2xl">School AI Assistant</h2>
-                  <p className="mt-1 text-sm text-white/80 sm:text-base">
-                    Manage students, teachers, and academic workflows with Vidya.
-                  </p>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {[
-                    { title: "Enroll Students", description: "Onboard students into classes quickly", icon: UserPlus, tab: "students" },
-                    { title: "Assign Teachers", description: "Map teachers to classes and subjects", icon: Users, tab: "teachers" },
-                    { title: "Schedule Exams", description: "Plan test windows and exam timelines", icon: CalendarIcon, tab: "exams" },
-                    { title: "View Reports", description: "Track attendance and performance trends", icon: BarChart3, tab: "overview" },
-                  ].map((action) => {
-                    const Icon = action.icon;
-                    return (
-                      <Card
-                        key={action.title}
-                        className="bg-white/80 border border-white/70 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
-                        onClick={() => selectTab(action.tab)}
-                      >
-                        <CardContent className="p-4">
-                          <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-sky-100 to-teal-100 flex items-center justify-center mb-3">
-                            <Icon className="w-3 h-3 sm:w-4 sm:h-4 text-sky-700" />
-                          </div>
-                          <h3 className="text-xs sm:text-sm font-semibold text-slate-900">{action.title}</h3>
-                          <p className="text-xs text-slate-600 mt-1">{action.description}</p>
-                        </CardContent>
-                      </Card>
-                    );
-                  })}
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div className="rounded-xl bg-white border border-sky-100 px-4 py-3 shadow-sm">
-                    <p className="text-xs uppercase tracking-wide text-slate-500">Total Students</p>
-                    <p className="text-xl sm:text-2xl font-bold text-sky-700 mt-1">{isLoadingStats ? "..." : stats.totalStudents}</p>
-                  </div>
-                  <div className="rounded-xl bg-white border border-teal-100 px-4 py-3 shadow-sm">
-                    <p className="text-xs uppercase tracking-wide text-slate-500">Active Classes</p>
-                    <p className="text-xl sm:text-2xl font-bold text-teal-700 mt-1">{isLoadingStats ? "..." : stats.totalClasses}</p>
-                  </div>
-                </div>
-
-                <div className="rounded-xl border border-sky-100 bg-gradient-to-r from-sky-50 to-teal-50 px-4 py-3 text-xs sm:text-sm text-slate-700">
-                  AI assists with administrative tasks and reporting
-                </div>
-
-                <AtRiskStudentsPanel />
-
+            <div className="space-y-3 sm:space-y-4">
+              <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
                 <div
                   id="admin-vidya-chat"
-                  className="w-full max-w-5xl mx-auto rounded-2xl border border-sky-100 bg-white/85 shadow-xl overflow-hidden"
-                  style={{ minHeight: '600px' }}
+                  className="mx-auto h-[calc(100dvh-8.5rem)] min-h-[520px] w-full max-w-5xl overflow-hidden rounded-2xl border border-sky-100 bg-white/85 shadow-xl"
                 >
                   {adminId ? (
                     <Suspense fallback={lazySectionFallback}>
@@ -751,13 +687,15 @@ const AdminDashboard = () => {
         </div>
       </div>
 
-      <VidyaAIFloatingAssistant
-        role="admin"
-        onClick={() => {
-          selectTab('vidya-ai');
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-        }}
-      />
+      {activeTab !== 'vidya-ai' && (
+        <VidyaAIFloatingAssistant
+          role="admin"
+          onClick={() => {
+            selectTab('vidya-ai');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+        />
+      )}
     </AdminShell>
   );
 };

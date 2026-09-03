@@ -1,4 +1,3 @@
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { BarChart3, CalendarDays, Image as ImageIcon, Loader2, Mic, Send, Sparkles, Trash2, Users } from "lucide-react";
 import type { UseVidyaChatResult } from "./types";
@@ -30,31 +29,6 @@ export function AdminChatUI({ model, className }: AdminChatUIProps) {
     },
   ];
 
-  const turns = Math.max(0, Math.floor(model.displayMessages.length / 2));
-  const statsStrip = [
-    {
-      label: "Assist mode",
-      value: model.isDatabaseBackedAssistant ? "DB-grounded" : "—",
-      icon: Sparkles,
-      tone: "text-teal-700 border-teal-100 bg-teal-50/70",
-    },
-    {
-      label: "Queries (session)",
-      value: `${turns}`,
-      icon: Users,
-      tone: "text-sky-700 border-sky-100 bg-sky-50/70",
-    },
-    {
-      label: "Last latency",
-      value:
-        typeof model.lastControlLatencyMs === "number" && Number.isFinite(model.lastControlLatencyMs)
-          ? `${(model.lastControlLatencyMs / 1000).toFixed(2)}s`
-          : "—",
-      icon: CalendarDays,
-      tone: "text-emerald-700 border-emerald-100 bg-emerald-50/70",
-    },
-  ];
-
   if (model.isLoading) {
     return (
       <div className={`${className ?? ""} flex h-full min-h-[320px] items-center justify-center bg-white`}>
@@ -75,8 +49,7 @@ export function AdminChatUI({ model, className }: AdminChatUIProps) {
               <div className="min-w-0">
                 <h3 className="text-base sm:text-lg font-semibold text-slate-900">School AI Assistant</h3>
                 <p className="text-xs sm:text-sm text-slate-600">
-                  School-scoped metrics from your live database — counts, exams scheduled, attendance proxy, and AI usage.
-                  This assistant does not provide exam answer keys or solve student papers.
+                  Ask about your school data, classes, learning paths, EduOTT videos, textbooks, or curriculum.
                 </p>
               </div>
             </div>
@@ -113,24 +86,6 @@ export function AdminChatUI({ model, className }: AdminChatUIProps) {
             })}
           </div>
 
-          <div className="grid grid-cols-1 gap-2 md:grid-cols-3">
-            {statsStrip.map((stat) => {
-              const Icon = stat.icon;
-              return (
-                <div key={stat.label} className={`rounded-lg border px-3 py-2 ${stat.tone}`}>
-                  <div className="mb-1 flex items-center justify-between">
-                    <p className="text-xs uppercase tracking-wide text-slate-500">{stat.label}</p>
-                    <Icon className="h-3 w-3 sm:h-4 sm:w-4" />
-                  </div>
-                  <p className="text-base sm:text-lg font-semibold">{stat.value}</p>
-                </div>
-              );
-            })}
-          </div>
-
-          <Badge className="border border-sky-200 bg-white text-sky-700 hover:bg-white">
-            AI assists with administrative tasks and reporting
-          </Badge>
         </div>
 
         <div className="flex-1 overflow-y-auto px-5 py-4">
