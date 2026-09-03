@@ -36,6 +36,7 @@ const CONTROL_ASSISTANT_QUICK_QUESTIONS_SUPER = [
 
 const QUICK_QUESTIONS_BY_ROLE: Record<VidyaChatRole, string[]> = {
   student: [
+    "Teach me magnetic field",
     "What should I do today?",
     "What is my homework today?",
     "What are my upcoming exams?",
@@ -46,6 +47,7 @@ const QUICK_QUESTIONS_BY_ROLE: Record<VidyaChatRole, string[]> = {
     "What is on my calendar?",
   ],
   teacher: [
+    "Help me explain a topic to my class",
     "What should I do today?",
     "List my classes and students",
     "Who logged in today?",
@@ -60,8 +62,8 @@ const QUICK_QUESTIONS_BY_ROLE: Record<VidyaChatRole, string[]> = {
 };
 
 const INPUT_PLACEHOLDER_BY_ROLE: Record<VidyaChatRole, string> = {
-  student: "Ask anything about your Asli app: today, homework, exams, videos…",
-  teacher: "Ask about your classes, students, homework, exams, OMR…",
+  student: "Ask a topic doubt, a follow-up, or about your exams and progress…",
+  teacher: "Ask for teaching help or about your classes, students and exams…",
   admin: "Ask live school data: students, OMR, exams, homework, classes…",
   super_admin: "Ask live platform data: schools, OMR, exams, trials, AI…",
 };
