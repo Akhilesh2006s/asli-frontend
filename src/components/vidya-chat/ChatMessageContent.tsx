@@ -13,6 +13,10 @@ const SECTION_LABELS =
 export function normalizeChatStructure(raw: string): string {
   if (!raw) return "";
   let text = String(raw).replace(/\r\n/g, "\n").replace(/\r/g, "\n").trim();
+  // Retrieval evidence remains attached to the message metadata/history, but
+  // the student-facing lesson should not end with a long technical appendix.
+  text = text.replace(/\n\s*(?:#{1,4}\s*)?(?:sources?|retrieved sources?|textbook sections retrieved)\s*:?[ \t]*\n[\s\S]*$/i, "");
+  text = text.replace(/\s*\[B\d+\](?=[\s.,;:!?)]|$)/gi, "");
   // Models sometimes wrap a display equation over several lines. Keep the
   // delimited expression together so the line-oriented renderer can parse it.
   text = text.replace(/\$([^$]*?(?:\\[A-Za-z]+|[_^])[^$]*?)\$/gs, (_m, formula) =>
@@ -217,7 +221,7 @@ export function ChatMessageContent({
   const blocks = normalized.split(/\n{2,}/);
 
   return (
-    <div className={cn("space-y-2.5 text-left text-[15px] leading-relaxed", className)}>
+    <div className={cn("space-y-2 text-left text-[15px] leading-relaxed [overflow-wrap:anywhere]", className)}>
       {blocks.map((block, i) => renderBlock(block, i))}
     </div>
   );
