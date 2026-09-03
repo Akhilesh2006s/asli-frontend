@@ -12,6 +12,15 @@ import type {
   Message,
 } from "./types";
 
+function conversationPayload(messages: Message[]) {
+  const rows = messages.filter(m => m.role === "user" || m.role === "assistant")
+    .map(m => ({ role: m.role, content: String(m.content || "") }));
+  if (rows.reduce((sum, m) => sum + m.content.length, 0) <= 120000) return rows;
+  const limit = Math.max(1, Math.floor(120000 / Math.max(1, rows.length)));
+  return rows.map(m => ({ ...m, content: m.content.length > limit
+    ? `${m.content.slice(0, Math.floor(limit * 0.7))}\n[Earlier message shortened]\n${m.content.slice(-Math.max(1, Math.floor(limit * 0.3)))}` : m.content }));
+}
+
 const CONTROL_ASSISTANT_QUICK_QUESTIONS_ADMIN = [
   "School dashboard overview",
   "How many students and teachers are active?",
@@ -251,13 +260,7 @@ export function useVidyaChat({
         timestamp: new Date(),
       };
 
-      const historyPayload = localMessagesRef.current
-        .filter((m) => m.role === "user" || m.role === "assistant")
-        .slice(-12)
-        .map((m) => ({
-          role: m.role,
-          content: String(m.content || "").slice(0, 6000),
-        }));
+      const historyPayload = conversationPayload(localMessagesRef.current);
 
       setLocalMessages((prev) => [...prev, userMessage]);
 
@@ -301,10 +304,7 @@ export function useVidyaChat({
       }
 
       if (isStudentMentorMode) {
-        const historyPayload = localMessagesRef.current
-          .filter((m) => m.role === "user" || m.role === "assistant")
-          .slice(-12)
-          .map((m) => ({ role: m.role, content: String(m.content || "").slice(0, 4000) }));
+        const historyPayload = conversationPayload(localMessagesRef.current);
         const response = await fetch(`${API_BASE_URL}/api/vidya/student/chat`, {
           method: "POST",
           headers: {
