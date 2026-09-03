@@ -5,6 +5,7 @@ export interface Message {
   content: string;
   timestamp: Date;
   type?: "text" | "voice" | "image";
+  citations?: Array<{ id: string; title?: string; chapter?: string }>;
 }
 
 export type AIChatPromptVariant = "student" | "teacher" | "admin" | "super-admin";

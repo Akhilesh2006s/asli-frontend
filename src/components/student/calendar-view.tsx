@@ -618,8 +618,8 @@ export default function CalendarView({
 
       {/* Preview Dialog — A4 book-style for readable textbooks / materials */}
       <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
-        <DialogContent className="flex h-[min(96dvh,1120px)] max-h-[98dvh] w-[min(96vw,860px)] max-w-[860px] flex-col gap-2 overflow-hidden rounded-2xl p-3 sm:gap-3 sm:p-4 lg:p-5">
-          <DialogHeader className="shrink-0 space-y-1 pr-10">
+        <DialogContent className="!flex h-[min(96dvh,1200px)] max-h-[96dvh] w-[min(98vw,1280px)] max-w-[1280px] !flex-col gap-0 overflow-hidden rounded-xl border-0 bg-[#d6d3d1] p-0 shadow-2xl">
+          <DialogHeader className="shrink-0 space-y-1 border-b border-stone-300/60 bg-stone-100/95 px-5 pb-3 pt-5 pr-14 sm:px-7">
             <DialogTitle className="text-base sm:text-lg lg:text-xl font-semibold leading-snug">
               {selectedContent ? getLibraryContentDisplayTitle(selectedContent) : ''}
             </DialogTitle>
@@ -646,7 +646,7 @@ export default function CalendarView({
               </div>
 
               {/* Content Info */}
-              <div className="flex shrink-0 items-center justify-between border-t pt-2 mt-2">
+              <div className="flex shrink-0 items-center justify-between border-t border-stone-300/60 bg-stone-100/95 px-5 py-2.5">
                 <div className="flex items-center space-x-4 text-xs sm:text-sm text-gray-600">
                   <span className="flex items-center space-x-1">
                     <FileText className="w-3 h-3 sm:w-4 sm:h-4" />

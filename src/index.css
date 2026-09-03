@@ -806,6 +806,7 @@
 .pdf-book-scroll {
   scrollbar-width: none;
   -ms-overflow-style: none;
+  overscroll-behavior: contain;
 }
 
 .pdf-book-scroll::-webkit-scrollbar {
@@ -817,6 +818,16 @@
 .pdf-page-pinch-frame {
   scrollbar-width: none;
   -ms-overflow-style: none;
+}
+
+/* Global `canvas { max-width:100%; height:auto }` shrinks pdf.js pages to a
+   thumbnail. The pinch frame owns layout size — the canvas must fill it. */
+.pdf-page-pinch-frame canvas {
+  display: block !important;
+  width: 100% !important;
+  height: 100% !important;
+  max-width: none !important;
+  max-height: none !important;
 }
 
 .pdf-page-pinch-frame::-webkit-scrollbar {

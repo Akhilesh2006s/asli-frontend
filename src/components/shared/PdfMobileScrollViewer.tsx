@@ -57,23 +57,17 @@ function getSafeOutputScale(
   return capRenderScale(pageWidth, pageHeight, cssScale * cappedDpr);
 }
 
-function getFitWidthScale(containerWidth: number, pageWidth: number): number {
-  const pad = 24;
-  const availW = Math.max(0, containerWidth - pad);
-  if (availW <= 0 || pageWidth <= 0) return 1;
-  return availW / pageWidth;
-}
-
-/** Fit page inside width and optional max height (book / fullscreen — no clipping). */
 function getPageCssScale(
   containerWidth: number,
   pageWidth: number,
   pageHeight: number,
   maxHeight?: number,
 ): number {
-  const widthScale = getFitWidthScale(containerWidth, pageWidth);
+  const pad = 16;
+  const availW = Math.max(1, containerWidth - pad);
+  const widthScale = pageWidth > 0 ? availW / pageWidth : 1;
   if (!maxHeight || maxHeight < 80 || pageHeight <= 0) return widthScale;
-  const heightScale = maxHeight / pageHeight;
+  const heightScale = Math.max(1, maxHeight - pad) / pageHeight;
   return Math.min(widthScale, heightScale);
 }
 
@@ -136,9 +130,8 @@ async function measurePdfPageCssSize(
 ): Promise<{ cssWidth: number; cssHeight: number } | null> {
   const page = await pdf.getPage(pageNum);
   const base = getPageViewport(page, 1);
-  // Small inset so page edges never kiss the frame (premium fit, no clip).
-  const fitWidth = Math.max(200, containerWidth - 8);
-  const fitHeight = maxHeight != null ? Math.max(120, maxHeight - 8) : undefined;
+  const fitWidth = Math.max(160, containerWidth);
+  const fitHeight = maxHeight != null && maxHeight > 0 ? maxHeight : undefined;
   const cssScale = getPageCssScale(fitWidth, base.width, base.height, fitHeight);
   const cssWidth = Math.max(1, Math.floor(base.width * cssScale));
   const cssHeight = Math.max(1, Math.floor(base.height * cssScale));
@@ -154,8 +147,8 @@ async function renderPdfPageCanvas(
 ): Promise<{ cssWidth: number; cssHeight: number } | null> {
   const page = await pdf.getPage(pageNum);
   const base = getPageViewport(page, 1);
-  const fitWidth = Math.max(200, containerWidth - 8);
-  const fitHeight = maxHeight != null ? Math.max(120, maxHeight - 8) : undefined;
+  const fitWidth = Math.max(160, containerWidth);
+  const fitHeight = maxHeight != null && maxHeight > 0 ? maxHeight : undefined;
   const cssScale = getPageCssScale(fitWidth, base.width, base.height, fitHeight);
   const cssWidth = Math.max(1, Math.floor(base.width * cssScale));
   const cssHeight = Math.max(1, Math.floor(base.height * cssScale));
@@ -169,8 +162,8 @@ async function renderPdfPageCanvas(
     const viewport = getPageViewport(page, outputScale);
     canvas.width = Math.max(1, Math.floor(viewport.width));
     canvas.height = Math.max(1, Math.floor(viewport.height));
-    canvas.style.width = `${cssWidth}px`;
-    canvas.style.height = `${cssHeight}px`;
+    // CSS size is owned by the pinch frame (width/height 100%). Bitmap size
+    // stays on the canvas attributes for sharp rendering.
     const ctx = canvas.getContext('2d', { alpha: false });
     if (!ctx) continue;
     ctx.fillStyle = '#ffffff';
@@ -193,9 +186,15 @@ function PdfPageCanvas({
   return (
     <canvas
       ref={canvasRef}
-      className="pointer-events-none block max-w-none"
+      className="pointer-events-none block h-full w-full max-h-none max-w-none"
       draggable={false}
-      style={{ display: 'block' }}
+      style={{
+        display: 'block',
+        width: '100%',
+        height: '100%',
+        maxWidth: 'none',
+        maxHeight: 'none',
+      }}
     />
   );
 }
@@ -232,23 +231,19 @@ function PdfMobilePage({
   const [shouldRender, setShouldRender] = useState(pageNum === 1 || forceRender);
   const [layoutReady, setLayoutReady] = useState(false);
   const [dims, setDims] = useState({ w: 0, h: 0 });
-  const [pageZoomed, setPageZoomed] = useState(false);
-  const [zoomScale, setZoomScale] = useState(1);
+  const layoutReadyRef = useRef(false);
 
   const pageHeight = dims.h > 0 ? dims.h : defaultMinHeight;
   const pageWidth = dims.w > 0 ? dims.w : Math.max(containerWidth - 8, 280);
   const baseWidth = dims.w > 0 ? dims.w : pageWidth;
   const baseHeight = dims.h > 0 ? dims.h : pageHeight;
   const maxPageHeight =
-    fillViewport && viewportHeight > 0 ? Math.max(120, viewportHeight - 32) : undefined;
+    fillViewport && viewportHeight > 80 ? viewportHeight : undefined;
   const layoutKey = `${containerWidth}|${maxPageHeight ?? 0}`;
 
   const handlePageZoom = useCallback(
     (zoomed: boolean, scale?: number) => {
-      const nextScale = zoomed ? Math.max(1, scale ?? pinchRef.current?.getScale() ?? 1) : 1;
-      setPageZoomed(zoomed);
-      setZoomScale(nextScale);
-      onZoomChange(pageNum, zoomed, nextScale);
+      onZoomChange(pageNum, zoomed, zoomed ? Math.max(1, scale ?? 1) : 1);
     },
     [onZoomChange, pageNum],
   );
@@ -290,8 +285,11 @@ function PdfMobilePage({
   useEffect(() => {
     if (!shouldRender) return;
     let cancelled = false;
-    renderedRef.current = false;
-    setLayoutReady(false);
+    const keepCanvas = layoutReadyRef.current;
+    if (!keepCanvas) {
+      renderedRef.current = false;
+      setLayoutReady(false);
+    }
     void (async () => {
       const measured = await measurePdfPageCssSize(
         pdf,
@@ -301,12 +299,13 @@ function PdfMobilePage({
       );
       if (cancelled || !measured) return;
       setDims({ w: measured.cssWidth, h: measured.cssHeight });
+      layoutReadyRef.current = true;
       setLayoutReady(true);
     })();
     return () => {
       cancelled = true;
     };
-  }, [shouldRender, pdf, pageNum, layoutKey, maxPageHeight]);
+  }, [shouldRender, pdf, pageNum, layoutKey, maxPageHeight, containerWidth]);
 
   useEffect(() => {
     if (!layoutReady || renderedRef.current) return;
@@ -347,28 +346,16 @@ function PdfMobilePage({
     };
   }, [layoutReady, pdf, pageNum, layoutKey, maxPageHeight, containerWidth]);
 
-  // When zoomed, grow the slot so the page can expand onto the screen (not clip in a fixed box).
-  const scaledH = Math.ceil(baseHeight * zoomScale);
-  const scaledW = Math.ceil(baseWidth * zoomScale);
   const slotStyle =
-    pageZoomed
-      ? {
-          minHeight: `${Math.max(scaledH + 24, viewportHeight || 0)}px`,
-          minWidth: `${Math.max(scaledW + 24, containerWidth)}px`,
-        }
-      : fillViewport && viewportHeight > 0
-        ? { height: `${viewportHeight}px`, minHeight: `${viewportHeight}px` }
-        : { minHeight: `${pageHeight + 24}px` };
+    fillViewport && viewportHeight > 0
+      ? { minHeight: `${viewportHeight}px` }
+      : { minHeight: `${pageHeight + 24}px` };
 
   return (
     <div
       ref={slotRef}
       data-page={pageNum}
-      className={`pdf-page-slot flex shrink-0 snap-start snap-always px-1 py-2 sm:px-2 sm:py-3${
-        pageZoomed
-          ? ' w-max min-w-full items-start justify-start'
-          : ` w-full justify-center${fillViewport ? ' items-center' : ''}`
-      }`}
+      className="pdf-page-slot flex w-max min-w-full shrink-0 snap-start snap-always items-center justify-center overflow-visible px-1 py-2 sm:px-2 sm:py-3"
       style={slotStyle}
     >
       {layoutReady ? (
@@ -447,9 +434,13 @@ const PdfMobileScrollViewer = forwardRef<PdfMobileScrollViewerHandle, PdfMobileS
   const zoomedPagesRef = useRef(new Set<number>());
   const zoomHandlesRef = useRef(new Map<number, PdfPagePinchFrameHandle>());
   const restoredRef = useRef(false);
+  const zoomRafRef = useRef(0);
+  const zoomPendingRef = useRef<{ scale: number; dy: number; x: number; y: number } | null>(null);
+  const latestZoomRef = useRef(1);
+  const zoomLabelTimerRef = useRef(0);
   const [scrollLocked, setScrollLocked] = useState(false);
   const [anyZoomed, setAnyZoomed] = useState(false);
-  const [viewportHeight, setViewportHeight] = useState(0);
+  const [viewportSize, setViewportSize] = useState({ width: 0, height: 0 });
   const [currentPage, setCurrentPage] = useState(() =>
     storageKey ? readStoredPdfPage(storageKey) : 1,
   );
@@ -470,23 +461,48 @@ const PdfMobileScrollViewer = forwardRef<PdfMobileScrollViewerHandle, PdfMobileS
     );
   }, [currentPage]);
 
+  const viewportHeight = viewportSize.height;
+  const pageFitWidth =
+    viewportSize.width >= 80 ? viewportSize.width : Math.max(containerWidth, 280);
+
   useEffect(() => {
     const host = scrollRef.current;
     if (!host) return;
-    const update = () => setViewportHeight(host.clientHeight);
+    const update = () => {
+      const width = Math.floor(host.clientWidth);
+      const height = Math.floor(host.clientHeight);
+      setViewportSize((prev) => {
+        if (prev.width === 0 || prev.height === 0) return { width, height };
+        if (Math.abs(prev.width - width) < 48 && Math.abs(prev.height - height) < 48) {
+          return prev;
+        }
+        return { width, height };
+      });
+    };
     update();
     const ro = new ResizeObserver(update);
     ro.observe(host);
     return () => ro.disconnect();
-  }, [totalPages, pdf]);
+  }, [totalPages, pdf, containerWidth]);
 
   const handleZoomChange = useCallback((pageNum: number, zoomed: boolean, scale = 1) => {
     if (zoomed) zoomedPagesRef.current.add(pageNum);
     else zoomedPagesRef.current.delete(pageNum);
-    setAnyZoomed(zoomedPagesRef.current.size > 0);
-    if (pageNum === currentPage) onZoomScaleChange?.(zoomed ? scale : 1);
-    // Keep parent scroll enabled while zoomed so the enlarged page can fill / pan the screen.
+    const any = zoomedPagesRef.current.size > 0;
+    setAnyZoomed((prev) => (prev === any ? prev : any));
     setScrollLocked(false);
+    if (pageNum !== currentPage) return;
+    const reported = any ? Math.max(1, scale) : 1;
+    latestZoomRef.current = reported;
+    window.clearTimeout(zoomLabelTimerRef.current);
+    if (!any) {
+      onZoomScaleChange?.(1);
+      return;
+    }
+    zoomLabelTimerRef.current = window.setTimeout(() => {
+      zoomLabelTimerRef.current = 0;
+      onZoomScaleChange?.(latestZoomRef.current);
+    }, 150);
   }, [currentPage, onZoomScaleChange]);
 
   const persistPage = useCallback(
@@ -546,12 +562,47 @@ const PdfMobileScrollViewer = forwardRef<PdfMobileScrollViewerHandle, PdfMobileS
         zoomHandlesRef.current.values().next().value ||
         null;
       if (!handle) return;
-      if (event.deltaY < 0) handle.zoomIn();
-      else handle.zoomOut();
+
+      let dy = event.deltaY;
+      if (event.deltaMode === 1) dy *= 16;
+      if (event.deltaMode === 2) dy *= 800;
+      const pending = zoomPendingRef.current ?? {
+        scale: handle.getScale(),
+        dy: 0,
+        x: event.clientX,
+        y: event.clientY,
+      };
+      pending.dy += dy;
+      pending.x = event.clientX;
+      pending.y = event.clientY;
+      zoomPendingRef.current = pending;
+      if (zoomRafRef.current) return;
+      zoomRafRef.current = window.requestAnimationFrame(() => {
+        zoomRafRef.current = 0;
+        const next = zoomPendingRef.current;
+        zoomPendingRef.current = null;
+        if (!next) return;
+        const active =
+          zoomHandlesRef.current.get(currentPage) ||
+          zoomHandlesRef.current.values().next().value ||
+          null;
+        const factor = Math.exp(-Math.max(-160, Math.min(160, next.dy)) * 0.0032);
+        active?.zoomTo(
+          Math.min(3.25, Math.max(1, next.scale * factor)),
+          next.x,
+          next.y,
+        );
+      });
     };
 
-    host.addEventListener('wheel', onWheel, { passive: false });
-    return () => host.removeEventListener('wheel', onWheel);
+    host.addEventListener('wheel', onWheel, { passive: false, capture: true });
+    return () => {
+      host.removeEventListener('wheel', onWheel, { capture: true } as EventListenerOptions);
+      if (zoomRafRef.current) {
+        window.cancelAnimationFrame(zoomRafRef.current);
+        zoomRafRef.current = 0;
+      }
+    };
   }, [currentPage, totalPages, pdf]);
 
   useEffect(() => {
@@ -709,16 +760,10 @@ const PdfMobileScrollViewer = forwardRef<PdfMobileScrollViewerHandle, PdfMobileS
     <div className={`relative h-full w-full ${className}`}>
       <div
         ref={scrollRef}
-        className={`pdf-book-scroll h-full w-full overscroll-contain ${
-          scrollLocked
-            ? 'overflow-hidden'
-            : 'overflow-y-auto overflow-x-auto'
-        } ${anyZoomed ? '' : 'hide-scrollbar touch-pan-y'}`}
+        className="pdf-book-scroll hide-scrollbar h-full w-full overflow-x-auto overflow-y-auto overscroll-contain touch-pan-y"
         style={{
           WebkitOverflowScrolling: 'touch',
-          // Disable page snap while zoomed so 2D pan is smooth.
           scrollSnapType: scrollLocked || anyZoomed ? 'none' : 'y mandatory',
-          // Native 2D scroll for gray areas; page frame still owns pinch/drag via JS.
           touchAction: anyZoomed ? 'pan-x pan-y' : 'pan-y',
         }}
       >
@@ -733,7 +778,7 @@ const PdfMobileScrollViewer = forwardRef<PdfMobileScrollViewerHandle, PdfMobileS
               key={pageNum}
               pageNum={pageNum}
               pdf={pdf}
-              containerWidth={containerWidth}
+              containerWidth={pageFitWidth}
               defaultMinHeight={defaultPageHeight}
               scrollRoot={scrollRef}
               viewportHeight={viewportHeight}

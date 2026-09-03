@@ -3,8 +3,8 @@ import {
   useCallback,
   useEffect,
   useImperativeHandle,
+  useLayoutEffect,
   useRef,
-  useState,
   type ReactNode,
   type RefObject,
 } from 'react';
@@ -15,13 +15,20 @@ const ZOOM_EPSILON = 1.02;
 const ZOOM_STEP = 0.28;
 const DOUBLE_TAP_MS = 320;
 
+function clampScale(next: number): number {
+  return Math.min(MAX_SCALE, Math.max(MIN_SCALE, next));
+}
+
 export type PdfPagePinchFrameHandle = {
   zoomIn: () => void;
   zoomOut: () => void;
+  zoomTo: (scale: number, clientX?: number, clientY?: number) => void;
   resetZoom: () => void;
   getScale: () => number;
   panBy: (dx: number, dy: number) => void;
 };
+
+type ZoomOrigin = { clientX: number; clientY: number };
 
 type Props = {
   pageWidth: number;
@@ -48,7 +55,8 @@ const PdfPagePinchFrame = forwardRef<PdfPagePinchFrameHandle, Props>(function Pd
   ref,
 ) {
   const frameRef = useRef<HTMLDivElement>(null);
-  const [scale, setScale] = useState(MIN_SCALE);
+  const innerRef = useRef<HTMLDivElement>(null);
+  const sizeRef = useRef({ pageWidth, pageHeight });
   const scaleRef = useRef(MIN_SCALE);
   const pinchRef = useRef({ startDistance: 0, startScale: MIN_SCALE, pinching: false });
   const dragRef = useRef<{
@@ -85,10 +93,7 @@ const PdfPagePinchFrame = forwardRef<PdfPagePinchFrameHandle, Props>(function Pd
   });
   const lastTapRef = useRef(0);
   const clickZoomTimerRef = useRef<number | null>(null);
-
-  const zoomed = scale > ZOOM_EPSILON;
-  const frameW = Math.max(1, Math.round(pageWidth * scale));
-  const frameH = Math.max(1, Math.round(pageHeight * scale));
+  sizeRef.current = { pageWidth, pageHeight };
 
   const findScrollParent = useCallback((): HTMLElement | null => {
     const preferred = scrollParentRef?.current ?? null;
@@ -113,54 +118,90 @@ const PdfPagePinchFrame = forwardRef<PdfPagePinchFrameHandle, Props>(function Pd
     return null;
   }, [scrollParentRef]);
 
+  const viewportOrigin = useCallback((): ZoomOrigin | undefined => {
+    const scrollEl = findScrollParent();
+    if (!scrollEl) return undefined;
+    const rect = scrollEl.getBoundingClientRect();
+    return {
+      clientX: rect.left + scrollEl.clientWidth / 2,
+      clientY: rect.top + scrollEl.clientHeight / 2,
+    };
+  }, [findScrollParent]);
+
+  const paintScale = useCallback((clamped: number) => {
+    const frame = frameRef.current;
+    const inner = innerRef.current;
+    const { pageWidth: pw, pageHeight: ph } = sizeRef.current;
+    if (!frame || !inner) return;
+    const zooming = clamped > ZOOM_EPSILON;
+    frame.style.width = `${Math.max(1, Math.round(pw * clamped))}px`;
+    frame.style.height = `${Math.max(1, Math.round(ph * clamped))}px`;
+    frame.style.overflow = zooming ? 'visible' : 'hidden';
+    frame.style.cursor = zooming ? 'grab' : 'zoom-in';
+    frame.style.zIndex = zooming ? '5' : '1';
+    frame.style.touchAction = zooming ? 'none' : 'pan-y';
+    frame.dataset.pdfZoomed = zooming ? 'true' : 'false';
+    inner.style.transform = `scale(${clamped})`;
+  }, []);
+
   const applyScale = useCallback(
-    (next: number) => {
-      const clamped = Math.min(MAX_SCALE, Math.max(MIN_SCALE, next));
+    (next: number, origin?: ZoomOrigin) => {
+      const clamped = clampScale(next);
       const prev = scaleRef.current;
+      if (Math.abs(clamped - prev) < 0.0008) return;
+
       const scrollEl = findScrollParent();
       const frame = frameRef.current;
-      let anchorX = 0;
-      let anchorY = 0;
-      if (scrollEl && frame && prev > 0) {
+      const point = origin ?? viewportOrigin();
+      let localX = 0;
+      let localY = 0;
+      if (frame && prev > 0 && point) {
         const frameRect = frame.getBoundingClientRect();
-        const scrollRect = scrollEl.getBoundingClientRect();
-        const frameLeft = frameRect.left - scrollRect.left + scrollEl.scrollLeft;
-        const frameTop = frameRect.top - scrollRect.top + scrollEl.scrollTop;
-        anchorX = scrollEl.scrollLeft + scrollEl.clientWidth / 2 - frameLeft;
-        anchorY = scrollEl.scrollTop + scrollEl.clientHeight / 2 - frameTop;
+        localX = (point.clientX - frameRect.left) / prev;
+        localY = (point.clientY - frameRect.top) / prev;
       }
-      scaleRef.current = clamped;
-      setScale(clamped);
-      onZoomChange(clamped > ZOOM_EPSILON, clamped);
 
-      // Keep the focal point centered in the scroll parent while the page grows/shrinks.
-      requestAnimationFrame(() => {
-        if (!scrollEl || !frame || prev <= 0) return;
-        const ratio = clamped / prev;
+      scaleRef.current = clamped;
+      paintScale(clamped);
+
+      if (scrollEl && frame && point && prev > 0) {
         const frameRect = frame.getBoundingClientRect();
-        const scrollRect = scrollEl.getBoundingClientRect();
-        const frameLeft = frameRect.left - scrollRect.left + scrollEl.scrollLeft;
-        const frameTop = frameRect.top - scrollRect.top + scrollEl.scrollTop;
-        scrollEl.scrollLeft = frameLeft + anchorX * ratio - scrollEl.clientWidth / 2;
-        scrollEl.scrollTop = frameTop + anchorY * ratio - scrollEl.clientHeight / 2;
-      });
+        scrollEl.scrollLeft += frameRect.left + localX * clamped - point.clientX;
+        scrollEl.scrollTop += frameRect.top + localY * clamped - point.clientY;
+      }
+
+      onZoomChange(clamped > ZOOM_EPSILON, clamped);
     },
-    [onZoomChange, findScrollParent],
+    [onZoomChange, findScrollParent, viewportOrigin, paintScale],
   );
 
+  useLayoutEffect(() => {
+    paintScale(scaleRef.current);
+  }, [pageWidth, pageHeight, paintScale]);
+
   const resetZoom = useCallback(() => {
-    applyScale(MIN_SCALE);
-  }, [applyScale]);
+    applyScale(MIN_SCALE, viewportOrigin());
+  }, [applyScale, viewportOrigin]);
 
   const zoomIn = useCallback(() => {
-    applyScale(scaleRef.current + ZOOM_STEP);
-  }, [applyScale]);
+    applyScale(scaleRef.current + ZOOM_STEP, viewportOrigin());
+  }, [applyScale, viewportOrigin]);
 
   const zoomOut = useCallback(() => {
     const next = scaleRef.current - ZOOM_STEP;
     if (next <= ZOOM_EPSILON) resetZoom();
-    else applyScale(next);
-  }, [applyScale, resetZoom]);
+    else applyScale(next, viewportOrigin());
+  }, [applyScale, resetZoom, viewportOrigin]);
+
+  const zoomTo = useCallback(
+    (next: number, clientX?: number, clientY?: number) => {
+      const origin =
+        clientX != null && clientY != null ? { clientX, clientY } : viewportOrigin();
+      if (next <= ZOOM_EPSILON) applyScale(MIN_SCALE, origin);
+      else applyScale(next, origin);
+    },
+    [applyScale, viewportOrigin],
+  );
 
   const panBy = useCallback(
     (dx: number, dy: number) => {
@@ -176,16 +217,16 @@ const PdfPagePinchFrame = forwardRef<PdfPagePinchFrameHandle, Props>(function Pd
     () => ({
       zoomIn,
       zoomOut,
+      zoomTo,
       resetZoom,
       getScale: () => scaleRef.current,
       panBy,
     }),
-    [zoomIn, zoomOut, resetZoom, panBy],
+    [zoomIn, zoomOut, zoomTo, resetZoom, panBy],
   );
 
-  useEffect(() => {
-    applyScale(MIN_SCALE);
-  }, [pageWidth, pageHeight]); // eslint-disable-line react-hooks/exhaustive-deps -- reset only on page size change
+  // Keep the user's zoom when the fitted page size updates (dialog layout /
+  // fullscreen). Resetting here made +/- look broken: zoom jumped back to 100%.
 
   useEffect(() => {
     const frame = frameRef.current;
@@ -261,7 +302,12 @@ const PdfPagePinchFrame = forwardRef<PdfPagePinchFrameHandle, Props>(function Pd
           };
           return;
         }
-        applyScale(startScale * (touchDistance(event.touches) / startDistance));
+        const midX = (event.touches[0].clientX + event.touches[1].clientX) / 2;
+        const midY = (event.touches[0].clientY + event.touches[1].clientY) / 2;
+        applyScale(startScale * (touchDistance(event.touches) / startDistance), {
+          clientX: midX,
+          clientY: midY,
+        });
         return;
       }
 
@@ -293,21 +339,11 @@ const PdfPagePinchFrame = forwardRef<PdfPagePinchFrameHandle, Props>(function Pd
       const now = Date.now();
       if (now - lastTapRef.current <= DOUBLE_TAP_MS) {
         if (scaleRef.current > ZOOM_EPSILON) resetZoom();
-        else applyScale(2);
+        else applyScale(2, { clientX: event.changedTouches[0]?.clientX ?? 0, clientY: event.changedTouches[0]?.clientY ?? 0 });
         lastTapRef.current = 0;
         return;
       }
       lastTapRef.current = now;
-    };
-
-    const onWheel = (event: WheelEvent) => {
-      if (!(event.ctrlKey || event.metaKey)) return;
-      event.preventDefault();
-      event.stopPropagation();
-      const factor = event.deltaY < 0 ? 1 + ZOOM_STEP * 0.4 : 1 - ZOOM_STEP * 0.4;
-      const next = scaleRef.current * factor;
-      if (next <= ZOOM_EPSILON) resetZoom();
-      else applyScale(next);
     };
 
     const onPointerDown = (event: PointerEvent) => {
@@ -360,7 +396,7 @@ const PdfPagePinchFrame = forwardRef<PdfPagePinchFrameHandle, Props>(function Pd
         clickZoomTimerRef.current = null;
       }
       if (scaleRef.current > ZOOM_EPSILON) resetZoom();
-      else applyScale(2);
+      else applyScale(2, { clientX: event.clientX, clientY: event.clientY });
     };
 
     const onClick = (event: MouseEvent) => {
@@ -371,7 +407,9 @@ const PdfPagePinchFrame = forwardRef<PdfPagePinchFrameHandle, Props>(function Pd
       if (clickZoomTimerRef.current != null) window.clearTimeout(clickZoomTimerRef.current);
       clickZoomTimerRef.current = window.setTimeout(() => {
         clickZoomTimerRef.current = null;
-        if (scaleRef.current <= ZOOM_EPSILON) applyScale(1 + ZOOM_STEP);
+        if (scaleRef.current <= ZOOM_EPSILON) {
+          applyScale(1 + ZOOM_STEP, { clientX: event.clientX, clientY: event.clientY });
+        }
       }, DOUBLE_TAP_MS);
     };
 
@@ -383,7 +421,6 @@ const PdfPagePinchFrame = forwardRef<PdfPagePinchFrameHandle, Props>(function Pd
     frame.addEventListener('touchmove', onTouchMove, { passive: false });
     frame.addEventListener('touchend', onTouchEnd, { passive: true });
     frame.addEventListener('touchcancel', onTouchEnd, { passive: true });
-    frame.addEventListener('wheel', onWheel, { passive: false });
     frame.addEventListener('pointerdown', onPointerDown);
     frame.addEventListener('pointermove', onPointerMove);
     frame.addEventListener('pointerup', onPointerUp);
@@ -402,7 +439,6 @@ const PdfPagePinchFrame = forwardRef<PdfPagePinchFrameHandle, Props>(function Pd
       frame.removeEventListener('touchmove', onTouchMove);
       frame.removeEventListener('touchend', onTouchEnd);
       frame.removeEventListener('touchcancel', onTouchEnd);
-      frame.removeEventListener('wheel', onWheel);
       frame.removeEventListener('pointerdown', onPointerDown);
       frame.removeEventListener('pointermove', onPointerMove);
       frame.removeEventListener('pointerup', onPointerUp);
@@ -419,27 +455,18 @@ const PdfPagePinchFrame = forwardRef<PdfPagePinchFrameHandle, Props>(function Pd
   return (
     <div
       ref={frameRef}
-      className={`pdf-page-pinch-frame shrink-0 select-none rounded-sm bg-transparent shadow-[0_18px_50px_-28px_rgba(15,23,42,0.55)] transition-[width,height] duration-150 ease-out ${zoomed ? 'overflow-visible' : 'overflow-hidden'}`}
-      data-pdf-zoomed={zoomed ? 'true' : 'false'}
-      style={{
-        width: `${frameW}px`,
-        height: `${frameH}px`,
-        // When zoomed, own all gestures so 2D pan is not stolen by page snap / parents.
-        touchAction: zoomed ? 'none' : 'pan-y',
-        cursor: zoomed ? 'grab' : 'zoom-in',
-        zIndex: zoomed ? 5 : 1,
-        WebkitUserSelect: 'none',
-        userSelect: 'none',
-      }}
+      className="pdf-page-pinch-frame shrink-0 select-none overflow-hidden rounded-sm bg-transparent shadow-[0_18px_50px_-28px_rgba(15,23,42,0.55)]"
+      data-pdf-zoomed="false"
+      style={{ WebkitUserSelect: 'none', userSelect: 'none' }}
       aria-label="PDF page — pinch or Ctrl+scroll to zoom, drag to pan"
       title="Ctrl+scroll or +/- to zoom · drag to pan when zoomed"
     >
       <div
+        ref={innerRef}
         className="will-change-transform"
         style={{
           width: `${pageWidth}px`,
           height: `${pageHeight}px`,
-          transform: `scale(${scale})`,
           transformOrigin: 'top left',
         }}
       >

@@ -41,10 +41,6 @@ interface PdfPreviewPanelProps {
   contextLabel?: string;
 }
 
-/** Comfortable reading width — expands further in fullscreen / large desktops. */
-const A4_PAGE_MAX_WIDTH_PX = 920;
-const A4_PAGE_MAX_WIDTH_FULLSCREEN_PX = 1200;
-
 function isPdfBuffer(buffer: ArrayBuffer): boolean {
   if (buffer.byteLength < 5) return false;
   const h = new Uint8Array(buffer, 0, 5);
@@ -1098,17 +1094,11 @@ export default function PdfPreviewPanel({
     ? 'bg-transparent'
     : 'rounded-lg border bg-slate-100';
 
-  /** Reading column width — use more of the screen in fullscreen; no artificial white card. */
-  const bookPageWidth = (() => {
-    const rawW = Math.floor(containerSize.width > 40 ? containerSize.width : 320);
-    const maxW = isFullscreen ? A4_PAGE_MAX_WIDTH_FULLSCREEN_PX : A4_PAGE_MAX_WIDTH_PX;
-    let w = Math.max(280, Math.min(maxW, rawW));
-    if (isBookLayout && containerSize.height > 120) {
-      const maxWFromHeight = Math.floor((containerSize.height - 24) / 1.414);
-      if (maxWFromHeight >= 280) w = Math.min(w, maxWFromHeight);
-    }
-    return w;
-  })();
+  /** Fit the page to the visible reader. 100% = fully visible, as large as possible. */
+  const bookPageWidth = Math.max(
+    280,
+    Math.floor(containerSize.width > 40 ? containerSize.width : 320),
+  );
 
   /** Desktop mouse/trackpad — embedded PDF iframe (never on touch tablets / book mode). */
   if (!useCanvasRendering && inlineIframeSupported) {

@@ -2,7 +2,7 @@ import { Fragment, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
 const SECTION_LABELS =
-  "Shape|Uses|Rays|Type|Definition|Example|Examples|Image|Nature|Focus|Tip|Remember|Note|Key point|Key points|Real life|Real-life|Analogy";
+  "Shape|Uses|Rays|Type|Definition|Example|Examples|Worked example|Working|Check|Practice|Try this|Common mistake|Mistake|Recap|Image|Nature|Focus|Tip|Remember|Note|Key point|Key points|Real life|Real-life|Analogy";
 
 /**
  * Turn flat Vidya replies (content is fine, markers buried mid-line) into
@@ -97,13 +97,23 @@ function stripNumber(line: string) {
 }
 
 function renderLine(line: string, key: string): ReactNode {
+  if (/^sources?:?\s*$/i.test(line.trim())) {
+    return (
+      <p key={key} className="mt-3 text-xs font-semibold uppercase tracking-wide text-slate-500 first:mt-0">
+        Sources
+      </p>
+    );
+  }
+
   if (isNumberedLine(line)) {
     const num = line.match(/^\s*(\d{1,2})/)?.[1] || "";
+    const body = stripNumber(line);
+    const heading = body.length < 90 || /^\*\*/.test(body);
     return (
-      <div key={key} className="mt-2.5 flex gap-2 first:mt-0">
+      <div key={key} className="mt-3 flex gap-2 first:mt-0">
         <span className="shrink-0 font-bold text-indigo-700">{num}.</span>
-        <span className="min-w-0 font-bold leading-snug text-slate-900">
-          {renderInline(stripNumber(line), key)}
+        <span className={heading ? "min-w-0 font-bold leading-snug text-slate-900" : "min-w-0 leading-relaxed text-slate-800"}>
+          {renderInline(body, key)}
         </span>
       </div>
     );
@@ -113,8 +123,8 @@ function renderLine(line: string, key: string): ReactNode {
     const body = isBulletLine(line) ? stripBullet(line) : line.trim();
     return (
       <div key={key} className="flex gap-2 py-0.5 pl-0.5">
-        <span className="mt-0.5 shrink-0 text-slate-400">•</span>
-        <span className="min-w-0 leading-snug text-slate-800">{renderInline(body, key)}</span>
+        <span className="mt-1 shrink-0 text-slate-400">•</span>
+        <span className="min-w-0 leading-relaxed text-slate-800">{renderInline(body, key)}</span>
       </div>
     );
   }
@@ -176,7 +186,7 @@ export function ChatMessageContent({
   const blocks = normalized.split(/\n{2,}/);
 
   return (
-    <div className={cn("space-y-2 text-left text-sm", className)}>
+    <div className={cn("space-y-2.5 text-left text-[15px] leading-relaxed", className)}>
       {blocks.map((block, i) => renderBlock(block, i))}
     </div>
   );

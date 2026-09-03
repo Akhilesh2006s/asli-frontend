@@ -14,7 +14,11 @@ import type {
 
 function conversationPayload(messages: Message[]) {
   const rows = messages.filter(m => m.role === "user" || m.role === "assistant")
-    .map(m => ({ role: m.role, content: String(m.content || "") }));
+    .map(m => ({
+      role: m.role,
+      content: String(m.content || ""),
+      ...(Array.isArray(m.citations) && m.citations.length ? { citations: m.citations } : {}),
+    }));
   if (rows.reduce((sum, m) => sum + m.content.length, 0) <= 120000) return rows;
   const limit = Math.max(1, Math.floor(120000 / Math.max(1, rows.length)));
   return rows.map(m => ({ ...m, content: m.content.length > limit
@@ -335,6 +339,7 @@ export function useVidyaChat({
             role: "assistant",
             content: result.message,
             timestamp: new Date(),
+            ...(Array.isArray(result.citations) && result.citations.length ? { citations: result.citations } : {}),
           };
           setLocalMessages((prev) => [...prev, aiMessage]);
         }
@@ -371,6 +376,7 @@ export function useVidyaChat({
             role: "assistant",
             content: result.message,
             timestamp: new Date(),
+            ...(Array.isArray(result.citations) && result.citations.length ? { citations: result.citations } : {}),
           };
           setLocalMessages((prev) => [...prev, aiMessage]);
         }

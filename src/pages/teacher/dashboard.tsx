@@ -1399,8 +1399,11 @@ const TeacherDashboard = () => {
   };
 
   const handleDeleteHomework = async (homework: any) => {
-    const homeworkId = homework?._id || homework?.id;
-    if (!homeworkId) return;
+    const homeworkId = String(homework?._id || homework?.id || '').trim();
+    if (!homeworkId) {
+      notify('Could not delete this homework — missing id. Refresh and try again.');
+      return;
+    }
     const ok = await confirm({
       title: 'Delete this homework?',
       description: `Are you sure you want to delete "${homework.title || 'this homework'}"? Students will no longer see it.`,
@@ -1409,30 +1412,32 @@ const TeacherDashboard = () => {
     });
     if (!ok) return;
 
-    setDeletingHomeworkId(String(homeworkId));
+    setDeletingHomeworkId(homeworkId);
     try {
       const token = getAuthToken();
       const headers = { Authorization: `Bearer ${token}` };
-      let response = await fetch(`${API_BASE_URL}/api/teacher/homework/${homeworkId}`, {
+      let response = await fetch(`${API_BASE_URL}/api/teacher/homework/${encodeURIComponent(homeworkId)}`, {
         method: 'DELETE',
         headers,
       });
-      if (response.status === 404) {
-        response = await fetch(`${API_BASE_URL}/api/teacher/homework/${homeworkId}/delete`, {
+      if (response.status === 404 || response.status === 405) {
+        response = await fetch(`${API_BASE_URL}/api/teacher/homework/${encodeURIComponent(homeworkId)}/delete`, {
           method: 'POST',
           headers,
         });
       }
       const data = await response.json().catch(() => ({} as { success?: boolean; message?: string }));
       if (response.ok && data.success) {
+        const removedId = String(data?.data?.id || homeworkId);
         setHomeworkSubmissions((prev) => ({
           ...prev,
           homeworks: (prev.homeworks || []).filter((item: any) => {
             const id = item?.homework?._id || item?.homework?.id || item?._id;
-            return String(id) !== String(homeworkId);
+            return String(id) !== removedId;
           }),
         }));
         notify('Homework deleted successfully.');
+        void fetchHomeworkSubmissions();
       } else {
         notify(data.message || 'Failed to delete homework.');
       }
