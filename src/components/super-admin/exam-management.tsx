@@ -2848,7 +2848,8 @@ export default function ExamManagement() {
     } else if (!String(form.questionText || '').trim() && !String(form.questionImage || '').trim()) {
       toast({
         title: 'Validation Error',
-        description: 'Question text or image is required',
+        description:
+          'Add question text, or upload a question image (scroll to Question Image File). At least one is required.',
         variant: 'destructive',
       });
       return;
@@ -6108,10 +6109,14 @@ export default function ExamManagement() {
 
               <div>
                 <Label>
-                  Question Text (Optional)
+                  {questionFormData.questionType === 'assertion_reason'
+                    ? 'Question Text (Optional)'
+                    : 'Question Text'}
                   {questionFormData.questionType === 'assertion_reason' ? (
                     <span className="ml-1 font-normal text-slate-500">— A & R fields are enough</span>
-                  ) : null}
+                  ) : (
+                    <span className="ml-1 font-normal text-slate-500">— text or image required</span>
+                  )}
                 </Label>
                 <Textarea
                   value={questionFormData.questionText}
@@ -6119,19 +6124,26 @@ export default function ExamManagement() {
                   placeholder={
                     questionFormData.questionType === 'assertion_reason'
                       ? 'Optional. Leave blank if Assertion and Reason are filled below.'
-                      : 'Enter the question text...'
+                      : 'Enter the question text, or leave blank and upload a question image below...'
                   }
                   rows={4}
                 />
                 <p className="text-xs text-gray-500 mt-1">
                   {questionFormData.questionType === 'assertion_reason'
                     ? 'For Assertion–Reason, fill Assertion (A) and Reason (R); question text is optional.'
-                    : 'You can leave this empty and upload a question image below.'}
+                    : 'Provide question text and/or a question image below. At least one is required for Single/Multiple MCQ, Integer, and Match questions.'}
                 </p>
               </div>
 
               <div>
-                <Label>Question Image File (Optional)</Label>
+                <Label>
+                  {questionFormData.questionType === 'assertion_reason'
+                    ? 'Question Image File (Optional)'
+                    : 'Question Image File'}
+                  {questionFormData.questionType === 'assertion_reason' ? null : (
+                    <span className="ml-1 font-normal text-slate-500">— use instead of or with text</span>
+                  )}
+                </Label>
                 <Input
                   type="file"
                   accept="image/*"
@@ -6143,7 +6155,9 @@ export default function ExamManagement() {
                   }}
                 />
                 <p className="text-xs text-gray-500 mt-1">
-                  Choose an image file. It will be uploaded and stored on your server.
+                  {questionFormData.questionType === 'assertion_reason'
+                    ? 'Choose an image file. It will be uploaded and stored on your server.'
+                    : 'Optional if question text is filled. Required if question text is empty.'}
                 </p>
                 {isUploadingQuestionImage && (
                   <p className="text-xs text-blue-600 mt-1">Uploading image...</p>

@@ -275,7 +275,7 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
   };
 
   // Fetch exam data
-  const { data: exam, isLoading, isError, error } = useQuery({
+  const { data: exam, isLoading, isFetching, isError, error, refetch: refetchExam } = useQuery({
     queryKey: ['/api/student/exams', examId],
     queryFn: async () => {
       const headers = {
@@ -352,7 +352,8 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
       
       return actualExamData;
     },
-    retry: 1,
+    retry: 2,
+    retryDelay: (attempt) => Math.min(750 * 2 ** attempt, 3000),
     // During an active exam, refetch on focus can re-run exam data and
     // accidentally reset timer state while switching fullscreen.
     refetchOnWindowFocus: false,
@@ -1152,7 +1153,12 @@ export default function AnimatedExam({ examId, onComplete, onExit }: AnimatedExa
         <div className="text-center">
           <XCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
           <p className="text-gray-600">{errorMessage}</p>
-          <Button onClick={onExit} className="mt-4">Go Back</Button>
+          <div className="mt-4 flex justify-center gap-3">
+            <Button onClick={() => void refetchExam()} disabled={isFetching}>
+              {isFetching ? 'Trying…' : 'Try Again'}
+            </Button>
+            <Button onClick={onExit} variant="outline">Go Back</Button>
+          </div>
         </div>
       </div>
     );
