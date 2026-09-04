@@ -70,14 +70,20 @@ function buildPdfFetchCandidates(fileUrl: string, title?: string): string[] {
     candidates.push(url);
   };
 
-  // Proxied bytes — required for NCERT and other cross-origin textbooks.
-  push(jsProxy);
+  const directOnly = Boolean(absolute && shouldFetchDirectly(absolute));
+
+  // These hosts are explicitly marked direct because API/datacenter requests
+  // are blocked or unreliable. Do not wait through the failing proxy first.
+  if (directOnly) push(absolute);
+  else push(jsProxy);
 
   if (absolute && /\/uploads\//i.test(absolute)) {
     push(absolute);
   }
 
-  if (absolute && pdfJsCanLoadUrlDirectly(absolute) && !shouldFetchDirectly(absolute)) {
+  // Known direct-only textbook hosts may reject datacenter/API traffic but allow
+  // the student's browser. Give pdf.js a direct, credential-free attempt.
+  if (absolute && (pdfJsCanLoadUrlDirectly(absolute) || directOnly)) {
     push(absolute);
   }
 
@@ -91,6 +97,13 @@ function isContentPreviewProxyUrl(url: string): boolean {
 function pdfFetchCredentials(url: string): RequestCredentials {
   if (/\/uploads\//i.test(url)) return 'omit';
   if (isContentPreviewProxyUrl(url)) return 'omit';
+  if (typeof window !== 'undefined') {
+    try {
+      if (new URL(url, window.location.href).origin !== window.location.origin) return 'omit';
+    } catch {
+      return 'omit';
+    }
+  }
   return 'include';
 }
 
@@ -98,7 +111,9 @@ function pdfFetchHeaders(url: string, token: string): HeadersInit | undefined {
   if (isContentPreviewProxyUrl(url) && url.includes('token=')) {
     return undefined;
   }
-  if (token && (isContentPreviewProxyUrl(url) || !isOurBackendPdfUrl(url))) {
+  // Never send the AsliLearn JWT to a third-party textbook host. Besides being
+  // unsafe, Authorization forces a CORS preflight that many PDF hosts reject.
+  if (token && isContentPreviewProxyUrl(url)) {
     return { Authorization: `Bearer ${token}` };
   }
   return undefined;
@@ -262,14 +277,15 @@ function canUseInlinePdfIframe(): boolean {
 }
 
 /**
- * api.aslilearn.ai (and most external PDF hosts) send X-Frame-Options: SAMEORIGIN,
- * so embedding them from aslilearn.ai shows "refused to connect". Prefer pdf.js.
+ * Most external PDF hosts send X-Frame-Options: SAMEORIGIN. Known direct-only
+ * textbook hosts are the exception: the API cannot fetch them, so retain their
+ * browser iframe as the final desktop fallback.
  */
 function shouldAvoidCrossOriginPdfIframe(fileUrl: string): boolean {
   if (typeof window === 'undefined') return true;
   const absolute = normalizeContentFileUrl(fileUrl);
   if (!absolute) return true;
-  if (shouldFetchDirectly(absolute)) return true;
+  if (shouldFetchDirectly(absolute)) return false;
   try {
     return new URL(absolute).origin !== window.location.origin;
   } catch {
@@ -855,12 +871,17 @@ export default function PdfPreviewPanel({
     const absolute = normalizeContentFileUrl(fileUrl);
     const urlSources: PdfSource[] = [];
     const seenUrls = new Set<string>();
-    for (const url of [jsUrl, absolute]) {
+    const directOnly = Boolean(absolute && shouldFetchDirectly(absolute));
+    for (const url of directOnly ? [absolute] : [jsUrl, absolute]) {
       if (!url || seenUrls.has(url)) continue;
-      if (url === absolute && !pdfJsCanLoadUrlDirectly(url) && !/\/uploads\//i.test(url)) {
+      if (
+        url === absolute &&
+        !pdfJsCanLoadUrlDirectly(url) &&
+        !shouldFetchDirectly(url) &&
+        !/\/uploads\//i.test(url)
+      ) {
         continue;
       }
-      if (url === absolute && shouldFetchDirectly(url)) continue;
       seenUrls.add(url);
       urlSources.push({ mode: 'url', url });
     }
