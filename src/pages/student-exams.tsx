@@ -418,24 +418,17 @@ export default function StudentExams() {
   }, [setLocation]);
 
   // Fetch available exams (query key includes student id to avoid showing another user's cached list)
-  const { data: examsData, isLoading, error } = useQuery({
+  const { data: examsData, isLoading, isFetching, error, refetch: refetchExams } = useQuery({
     queryKey: ['/api/student/exams', effectiveStudentId],
     queryFn: async () => {
       console.log('🔍 Student Exams: Fetching student exams...');
-      const token = getAuthToken();
-      console.log('🔍 Student Exams: Token for exams API:', !!token);
-      const response = await fetch(`${API_BASE_URL}/api/student/exams`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        }
-      });
+      console.log('🔍 Student Exams: Token for exams API:', !!getAuthToken());
+      const response = await apiFetch('/api/student/exams');
       console.log('🔍 Student Exams: Exams API response status:', response.status);
       if (!response.ok) {
         const errorText = await response.text();
         console.error('Failed to fetch exams:', errorText);
-        // Return empty array instead of object
-        return [];
+        throw new Error(errorText || `Failed to load exams (${response.status})`);
       }
       const contentType = response.headers.get('content-type');
       if (contentType && contentType.includes('application/json')) {
@@ -458,6 +451,8 @@ export default function StudentExams() {
       }
     },
     enabled: isAuthenticated && !!effectiveStudentId,
+    retry: 2,
+    retryDelay: (attempt) => Math.min(750 * 2 ** attempt, 3000),
   });
 
   // Ensure exams is always an array
@@ -1156,11 +1151,12 @@ export default function StudentExams() {
           </div>
           <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-2">Error Loading Exams</h3>
           <p className="text-gray-600 mb-4">{error.message}</p>
-          <button 
-            onClick={() => window.location.reload()} 
+          <button
+            onClick={() => void refetchExams()}
+            disabled={isFetching}
             className="bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary/90"
           >
-            Try Again
+            {isFetching ? 'Trying…' : 'Try Again'}
           </button>
         </div>
       </div>
