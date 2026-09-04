@@ -872,6 +872,38 @@ export default function Dashboard() {
     fetchDashboardData();
   }, []);
 
+  // Exams can be published while a student's dashboard is already open.
+  // Keep this small list fresh without re-running the heavier progress bootstrap.
+  useEffect(() => {
+    let cancelled = false;
+
+    const refreshExams = async () => {
+      try {
+        const response = await apiFetch('/api/student/exams');
+        if (!response.ok || cancelled) return;
+        const payload = await response.json();
+        if (!cancelled) setExams(Array.isArray(payload?.data) ? payload.data : []);
+      } catch (error) {
+        console.warn('Could not refresh dashboard exams:', error);
+      }
+    };
+
+    const refreshWhenVisible = () => {
+      if (!document.hidden) void refreshExams();
+    };
+
+    const interval = window.setInterval(refreshWhenVisible, 60_000);
+    window.addEventListener('focus', refreshWhenVisible);
+    document.addEventListener('visibilitychange', refreshWhenVisible);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+      window.removeEventListener('focus', refreshWhenVisible);
+      document.removeEventListener('visibilitychange', refreshWhenVisible);
+    };
+  }, []);
+
   // Fetch library content for homework/todos (fallback if bootstrap missed)
   useEffect(() => {
     const timer = window.setTimeout(async () => {

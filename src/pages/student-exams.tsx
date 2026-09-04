@@ -453,6 +453,10 @@ export default function StudentExams() {
     enabled: isAuthenticated && !!effectiveStudentId,
     retry: 2,
     retryDelay: (attempt) => Math.min(750 * 2 ** attempt, 3000),
+    staleTime: 0,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
   });
 
   // Ensure exams is always an array
