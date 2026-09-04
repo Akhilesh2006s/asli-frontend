@@ -34,7 +34,7 @@ export function AiToolV2BloomDistribution({
     );
   }
   return (
-    <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+    <div className="grid min-w-0 gap-2 sm:grid-cols-2 xl:grid-cols-4">
       {active.map((row) => {
         const style = BLOOM_LEVEL_STYLES[row.level] || BLOOM_LEVEL_STYLES.Understand;
         const Icon = BLOOM_ICONS[row.level] || Brain;
@@ -42,17 +42,17 @@ export function AiToolV2BloomDistribution({
           <div
             key={row.level}
             className={cn(
-              'rounded-xl border p-3 transition-transform hover:-translate-y-0.5',
+              'min-w-0 rounded-xl border p-3 transition-transform hover:-translate-y-0.5',
               style.bg,
               style.border,
             )}
           >
             <div className="mb-2 flex items-center gap-2">
               <Icon className={cn('h-4 w-4', style.icon)} aria-hidden />
-              <span className={cn('text-xs font-bold', style.text)}>{row.level}</span>
+              <span className={cn('min-w-0 break-words text-sm font-bold leading-snug', style.text)}>{row.level}</span>
             </div>
             <p className={cn('text-lg font-bold', style.text)}>{row.percent}%</p>
-            <p className="text-mini text-slate-600">
+            <p className="break-words text-sm leading-relaxed text-slate-600">
               {row.marks} mark{row.marks === 1 ? '' : 's'}
               {totalMarks > 0 ? ` of ${totalMarks}` : ''}
             </p>

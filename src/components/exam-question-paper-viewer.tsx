@@ -117,7 +117,7 @@ function RichTextBlock({ text, className }: { text: string; className?: string }
     return (
       <div
         className={cn(
-          'prose prose-base max-w-none text-slate-800',
+          'prose prose-base max-w-none break-words text-slate-800',
           'prose-table:w-full prose-table:border-collapse prose-th:border prose-th:border-indigo-200 prose-th:bg-indigo-50/90 prose-th:px-2 prose-th:py-1.5 prose-th:text-left prose-th:text-base prose-th:font-semibold',
           'prose-td:border prose-td:border-indigo-100 prose-td:px-2 prose-td:py-1.5 prose-td:text-base prose-td:align-top',
           className,
@@ -126,15 +126,15 @@ function RichTextBlock({ text, className }: { text: string; className?: string }
       />
     );
   }
-  return <p className="whitespace-pre-wrap text-base leading-relaxed text-slate-800">{text}</p>;
+  return <p className="whitespace-pre-wrap break-words text-base leading-relaxed text-slate-800">{text}</p>;
 }
 
 function OverviewStat({ label, value }: { label: string; value: string }) {
   if (!value.trim()) return null;
   return (
-    <div className="rounded-lg border border-indigo-100 bg-white/80 px-3 py-2">
-      <p className="text-micro font-semibold uppercase tracking-wide text-indigo-500">{label}</p>
-      <p className="mt-0.5 text-base font-medium text-slate-900">{value}</p>
+    <div className="min-w-0 rounded-lg border border-indigo-100 bg-white/80 px-3 py-2.5">
+      <p className="break-words text-xs font-semibold uppercase leading-snug tracking-wide text-indigo-600">{label}</p>
+      <p className="mt-1 break-words text-sm font-semibold leading-relaxed text-slate-900 sm:text-base">{value}</p>
     </div>
   );
 }
@@ -297,8 +297,14 @@ function AnswerKeySnapshotTable({
 }) {
   if (rows.length > 0) {
     return (
-      <div className="overflow-x-auto rounded-lg border border-emerald-100">
-        <table className="w-full min-w-[320px] border-collapse text-left text-xs">
+      <div className="w-full min-w-0 overflow-x-auto rounded-lg border border-emerald-100">
+        <table className="w-full table-fixed border-collapse text-left text-sm">
+          <colgroup>
+            <col className="w-16 sm:w-20" />
+            <col className="w-16 sm:w-24" />
+            <col />
+            <col className="w-16 sm:w-20" />
+          </colgroup>
           <thead>
             <tr className="bg-emerald-50/90 text-emerald-900">
               <th className="border border-emerald-100 px-2.5 py-2 font-semibold">Q. No.</th>
@@ -312,7 +318,7 @@ function AnswerKeySnapshotTable({
               <tr key={`${row.qNo}-${i}`} className="bg-white text-slate-800">
                 <td className="border border-emerald-50 px-2.5 py-2 font-medium">{row.qNo}</td>
                 <td className="border border-emerald-50 px-2.5 py-2">{row.sectionId}</td>
-                <td className="border border-emerald-50 px-2.5 py-2">{row.answer}</td>
+                <td className="break-words border border-emerald-50 px-2.5 py-2 leading-relaxed">{row.answer}</td>
                 <td className="border border-emerald-50 px-2.5 py-2">{row.marks ?? '—'}</td>
               </tr>
             ))}
@@ -528,7 +534,7 @@ export function ExamQuestionPaperViewer({
         </Badge>
       </div>
 
-      <AiToolV2SectionStack>
+      <AiToolV2SectionStack className="md:grid-cols-1">
         {(() => {
           const counts = parseBlueprintCounts(paper.blueprint);
           const countById: Record<string, number> = {
@@ -590,7 +596,7 @@ export function ExamQuestionPaperViewer({
               accent: 'indigo',
               body: (
                 <div className="space-y-3">
-                  <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                  <div className="grid min-w-0 gap-2 sm:grid-cols-2 xl:grid-cols-4">
                     <OverviewStat label="Class" value={context.className} />
                     <OverviewStat label="Subject" value={context.subject} />
                     <OverviewStat label="Chapter / Topic" value={context.topic} />
