@@ -46,9 +46,16 @@ export const queryClient = new QueryClient({
     queries: {
       queryFn: getQueryFn({ on401: "throw" }),
       refetchInterval: false,
-      refetchOnWindowFocus: false,
-      staleTime: Infinity,
-      retry: false,
+      // Server-backed lists change from other portals (admin, teacher, student).
+      // Never keep them "fresh forever", otherwise newly created records only
+      // appear after a hard refresh. Individual live-session queries can still
+      // opt out of focus refresh explicitly.
+      staleTime: 30_000,
+      refetchOnMount: true,
+      refetchOnWindowFocus: true,
+      refetchOnReconnect: true,
+      retry: 1,
+      retryDelay: (attempt) => Math.min(750 * 2 ** attempt, 3000),
     },
     mutations: {
       retry: false,
