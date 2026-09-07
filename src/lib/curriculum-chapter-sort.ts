@@ -11,14 +11,20 @@ export function chapterNumberFromLabel(value: string): number | null {
     const n = parseInt(chapterMatch[1], 10);
     return Number.isNaN(n) ? null : n;
   }
-  const leading = s.match(/^(\d+)\s*[.\):\-–—]?\s+/);
+  // "1 Title" / "1) Title" — but never "1.6 Scientists…" (section numbers).
+  const leading = s.match(/^(\d+)\s*[)\-–—:]\s+\S/);
   if (leading) {
     const n = parseInt(leading[1], 10);
     return Number.isNaN(n) ? null : n;
   }
-  const leadingTight = s.match(/^(\d+)\s*[.\):\-–—]/);
-  if (leadingTight) {
-    const n = parseInt(leadingTight[1], 10);
+  const leadingDotSpace = s.match(/^(\d+)\.\s+\S/);
+  if (leadingDotSpace) {
+    const n = parseInt(leadingDotSpace[1], 10);
+    return Number.isNaN(n) ? null : n;
+  }
+  const leadingBare = s.match(/^(\d+)\s+[A-Za-z]/);
+  if (leadingBare) {
+    const n = parseInt(leadingBare[1], 10);
     return Number.isNaN(n) ? null : n;
   }
   return null;
