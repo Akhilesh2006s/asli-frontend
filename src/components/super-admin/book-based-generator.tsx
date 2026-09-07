@@ -28,11 +28,15 @@ import {
   type BookBasedToolId,
 } from "@/lib/book-based-tools";
 import {
+  bookListSubjectGroupKey,
+  curriculumSubjectForAiToolTopics,
   filterSubjectsForAiTool,
+  isIitAiToolBoard,
   isLanguageExcludedTool,
   isStoryLanguageTool,
   isStoryPassageLanguageSubject,
   LANGUAGE_EXCLUDED_TOOL_ERROR,
+  scienceBranchDisplayLabel,
 } from "@/lib/ai-tool-subject-rules";
 import {
   computeGeminiCostFromTokenUsage,
@@ -137,12 +141,13 @@ function groupBooksBySubject(books: BookOption[]): BookListGroup[] {
   const map = new Map<string, BookListGroup>();
   for (const book of books) {
     const board = String(book.board || "Other").trim() || "Other";
-    const subject = String(book.subject || "Other").trim() || "Other";
+    // CBSE: Physics/Chemistry/Biology textbooks group under Science (AI Tool Topics).
+    const subjectGroup = bookListSubjectGroupKey(board, book.subject);
     const cat = normalizeIitCategory(book.productCategory);
-    const key = `${board}|${subject}|${cat || "GENERAL"}`;
+    const key = `${board}|${subjectGroup}|${cat || "GENERAL"}`;
     const label = cat
-      ? `${board} · ${subject} · ${formatIitCategoryLabel(cat)}`
-      : `${board} · ${subject}`;
+      ? `${board} · ${subjectGroup} · ${formatIitCategoryLabel(cat)}`
+      : `${board} · ${subjectGroup}`;
     const existing = map.get(key);
     if (existing) {
       existing.books.push(book);
@@ -154,6 +159,8 @@ function groupBooksBySubject(books: BookOption[]): BookListGroup[] {
     .map((group) => ({
       ...group,
       books: [...group.books].sort((a, b) => {
+        const branchCmp = String(a.subject || "").localeCompare(String(b.subject || ""));
+        if (branchCmp !== 0) return branchCmp;
         const classCmp = normalizeClassLabel(a.class).localeCompare(normalizeClassLabel(b.class));
         if (classCmp !== 0) return classCmp;
         return bookDisplayTitle(a).localeCompare(bookDisplayTitle(b));
@@ -250,14 +257,12 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
     subject || undefined,
     topic || undefined,
     board || undefined,
-    productCategory || undefined,
+    // CBSE/SSC use AI Tool Topics General; IIT uses the selected product track.
+    isIitAiToolBoard(board) ? productCategory || undefined : "",
   );
 
   const { codes: iitCategoryCodes, labelMap: iitLabelMap } = useProductCategories();
-  const isIitBoardSelected = useMemo(() => {
-    const boardKey = String(board || "").toUpperCase().replace(/[\s/\\-]+/g, "");
-    return boardKey.includes("IIT") || boardKey.includes("NEET") || boardKey.includes("JEE");
-  }, [board]);
+  const isIitBoardSelected = useMemo(() => isIitAiToolBoard(board), [board]);
   const categorySelectOptions = useMemo(() => {
     const rows = [{ code: "", label: "General" }];
     for (const code of iitCategoryCodes) {
@@ -347,10 +352,13 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
     const nextBoard = String(book.board || "").trim();
     const nextClassRaw = normalizeClassLabel(book.class);
     const nextClass = nextClassRaw === "Unassigned" ? "" : nextClassRaw;
-    const nextSubject = String(book.subject || "").trim();
-    const nextCategory = normalizeIitCategory(book.productCategory) || "";
-    const nextTopic = String(book.topic || "").trim();
-    const nextSubTopic = String(book.subtopic || "").trim();
+    const bookSubject = String(book.subject || "").trim();
+    // Curriculum subject/topics always follow AI Tool Topics.
+    // CBSE: Physics/Chemistry/Biology books map to Science.
+    const nextSubject = curriculumSubjectForAiToolTopics(nextBoard || board, bookSubject);
+    const nextCategory = isIitAiToolBoard(nextBoard || board)
+      ? normalizeIitCategory(book.productCategory) || ""
+      : "";
 
     if (nextBoard) {
       setBoard(nextBoard);
@@ -363,11 +371,12 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
     setProductCategory(nextCategory);
     setClassNumber(nextClass);
     setSubject(nextSubject);
-    setTopic(nextTopic);
-    setSubTopic(nextSubTopic || WHOLE_CHAPTER_VALUE);
+    // Do not copy book topic/subtopic — pick from AI Tool Topics only.
+    setTopic("");
+    setSubTopic(WHOLE_CHAPTER_VALUE);
     setExtraSubTopics([]);
     setExpandEachSubtopic(false);
-  }, []);
+  }, [board]);
 
   const loadBooks = async () => {
     setBooksLoading(true);
@@ -469,7 +478,8 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
   };
 
   const handleSubjectChange = (value: string) => {
-    setSubject(value);
+    // CBSE forms must stay on AI Tool Topics subjects (Science, not Chem/Phy/Bio).
+    setSubject(curriculumSubjectForAiToolTopics(board, value) || value);
     setTopic("");
     setSubTopic(WHOLE_CHAPTER_VALUE);
     setExtraSubTopics([]);
@@ -1010,9 +1020,17 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
                                 {statusBadge(b.processingStatus, b.embeddingsCreated)}
                               </div>
                               <p className="text-xs text-slate-500 mt-1">
-                                {bookGroupMode === "class"
-                                  ? `${b.subject || "Subject"}${normalizeIitCategory(b.productCategory) ? ` · ${formatIitCategoryLabel(b.productCategory)}` : ""}${b.chunkCount ? ` · ${b.chunkCount} chunks` : ""}`
-                                  : `${normalizeClassLabel(b.class)}${normalizeIitCategory(b.productCategory) ? ` · ${formatIitCategoryLabel(b.productCategory)}` : ""}${b.chunkCount ? ` · ${b.chunkCount} chunks` : ""}`}
+                                {(() => {
+                                  const branch = scienceBranchDisplayLabel(b.subject);
+                                  const curriculumSubject = bookListSubjectGroupKey(b.board, b.subject);
+                                  const subjectLine =
+                                    branch && curriculumSubject === "Science"
+                                      ? `Science · ${branch}`
+                                      : b.subject || "Subject";
+                                  return bookGroupMode === "class"
+                                    ? `${subjectLine}${normalizeIitCategory(b.productCategory) ? ` · ${formatIitCategoryLabel(b.productCategory)}` : ""}${b.chunkCount ? ` · ${b.chunkCount} chunks` : ""}`
+                                    : `${normalizeClassLabel(b.class)}${branch ? ` · ${branch}` : ""}${normalizeIitCategory(b.productCategory) ? ` · ${formatIitCategoryLabel(b.productCategory)}` : ""}${b.chunkCount ? ` · ${b.chunkCount} chunks` : ""}`;
+                                })()}
                               </p>
                             </button>
                           </li>
@@ -1030,6 +1048,14 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
               <FileText className="h-4 w-4 shrink-0" />
               <span>
                 Selected: <strong>{bookDisplayTitle(selectedBook)}</strong>
+                {(() => {
+                  const branch = scienceBranchDisplayLabel(selectedBook.subject);
+                  const mapped = curriculumSubjectForAiToolTopics(selectedBook.board, selectedBook.subject);
+                  if (branch && mapped === "Science") {
+                    return ` — CBSE curriculum subject: Science (${branch} textbook)`;
+                  }
+                  return "";
+                })()}
                 {bookReady ? " — ready for generation" : " — still indexing; reindex from Book Knowledge Base"}
               </span>
             </div>
@@ -1075,6 +1101,10 @@ export default function BookBasedGenerator({ onOpenBookKnowledge, onOpenAiToolDa
 
         <div className={cn("space-y-3 border-t border-slate-200 pt-4", !selectedTool && "opacity-60 pointer-events-none")}>
           <p className="text-sm font-semibold text-slate-900">2. Curriculum inputs</p>
+          <p className="text-xs text-slate-500">
+            Subject, topic, and sub-topic come only from <strong>AI Tool Topics</strong>.
+            On CBSE, Physics / Chemistry / Biology textbooks stay under <strong>Science</strong>.
+          </p>
           <div
             className={cn(
               "grid grid-cols-1 gap-3 sm:grid-cols-2",

@@ -59,6 +59,72 @@ export function isIitAiToolBoard(board?: string | null): boolean {
   return compact.includes('IIT') || compact.includes('NEET') || compact.includes('JEE');
 }
 
+/** CBSE / SSC / other school boards (not IIT tracks). */
+export function isSchoolCurriculumBoard(board?: string | null): boolean {
+  return Boolean(String(board || '').trim()) && !isIitAiToolBoard(board);
+}
+
+const SCIENCE_BRANCH_PLAIN_KEYS = new Set([
+  'physics',
+  'phy',
+  'chemistry',
+  'chem',
+  'biology',
+  'bio',
+]);
+
+/** Physics / Chemistry / Biology (branch textbooks under CBSE Science). */
+export function isScienceBranchSubject(subject?: string | null): boolean {
+  const raw = String(subject || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[/_.]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (!raw) return false;
+  const plain = extractPlainSubjectName(raw).toLowerCase().trim();
+  if (SCIENCE_BRANCH_PLAIN_KEYS.has(plain)) return true;
+  const first = plain.split(/\s+/)[0];
+  return Boolean(first && SCIENCE_BRANCH_PLAIN_KEYS.has(first));
+}
+
+export function scienceBranchDisplayLabel(subject?: string | null): string | null {
+  const raw = String(subject || '')
+    .trim()
+    .toLowerCase();
+  if (!raw) return null;
+  if (/chem/i.test(raw)) return 'Chemistry';
+  if (/phys|phy\b/i.test(raw)) return 'Physics';
+  if (/bio/i.test(raw)) return 'Biology';
+  return null;
+}
+
+/**
+ * Map book metadata subject → AI Tool Topics curriculum subject.
+ * CBSE-like boards: Physics/Chemistry/Biology textbooks use Science topics.
+ * IIT boards keep Physics/Chemistry/Biology as separate subjects.
+ */
+export function curriculumSubjectForAiToolTopics(
+  board: string | null | undefined,
+  bookOrFormSubject: string | null | undefined,
+): string {
+  const subject = String(bookOrFormSubject || '').trim();
+  if (!subject) return '';
+  if (isIitAiToolBoard(board)) return subject;
+  if (isScienceBranchSubject(subject) || /^science$/i.test(subject)) {
+    return 'Science';
+  }
+  return subject;
+}
+
+/** Group key for book lists: CBSE Chem/Phy/Bio books sit under Science. */
+export function bookListSubjectGroupKey(
+  board: string | null | undefined,
+  bookSubject: string | null | undefined,
+): string {
+  return curriculumSubjectForAiToolTopics(board, bookSubject) || String(bookSubject || 'Other').trim() || 'Other';
+}
+
 const IIT_STEM_PLAIN_KEYS = new Set([
   'physics',
   'phy',
