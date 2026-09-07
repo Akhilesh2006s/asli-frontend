@@ -36,7 +36,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useConfirm } from '@/hooks/use-confirm';
 import { API_BASE_URL } from '@/lib/api-config';
 import { cn } from '@/lib/utils';
-import { getExamClassStrings } from '@/lib/exam-classes';
+import { getExamClassStrings, normalizeClassNumber } from '@/lib/exam-classes';
 import {
   normalizeAndFormatExamDisplayText,
   parseAssertionReasonStem,
@@ -1102,7 +1102,7 @@ function mergeClassOptionLists(...lists: Array<string[] | undefined>): string[] 
   const collected = new Set<string>();
   for (const list of lists) {
     for (const raw of list || []) {
-      const value = String(raw || '').trim();
+      const value = normalizeClassNumber(String(raw || '').trim());
       if (!value || /^unassigned$/i.test(value)) continue;
       collected.add(value);
     }

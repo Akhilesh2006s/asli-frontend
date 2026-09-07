@@ -22,16 +22,16 @@ const ROMAN_TO_INT: Record<string, number> = {
   xii: 12,
 };
 
-/** Normalizes values like `-7`, `Class 7`, `7th`, `VI` into `7`. */
+/** Normalizes values like `-7`, `Class 7`, `7th`, `VI` into `7`. Junk → ''. */
 export function normalizeClassNumber(value?: unknown): string {
   if (value == null) return '';
   const raw = String(value).trim();
-  if (!raw) return '';
+  if (!raw || /^unassigned$/i.test(raw)) return '';
 
   const signedIntMatch = raw.match(/-?\d+/);
   if (signedIntMatch) {
     const parsed = Math.abs(parseInt(signedIntMatch[0], 10));
-    if (!Number.isNaN(parsed)) return String(parsed);
+    if (!Number.isNaN(parsed) && parsed >= 1 && parsed <= 12) return String(parsed);
   }
 
   const withoutClass = raw.replace(/^class\s+/i, '').trim();
@@ -43,7 +43,8 @@ export function normalizeClassNumber(value?: unknown): string {
     return String(ROMAN_TO_INT[romanKey]);
   }
 
-  return withoutClass || raw;
+  // Never keep garbage like "#_@_@_" as a class label.
+  return '';
 }
 
 /** Resolves class labels from API (array, classNumber, or odd legacy shapes). */
