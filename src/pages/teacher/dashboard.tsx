@@ -2450,25 +2450,37 @@ const TeacherDashboard = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5">
+                <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2 sm:gap-5">
                   {assignedClasses.length > 0 ? (
                     assignedClasses.map((classItem, index) => {
-                      const classId = classItem.id || index.toString();
+                      const classKey = [
+                        classItem.id || 'class',
+                        classItem.classNumber || '',
+                        classItem.section || '',
+                        index,
+                      ].join(':');
+                      const displayName =
+                        String(classItem.name || '').trim() ||
+                        `${String(classItem.classNumber || '').trim()}${String(classItem.section || '').trim()}` ||
+                        String(classItem.room || '')
+                          .replace(/^Room\s*/i, '')
+                          .trim() ||
+                        `Class ${index + 1}`;
                       return (
                         <ClassCard
-                          key={classId}
-                          name={classItem.name}
+                          key={classKey}
+                          name={displayName}
                           subject={classItem.subject}
                           studentCount={classItem.studentCount}
                           schedule={classItem.schedule}
                           room={classItem.room}
-                          expanded={expandedClasses.has(classId)}
+                          expanded={expandedClasses.has(classKey)}
                           students={classItem.students}
                           onToggleStudents={() => {
                             setExpandedClasses((prev) => {
                               const next = new Set(prev);
-                              if (next.has(classId)) next.delete(classId);
-                              else next.add(classId);
+                              if (next.has(classKey)) next.delete(classKey);
+                              else next.add(classKey);
                               return next;
                             });
                           }}

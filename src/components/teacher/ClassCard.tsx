@@ -103,7 +103,7 @@ export function ClassCard({
   return (
     <article
       className={cn(
-        'group flex h-full flex-col rounded-xl border border-gray-100 bg-white p-4',
+        'group flex flex-col rounded-xl border border-gray-100 bg-white p-4',
         'shadow-[0_1px_3px_rgba(15,23,42,0.06),0_4px_12px_rgba(15,23,42,0.04)]',
         'transition-all duration-200 ease-out',
         'hover:border-gray-200 hover:shadow-[0_4px_24px_rgba(79,70,229,0.08)]'
@@ -111,7 +111,7 @@ export function ClassCard({
     >
       <div className="mb-3 flex items-start justify-between gap-2">
         <h3 className="min-w-0 flex-1 text-lg font-bold leading-tight tracking-tight text-gray-900">
-          {name}
+          {name?.trim() || 'Class'}
         </h3>
         <Badge className="shrink-0 rounded-full border-0 bg-emerald-50 px-2 py-0.5 text-micro font-semibold text-emerald-700 ring-1 ring-emerald-100">
           Active
