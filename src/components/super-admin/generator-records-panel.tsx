@@ -166,7 +166,8 @@ export function GeneratorRecordsPanel({
       if (recordsBoardFilter && recordsBoardFilter !== "__all__") {
         qs.set("board", recordsBoardFilter);
       }
-      qs.set("limit", "400");
+      // Keep the first page lean so the list returns before proxies drop the socket.
+      qs.set("limit", "200");
       let res: Response | null = null;
       let json: {
         success?: boolean;
@@ -185,12 +186,12 @@ export function GeneratorRecordsPanel({
           headers: authHeaders(),
           credentials: "include",
           retries: 3,
-          retryDelayMs: 1200,
-          timeoutMs: 30_000,
+          retryDelayMs: 1500,
+          timeoutMs: 90_000,
         });
         json = await res.json().catch(() => null);
-        if (res.status !== 429) break;
-        await new Promise((r) => setTimeout(r, 800 * (attempt + 1)));
+        if (res.status !== 429 && res.status !== 503) break;
+        await new Promise((r) => setTimeout(r, 1000 * (attempt + 1)));
       }
       if (!res || !res.ok || !json?.success) {
         throw new Error(json?.message || "Failed to load records");

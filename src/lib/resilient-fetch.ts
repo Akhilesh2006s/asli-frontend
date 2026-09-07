@@ -89,7 +89,7 @@ export function networkErrorUserMessage(error: unknown): string {
     return String((error as Error)?.message || "Request failed");
   }
   return (
-    "Connection dropped while the server was still working (common during long AI batches or a brief database reconnect). " +
-    "Wait 30–60 seconds, refresh the records list, then retry if nothing new appeared."
+    "Could not finish loading records (slow connection or brief database reconnect). " +
+    "The list will retry automatically — tap Refresh if it stays empty."
   );
 }

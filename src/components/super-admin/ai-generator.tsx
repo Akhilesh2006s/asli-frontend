@@ -494,16 +494,19 @@ export default function SuperAdminAiGenerator() {
       if (boardFilter && boardFilter !== "__all__") {
         qs.set("board", boardFilter);
       }
-      qs.set("limit", "400");
+      qs.set("limit", "200");
       let res: Response | null = null;
       let json: { success?: boolean; message?: string; data?: { grouped?: unknown[]; total?: number; loadedCount?: number; truncated?: boolean } } | null = null;
       for (let attempt = 0; attempt < 3; attempt += 1) {
-        res = await fetch(`${API_BASE_URL}/api/ai-generator/records?${qs.toString()}`, {
+        res = await resilientFetch(`${API_BASE_URL}/api/ai-generator/records?${qs.toString()}`, {
           headers: { ...authHeaders() },
+          retries: 3,
+          retryDelayMs: 1500,
+          timeoutMs: 90_000,
         });
         json = await res.json().catch(() => null);
-        if (res.status !== 429) break;
-        await new Promise((r) => setTimeout(r, 800 * (attempt + 1)));
+        if (res.status !== 429 && res.status !== 503) break;
+        await new Promise((r) => setTimeout(r, 1000 * (attempt + 1)));
       }
       if (!res || !res.ok || !json?.success) {
         throw new Error(json?.message || "Failed to load records");
@@ -521,7 +524,7 @@ export default function SuperAdminAiGenerator() {
       setRecordsTruncated(false);
       toast({
         title: "Records load failed",
-        description: error?.message || "Could not load records.",
+        description: networkErrorUserMessage(error),
         variant: "destructive",
       });
     } finally {
