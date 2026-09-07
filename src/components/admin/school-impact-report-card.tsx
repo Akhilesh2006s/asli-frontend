@@ -294,33 +294,37 @@ export function SchoolImpactReportCard() {
 
             {Array.isArray(snap.teachers) && snap.teachers.length > 0 ? (
               <div className="space-y-2">
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                <p className="text-sm font-semibold uppercase tracking-wide text-slate-600">
                   Teachers ({snap.teachers.length})
                 </p>
-                <div className="max-h-48 overflow-y-auto rounded-xl border border-slate-200 bg-white divide-y">
+                <div className="max-h-56 overflow-y-auto rounded-xl border border-slate-200 bg-white divide-y">
                   {snap.teachers.map((t, idx) => (
                     <div
                       key={`${t.email || t.name}-${idx}`}
-                      className="flex items-center justify-between gap-2 px-3 py-2 text-sm"
+                      className="flex items-center justify-between gap-3 px-3.5 py-2.5"
                     >
                       <div className="min-w-0">
-                        <p className="font-medium text-slate-900 truncate">{t.name || "Teacher"}</p>
-                        {t.email ? <p className="text-[11px] text-slate-500 truncate">{t.email}</p> : null}
+                        <p className="truncate text-base font-semibold text-slate-900">
+                          {t.name || "Teacher"}
+                        </p>
+                        {t.email ? (
+                          <p className="truncate text-sm text-slate-500">{t.email}</p>
+                        ) : null}
                       </div>
                       <div className="shrink-0 text-right">
                         <Badge
                           variant="outline"
                           className={
                             t.status === "active"
-                              ? "border-emerald-200 text-emerald-700 bg-emerald-50"
+                              ? "border-emerald-200 text-emerald-700 bg-emerald-50 text-sm"
                               : t.status === "occasional"
-                                ? "border-amber-200 text-amber-700 bg-amber-50"
-                                : "border-slate-200 text-slate-600"
+                                ? "border-amber-200 text-amber-700 bg-amber-50 text-sm"
+                                : "border-slate-200 text-slate-600 text-sm"
                           }
                         >
                           {t.status || "—"}
                         </Badge>
-                        <p className="text-[11px] text-slate-500 mt-0.5">
+                        <p className="mt-0.5 text-sm text-slate-500">
                           {t.generationsCreated || 0} AI resource
                           {(t.generationsCreated || 0) === 1 ? "" : "s"}
                         </p>
@@ -333,35 +337,35 @@ export function SchoolImpactReportCard() {
 
             {Array.isArray(snap.studentReports) && snap.studentReports.length > 0 ? (
               <div className="space-y-2">
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                <p className="text-sm font-semibold uppercase tracking-wide text-slate-600">
                   Students ({snap.activeStudentCount ?? snap.studentReports.filter((s) => s.accessed).length}
                   {" / "}
                   {snap.totalStudents ?? snap.studentReports.length} active)
                 </p>
-                <div className="max-h-64 overflow-y-auto rounded-xl border border-slate-200 bg-white divide-y">
+                <div className="max-h-72 overflow-y-auto rounded-xl border border-slate-200 bg-white divide-y">
                   {snap.studentReports.slice(0, 40).map((s, idx) => (
                     <div
                       key={`${s.name}-${idx}`}
-                      className="flex items-start justify-between gap-2 px-3 py-2 text-sm"
+                      className="flex items-start justify-between gap-3 px-3.5 py-2.5"
                     >
                       <div className="min-w-0">
-                        <p className="font-medium text-slate-900 truncate">
+                        <p className="truncate text-base font-semibold text-slate-900">
                           {s.name || "Student"}
                           {s.classNumber ? (
-                            <span className="ml-1.5 text-[11px] font-normal text-slate-500">
+                            <span className="ml-1.5 text-sm font-normal text-slate-500">
                               Class {s.classNumber}
                             </span>
                           ) : null}
                         </p>
-                        <p className="text-[11px] text-slate-500 line-clamp-2">
+                        <p className="line-clamp-2 text-sm text-slate-500">
                           {s.summary ||
                             (s.accessed
                               ? `${s.sessions || 0} sessions · ${s.minutes || 0} min`
                               : "No activity this period")}
                         </p>
                       </div>
-                      <div className="shrink-0 text-right text-[11px] text-slate-600">
-                        <p>{s.accessed ? "Active" : "Inactive"}</p>
+                      <div className="shrink-0 text-right text-sm text-slate-600">
+                        <p className="font-medium">{s.accessed ? "Active" : "Inactive"}</p>
                         <p>{s.examAttempts || 0} exams</p>
                         <p>{s.aiDoubts || 0} AI</p>
                       </div>
@@ -369,7 +373,7 @@ export function SchoolImpactReportCard() {
                   ))}
                 </div>
                 {snap.studentReports.length > 40 ? (
-                  <p className="text-xs text-slate-500">
+                  <p className="text-sm text-slate-500">
                     Showing first 40 — download PDF for the full school report.
                   </p>
                 ) : null}
@@ -392,12 +396,12 @@ function Mini({
   icon: typeof Users;
 }) {
   return (
-    <div className="rounded-lg border border-orange-50 bg-orange-50/40 px-3 py-2">
-      <div className="flex items-center gap-1.5 text-xs text-slate-500">
-        <Icon className="h-3.5 w-3.5" />
+    <div className="rounded-lg border border-orange-50 bg-orange-50/40 px-3 py-2.5">
+      <div className="flex items-center gap-1.5 text-sm text-slate-500">
+        <Icon className="h-4 w-4" />
         {label}
       </div>
-      <p className="text-base font-semibold text-slate-900">{value}</p>
+      <p className="text-lg font-semibold text-slate-900">{value}</p>
     </div>
   );
 }
