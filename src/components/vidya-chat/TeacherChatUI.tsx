@@ -125,9 +125,27 @@ export function TeacherChatUI({ model, className }: TeacherChatUIProps) {
         <select id="vidya-teacher-subject" value={model.currentSubject}
           onChange={event => model.setSelectedSubject(event.target.value)}
           className="h-11 w-full rounded-xl border border-teal-green-200 bg-white px-3 text-base font-semibold text-slate-900 outline-none focus:ring-2 focus:ring-teal-green-300">
-          {model.subjectOptions.map(subject => <option key={subject} value={subject}>{subject}</option>)}
+          {model.subjectSelectOptions && model.subjectSelectOptions.length > 0 ? (
+            (['CBSE', 'IIT', 'Other'] as const).map((group) => {
+              const rows = model.subjectSelectOptions!.filter((row) => row.group === group);
+              if (rows.length === 0) return null;
+              return (
+                <optgroup key={group} label={group === 'IIT' ? 'IIT / NEET' : group}>
+                  {rows.map((row) => (
+                    <option key={`${group}:${row.value}`} value={row.value}>
+                      {row.label}
+                    </option>
+                  ))}
+                </optgroup>
+              );
+            })
+          ) : (
+            model.subjectOptions.map(subject => <option key={subject} value={subject}>{subject}</option>)
+          )}
         </select>
-        <p className="mt-1.5 text-xs text-slate-600">Vidya will keep lessons, explanations and quizzes inside this selected subject.</p>
+        <p className="mt-1.5 text-xs text-slate-600">
+          Subjects are grouped as <strong>CBSE</strong> and <strong>IIT / NEET</strong>. Vidya keeps lessons inside the selected subject.
+        </p>
       </div>
 
       <div className="flex-1 overflow-y-auto px-5 py-5 sm:px-7">

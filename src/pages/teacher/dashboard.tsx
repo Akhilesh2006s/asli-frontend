@@ -91,6 +91,7 @@ import { TeacherWorkDiaryPanel } from '@/components/teacher/TeacherWorkDiaryPane
 import { TeacherSettingsPanel } from '@/components/teacher/TeacherSettingsPanel';
 import { useToast } from '@/hooks/use-toast';
 import {
+  buildTeacherVidyaSubjectSelectOptions,
   extractPlainSubjectName,
   getSubjectClassLabel,
   subjectCatalogGroupKey,
@@ -356,6 +357,16 @@ const TeacherDashboard = () => {
         .map((s: any) => String(s?.name || s?.displayName || '').trim())
         .filter(Boolean),
     [teacherSubjects],
+  );
+
+  const teacherVidyaSubjectSelectOptions = useMemo(
+    () => buildTeacherVidyaSubjectSelectOptions(teacherSubjects || []),
+    [teacherSubjects],
+  );
+
+  const teacherVidyaSubjectValues = useMemo(
+    () => teacherVidyaSubjectSelectOptions.map((row) => row.value),
+    [teacherVidyaSubjectSelectOptions],
   );
 
   useEffect(() => {
@@ -2763,12 +2774,18 @@ const TeacherDashboard = () => {
                           promptVariant="teacher"
                           context={{
                             studentName: teacherUser?.fullName || teacherUser?.email?.split('@')[0] || "Teacher",
-                            currentSubject: teacherSubjects.length > 0 ? teacherSubjects[0].name : "General",
+                            currentSubject:
+                              teacherVidyaSubjectValues[0] ||
+                              (teacherSubjects.length > 0 ? teacherSubjects[0].name : "General"),
                             currentTopic: undefined,
                             teacherMode: teacherChatFocusTab,
-                            subjectOptions: teacherSubjects
-                              .map((s: any) => s.name || s.subjectName || '')
-                              .filter(Boolean),
+                            subjectOptions:
+                              teacherVidyaSubjectValues.length > 0
+                                ? teacherVidyaSubjectValues
+                                : teacherSubjects
+                                    .map((s: any) => s.name || s.subjectName || '')
+                                    .filter(Boolean),
+                            subjectSelectOptions: teacherVidyaSubjectSelectOptions,
                           }}
                         />
                       ) : (

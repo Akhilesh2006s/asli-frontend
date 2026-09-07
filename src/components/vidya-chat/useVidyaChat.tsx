@@ -147,6 +147,14 @@ export function useVidyaChat({
     ]
   );
 
+  const subjectSelectOptions = useMemo(() => {
+    const rows = Array.isArray(context?.subjectSelectOptions) ? context.subjectSelectOptions : [];
+    if (rows.length === 0) return undefined;
+    // Keep only options whose values exist in the selectable list (plus current).
+    const allowed = new Set(mergedSubjectOptions.map((s) => s.toLowerCase()));
+    return rows.filter((row) => allowed.has(String(row.value || "").toLowerCase()));
+  }, [context?.subjectSelectOptions, mergedSubjectOptions]);
+
   const [selectedSubject, setSelectedSubject] = useState(
     () => mergedSubjectOptions[0] || "General Study"
   );
@@ -754,6 +762,7 @@ export function useVidyaChat({
     inputPlaceholder,
     currentSubject: selectedSubject,
     subjectOptions: mergedSubjectOptions,
+    subjectSelectOptions,
     setSelectedSubject,
     userInitial: context?.studentName?.charAt(0)?.toUpperCase() || "A",
     fileInputRef,

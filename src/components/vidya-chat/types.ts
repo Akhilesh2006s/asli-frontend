@@ -17,6 +17,11 @@ export interface AIChatContext {
   currentSubject?: string;
   /** All subjects the student can pick; Vidya stays within the selected one */
   subjectOptions?: string[];
+  /**
+   * Optional CBSE / IIT grouped picker for teachers.
+   * Values remain original assigned subject names.
+   */
+  subjectSelectOptions?: Array<{ value: string; label: string; group: 'CBSE' | 'IIT' | 'Other' }>;
   currentTopic?: string;
   recentTest?: string;
 }
@@ -40,6 +45,7 @@ export interface UseVidyaChatResult {
   /** Subject currently driving Vidya’s answers */
   currentSubject: string;
   subjectOptions: string[];
+  subjectSelectOptions?: Array<{ value: string; label: string; group: 'CBSE' | 'IIT' | 'Other' }>;
   setSelectedSubject: (subject: string) => void;
   userInitial: string;
   fileInputRef: React.RefObject<HTMLInputElement>;
