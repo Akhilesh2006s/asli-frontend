@@ -8,7 +8,7 @@ import {
   type RefObject,
 } from 'react';
 import type * as pdfjs from 'pdfjs-dist';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut } from 'lucide-react';
 import PdfPagePinchFrame, {
   type PdfPagePinchFrameHandle,
 } from '@/components/shared/PdfPagePinchFrame';
@@ -433,6 +433,8 @@ const PdfMobileScrollViewer = forwardRef<PdfMobileScrollViewerHandle, PdfMobileS
   const scrollRef = useRef<HTMLDivElement>(null);
   const zoomedPagesRef = useRef(new Set<number>());
   const zoomHandlesRef = useRef(new Map<number, PdfPagePinchFrameHandle>());
+  const currentPageRef = useRef(1);
+  const persistedZoomRef = useRef(1);
   const restoredRef = useRef(false);
   const zoomRafRef = useRef(0);
   const zoomPendingRef = useRef<{ scale: number; dy: number; x: number; y: number } | null>(null);
@@ -444,22 +446,40 @@ const PdfMobileScrollViewer = forwardRef<PdfMobileScrollViewerHandle, PdfMobileS
   const [currentPage, setCurrentPage] = useState(() =>
     storageKey ? readStoredPdfPage(storageKey) : 1,
   );
+  currentPageRef.current = currentPage;
+
+  const getActiveZoomHandle = useCallback(() => {
+    const page = currentPageRef.current;
+    const exact = zoomHandlesRef.current.get(page);
+    if (exact) return exact;
+    // Prefer neighbors so +/- still hits the visible page while it mounts.
+    for (const candidate of [page - 1, page + 1, page - 2, page + 2]) {
+      const handle = zoomHandlesRef.current.get(candidate);
+      if (handle) return handle;
+    }
+    return zoomHandlesRef.current.values().next().value ?? null;
+  }, []);
 
   const registerZoomHandle = useCallback(
     (pageNum: number, handle: PdfPagePinchFrameHandle | null) => {
-      if (handle) zoomHandlesRef.current.set(pageNum, handle);
-      else zoomHandlesRef.current.delete(pageNum);
+      if (handle) {
+        zoomHandlesRef.current.set(pageNum, handle);
+        // Re-apply zoom after page remount (layout/resize) so +/- does not look dead.
+        if (pageNum === currentPageRef.current && persistedZoomRef.current > 1.02) {
+          const target = persistedZoomRef.current;
+          window.requestAnimationFrame(() => {
+            if (zoomHandlesRef.current.get(pageNum) !== handle) return;
+            if (Math.abs(handle.getScale() - target) > 0.02) {
+              handle.zoomTo(target);
+            }
+          });
+        }
+      } else {
+        zoomHandlesRef.current.delete(pageNum);
+      }
     },
     [],
   );
-
-  const getActiveZoomHandle = useCallback(() => {
-    return (
-      zoomHandlesRef.current.get(currentPage) ||
-      zoomHandlesRef.current.values().next().value ||
-      null
-    );
-  }, [currentPage]);
 
   const viewportHeight = viewportSize.height;
   const pageFitWidth =
@@ -491,11 +511,13 @@ const PdfMobileScrollViewer = forwardRef<PdfMobileScrollViewerHandle, PdfMobileS
     const any = zoomedPagesRef.current.size > 0;
     setAnyZoomed((prev) => (prev === any ? prev : any));
     setScrollLocked(false);
-    if (pageNum !== currentPage) return;
+    if (pageNum !== currentPageRef.current) return;
     const reported = any ? Math.max(1, scale) : 1;
     latestZoomRef.current = reported;
+    persistedZoomRef.current = reported;
     window.clearTimeout(zoomLabelTimerRef.current);
     if (!any) {
+      persistedZoomRef.current = 1;
       onZoomScaleChange?.(1);
       return;
     }
@@ -503,7 +525,7 @@ const PdfMobileScrollViewer = forwardRef<PdfMobileScrollViewerHandle, PdfMobileS
       zoomLabelTimerRef.current = 0;
       onZoomScaleChange?.(latestZoomRef.current);
     }, 150);
-  }, [currentPage, onZoomScaleChange]);
+  }, [onZoomScaleChange]);
 
   const persistPage = useCallback(
     (page: number) => {
@@ -558,7 +580,7 @@ const PdfMobileScrollViewer = forwardRef<PdfMobileScrollViewerHandle, PdfMobileS
       event.preventDefault();
       event.stopPropagation();
       const handle =
-        zoomHandlesRef.current.get(currentPage) ||
+        zoomHandlesRef.current.get(currentPageRef.current) ||
         zoomHandlesRef.current.values().next().value ||
         null;
       if (!handle) return;
@@ -583,7 +605,7 @@ const PdfMobileScrollViewer = forwardRef<PdfMobileScrollViewerHandle, PdfMobileS
         zoomPendingRef.current = null;
         if (!next) return;
         const active =
-          zoomHandlesRef.current.get(currentPage) ||
+          zoomHandlesRef.current.get(currentPageRef.current) ||
           zoomHandlesRef.current.values().next().value ||
           null;
         const factor = Math.exp(-Math.max(-160, Math.min(160, next.dy)) * 0.0032);
@@ -603,7 +625,7 @@ const PdfMobileScrollViewer = forwardRef<PdfMobileScrollViewerHandle, PdfMobileS
         zoomRafRef.current = 0;
       }
     };
-  }, [currentPage, totalPages, pdf]);
+  }, [totalPages, pdf]);
 
   useEffect(() => {
     const host = scrollRef.current;
@@ -748,12 +770,53 @@ const PdfMobileScrollViewer = forwardRef<PdfMobileScrollViewerHandle, PdfMobileS
         });
       },
       getScrollElement: () => scrollRef.current,
-      zoomIn: () => getActiveZoomHandle()?.zoomIn(),
-      zoomOut: () => getActiveZoomHandle()?.zoomOut(),
-      resetZoom: () => getActiveZoomHandle()?.resetZoom(),
-      getZoomScale: () => getActiveZoomHandle()?.getScale() ?? 1,
+      zoomIn: () => {
+        const run = (attempts = 0) => {
+          const exact = zoomHandlesRef.current.get(currentPageRef.current);
+          const handle = exact || (attempts >= 4 ? getActiveZoomHandle() : null);
+          if (handle) {
+            handle.zoomIn();
+            const next = handle.getScale();
+            persistedZoomRef.current = next;
+            latestZoomRef.current = next;
+            onZoomScaleChange?.(next);
+            return;
+          }
+          if (attempts < 12) {
+            window.requestAnimationFrame(() => run(attempts + 1));
+          }
+        };
+        run();
+      },
+      zoomOut: () => {
+        const run = (attempts = 0) => {
+          const exact = zoomHandlesRef.current.get(currentPageRef.current);
+          const handle = exact || (attempts >= 4 ? getActiveZoomHandle() : null);
+          if (handle) {
+            handle.zoomOut();
+            const next = handle.getScale();
+            persistedZoomRef.current = next;
+            latestZoomRef.current = next;
+            onZoomScaleChange?.(next);
+            return;
+          }
+          if (attempts < 12) {
+            window.requestAnimationFrame(() => run(attempts + 1));
+          }
+        };
+        run();
+      },
+      resetZoom: () => {
+        const handle =
+          zoomHandlesRef.current.get(currentPageRef.current) || getActiveZoomHandle();
+        handle?.resetZoom();
+        persistedZoomRef.current = 1;
+        latestZoomRef.current = 1;
+        onZoomScaleChange?.(1);
+      },
+      getZoomScale: () => getActiveZoomHandle()?.getScale() ?? persistedZoomRef.current,
     }),
-    [goToPage, currentPage, getActiveZoomHandle],
+    [goToPage, getActiveZoomHandle, onZoomScaleChange],
   );
 
   return (
@@ -821,6 +884,29 @@ const PdfMobileScrollViewer = forwardRef<PdfMobileScrollViewerHandle, PdfMobileS
               aria-label="Next page"
             >
               <ChevronRight className="h-5 w-5" />
+            </Button>
+            <span className="mx-0.5 h-6 w-px bg-stone-300" aria-hidden />
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-10 min-w-10 rounded-xl px-0 sm:h-11 sm:min-w-11"
+              onClick={() => getActiveZoomHandle()?.zoomOut()}
+              aria-label="Zoom out"
+              title="Zoom out"
+            >
+              <ZoomOut className="h-4 w-4" />
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-10 min-w-10 rounded-xl px-0 sm:h-11 sm:min-w-11"
+              onClick={() => getActiveZoomHandle()?.zoomIn()}
+              aria-label="Zoom in"
+              title="Zoom in"
+            >
+              <ZoomIn className="h-4 w-4" />
             </Button>
           </div>
         </div>

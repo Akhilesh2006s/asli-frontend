@@ -399,6 +399,11 @@ function PdfPageJumpBar({
   onSubmit,
   onPrev,
   onNext,
+  zoomScale = 1,
+  onZoomIn,
+  onZoomOut,
+  onResetZoom,
+  showZoom = true,
 }: {
   page: number;
   pageCount: number;
@@ -407,6 +412,11 @@ function PdfPageJumpBar({
   onSubmit: () => void;
   onPrev: () => void;
   onNext: () => void;
+  zoomScale?: number;
+  onZoomIn?: () => void;
+  onZoomOut?: () => void;
+  onResetZoom?: () => void;
+  showZoom?: boolean;
 }) {
   const knownCount = pageCount > 0;
   return (
@@ -461,6 +471,52 @@ function PdfPageJumpBar({
       >
         <ChevronRight className="h-5 w-5" />
       </Button>
+      {showZoom ? (
+        <>
+          <span className="mx-0.5 hidden h-6 w-px bg-stone-300 sm:block" aria-hidden />
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-10 min-w-10 rounded-xl px-0 sm:h-11 sm:min-w-11"
+            onClick={onZoomOut}
+            aria-label="Zoom out"
+            title="Zoom out"
+            disabled={zoomScale <= 1.02}
+          >
+            <ZoomOut className="h-4 w-4" />
+          </Button>
+          <span
+            className="min-w-12 text-center text-xs font-semibold tabular-nums text-stone-700"
+            aria-live="polite"
+            aria-label={`Zoom ${Math.round(zoomScale * 100)} percent`}
+          >
+            {Math.round(zoomScale * 100)}%
+          </span>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-10 min-w-10 rounded-xl px-0 sm:h-11 sm:min-w-11"
+            onClick={onZoomIn}
+            aria-label="Zoom in"
+            title="Zoom in"
+            disabled={zoomScale >= 3.24}
+          >
+            <ZoomIn className="h-4 w-4" />
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-10 rounded-xl px-2 text-xs sm:h-11"
+            disabled={zoomScale <= 1.02}
+            onClick={onResetZoom}
+          >
+            Reset
+          </Button>
+        </>
+      ) : null}
     </div>
   );
 }
@@ -1183,6 +1239,7 @@ export default function PdfPreviewPanel({
           onSubmit={submitPageJump}
           onPrev={() => jumpReaderPage(readerPage - 1)}
           onNext={() => jumpReaderPage(readerPage + 1)}
+          showZoom={false}
         />
       </div>
     );
@@ -1350,6 +1407,11 @@ export default function PdfPreviewPanel({
         onSubmit={submitPageJump}
         onPrev={() => jumpReaderPage(readerPage - 1)}
         onNext={() => jumpReaderPage(readerPage + 1)}
+        showZoom={!useIframeFallback}
+        zoomScale={readerZoomScale}
+        onZoomIn={() => mobileViewerRef.current?.zoomIn()}
+        onZoomOut={() => mobileViewerRef.current?.zoomOut()}
+        onResetZoom={() => mobileViewerRef.current?.resetZoom()}
       />
     </div>
   );

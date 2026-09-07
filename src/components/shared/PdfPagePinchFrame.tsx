@@ -5,6 +5,7 @@ import {
   useImperativeHandle,
   useLayoutEffect,
   useRef,
+  useState,
   type ReactNode,
   type RefObject,
 } from 'react';
@@ -56,8 +57,9 @@ const PdfPagePinchFrame = forwardRef<PdfPagePinchFrameHandle, Props>(function Pd
 ) {
   const frameRef = useRef<HTMLDivElement>(null);
   const innerRef = useRef<HTMLDivElement>(null);
-  const sizeRef = useRef({ pageWidth, pageHeight });
   const scaleRef = useRef(MIN_SCALE);
+  /** Keep transform in React state so re-renders cannot wipe DOM-only scale. */
+  const [scale, setScale] = useState(MIN_SCALE);
   const pinchRef = useRef({ startDistance: 0, startScale: MIN_SCALE, pinching: false });
   const dragRef = useRef<{
     active: boolean;
@@ -93,7 +95,9 @@ const PdfPagePinchFrame = forwardRef<PdfPagePinchFrameHandle, Props>(function Pd
   });
   const lastTapRef = useRef(0);
   const clickZoomTimerRef = useRef<number | null>(null);
-  sizeRef.current = { pageWidth, pageHeight };
+  const zoomed = scale > ZOOM_EPSILON;
+  const frameW = Math.max(1, Math.round(pageWidth * scale));
+  const frameH = Math.max(1, Math.round(pageHeight * scale));
 
   const findScrollParent = useCallback((): HTMLElement | null => {
     const preferred = scrollParentRef?.current ?? null;
@@ -128,22 +132,6 @@ const PdfPagePinchFrame = forwardRef<PdfPagePinchFrameHandle, Props>(function Pd
     };
   }, [findScrollParent]);
 
-  const paintScale = useCallback((clamped: number) => {
-    const frame = frameRef.current;
-    const inner = innerRef.current;
-    const { pageWidth: pw, pageHeight: ph } = sizeRef.current;
-    if (!frame || !inner) return;
-    const zooming = clamped > ZOOM_EPSILON;
-    frame.style.width = `${Math.max(1, Math.round(pw * clamped))}px`;
-    frame.style.height = `${Math.max(1, Math.round(ph * clamped))}px`;
-    frame.style.overflow = zooming ? 'visible' : 'hidden';
-    frame.style.cursor = zooming ? 'grab' : 'zoom-in';
-    frame.style.zIndex = zooming ? '5' : '1';
-    frame.style.touchAction = zooming ? 'none' : 'pan-y';
-    frame.dataset.pdfZoomed = zooming ? 'true' : 'false';
-    inner.style.transform = `scale(${clamped})`;
-  }, []);
-
   const applyScale = useCallback(
     (next: number, origin?: ZoomOrigin) => {
       const clamped = clampScale(next);
@@ -162,22 +150,29 @@ const PdfPagePinchFrame = forwardRef<PdfPagePinchFrameHandle, Props>(function Pd
       }
 
       scaleRef.current = clamped;
-      paintScale(clamped);
+      setScale(clamped);
 
-      if (scrollEl && frame && point && prev > 0) {
-        const frameRect = frame.getBoundingClientRect();
+      // Adjust scroll after layout so the zoom origin stays under the pointer.
+      window.requestAnimationFrame(() => {
+        if (!scrollEl || !frameRef.current || !point || prev <= 0) return;
+        const frameRect = frameRef.current.getBoundingClientRect();
         scrollEl.scrollLeft += frameRect.left + localX * clamped - point.clientX;
         scrollEl.scrollTop += frameRect.top + localY * clamped - point.clientY;
-      }
+      });
 
       onZoomChange(clamped > ZOOM_EPSILON, clamped);
     },
-    [onZoomChange, findScrollParent, viewportOrigin, paintScale],
+    [onZoomChange, findScrollParent, viewportOrigin],
   );
 
   useLayoutEffect(() => {
-    paintScale(scaleRef.current);
-  }, [pageWidth, pageHeight, paintScale]);
+    const frame = frameRef.current;
+    if (!frame) return;
+    frame.style.cursor = zoomed ? 'grab' : 'zoom-in';
+    frame.style.zIndex = zoomed ? '5' : '1';
+    frame.style.touchAction = zoomed ? 'none' : 'pan-y';
+    frame.dataset.pdfZoomed = zoomed ? 'true' : 'false';
+  }, [zoomed, pageWidth, pageHeight]);
 
   const resetZoom = useCallback(() => {
     applyScale(MIN_SCALE, viewportOrigin());
@@ -455,9 +450,15 @@ const PdfPagePinchFrame = forwardRef<PdfPagePinchFrameHandle, Props>(function Pd
   return (
     <div
       ref={frameRef}
-      className="pdf-page-pinch-frame shrink-0 select-none overflow-hidden rounded-sm bg-transparent shadow-[0_18px_50px_-28px_rgba(15,23,42,0.55)]"
-      data-pdf-zoomed="false"
-      style={{ WebkitUserSelect: 'none', userSelect: 'none' }}
+      className="pdf-page-pinch-frame shrink-0 select-none rounded-sm bg-transparent shadow-[0_18px_50px_-28px_rgba(15,23,42,0.55)]"
+      data-pdf-zoomed={zoomed ? 'true' : 'false'}
+      style={{
+        width: `${frameW}px`,
+        height: `${frameH}px`,
+        overflow: zoomed ? 'visible' : 'hidden',
+        WebkitUserSelect: 'none',
+        userSelect: 'none',
+      }}
       aria-label="PDF page — pinch or Ctrl+scroll to zoom, drag to pan"
       title="Ctrl+scroll or +/- to zoom · drag to pan when zoomed"
     >
@@ -468,6 +469,7 @@ const PdfPagePinchFrame = forwardRef<PdfPagePinchFrameHandle, Props>(function Pd
           width: `${pageWidth}px`,
           height: `${pageHeight}px`,
           transformOrigin: 'top left',
+          transform: `scale(${scale})`,
         }}
       >
         {children}
