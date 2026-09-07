@@ -80,7 +80,6 @@ import { EduOTTFeaturedHero, EduOTTStage } from '@/components/eduott/EduOTTStage
 import { getEduOTTThumbnailUrl, resolveContentDurationSeconds } from '@/lib/eduott-video-utils';
 import { Skeleton } from '@/components/ui/skeleton';
 import { InteractiveBackground, FloatingParticles } from "@/components/background/InteractiveBackground";
-import VidyaAIFloatingAssistant from '@/components/student/VidyaAIFloatingAssistant';
 import { isVidyaEnabledForUser } from '@/lib/vidya-access';
 import { TeacherVidyaToolsGrid } from '@/components/teacher/TeacherVidyaToolsGrid';
 import { isAiToolVisibleForSubjects } from '@/lib/ai-tool-subject-rules';
@@ -4127,13 +4126,6 @@ const TeacherDashboard = () => {
           </form>
         </DialogContent>
       </Dialog>
-
-      {vidyaChatEnabled ? (
-      <VidyaAIFloatingAssistant
-        role="teacher"
-        onClick={() => selectDashboardSubTab('vidya-ai')}
-      />
-      ) : null}
 
       </div>
     </TeacherShell>
