@@ -701,7 +701,11 @@ export default function StudentToolPage() {
     formParams.subject,
     cascadeTopic,
     selectedBoard,
-    formParams.productCategory === 'NONE' ? '' : formParams.productCategory || undefined,
+    isIitAiToolBoard(selectedBoard)
+      ? formParams.productCategory === 'NONE'
+        ? ''
+        : formParams.productCategory || undefined
+      : '',
   );
 
   const classSelectOptions = useMemo(() => {

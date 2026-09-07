@@ -408,7 +408,12 @@ export default function TeacherToolPage() {
     formParams.subject || formParams.subjects,
     formParams.topic,
     selectedBoard,
-    formParams.productCategory === 'NONE' ? '' : formParams.productCategory || undefined,
+    // CBSE/SSC use AI Tool Topics "General". IIT uses the selected product track.
+    isIitAiToolBoard(selectedBoard)
+      ? formParams.productCategory === 'NONE'
+        ? ''
+        : formParams.productCategory || undefined
+      : '',
   );
 
   const availableSubjects = (() => {
@@ -586,7 +591,7 @@ export default function TeacherToolPage() {
     fetchStudents();
   }, [toolType]);
 
-  // Topics from curriculum API + AI Tool Topics (skip NCERT-only filters for IIT/NEET boards)
+  // Topics from Super Admin AI Tool Topics only (via curriculum cascade)
   useEffect(() => {
     const classValue = formParams.gradeLevel;
     const subjectValue = formParams.subject || formParams.subjects;
@@ -601,162 +606,11 @@ export default function TeacherToolPage() {
       return;
     }
 
-    const topics = [...cascade.topics];
-    const boardKey = String(selectedBoard || formParams.board || '')
-      .toUpperCase()
-      .replace(/[\s/\\-]+/g, '');
-    const isIitBoard =
-      boardKey.includes('IIT') || boardKey.includes('NEET') || boardKey.includes('JEE');
-
-    if (isIitBoard || topics.length > 0) {
-      setAvailableNCERTTopics(topics);
-      return;
-    }
-
-    const classNumber =
-      classValue === 'IIT-6' ? NaN : parseInt(classValue.replace('Class ', '').trim());
-
-    const isNcertScienceSyllabus =
-      !isNaN(classNumber) &&
-      (classNumber === 6 || classNumber === 7 || classNumber === 8 || classNumber === 10) &&
-      subjectValue &&
-      /science/i.test(String(subjectValue)) &&
-      !/social|computer/i.test(String(subjectValue));
-    const isClass7EnglishPoorvi =
-      !isNaN(classNumber) &&
-      classNumber === 7 &&
-      subjectValue &&
-      /english/i.test(String(subjectValue));
-    const isClass6EnglishPoorvi =
-      !isNaN(classNumber) &&
-      classNumber === 6 &&
-      subjectValue &&
-      /english/i.test(String(subjectValue));
-    const isClass6HindiMalhar =
-      !isNaN(classNumber) &&
-      classNumber === 6 &&
-      subjectValue &&
-      /(hindi|हिंदी|हिन्दी)/i.test(String(subjectValue));
-    const isClass6MathematicsSyllabus =
-      !isNaN(classNumber) &&
-      classNumber === 6 &&
-      subjectValue &&
-      /(mathematics|maths|math|ganita|गणित)/i.test(String(subjectValue));
-    const isClass6SocialScienceSyllabus =
-      !isNaN(classNumber) &&
-      classNumber === 6 &&
-      subjectValue &&
-      /(social\s*science|social\s*studies|sst|exploring\s*society)/i.test(String(subjectValue));
-    const isClass7HindiSyllabus =
-      !isNaN(classNumber) &&
-      classNumber === 7 &&
-      subjectValue &&
-      /(hindi|हिंदी|हिन्दी)/i.test(String(subjectValue));
-    const isClass7MathematicsSyllabus =
-      !isNaN(classNumber) &&
-      classNumber === 7 &&
-      subjectValue &&
-      /(mathematics|maths|math|ganita|गणित)/i.test(String(subjectValue));
-    const isClass7SocialScienceSyllabus =
-      !isNaN(classNumber) &&
-      classNumber === 7 &&
-      subjectValue &&
-      /(social\s*science|social\s*studies|sst|exploring\s*society)/i.test(String(subjectValue));
-    const isClass8EnglishPoorvi =
-      !isNaN(classNumber) &&
-      classNumber === 8 &&
-      subjectValue &&
-      /english/i.test(String(subjectValue));
-    const isClass8HindiMalhar =
-      !isNaN(classNumber) &&
-      classNumber === 8 &&
-      subjectValue &&
-      /(hindi|हिंदी|हिन्दी)/i.test(String(subjectValue));
-    const isClass8MathematicsSyllabus =
-      !isNaN(classNumber) &&
-      classNumber === 8 &&
-      subjectValue &&
-      /(mathematics|maths|math|ganita|गणित)/i.test(String(subjectValue));
-    const isClass8SocialScienceSyllabus =
-      !isNaN(classNumber) &&
-      classNumber === 8 &&
-      subjectValue &&
-      /(social\s*science|social\s*studies|sst|exploring\s*society)/i.test(String(subjectValue));
-    const isClass10EnglishSyllabus =
-      !isNaN(classNumber) &&
-      classNumber === 10 &&
-      subjectValue &&
-      /english/i.test(String(subjectValue));
-    const isClass10MathematicsSyllabus =
-      !isNaN(classNumber) &&
-      classNumber === 10 &&
-      subjectValue &&
-      /(mathematics|maths|math|गणित)/i.test(String(subjectValue));
-    const isClass10SocialScienceSyllabus =
-      !isNaN(classNumber) &&
-      classNumber === 10 &&
-      subjectValue &&
-      /(social\s*science|social\s*studies|sst|history|geography|economics|political\s*science|civics)/i.test(
-        String(subjectValue),
-      );
-    const isClass10HindiSyllabus =
-      !isNaN(classNumber) &&
-      classNumber === 10 &&
-      subjectValue &&
-      /(hindi|हिंदी|हिन्दी)/i.test(String(subjectValue));
-
-    // Keep full NCERT chapter list — do not hide topics missing hardcoded assets
-    if (
-      (isNcertScienceSyllabus ||
-        isClass6EnglishPoorvi ||
-        isClass6HindiMalhar ||
-        isClass6MathematicsSyllabus ||
-        isClass6SocialScienceSyllabus ||
-        isClass7EnglishPoorvi ||
-        isClass7HindiSyllabus ||
-        isClass7MathematicsSyllabus ||
-        isClass7SocialScienceSyllabus ||
-        isClass8EnglishPoorvi ||
-        isClass8HindiMalhar ||
-        isClass8MathematicsSyllabus ||
-        isClass8SocialScienceSyllabus ||
-        isClass10EnglishSyllabus ||
-        isClass10MathematicsSyllabus ||
-        isClass10SocialScienceSyllabus ||
-        isClass10HindiSyllabus) &&
-      topics.length > 0
-    ) {
-      setAvailableNCERTTopics(topics);
-      return;
-    }
-
-    if (
-      classValue !== 'IIT-6' &&
-      !isNaN(classNumber) &&
-      (classNumber === 6 || classNumber === 7) &&
-      topics.length > 0
-    ) {
-      const toolsNeedingFiltering = new Set([
-        'homework-creator',
-        'exam-question-paper-generator',
-        'short-notes-summaries-maker',
-        'worksheet-mcq-generator',
-        'concept-mastery-helper',
-        'lesson-planner',
-        'story-passage-creator',
-      ]);
-
-      void toolsNeedingFiltering;
-    }
-
-    setAvailableNCERTTopics(topics);
+    setAvailableNCERTTopics([...cascade.topics]);
   }, [
     formParams.gradeLevel,
     formParams.subject,
     formParams.subjects,
-    formParams.board,
-    selectedBoard,
-    toolType,
     cascade.topics,
     cascade.loadingTopics,
   ]);
