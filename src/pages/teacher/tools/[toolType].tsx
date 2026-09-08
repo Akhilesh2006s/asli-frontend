@@ -61,6 +61,7 @@ import { buildAiToolViewerRecord } from '@/lib/build-ai-tool-viewer-record';
 import type { AiToolGenerationMeta } from '@/lib/ai-tool-generation-summary';
 import { useCurriculumCascade } from '@/hooks/use-curriculum-cascade';
 import {
+  collapseSchoolBoardScienceSubjects,
   filterSubjectsForAiTool,
   filterSubjectsForIitBoard,
   isIitAiToolBoard,
@@ -431,11 +432,16 @@ export default function TeacherToolPage() {
     }
     // Prefer assigned subjects even when curriculum taxonomy is incomplete
     // (e.g. Class 6 CBSE cascade may only list English / Math / Science).
+    let merged: string[];
     if (assignedSubjectNames.length > 0) {
-      return mergeAssignedWithCurriculum(raw);
+      merged = mergeAssignedWithCurriculum(raw);
+    } else if (raw.length === 0) {
+      merged = [];
+    } else {
+      merged = uniquePreserveOrder(raw);
     }
-    if (raw.length === 0) return [];
-    return uniquePreserveOrder(raw);
+    // CBSE/SSC: Physics/Chemistry/Biology → one Science option (matches NCERT).
+    return collapseSchoolBoardScienceSubjects(selectedBoard, merged);
   })();
 
   const classSelectOptions =

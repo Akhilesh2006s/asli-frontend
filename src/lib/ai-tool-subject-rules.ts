@@ -125,6 +125,30 @@ export function bookListSubjectGroupKey(
   return curriculumSubjectForAiToolTopics(board, bookSubject) || String(bookSubject || 'Other').trim() || 'Other';
 }
 
+/**
+ * CBSE / SSC teacher & student tool dropdowns: show one Science option.
+ * Physics / Chemistry / Biology stay separate only on IIT boards.
+ */
+export function collapseSchoolBoardScienceSubjects(
+  board: string | null | undefined,
+  subjects: string[],
+): string[] {
+  const list = Array.isArray(subjects) ? subjects.filter(Boolean) : [];
+  if (!list.length || isIitAiToolBoard(board)) return list;
+
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const raw of list) {
+    const mapped = curriculumSubjectForAiToolTopics(board, raw) || String(raw).trim();
+    if (!mapped) continue;
+    const key = mapped.toLowerCase().replace(/\s+/g, ' ');
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(mapped);
+  }
+  return out;
+}
+
 const IIT_STEM_PLAIN_KEYS = new Set([
   'physics',
   'phy',

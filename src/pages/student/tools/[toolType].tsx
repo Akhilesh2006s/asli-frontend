@@ -66,6 +66,7 @@ import { buildAiToolViewerRecord } from '@/lib/build-ai-tool-viewer-record';
 import { resolveStudentAiApiToolType } from '@/lib/student-ai-tool-routes';
 import type { AiToolGenerationMeta } from '@/lib/ai-tool-generation-summary';
 import {
+  collapseSchoolBoardScienceSubjects,
   filterSubjectsForAiTool,
   filterSubjectsForIitBoard,
   isIitAiToolBoard,
@@ -721,7 +722,7 @@ export default function StudentToolPage() {
     if (isIitAiToolBoard(selectedBoard)) {
       return filterSubjectsForIitBoard(raw);
     }
-    return raw;
+    return collapseSchoolBoardScienceSubjects(selectedBoard, raw);
   })();
 
   const toolType = params?.toolType || '';
