@@ -14,6 +14,12 @@ export function stripVariantScaffoldFromQuestionText(text: string): string {
   q = q.replace(/^(?:record|set)\s+\d+\s*:\s*/i, '').trim();
   q = q.replace(/\s*\((?:VSA|SA|LA|MCQ|HOTS|Q)\s*\d+\)\s*$/i, '').trim();
   q = q.replace(/\s*\(variant\s+\d+\)\s*$/i, '').trim();
+  // Batch scaffold titles: "… — Practice Activity 883" / "Concept Mastery (Guide 12)"
+  q = q.replace(/\s*[—–-]\s*practice\s+activity\s+\d+\s*$/i, '').trim();
+  q = q.replace(/\s+practice\s+activity\s+\d+\s*$/i, '').trim();
+  q = q.replace(/\s*[—–-]\s*concept\s+mastery\s*\(guide\s*\d+\)\s*$/i, '').trim();
+  q = q.replace(/\s*\(guide\s*\d+\)\s*$/i, '').trim();
+  q = q.replace(/^\s*variant\s+\d+\s*:\s*/i, '').trim();
 
   return q;
 }
